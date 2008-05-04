@@ -1,0 +1,8 @@
+History.txt
+License.txt
+README.txt
+lib/active_record/connection_adapters/oracle_enhanced_adapter.rb
+lib/active_record/connection_adapters/oracle_enhanced_version.rb
+spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb
+spec/spec.opts
+spec/spec_helper.rb
