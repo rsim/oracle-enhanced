@@ -1,26 +1,25 @@
 = activerecord-oracle-enhanced-adapter
 
-* FIX (url)
+* http://rubyforge.org/projects/oracle-enhanced/
 
 == DESCRIPTION:
 
-FIX (describe your package)
+Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases
+from Rails which are extracted from current real projects' monkey patches of original Oracle adapter.
 
 == FEATURES/PROBLEMS:
 
-* FIX (list of features or problems)
 
 == SYNOPSIS:
 
-  FIX (code sample of usage)
 
 == REQUIREMENTS:
 
-* FIX (list of requirements)
+* Requires ruby-oci8 library to connect to Oracle
 
 == INSTALL:
 
-* FIX (sudo gem install, anything else)
+* sudo gem install activerecord-oracle-enhanced-adapter
 
 == LICENSE:
 
