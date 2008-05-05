@@ -38,19 +38,19 @@ begin
     class Base
       def self.oracle_enhanced_connection(config) #:nodoc:
         # Use OCI8AutoRecover instead of normal OCI8 driver.
-        ConnectionAdapters::OracleEnhancedAdapter.new OCI8AutoRecover.new(config), logger
+        ConnectionAdapters::OracleEnhancedAdapter.new OCI8EnhancedAutoRecover.new(config), logger
       end
 
       # After setting large objects to empty, select the OCI8::LOB
       # and write back the data.
-      after_save :write_lobs
-      def write_lobs #:nodoc:
+      after_save :enhanced_write_lobs
+      def enhanced_write_lobs #:nodoc:
         if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter)
           connection.write_lobs(self.class.table_name, self.class, attributes)
         end
       end
 
-      private :write_lobs
+      private :enhanced_write_lobs
     end
 
 
@@ -299,8 +299,9 @@ begin
           select_one("select sys_context('userenv','db_name') db from dual")["db"]
         end
 
+        # RSI: changed select from user_tables to all_tables - much faster in large data dictionaries
         def tables(name = nil) #:nodoc:
-          select_all("select lower(table_name) from user_tables").inject([]) do | tabs, t |
+          select_all("select lower(table_name) from all_tables where owner = sys_context('userenv','session_user')").inject([]) do | tabs, t |
             tabs << t.to_a.first.last
           end
         end
@@ -411,9 +412,10 @@ begin
         def pk_and_sequence_for(table_name)
           (owner, table_name) = @connection.describe(table_name)
 
+          # RSI: changed select from all_constraints to user_constraints - much faster in large data dictionaries
           pks = select_values(<<-SQL, 'Primary Key')
             select cc.column_name
-              from all_constraints c, all_cons_columns cc
+              from user_constraints c, all_cons_columns cc
              where c.owner = '#{owner}'
                and c.table_name = '#{table_name}'
                and c.constraint_type = 'P'
@@ -430,7 +432,8 @@ begin
             structure << "create sequence #{seq.to_a.first.last};\n\n"
           end
 
-          select_all("select table_name from user_tables").inject(s) do |structure, table|
+          # RSI: changed select from user_tables to all_tables - much faster in large data dictionaries
+          select_all("select table_name from all_tables where owner = sys_context('userenv','session_user')").inject(s) do |structure, table|
             ddl = "create table #{table.to_a.first.last} (\n "
             cols = select_all(%Q{
               select column_name, data_type, data_length, data_precision, data_scale, data_default, nullable
@@ -461,7 +464,8 @@ begin
             drop << "drop sequence #{seq.to_a.first.last};\n\n"
           end
 
-          select_all("select table_name from user_tables").inject(s) do |drop, table|
+          # RSI: changed select from user_tables to all_tables - much faster in large data dictionaries
+          select_all("select table_name from all_tables where owner = sys_context('userenv','session_user')").inject(s) do |drop, table|
             drop << "drop table #{table.to_a.first.last} cascade constraints;\n\n"
           end
         end
@@ -572,7 +576,7 @@ begin
     # This OCI8 patch may not longer be required with the upcoming
     # release of version 0.2.
     class Cursor #:nodoc:
-      alias :define_a_column_pre_ar :define_a_column
+      alias :enhanced_define_a_column_pre_ar :define_a_column
       def define_a_column(i)
         case do_ocicall(@ctx) { @parms[i - 1].attrGet(OCI_ATTR_DATA_TYPE) }
         when 8;   @stmt.defineByPos(i, String, 65535) # Read LONG values
@@ -583,7 +587,7 @@ begin
           else
             raise 'unsupported datatype'
           end
-        else define_a_column_pre_ar i
+        else enhanced_define_a_column_pre_ar i
         end
       end
     end
@@ -618,7 +622,7 @@ begin
 
   # The OracleConnectionFactory factors out the code necessary to connect and
   # configure an Oracle/OCI connection.
-  class OracleConnectionFactory #:nodoc:
+  class OracleEnhancedConnectionFactory #:nodoc:
     def new_connection(username, password, database, async, prefetch_rows, cursor_sharing)
       conn = OCI8.new username, password, database
       conn.exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
@@ -639,7 +643,7 @@ begin
   # this would be dangerous (as the earlier part of the implied transaction
   # may have failed silently if the connection died) -- so instead the
   # connection is marked as dead, to be reconnected on it's next use.
-  class OCI8AutoRecover < DelegateClass(OCI8) #:nodoc:
+  class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     attr_accessor :active
     alias :active? :active
 
@@ -649,7 +653,7 @@ begin
     end
     @@auto_retry = false
 
-    def initialize(config, factory = OracleConnectionFactory.new)
+    def initialize(config, factory = OracleEnhancedConnectionFactory.new)
       @active = true
       @username, @password, @database, = config[:username].to_s, config[:password].to_s, config[:database].to_s
       @async = config[:allow_concurrency]

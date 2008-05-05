@@ -1,4 +1,9 @@
-== 0.0.1 2008-05-04
+== 1.1.0 2008-05-05
 
-* 1 major enhancement:
-  * Initial release
+* Forked from original activerecord-oracle-adapter-1.0.0.9216
+* Renamed oracle adapter to oracle_enhanced adapter
+  * Added "enhanced" to method and class definitions so that oracle_enhanced and original oracle adapter
+    could be used simultaniously
+* Enhancements:
+  * Improved perfomance of schema dump methods when used on large data dictionaries
+  
