@@ -50,3 +50,35 @@ describe "OracleEnhancedAdapter schema dump" do
   end
 
 end
+
+describe "OracleEnhancedAdapter database session store" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+
+    ActiveRecord::Migration.create_table :sessions do |t|
+      t.column :session_id, :string
+      t.column :data, :text
+      t.column :updated_at, :datetime
+    end
+
+  end
+
+  after(:all) do
+    ActiveRecord::Migration.drop_table :sessions
+  end
+
+  it "should create sessions table" do
+    ActiveRecord::Base.connection.tables.grep("sessions").should_not be_empty
+  end
+
+  it "should save session data" do
+    @session = CGI::Session::ActiveRecordStore::Session.new :session_id => "123456", :data  => "something", :updated_at => Time.now
+    @session.save!
+    @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("123456")
+    @session.data.should == "something"
+  end
+
+end

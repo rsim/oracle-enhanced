@@ -6,4 +6,5 @@
     could be used simultaniously
 * Enhancements:
   * Improved perfomance of schema dump methods when used on large data dictionaries
-  
+  * Added LOB writing callback for sessions stored in database
+
