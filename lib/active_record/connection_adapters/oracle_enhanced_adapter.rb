@@ -58,6 +58,7 @@ begin
       class OracleEnhancedColumn < Column #:nodoc:
 
         def type_cast(value)
+          return value.to_date if type == :date && OracleEnhancedAdapter.emulate_dates_by_column_name && value.class == Time
           return guess_date_or_time(value) if type == :datetime && OracleEnhancedAdapter.emulate_dates
           super
         end
@@ -66,7 +67,10 @@ begin
         def simplified_type(field_type)
           return :boolean if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
           case field_type
-            when /date|time/i then :datetime
+            when /date/i
+              return :date if OracleEnhancedAdapter.emulate_dates_by_column_name && name =~ /date/i
+              :datetime
+            when /time/i then :datetime
             else super
           end
         end
@@ -117,6 +121,10 @@ begin
 
         @@emulate_dates = false
         cattr_accessor :emulate_dates
+
+        # RSI: set to true if columns with DATE in their name should be emulated as date
+        @@emulate_dates_by_column_name = false
+        cattr_accessor :emulate_dates_by_column_name
 
         def adapter_name #:nodoc:
           'OracleEnhanced'
@@ -531,7 +539,10 @@ begin
                   name == 'Writable Large Object' ? row[i]: row[i].read
                 when OraDate
                   d = row[i]
-                  if emulate_dates && (d.hour == 0 && d.minute == 0 && d.second == 0)
+                  # RSI: added emulate_dates_by_column_name functionality
+                  if emulate_dates_by_column_name && col =~ /date/i
+                    d.to_date
+                  elsif emulate_dates && (d.hour == 0 && d.minute == 0 && d.second == 0)
                     d.to_date
                   else
                     # see string_to_time; Time overflowing to DateTime, respecting the default timezone
