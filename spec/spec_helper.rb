@@ -1,10 +1,10 @@
-begin
-  require 'spec'
-rescue LoadError
+# begin
+#   require 'spec'
+# rescue LoadError
   require 'rubygems'
   gem 'rspec'
   require 'spec'
-end
+# end
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'activerecord'
