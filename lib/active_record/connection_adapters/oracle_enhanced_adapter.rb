@@ -32,6 +32,11 @@ require 'active_record/connection_adapters/abstract_adapter'
 require 'delegate'
 
 begin
+  require 'active_record/connection_adapters/oracle_enhanced_tasks'
+rescue LoadError
+end if defined?(RAILS_ROOT)
+
+begin
   require_library_or_gem 'oci8' unless self.class.const_defined? :OCI8
 
   module ActiveRecord

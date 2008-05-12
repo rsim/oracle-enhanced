@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-GEM_NAME = 'oracle-enhanced' # what ppl will type to install your gem
+GEM_NAME = 'activerecord-oracle_enhanced-adapter' # what ppl will type to install your gem
 RUBYFORGE_PROJECT = 'oracle-enhanced'
 
 require 'rubygems'
@@ -15,9 +15,9 @@ end
 require 'redcloth'
 require 'syntax/convertors/html'
 require 'erb'
-require File.dirname(__FILE__) + "/../lib/#{GEM_NAME}/version.rb"
+require File.dirname(__FILE__) + "/../lib/active_record/connection_adapters/oracle_enhanced_version.rb"
 
-version  = Oracle-enhanced::VERSION::STRING
+version = ActiveRecord::ConnectionAdapters::OracleEnhancedVersion::STRING
 download = "http://rubyforge.org/projects/#{RUBYFORGE_PROJECT}"
 
 def rubyforge_project_id

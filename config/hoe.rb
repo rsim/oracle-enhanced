@@ -3,7 +3,7 @@ require 'active_record/connection_adapters/oracle_enhanced_version'
 AUTHOR = 'Raimonds Simanovskis'  # can also be an array of Authors
 EMAIL = "raymonds72@gmail.com"
 DESCRIPTION = "Oracle enhaced adapter for Active Record"
-GEM_NAME = 'activerecord-oracle-enhanced-adapter' # what ppl will type to install your gem
+GEM_NAME = 'activerecord-oracle_enhanced-adapter' # what ppl will type to install your gem
 RUBYFORGE_PROJECT = 'oracle-enhanced' # The unix name for your project
 HOMEPATH = "http://#{RUBYFORGE_PROJECT}.rubyforge.org"
 DOWNLOAD_PATH = "http://rubyforge.org/projects/#{RUBYFORGE_PROJECT}"

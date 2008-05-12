@@ -10,13 +10,14 @@ from Rails which are extracted from current real projects' monkey patches of ori
 
 h2. Installing
 
-<pre syntax="ruby">sudo gem install activerecord-oracle-enhanced-adapter</pre>
+<pre syntax="ruby">sudo gem install activerecord-oracle_enhanced-adapter</pre>
 
 h2. The basics
 
+In Rails config/database.yml file use oracle_enhanced as adapter name.
+
 Create config/initializers/oracle_advanced.rb file in your Rails application and put configuration options there.
 The following configuration options are available:
-
 
 * set to true if columns with DATE in their name should be emulated as Date (and not as Time which is default)
 <pre syntax="ruby">

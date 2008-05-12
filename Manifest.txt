@@ -3,6 +3,8 @@ License.txt
 README.txt
 lib/active_record/connection_adapters/oracle_enhanced_adapter.rb
 lib/active_record/connection_adapters/oracle_enhanced_version.rb
+lib/active_record/connection_adapters/oracle_enhanced_tasks.rb
+lib/active_record/connection_adapters/oracle_enhanced.rake
 spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb
 spec/spec.opts
 spec/spec_helper.rb

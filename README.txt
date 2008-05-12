@@ -1,4 +1,4 @@
-= activerecord-oracle-enhanced-adapter
+= activerecord-oracle_enhanced-adapter
 
 * http://rubyforge.org/projects/oracle-enhanced/
 
@@ -15,6 +15,8 @@ Look ar RSpec tests under spec directory for usage examples.
 
 
 == SYNOPSIS:
+
+In Rails config/database.yml file use oracle_enhanced as adapter name.
 
 Create config/initializers/oracle_advanced.rb file in your Rails application and put configuration options there.
 The following configuration options are available:
@@ -37,7 +39,7 @@ ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_st
 
 == INSTALL:
 
-* sudo gem install activerecord-oracle-enhanced-adapter
+* sudo gem install activerecord-oracle_enhanced-adapter
 
 == LICENSE:
 
