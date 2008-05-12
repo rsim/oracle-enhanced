@@ -91,7 +91,7 @@ describe "OracleEnhancedAdapter database session store" do
 
 end
 
-describe "OracleEnhancedAdapter date type detection based on field names" do
+describe "OracleEnhancedAdapter date type detection based on column names" do
   before(:all) do
     ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
                                             :database => "xe",
@@ -115,7 +115,7 @@ describe "OracleEnhancedAdapter date type detection based on field names" do
       )
     SQL
     @conn.execute <<-SQL
-      CREATE SEQUENCE test_employees_seq  MINVALUE 1 MAXVALUE 999999999999999999999999999
+      CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
@@ -194,6 +194,256 @@ describe "OracleEnhancedAdapter date type detection based on field names" do
       @employee.created_at.class.should == Time
     end
 
+  end
+
+end
+
+describe "OracleEnhancedAdapter integer type detection based on column names" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE test2_employees (
+        id   NUMBER,
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        email         VARCHAR2(25),
+        phone_number  VARCHAR2(20),
+        hire_date     DATE,
+        job_id        NUMBER,
+        salary        NUMBER,
+        commission_pct  NUMBER(2,2),
+        manager_id    NUMBER(6),
+        department_id NUMBER(4,0),
+        created_at    DATE
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test2_employees_seq  MINVALUE 1
+        INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
+    SQL
+  end
+  
+  after(:all) do
+    @conn.execute "DROP TABLE test2_employees"
+    @conn.execute "DROP SEQUENCE test2_employees_seq"
+  end
+
+  it "should set NUMBER column type as decimal if emulate_integers_by_column_name is false" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
+    columns = @conn.columns('test2_employees')
+    column = columns.detect{|c| c.name == "job_id"}
+    column.type.should == :decimal
+  end
+
+  it "should set NUMBER column type as integer if emulate_integers_by_column_name is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
+    columns = @conn.columns('test2_employees')
+    column = columns.detect{|c| c.name == "job_id"}
+    column.type.should == :integer
+    column = columns.detect{|c| c.name == "id"}
+    column.type.should == :integer
+  end
+
+  it "should set NUMBER column type as decimal if column name does not contain 'id' and emulate_integers_by_column_name is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
+    columns = @conn.columns('test2_employees')
+    column = columns.detect{|c| c.name == "salary"}
+    column.type.should == :decimal
+  end
+
+  it "should return BigDecimal value from NUMBER column if emulate_integers_by_column_name is false" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
+    columns = @conn.columns('test2_employees')
+    column = columns.detect{|c| c.name == "job_id"}
+    column.type_cast(1.0).class.should == BigDecimal
+  end
+
+  it "should return Fixnum value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
+    columns = @conn.columns('test2_employees')
+    column = columns.detect{|c| c.name == "job_id"}
+    column.type_cast(1.0).class.should == Fixnum
+  end
+
+  describe "/ NUMBER values from ActiveRecord model" do
+    before(:each) do
+      class Test2Employee < ActiveRecord::Base
+      end
+    end
+    
+    after(:each) do
+      Object.send(:remove_const, "Test2Employee")
+    end
+    
+    def create_employee2
+      @employee2 = Test2Employee.create(
+        :first_name => "First",
+        :last_name => "Last",
+        :job_id => 1,
+        :salary => 1000
+      )
+      @employee2.reload
+    end
+    
+    it "should return BigDecimal value from NUMBER column if emulate_integers_by_column_name is false" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
+      create_employee2
+      @employee2.job_id.class.should == BigDecimal
+    end
+
+    it "should return Fixnum value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
+      create_employee2
+      @employee2.job_id.class.should == Fixnum
+    end
+
+    it "should return BigDecimal value from NUMBER column if column name does not contain 'id' and emulate_integers_by_column_name is true" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
+      create_employee2
+      @employee2.salary.class.should == BigDecimal
+    end
+
+  end
+
+end
+
+describe "OracleEnhancedAdapter boolean type detection based on string column types and names" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE test3_employees (
+        id            NUMBER,
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        email         VARCHAR2(25),
+        phone_number  VARCHAR2(20),
+        hire_date     DATE,
+        job_id        NUMBER,
+        salary        NUMBER,
+        commission_pct  NUMBER(2,2),
+        manager_id    NUMBER(6),
+        department_id NUMBER(4,0),
+        created_at    DATE,
+        has_email     CHAR(1),
+        has_phone     VARCHAR2(1),
+        active_flag   VARCHAR2(2),
+        manager_yn    VARCHAR2(3)
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test3_employees_seq  MINVALUE 1
+        INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
+    SQL
+  end
+  
+  after(:all) do
+    @conn.execute "DROP TABLE test3_employees"
+    @conn.execute "DROP SEQUENCE test3_employees_seq"
+  end
+
+  it "should set CHAR/VARCHAR2 column type as string if emulate_booleans_from_strings is false" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+    columns = @conn.columns('test3_employees')
+    %w(has_email has_phone active_flag manager_yn).each do |col|
+      column = columns.detect{|c| c.name == col}
+      column.type.should == :string
+    end
+  end
+
+  it "should set CHAR/VARCHAR2 column type as boolean if emulate_booleans_from_strings is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+    columns = @conn.columns('test3_employees')
+    %w(has_email has_phone active_flag manager_yn).each do |col|
+      column = columns.detect{|c| c.name == col}
+      column.type.should == :boolean
+    end
+  end
+  
+  it "should set VARCHAR2 column type as string if column name does not contain 'flag' or 'yn' and emulate_booleans_from_strings is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+    columns = @conn.columns('test3_employees')
+    %w(phone_number email).each do |col|
+      column = columns.detect{|c| c.name == col}
+      column.type.should == :string
+    end
+  end
+  
+  it "should return string value from VARCHAR2 boolean column if emulate_booleans_from_strings is false" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+    columns = @conn.columns('test3_employees')
+    %w(has_email has_phone active_flag manager_yn).each do |col|
+      column = columns.detect{|c| c.name == col}
+      column.type_cast("Y").class.should == String
+    end
+  end
+  
+  it "should return boolean value from VARCHAR2 boolean column if emulate_booleans_from_strings is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+    columns = @conn.columns('test3_employees')
+    %w(has_email has_phone active_flag manager_yn).each do |col|
+      column = columns.detect{|c| c.name == col}
+      column.type_cast("Y").class.should == TrueClass
+      column.type_cast("N").class.should == FalseClass
+    end
+  end
+  
+  describe "/ VARCHAR2 boolean values from ActiveRecord model" do
+    before(:each) do
+      class Test3Employee < ActiveRecord::Base
+      end
+    end
+    
+    after(:each) do
+      Object.send(:remove_const, "Test3Employee")
+    end
+    
+    def create_employee3
+      @employee3 = Test3Employee.create(
+        :first_name => "First",
+        :last_name => "Last",
+        :has_email => true,
+        :has_phone => false,
+        :active_flag => true,
+        :manager_yn => false
+      )
+      @employee3.reload
+    end
+    
+    it "should return String value from VARCHAR2 boolean column if emulate_booleans_from_strings is false" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+      create_employee3
+      %w(has_email has_phone active_flag manager_yn).each do |col|
+        @employee3.send(col.to_sym).class.should == String
+      end
+    end
+  
+    it "should return boolean value from VARCHAR2 boolean column if emulate_booleans_from_strings is true" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+      create_employee3
+      %w(has_email active_flag).each do |col|
+        @employee3.send(col.to_sym).class.should == TrueClass
+        @employee3.send((col+"_before_type_cast").to_sym).should == "Y"
+      end
+      %w(has_phone manager_yn).each do |col|
+        @employee3.send(col.to_sym).class.should == FalseClass
+        @employee3.send((col+"_before_type_cast").to_sym).should == "N"
+      end
+    end
+      
+    it "should return string value from VARCHAR2 column if it is not boolean column and emulate_booleans_from_strings is true" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+      create_employee3
+      @employee3.first_name.class.should == String
+    end
+  
   end
 
 end

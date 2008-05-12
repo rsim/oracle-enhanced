@@ -63,14 +63,31 @@ begin
           super
         end
 
+        # convert something to a boolean
+        # RSI: added y as boolean value
+        def self.value_to_boolean(value)
+          if value == true || value == false
+            value
+          else
+            %w(true t 1 y +).include?(value.to_s.downcase)
+          end
+        end
+        
         private
         def simplified_type(field_type)
           return :boolean if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
+          return :boolean if OracleEnhancedAdapter.emulate_booleans_from_strings &&
+                            OracleEnhancedAdapter.is_boolean_column?(name, field_type)
           case field_type
             when /date/i
-              return :date if OracleEnhancedAdapter.emulate_dates_by_column_name && name =~ /date/i
+              return :date if OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(name)
               :datetime
             when /time/i then :datetime
+            when /decimal|numeric|number/i
+              return :integer if extract_scale(field_type) == 0
+              # RSI: if column name is ID or ends with _ID
+              return :integer if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name)
+              :decimal
             else super
           end
         end
@@ -125,6 +142,28 @@ begin
         # RSI: set to true if columns with DATE in their name should be emulated as date
         @@emulate_dates_by_column_name = false
         cattr_accessor :emulate_dates_by_column_name
+        def self.is_date_column?(name)
+          name =~ /date/i
+        end
+
+        # RSI: set to true if NUMBER columns with ID at the end of their name should be emulated as integers
+        @@emulate_integers_by_column_name = false
+        cattr_accessor :emulate_integers_by_column_name
+        def self.is_integer_column?(name)
+          name =~ /^id$/i || name =~ /_id$/i
+        end
+
+        # RSI: set to true if CHAR(1), VARCHAR2(1) columns or VARCHAR2 columns with FLAG or YN at the end of their name
+        # should be emulated as booleans
+        @@emulate_booleans_from_strings = false
+        cattr_accessor :emulate_booleans_from_strings
+        def self.is_boolean_column?(name, field_type)
+          return true if ["CHAR(1)","VARCHAR2(1)"].include?(field_type)
+          field_type =~ /^VARCHAR2/ && (name =~ /_flag$/i || name =~ /_yn$/i)
+        end
+        def self.boolean_to_string(bool)
+          bool ? "Y" : "N"
+        end
 
         def adapter_name #:nodoc:
           'OracleEnhanced'
@@ -185,10 +224,12 @@ begin
         end
 
         def quoted_true
+          return "'#{self.class.boolean_to_string(true)}'" if emulate_booleans_from_strings
           "1"
         end
 
         def quoted_false
+          return "'#{self.class.boolean_to_string(false)}'" if emulate_booleans_from_strings
           "0"
         end
 
@@ -540,7 +581,7 @@ begin
                 when OraDate
                   d = row[i]
                   # RSI: added emulate_dates_by_column_name functionality
-                  if emulate_dates_by_column_name && col =~ /date/i
+                  if emulate_dates_by_column_name && self.class.is_date_column?(col)
                     d.to_date
                   elsif emulate_dates && (d.hour == 0 && d.minute == 0 && d.second == 0)
                     d.to_date
@@ -554,6 +595,14 @@ begin
                       # Append zero calendar reform start to account for dates skipped by calendar reform
                       DateTime.new(*time_array[0..5] << zone_offset << 0) rescue nil
                     end
+                  end
+                # RSI: added emulate_integers_by_column_name functionality
+                when Float
+                  n = row[i]
+                  if emulate_integers_by_column_name && self.class.is_integer_column?(col)
+                    n.to_i
+                  else
+                    n
                   end
                 else row[i]
                 end unless col == 'raw_rnum_'
