@@ -4,11 +4,13 @@
 * Renamed oracle adapter to oracle_enhanced adapter
   * Added "enhanced" to method and class definitions so that oracle_enhanced and original oracle adapter
     could be used simultaniously
+  * Added Rails rake tasks as a copy from original oracle tasks
 * Enhancements:
   * Improved perfomance of schema dump methods when used on large data dictionaries
   * Added LOB writing callback for sessions stored in database
   * Added emulate_dates_by_column_name option
   * Added emulate_integers_by_column_name option
   * Added emulate_booleans_from_strings option
+
 
 
