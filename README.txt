@@ -7,14 +7,32 @@
 Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases
 from Rails which are extracted from current real projects' monkey patches of original Oracle adapter.
 
+See http://blog.rayapps.com for more information.
+
+Look ar RSpec tests under spec directory for usage examples.
+
 == FEATURES/PROBLEMS:
 
 
 == SYNOPSIS:
 
+Create config/initializers/oracle_advanced.rb file in your Rails application and put configuration options there.
+The following configuration options are available:
+
+* set to true if columns with DATE in their name should be emulated as Date (and not as Time which is default)
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+
+* set to true if columns with ID at the end of column name should be emulated as Fixnum (and not as BigDecimal which is default)
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
+
+* set to true if CHAR(1), VARCHAR2(1) columns or or VARCHAR2 columns with FLAG or YN at the end of their name
+  should be emulated as booleans (and do not use NUMBER(1) as type for booleans which is default)
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+
 
 == REQUIREMENTS:
 
+* Works with ActiveRecord version 2.0 (which is included in Rails 2.0)
 * Requires ruby-oci8 library to connect to Oracle
 
 == INSTALL:

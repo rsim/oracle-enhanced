@@ -1,83 +1,62 @@
-h1. oracle enhanced
+h1. ActiveRecord Oracle enhanced adapter
 
 h1. &#x2192; 'oracle-enhanced'
 
 
 h2. What
 
+Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases
+from Rails which are extracted from current real projects' monkey patches of original Oracle adapter.
 
 h2. Installing
 
-<pre syntax="ruby">sudo gem install oracle-enhanced</pre>
+<pre syntax="ruby">sudo gem install activerecord-oracle-enhanced-adapter</pre>
 
 h2. The basics
 
+Create config/initializers/oracle_advanced.rb file in your Rails application and put configuration options there.
+The following configuration options are available:
 
-h2. Demonstration of usage
 
+* set to true if columns with DATE in their name should be emulated as Date (and not as Time which is default)
+<pre syntax="ruby">
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+</pre>
 
+* set to true if columns with ID at the end of column name should be emulated as Fixnum (and not as BigDecimal which is default)
+<pre syntax="ruby">
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
+</pre>
 
-h2. Forum
+* set to true if CHAR(1), VARCHAR2(1) columns or or VARCHAR2 columns with FLAG or YN at the end of their name
+  should be emulated as booleans (and do not use NUMBER(1) as type for booleans which is default)
+<pre syntax="ruby">
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+</pre>
 
-"http://groups.google.com/group/oracle-enhanced":http://groups.google.com/group/oracle-enhanced
+See http://blog.rayapps.com for more information.
 
-TODO - create Google Group - oracle-enhanced
+Look ar RSpec tests under spec directory for usage examples.
+
+h2. Feedback
+
+Submit your feedback as comments "here.":http://blog.rayapps.com
 
 h2. How to submit patches
 
-Read the "8 steps for fixing other people's code":http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/ and for section "8b: Submit patch to Google Groups":http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/#8b-google-groups, use the Google Group above.
+You can fetch the source from:
 
-TODO - pick SVN or Git instructions
+* github: "http://github.com/rsim/oracle-enhanced/tree/master":http://github.com/rsim/oracle-enhanced/tree/master
 
-The trunk repository is <code>svn://rubyforge.org/var/svn/oracle-enhanced/trunk</code> for anonymous access.
-
-OOOORRRR
-
-You can fetch the source from either:
-
-<% if rubyforge_project_id %>
-
-* rubyforge: "http://rubyforge.org/scm/?group_id=<%= rubyforge_project_id %>":http://rubyforge.org/scm/?group_id=<%= rubyforge_project_id %>
-
-<pre>git clone git://rubyforge.org/oracle-enhanced.git</pre>
-
-<% else %>
-
-* rubyforge: MISSING IN ACTION
-
-TODO - You can not created a RubyForge project, OR have not run <code>rubyforge config</code>
-yet to refresh your local rubyforge data with this projects' id information.
-
-When you do this, this message will magically disappear!
-
-Or you can hack website/index.txt and make it all go away!!
-
-<% end %>
-
-* github: "http://github.com/GITHUB_USERNAME/oracle-enhanced/tree/master":http://github.com/GITHUB_USERNAME/oracle-enhanced/tree/master
-
-<pre>git clone git://github.com/GITHUB_USERNAME/oracle-enhanced.git</pre>
-
-
-TODO - add "github_username: username" to ~/.rubyforge/user-config.yml and newgem will reuse it for future projects.
-
-
-* gitorious: "git://gitorious.org/oracle-enhanced/mainline.git":git://gitorious.org/oracle-enhanced/mainline.git
-
-<pre>git clone git://gitorious.org/oracle-enhanced/mainline.git</pre>
+<pre>git clone git://github.com/rsim/oracle-enhanced.git</pre>
 
 h3. Build and test instructions
 
 <pre>cd oracle-enhanced
-rake test
+rake spec
 rake install_gem</pre>
 
 
 h2. License
 
 This code is free to use under the terms of the MIT license. 
-
-h2. Contact
-
-Comments are welcome. Send an email to "FIXME full name":mailto:FIXME email via the "forum":http://groups.google.com/group/oracle-enhanced
-

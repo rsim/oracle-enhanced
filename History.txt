@@ -8,5 +8,7 @@
   * Improved perfomance of schema dump methods when used on large data dictionaries
   * Added LOB writing callback for sessions stored in database
   * Added emulate_dates_by_column_name option
+  * Added emulate_integers_by_column_name option
+  * Added emulate_booleans_from_strings option
 
 
