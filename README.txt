@@ -27,7 +27,7 @@ ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_
 * set to true if columns with ID at the end of column name should be emulated as Fixnum (and not as BigDecimal which is default)
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
 
-* set to true if CHAR(1), VARCHAR2(1) columns or or VARCHAR2 columns with FLAG or YN at the end of their name
+* set to true if CHAR(1), VARCHAR2(1) columns or VARCHAR2 columns with FLAG or YN at the end of their name
   should be emulated as booleans (and do not use NUMBER(1) as type for booleans which is default)
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
 
