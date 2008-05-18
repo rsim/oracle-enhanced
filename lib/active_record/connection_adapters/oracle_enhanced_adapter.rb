@@ -46,6 +46,11 @@ begin
         ConnectionAdapters::OracleEnhancedAdapter.new OCI8EnhancedAutoRecover.new(config), logger
       end
 
+      # RSI: specify table columns which should be ifnored
+      def self.ignore_table_columns(*args)
+        connection.ignore_table_columns(table_name,*args)
+      end
+
       # After setting large objects to empty, select the OCI8::LOB
       # and write back the data.
       after_save :enhanced_write_lobs
@@ -384,8 +389,24 @@ begin
 
           indexes
         end
-
+        
+        # RSI: set ignored columns for table
+        def ignore_table_columns(table_name, *args)
+          @ignore_table_columns ||= {}
+          @ignore_table_columns[table_name] ||= []
+          @ignore_table_columns[table_name] += args.map{|a| a.to_s.downcase}
+          @ignore_table_columns[table_name].uniq!
+        end
+        
+        def ignored_table_columns(table_name)
+          @ignore_table_columns ||= {}
+          @ignore_table_columns[table_name]
+        end
+        
         def columns(table_name, name = nil) #:nodoc:
+          # RSI: get ignored_columns by original table name
+          ignored_columns = ignored_table_columns(table_name)
+
           (owner, table_name) = @connection.describe(table_name)
 
           table_cols = <<-SQL
@@ -402,7 +423,10 @@ begin
              order by column_id
           SQL
 
-          select_all(table_cols, name).map do |row|
+          # RSI: added deletion of ignored columns
+          select_all(table_cols, name).delete_if do |row|
+            ignored_columns && ignored_columns.include?(row['name'].downcase)
+          end.map do |row|
             limit, scale = row['limit'], row['scale']
             if limit || scale
               row['sql_type'] << "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")

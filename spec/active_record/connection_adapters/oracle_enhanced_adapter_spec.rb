@@ -448,3 +448,66 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
 end
 
+
+describe "OracleEnhancedAdapter ignore specified table columns" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE test_employees (
+        id            NUMBER,
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        email         VARCHAR2(25),
+        phone_number  VARCHAR2(20),
+        hire_date     DATE,
+        job_id        NUMBER,
+        salary        NUMBER,
+        commission_pct  NUMBER(2,2),
+        manager_id    NUMBER(6),
+        department_id NUMBER(4,0),
+        created_at    DATE
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test_employees_seq  MINVALUE 1
+        INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER NOCYCLE
+    SQL
+  end
+  
+  after(:all) do
+    @conn.execute "DROP TABLE test_employees"
+    @conn.execute "DROP SEQUENCE test_employees_seq"
+  end
+
+  after(:each) do
+    Object.send(:remove_const, "TestEmployee")
+  end
+
+  it "should ignore specified table columns" do
+    class TestEmployee < ActiveRecord::Base
+      ignore_table_columns  :phone_number, :hire_date
+    end
+    TestEmployee.connection.columns('test_employees').select{|c| ['phone_number','hire_date'].include?(c.name) }.should be_empty
+  end
+
+  it "should ignore specified table columns specified in several lines" do
+    class TestEmployee < ActiveRecord::Base
+      ignore_table_columns  :phone_number
+      ignore_table_columns  :hire_date
+    end
+    TestEmployee.connection.columns('test_employees').select{|c| ['phone_number','hire_date'].include?(c.name) }.should be_empty
+  end
+
+  it "should not ignore unspecified table columns" do
+    class TestEmployee < ActiveRecord::Base
+      ignore_table_columns  :phone_number, :hire_date
+    end
+    TestEmployee.connection.columns('test_employees').select{|c| c.name == 'email' }.should_not be_empty
+  end
+
+
+end
