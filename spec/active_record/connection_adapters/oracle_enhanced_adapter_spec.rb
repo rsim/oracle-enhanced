@@ -511,3 +511,75 @@ describe "OracleEnhancedAdapter ignore specified table columns" do
 
 
 end
+
+
+describe "OracleEnhancedAdapter timestamp with timezone support" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE test_employees (
+        employee_id   NUMBER(6,0),
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        email         VARCHAR2(25),
+        phone_number  VARCHAR2(20),
+        hire_date     DATE,
+        job_id        NUMBER(6,0),
+        salary        NUMBER(8,2),
+        commission_pct  NUMBER(2,2),
+        manager_id    NUMBER(6,0),
+        department_id NUMBER(4,0),
+        created_at    TIMESTAMP WITH TIME ZONE
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test_employees_seq  MINVALUE 1
+        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
+    SQL
+  end
+  
+  after(:all) do
+    @conn.execute "DROP TABLE test_employees"
+    @conn.execute "DROP SEQUENCE test_employees_seq"
+  end
+
+  it "should set TIMESTAMP WITH TIME ZONE column type as datetime" do
+    columns = @conn.columns('test_employees')
+    column = columns.detect{|c| c.name == "created_at"}
+    column.type.should == :timestamp
+  end
+
+  describe "/ TIMESTAMP WITH TIME ZONE values from ActiveRecord model" do
+    before(:all) do
+      class TestEmployee < ActiveRecord::Base
+        set_primary_key :employee_id
+      end
+    end
+
+    after(:all) do
+      Object.send(:remove_const, "TestEmployee")
+    end
+
+    before(:each) do
+      # currently fractional seconds are not retrieved from database
+      @now = Time.local(2008,5,26,23,11,11,0)
+      @employee = TestEmployee.create(
+        :first_name => "First",
+        :last_name => "Last",
+        :created_at => @now
+      )
+    end
+
+    it "should return Time value from TIMESTAMP WITH TIMEZONE column" do
+      @employee.reload
+      @employee.created_at.class.should == Time
+      @employee.created_at.to_f.should == @now.to_f
+    end
+
+  end
+
+end

@@ -39,6 +39,11 @@ end if defined?(RAILS_ROOT)
 begin
   require_library_or_gem 'oci8' unless self.class.const_defined? :OCI8
 
+  # RSI: added mapping for TIMESTAMP WITH TIME ZONE / LOCAL TIME ZONE type
+  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP] = OCI8::BindType::Time
+  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_TZ] = OCI8::BindType::Time
+  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_LTZ] = OCI8::BindType::Time
+
   module ActiveRecord
     class Base
       def self.oracle_enhanced_connection(config) #:nodoc:
@@ -92,6 +97,7 @@ begin
             when /date/i
               return :date if OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(name)
               :datetime
+            when /timestamp/i then :timestamp
             when /time/i then :datetime
             when /decimal|numeric|number/i
               return :integer if extract_scale(field_type) == 0
@@ -192,7 +198,9 @@ begin
             :float       => { :name => "NUMBER" },
             :decimal     => { :name => "DECIMAL" },
             :datetime    => { :name => "DATE" },
-            :timestamp   => { :name => "DATE" },
+            # RSI: changed to native TIMESTAMP type
+            # :timestamp   => { :name => "DATE" },
+            :timestamp   => { :name => "TIMESTAMP" },
             :time        => { :name => "DATE" },
             :date        => { :name => "DATE" },
             :binary      => { :name => "BLOB" },
@@ -228,6 +236,10 @@ begin
         def quote(value, column = nil) #:nodoc:
           if value && column && [:text, :binary].include?(column.type)
             %Q{empty_#{ column.sql_type.downcase rescue 'blob' }()}
+          # RSI: TIMESTAMP support
+          elsif value && column && column.type == :timestamp
+            # add up to 9 digits of fractional seconds to inserted time
+            "TO_TIMESTAMP('#{value.to_s(:db)}.#{("%.9f"%value.to_f).split('.')[1]}','YYYY-MM-DD HH24:MI:SS:FF9')"
           else
             super
           end
