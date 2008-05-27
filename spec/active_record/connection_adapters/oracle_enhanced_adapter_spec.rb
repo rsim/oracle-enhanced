@@ -533,7 +533,9 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
         commission_pct  NUMBER(2,2),
         manager_id    NUMBER(6,0),
         department_id NUMBER(4,0),
-        created_at    TIMESTAMP WITH TIME ZONE
+        created_at    TIMESTAMP,
+        created_at_tz   TIMESTAMP WITH TIME ZONE,
+        created_at_ltz  TIMESTAMP WITH LOCAL TIME ZONE
       )
     SQL
     @conn.execute <<-SQL
@@ -547,10 +549,10 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
     @conn.execute "DROP SEQUENCE test_employees_seq"
   end
 
-  it "should set TIMESTAMP WITH TIME ZONE column type as datetime" do
+  it "should set TIMESTAMP columns type as datetime" do
     columns = @conn.columns('test_employees')
-    column = columns.detect{|c| c.name == "created_at"}
-    column.type.should == :timestamp
+    ts_columns = columns.select{|c| c.name =~ /created_at/}
+    ts_columns.each {|c| c.type.should == :timestamp}
   end
 
   describe "/ TIMESTAMP WITH TIME ZONE values from ActiveRecord model" do
@@ -564,20 +566,34 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
       Object.send(:remove_const, "TestEmployee")
     end
 
-    before(:each) do
+    it "should return Time value from TIMESTAMP columns" do
       # currently fractional seconds are not retrieved from database
       @now = Time.local(2008,5,26,23,11,11,0)
       @employee = TestEmployee.create(
-        :first_name => "First",
-        :last_name => "Last",
-        :created_at => @now
+        :created_at => @now,
+        :created_at_tz => @now,
+        :created_at_ltz => @now
       )
+      @employee.reload
+      [:created_at, :created_at_tz, :created_at_ltz].each do |c|
+        @employee.send(c).class.should == Time
+        @employee.send(c).to_f.should == @now.to_f
+      end
     end
 
-    it "should return Time value from TIMESTAMP WITH TIMEZONE column" do
+    it "should return Time value without fractional seconds from TIMESTAMP columns" do
+      # currently fractional seconds are not retrieved from database
+      @now = Time.local(2008,5,26,23,11,11,10)
+      @employee = TestEmployee.create(
+        :created_at => @now,
+        :created_at_tz => @now,
+        :created_at_ltz => @now
+      )
       @employee.reload
-      @employee.created_at.class.should == Time
-      @employee.created_at.to_f.should == @now.to_f
+      [:created_at, :created_at_tz, :created_at_ltz].each do |c|
+        @employee.send(c).class.should == Time
+        @employee.send(c).to_f.should == @now.to_f.to_i.to_f # remove fractional seconds
+      end
     end
 
   end

@@ -39,10 +39,11 @@ end if defined?(RAILS_ROOT)
 begin
   require_library_or_gem 'oci8' unless self.class.const_defined? :OCI8
 
-  # RSI: added mapping for TIMESTAMP WITH TIME ZONE / LOCAL TIME ZONE type
-  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP] = OCI8::BindType::Time
-  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_TZ] = OCI8::BindType::Time
-  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_LTZ] = OCI8::BindType::Time
+  # RSI: added mapping for TIMESTAMP / WITH TIME ZONE / LOCAL TIME ZONE types
+  # currently Ruby-OCI8 does not support fractional seconds for timestamps
+  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP] = OCI8::BindType::OraDate
+  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_TZ] = OCI8::BindType::OraDate
+  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_LTZ] = OCI8::BindType::OraDate
 
   module ActiveRecord
     class Base

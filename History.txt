@@ -12,8 +12,8 @@
   * Added emulate_integers_by_column_name option
   * Added emulate_booleans_from_strings option
 
-== 1.1.1 2008-05-19
+== 1.1.1 2008-05-27
 
 * Enhancements:
   * Added ignore_table_columns option
-
+  * Added support for TIMESTAMP columns (without fractional seconds)
