@@ -1,3 +1,12 @@
+== 1.1.1 2008-??-??
+
+* Enhancements:
+  * Added ignore_table_columns option
+  * Added support for TIMESTAMP columns (without fractional seconds)
+* Bug fixes:
+  * Checks if CGI::Session::ActiveRecordStore::Session does not have enhanced_write_lobs callback before adding it
+    (Rails 2.0 does not add this callback, Rails 2.1 does)
+
 == 1.1.0 2008-05-05
 
 * Forked from original activerecord-oracle-adapter-1.0.0.9216
@@ -11,9 +20,3 @@
   * Added emulate_dates_by_column_name option
   * Added emulate_integers_by_column_name option
   * Added emulate_booleans_from_strings option
-
-== 1.1.1 2008-05-27
-
-* Enhancements:
-  * Added ignore_table_columns option
-  * Added support for TIMESTAMP columns (without fractional seconds)

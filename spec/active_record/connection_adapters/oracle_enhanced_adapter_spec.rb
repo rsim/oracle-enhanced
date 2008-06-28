@@ -63,6 +63,7 @@ describe "OracleEnhancedAdapter database session store" do
         id          NUMBER(38,0) NOT NULL,
         session_id  VARCHAR2(255) DEFAULT NULL,
         data        CLOB DEFAULT NULL,
+        created_at  DATE DEFAULT NULL,
         updated_at  DATE DEFAULT NULL,
         PRIMARY KEY (ID)
       )
@@ -83,10 +84,25 @@ describe "OracleEnhancedAdapter database session store" do
   end
 
   it "should save session data" do
-    @session = CGI::Session::ActiveRecordStore::Session.new :session_id => "123456", :data  => "something", :updated_at => Time.now
+    @session = CGI::Session::ActiveRecordStore::Session.new :session_id => "111111", :data  => "something" #, :updated_at => Time.now
     @session.save!
-    @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("123456")
+    @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("111111")
     @session.data.should == "something"
+  end
+
+  it "should change session data when partial updates enabled" do
+    CGI::Session::ActiveRecordStore::Session.partial_updates = true
+    @session = CGI::Session::ActiveRecordStore::Session.new :session_id => "222222", :data  => "something" #, :updated_at => Time.now
+    @session.save!
+    @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("222222")
+    @session.data = "other thing"
+    @session.save!
+    @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("222222")
+    @session.data.should == "other thing"
+  end
+
+  it "should have one enhanced_write_lobs callback" do
+    CGI::Session::ActiveRecordStore::Session.after_save_callback_chain.select{|cb| cb.method == :enhanced_write_lobs}.should have(1).record
   end
 
 end
