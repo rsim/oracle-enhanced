@@ -1,8 +1,9 @@
-== 1.1.1 2008-??-??
+== 1.1.1 2008-06-28
 
 * Enhancements:
   * Added ignore_table_columns option
   * Added support for TIMESTAMP columns (without fractional seconds)
+  * NLS_DATE_FORMAT and NLS_TIMESTAMP_FORMAT independent DATE and TIMESTAMP columns support
 * Bug fixes:
   * Checks if CGI::Session::ActiveRecordStore::Session does not have enhanced_write_lobs callback before adding it
     (Rails 2.0 does not add this callback, Rails 2.1 does)

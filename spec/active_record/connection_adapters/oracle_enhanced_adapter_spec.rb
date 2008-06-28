@@ -615,3 +615,88 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
   end
 
 end
+
+
+describe "OracleEnhancedAdapter date and timestamp with different NLS date formats" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE test_employees (
+        employee_id   NUMBER(6,0),
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        email         VARCHAR2(25),
+        phone_number  VARCHAR2(20),
+        hire_date     DATE,
+        job_id        NUMBER(6,0),
+        salary        NUMBER(8,2),
+        commission_pct  NUMBER(2,2),
+        manager_id    NUMBER(6,0),
+        department_id NUMBER(4,0),
+        created_at    DATE,
+        created_at_ts   TIMESTAMP
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test_employees_seq  MINVALUE 1
+        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
+    SQL
+    class TestEmployee < ActiveRecord::Base
+      set_primary_key :employee_id
+    end
+    # @conn.execute %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
+    @conn.execute %q{alter session set nls_date_format = 'DD-MON-YYYY HH24:MI:SS'}
+    # @conn.execute %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'}
+    @conn.execute %q{alter session set nls_timestamp_format = 'DD-MON-YYYY HH24:MI:SS'}
+  end
+  
+  after(:all) do
+    Object.send(:remove_const, "TestEmployee")
+    @conn.execute "DROP TABLE test_employees"
+    @conn.execute "DROP SEQUENCE test_employees_seq"
+  end
+
+  before(:each) do
+    @today = Date.new(2008,6,28)
+    @now = Time.local(2008,6,28,13,34,33)
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today,
+      :created_at => @now,
+      :created_at_ts => @now
+    )
+  end
+
+  it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+    @employee.reload
+    @employee.hire_date.class.should == Time
+    @employee.hire_date.should == @today.to_time
+  end
+
+  it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+    @employee.reload
+    @employee.hire_date.class.should == Date
+    @employee.hire_date.should == @today
+  end
+
+  it "should return Time value from DATE column if column name does not contain 'date' and emulate_dates_by_column_name is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+    @employee.reload
+    @employee.created_at.class.should == Time
+    @employee.created_at.should == @now
+  end
+
+  it "should return Time value from TIMESTAMP columns" do
+    @employee.reload
+    @employee.created_at_ts.class.should == Time
+    @employee.created_at_ts.should == @now
+  end
+
+end

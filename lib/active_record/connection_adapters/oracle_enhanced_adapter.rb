@@ -235,12 +235,20 @@ begin
         end
 
         def quote(value, column = nil) #:nodoc:
-          if value && column && [:text, :binary].include?(column.type)
-            %Q{empty_#{ column.sql_type.downcase rescue 'blob' }()}
-          # RSI: TIMESTAMP support
-          elsif value && column && column.type == :timestamp
-            # add up to 9 digits of fractional seconds to inserted time
-            "TO_TIMESTAMP('#{value.to_s(:db)}.#{("%.9f"%value.to_f).split('.')[1]}','YYYY-MM-DD HH24:MI:SS:FF9')"
+          if value && column
+            case column.type
+            when :text, :binary
+              %Q{empty_#{ column.sql_type.downcase rescue 'blob' }()}
+            # RSI: TIMESTAMP support
+            when :timestamp
+              # add up to 9 digits of fractional seconds to inserted time
+              "TO_TIMESTAMP('#{value.to_s(:db)}.#{("%.9f"%value.to_f).split('.')[1]}','YYYY-MM-DD HH24:MI:SS:FF9')"
+            # RSI: NLS_DATE_FORMAT independent DATE support
+            when :date, :time, :datetime
+              "TO_DATE('#{value.to_s(:db)}','YYYY-MM-DD HH24:MI:SS')"
+            else
+              super
+            end
           else
             super
           end
