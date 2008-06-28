@@ -31,10 +31,15 @@ ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_colu
   should be emulated as booleans (and do not use NUMBER(1) as type for booleans which is default)
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
 
+The following model class definitions are available:
+* specify which table columns should be ignored by ActiveRecord
+ignore_table_columns :column1, :column2, :column3
+
+See History.txt for other enhancements to original Oracle adapter.
 
 == REQUIREMENTS:
 
-* Works with ActiveRecord version 2.0 (which is included in Rails 2.0)
+* Works with ActiveRecord version 2.0 and 2.1 (which is included in Rails 2.0 and 2.1)
 * Requires ruby-oci8 library to connect to Oracle
 
 == INSTALL:
