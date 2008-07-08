@@ -134,7 +134,8 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
         commission_pct  NUMBER(2,2),
         manager_id    NUMBER(6,0),
         department_id NUMBER(4,0),
-        created_at    DATE
+        created_at    DATE,
+        updated_at    DATE
       )
     SQL
     @conn.execute <<-SQL
@@ -155,17 +156,24 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     column.type.should == :datetime
   end
 
-  it "should set DATE column type as date if column name contains 'date' and emulate_dates_by_column_name is true" do
+  it "should set DATE column type as date if column name contains '_date_' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
     column.type.should == :date
   end
 
-  it "should set DATE column type as datetime if column name does not contain 'date' and emulate_dates_by_column_name is true" do
+  it "should set DATE column type as datetime if column name does not contain '_date_' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "created_at"}
+    column.type.should == :datetime
+  end
+
+  it "should set DATE column type as datetime if column name contains 'date' as part of other word and emulate_dates_by_column_name is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+    columns = @conn.columns('test_employees')
+    column = columns.detect{|c| c.name == "updated_at"}
     column.type.should == :datetime
   end
 

@@ -2,3 +2,5 @@ doc
 pkg
 log
 tmp
+sqlnet.log
+

@@ -160,14 +160,14 @@ begin
         @@emulate_dates_by_column_name = false
         cattr_accessor :emulate_dates_by_column_name
         def self.is_date_column?(name)
-          name =~ /date/i
+          name =~ /(^|_)date(_|$)/i
         end
 
         # RSI: set to true if NUMBER columns with ID at the end of their name should be emulated as integers
         @@emulate_integers_by_column_name = false
         cattr_accessor :emulate_integers_by_column_name
         def self.is_integer_column?(name)
-          name =~ /^id$/i || name =~ /_id$/i
+          name =~ /(^|_)id$/i
         end
 
         # RSI: set to true if CHAR(1), VARCHAR2(1) columns or VARCHAR2 columns with FLAG or YN at the end of their name

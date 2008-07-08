@@ -1,3 +1,8 @@
+== 1.1.2 2008-07-08
+* Bug fixes:
+  * Changed date column name recognition - now should match regex /(^|_)date(_|$)/i
+    (previously "updated_at" was recognized as :date column and not as :datetime)
+
 == 1.1.1 2008-06-28
 
 * Enhancements:
