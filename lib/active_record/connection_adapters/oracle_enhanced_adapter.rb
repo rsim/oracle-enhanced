@@ -839,9 +839,11 @@ end
 
 # RSI: Added LOB writing callback for sessions stored in database
 # Otherwise it is not working as Session class is defined before OracleAdapter is loaded in Rails 2.0
-if defined?(CGI::Session::ActiveRecordStore::Session) &&
-            CGI::Session::ActiveRecordStore::Session.after_save_callback_chain.detect{|cb| cb.method == :enhanced_write_lobs}.nil?
-  class CGI::Session::ActiveRecordStore::Session
-    after_save :enhanced_write_lobs
+if defined?(CGI::Session::ActiveRecordStore::Session)
+  if !CGI::Session::ActiveRecordStore::Session.respond_to?(:after_save_callback_chain) ||
+      CGI::Session::ActiveRecordStore::Session.after_save_callback_chain.detect{|cb| cb.method == :enhanced_write_lobs}.nil?
+    class CGI::Session::ActiveRecordStore::Session
+      after_save :enhanced_write_lobs
+    end
   end
 end

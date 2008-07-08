@@ -1,5 +1,7 @@
 == 1.1.2 2008-07-08
+
 * Bug fixes:
+  * Fixed after_save callback addition for session store in ActiveRecord version 2.0.2
   * Changed date column name recognition - now should match regex /(^|_)date(_|$)/i
     (previously "updated_at" was recognized as :date column and not as :datetime)
 
