@@ -105,6 +105,13 @@ describe "OracleEnhancedAdapter database session store" do
     CGI::Session::ActiveRecordStore::Session.after_save_callback_chain.select{|cb| cb.method == :enhanced_write_lobs}.should have(1).record
   end
 
+  it "should not set sessions table session_id column type as integer if emulate_integers_by_column_name is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
+    columns = @conn.columns('sessions')
+    column = columns.detect{|c| c.name == "session_id"}
+    column.type.should == :string
+  end
+
 end
 
 describe "OracleEnhancedAdapter date type detection based on column names" do
