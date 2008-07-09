@@ -847,3 +847,10 @@ if defined?(CGI::Session::ActiveRecordStore::Session)
     end
   end
 end
+
+# RSI: load custom create, update, delete methods functionality
+# rescue LoadError if ruby-plsql gem cannot be loaded
+begin
+  require 'active_record/connection_adapters/oracle_enhanced_procedures'
+rescue LoadError
+end
