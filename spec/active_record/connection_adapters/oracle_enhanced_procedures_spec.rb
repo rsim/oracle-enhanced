@@ -98,6 +98,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     class TestEmployee < ActiveRecord::Base
       set_primary_key :employee_id
       
+      validates_presence_of :first_name, :last_name, :hire_date
+      
       # should return ID of new record
       set_create_method do
         plsql.test_employees_pkg.create_employee(
@@ -142,7 +144,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @buffer = StringIO.new
   end
 
-  it "should create employee" do
+  it "should create record" do
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -156,7 +158,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.update_time.should_not be_nil
   end
 
-  it "should update employee" do
+  it "should update record" do
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -169,7 +171,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.first_name.should == "Second"
   end
 
-  it "should not update employee if nothing is changed and partial updates are enabled" do
+  it "should not update record if nothing is changed and partial updates are enabled" do
     return pending("Not in this ActiveRecord version") unless TestEmployee.respond_to?(:partial_updates=)
     TestEmployee.partial_updates = true
     @employee = TestEmployee.create(
@@ -183,7 +185,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.version.should == 1
   end
 
-  it "should update employee if nothing is changed and partial updates are disabled" do
+  it "should update record if nothing is changed and partial updates are disabled" do
     return pending("Not in this ActiveRecord version") unless TestEmployee.respond_to?(:partial_updates=)
     TestEmployee.partial_updates = false
     @employee = TestEmployee.create(
@@ -197,7 +199,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.version.should == 2
   end
 
-  it "should delete employee" do
+  it "should delete record" do
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -210,7 +212,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     TestEmployee.find_by_employee_id(empl_id).should be_nil
   end
 
-  it "should log create employee" do
+  it "should log create record" do
     log_to @buffer
     @employee = TestEmployee.create(
       :first_name => "First",
@@ -220,7 +222,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @buffer.string.should match(/^TestEmployee Create \(\d+\.\d+\)  custom create method$/)
   end
 
-  it "should log update employee" do
+  it "should log update record" do
     (TestEmployee.partial_updates = false) rescue nil
     @employee = TestEmployee.create(
       :first_name => "First",
@@ -232,7 +234,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @buffer.string.should match(/^TestEmployee Update \(\d+\.\d+\)  custom update method with employee_id=#{@employee.id}$/)
   end
 
-  it "should log delete employee" do
+  it "should log delete record" do
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -241,6 +243,26 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     log_to @buffer
     @employee.destroy
     @buffer.string.should match(/^TestEmployee Destroy \(\d+\.\d+\)  custom delete method with employee_id=#{@employee.id}$/)
+  end
+
+  it "should validate new record before creation" do
+    @employee = TestEmployee.new(
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @employee.save.should be_false
+    @employee.errors.on(:first_name).should_not be_nil
+  end
+
+  it "should validate existing record before update" do
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @employee.first_name = nil
+    @employee.save.should be_false
+    @employee.errors.on(:first_name).should_not be_nil
   end
   
 end
