@@ -7,15 +7,26 @@ module ActiveRecord #:nodoc:
 
       module ClassMethods
         def set_create_method(&block)
+          include_with_custom_methods
           self.custom_create_method = block
         end
 
         def set_update_method(&block)
+          include_with_custom_methods
           self.custom_update_method = block
         end
 
         def set_delete_method(&block)
+          include_with_custom_methods
           self.custom_delete_method = block
+        end
+        
+        private
+        def include_with_custom_methods
+          unless included_modules.include? InstanceMethods
+            class_inheritable_accessor :custom_create_method, :custom_update_method, :custom_delete_method
+            include InstanceMethods
+          end
         end
       end
       
@@ -84,9 +95,7 @@ module ActiveRecord #:nodoc:
 end
 
 ActiveRecord::Base.class_eval do
-  class_inheritable_accessor :custom_create_method, :custom_update_method, :custom_delete_method
   extend ActiveRecord::ConnectionAdapters::OracleEnhancedProcedures::ClassMethods
-  include ActiveRecord::ConnectionAdapters::OracleEnhancedProcedures::InstanceMethods
 end
 
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.class_eval do

@@ -1,12 +1,14 @@
-# begin
-#   require 'spec'
-# rescue LoadError
-  require 'rubygems'
-  gem 'rspec'
-  require 'spec'
-# end
+require 'rubygems'
+gem 'rspec'
+require 'spec'
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
+# gem 'activerecord', '=2.0.2'
+# gem 'actionpack', '=2.0.2'
+# gem 'activesupport', '=2.0.2'
+gem 'activerecord', '=2.1.0'
+gem 'actionpack', '=2.1.0'
+gem 'activesupport', '=2.1.0'
 require 'activerecord'
 require 'actionpack'
 require 'action_controller/session/active_record_store'

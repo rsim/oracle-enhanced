@@ -853,4 +853,8 @@ end
 begin
   require 'active_record/connection_adapters/oracle_enhanced_procedures'
 rescue LoadError
+  if defined?(RAILS_DEFAULT_LOGGER)
+    RAILS_DEFAULT_LOGGER.info "INFO: ActiveRecord oracle_enhanced adapter could not load ruby-plsql gem. "+
+                              "Custom create, update and delete methods will not be available."
+  end
 end

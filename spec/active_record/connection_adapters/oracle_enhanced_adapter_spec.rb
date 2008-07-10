@@ -91,6 +91,7 @@ describe "OracleEnhancedAdapter database session store" do
   end
 
   it "should change session data when partial updates enabled" do
+    return pending("Not in this ActiveRecord version") unless CGI::Session::ActiveRecordStore::Session.respond_to?(:partial_updates=)
     CGI::Session::ActiveRecordStore::Session.partial_updates = true
     @session = CGI::Session::ActiveRecordStore::Session.new :session_id => "222222", :data  => "something" #, :updated_at => Time.now
     @session.save!
@@ -102,6 +103,7 @@ describe "OracleEnhancedAdapter database session store" do
   end
 
   it "should have one enhanced_write_lobs callback" do
+    return pending("Not in this ActiveRecord version") unless CGI::Session::ActiveRecordStore::Session.respond_to?(:after_save_callback_chain)
     CGI::Session::ActiveRecordStore::Session.after_save_callback_chain.select{|cb| cb.method == :enhanced_write_lobs}.should have(1).record
   end
 

@@ -170,6 +170,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   end
 
   it "should not update employee if nothing is changed and partial updates are enabled" do
+    return pending("Not in this ActiveRecord version") unless TestEmployee.respond_to?(:partial_updates=)
     TestEmployee.partial_updates = true
     @employee = TestEmployee.create(
       :first_name => "First",
@@ -183,6 +184,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   end
 
   it "should update employee if nothing is changed and partial updates are disabled" do
+    return pending("Not in this ActiveRecord version") unless TestEmployee.respond_to?(:partial_updates=)
     TestEmployee.partial_updates = false
     @employee = TestEmployee.create(
       :first_name => "First",
@@ -219,7 +221,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   end
 
   it "should log update employee" do
-    TestEmployee.partial_updates = false
+    (TestEmployee.partial_updates = false) rescue nil
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
