@@ -1,6 +1,13 @@
 require File.dirname(__FILE__) + '/../../spec_helper.rb'
 
 describe "OracleEnhancedAdapter custom methods for create, update and destroy" do
+  def log_to(stream)
+    ActiveRecord::Base.logger = Logger.new(stream)
+    ActiveRecord::Base.clear_active_connections!
+    ActiveRecord::Base.colorize_logging = false
+    ActiveRecord::Base.logger.level = Logger::DEBUG
+  end
+  
   before(:all) do
     ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
                                             :database => "xe",
@@ -8,6 +15,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
                                             :password => "hr")
     @conn = ActiveRecord::Base.connection
     plsql.connection = @conn.raw_connection
+    @conn.execute("DROP TABLE test_employees") rescue nil
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
         employee_id   NUMBER(6,0),
@@ -15,10 +23,12 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
         last_name     VARCHAR2(25),
         hire_date     DATE,
         salary        NUMBER(8,2),
+        version       NUMBER(15,0),
         create_time   DATE,
         update_time   DATE
       )
     SQL
+    @conn.execute("DROP SEQUENCE test_employees_s") rescue nil
     @conn.execute <<-SQL
       CREATE SEQUENCE test_employees_s  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
@@ -52,8 +62,10 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
         IS
         BEGIN
           SELECT test_employees_s.NEXTVAL INTO p_employee_id FROM dual;
-          INSERT INTO test_employees (employee_id, first_name, last_name, hire_date, salary, create_time, update_time)
-          VALUES (p_employee_id, p_first_name, p_last_name, p_hire_date, p_salary, SYSDATE, SYSDATE);
+          INSERT INTO test_employees (employee_id, first_name, last_name, hire_date, salary,
+                                      version, create_time, update_time)
+          VALUES (p_employee_id, p_first_name, p_last_name, p_hire_date, p_salary,
+                                      1, SYSDATE, SYSDATE);
         END create_employee;
         
         PROCEDURE update_employee(
@@ -63,15 +75,20 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
             p_hire_date     DATE,
             p_salary        NUMBER)
         IS
+            v_version       NUMBER;
         BEGIN
-          RETURN;
+          SELECT version INTO v_version FROM test_employees WHERE employee_id = p_employee_id FOR UPDATE;
+          UPDATE test_employees
+          SET employee_id = p_employee_id, first_name = p_first_name, last_name = p_last_name,
+              hire_date = p_hire_date, salary = p_salary,
+              version = v_version + 1, update_time = SYSDATE;
         END update_employee;
         
         PROCEDURE delete_employee(
             p_employee_id   NUMBER)
         IS
         BEGIN
-          RETURN;
+          DELETE FROM test_employees WHERE employee_id = p_employee_id;
         END delete_employee;
       END;
     SQL
@@ -81,6 +98,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     class TestEmployee < ActiveRecord::Base
       set_primary_key :employee_id
       
+      # should return ID of new record
       set_create_method do
         plsql.test_employees_pkg.create_employee(
           :p_first_name => first_name,
@@ -91,6 +109,24 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
         )[:p_employee_id]
       end
 
+      # return value is ignored
+      set_update_method do
+        plsql.test_employees_pkg.update_employee(
+          :p_employee_id => id,
+          :p_first_name => first_name,
+          :p_last_name => last_name,
+          :p_hire_date => hire_date,
+          :p_salary => salary
+        )
+      end
+
+      # return value is ignored
+      set_delete_method do
+        plsql.test_employees_pkg.delete_employee(
+          :p_employee_id => id
+        )
+      end
+
     end
   end
   
@@ -98,12 +134,12 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     Object.send(:remove_const, "TestEmployee")
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_s"
-    # @conn.execute "DROP PACKAGE test_employees_pkg"
+    @conn.execute "DROP PACKAGE test_employees_pkg"
   end
 
   before(:each) do
     @today = Date.new(2008,6,28)
-    @now = Time.local(2008,6,28,13,34,33)
+    @buffer = StringIO.new
   end
 
   it "should create employee" do
@@ -120,4 +156,89 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.update_time.should_not be_nil
   end
 
+  it "should update employee" do
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @employee.reload
+    @employee.first_name = "Second"
+    @employee.save!
+    @employee.reload
+    @employee.first_name.should == "Second"
+  end
+
+  it "should not update employee if nothing is changed and partial updates are enabled" do
+    TestEmployee.partial_updates = true
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @employee.reload
+    @employee.save!
+    @employee.reload
+    @employee.version.should == 1
+  end
+
+  it "should update employee if nothing is changed and partial updates are disabled" do
+    TestEmployee.partial_updates = false
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @employee.reload
+    @employee.save!
+    @employee.reload
+    @employee.version.should == 2
+  end
+
+  it "should delete employee" do
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @employee.reload
+    empl_id = @employee.id
+    @employee.destroy
+    @employee.should be_frozen
+    TestEmployee.find_by_employee_id(empl_id).should be_nil
+  end
+
+  it "should log create employee" do
+    log_to @buffer
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @buffer.string.should match(/^TestEmployee Create \(\d+\.\d+\)  custom create method$/)
+  end
+
+  it "should log update employee" do
+    TestEmployee.partial_updates = false
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    log_to @buffer
+    @employee.save!
+    @buffer.string.should match(/^TestEmployee Update \(\d+\.\d+\)  custom update method with employee_id=#{@employee.id}$/)
+  end
+
+  it "should log delete employee" do
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    log_to @buffer
+    @employee.destroy
+    @buffer.string.should match(/^TestEmployee Destroy \(\d+\.\d+\)  custom delete method with employee_id=#{@employee.id}$/)
+  end
+  
 end
