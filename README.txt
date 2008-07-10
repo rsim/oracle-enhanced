@@ -31,9 +31,31 @@ ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_colu
   should be emulated as booleans (and do not use NUMBER(1) as type for booleans which is default)
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
 
-The following model class definitions are available:
+The following model class methods are available:
 * specify which table columns should be ignored by ActiveRecord
 ignore_table_columns :column1, :column2, :column3
+
+* specify custom create, update and delete methods which should be used instead of Rails generated INSERT, UPDATE and DELETE statements
+# should return ID of new record
+set_create_method do
+  plsql.employees_pkg.create_employee(
+    :p_first_name => first_name,
+    :p_last_name => last_name,
+    :p_employee_id => nil
+  )[:p_employee_id]
+end
+set_update_method do
+  plsql.employees_pkg.update_employee(
+    :p_employee_id => id,
+    :p_first_name => first_name,
+    :p_last_name => last_name
+  )
+end
+set_delete_method do
+  plsql.employees_pkg.delete_employee(
+    :p_employee_id => id
+  )
+end
 
 See History.txt for other enhancements to original Oracle adapter.
 
@@ -41,6 +63,7 @@ See History.txt for other enhancements to original Oracle adapter.
 
 * Works with ActiveRecord version 2.0 and 2.1 (which is included in Rails 2.0 and 2.1)
 * Requires ruby-oci8 library to connect to Oracle
+* Requires ruby-plsql gem to support custom create, update and delete methods
 
 == INSTALL:
 

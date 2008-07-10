@@ -35,6 +35,36 @@ ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_colu
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
 </pre>
 
+The following model class methods are available:
+* specify which table columns should be ignored by ActiveRecord
+<pre syntax="ruby">
+ignore_table_columns :column1, :column2, :column3
+</pre>
+
+* specify custom create, update and delete methods which should be used instead of Rails generated INSERT, UPDATE and DELETE statements
+<pre syntax="ruby">
+# should return ID of new record
+set_create_method do
+  plsql.employees_pkg.create_employee(
+    :p_first_name => first_name,
+    :p_last_name => last_name,
+    :p_employee_id => nil
+  )[:p_employee_id]
+end
+set_update_method do
+  plsql.employees_pkg.update_employee(
+    :p_employee_id => id,
+    :p_first_name => first_name,
+    :p_last_name => last_name
+  )
+end
+set_delete_method do
+  plsql.employees_pkg.delete_employee(
+    :p_employee_id => id
+  )
+end
+</pre>
+
 See http://blog.rayapps.com for more information.
 
 Look ar RSpec tests under spec directory for usage examples.

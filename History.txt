@@ -1,3 +1,9 @@
+== 1.1.3 2008-07-10
+
+* Enhancements:
+  * Added support for custom create, update and delete methods when working with legacy databases where
+    PL/SQL API should be used for create, update and delete operations
+
 == 1.1.2 2008-07-08
 
 * Bug fixes:
