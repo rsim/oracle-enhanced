@@ -241,14 +241,17 @@ begin
               %Q{empty_#{ column.sql_type.downcase rescue 'blob' }()}
             # RSI: TIMESTAMP support
             when :timestamp
-              # add up to 9 digits of fractional seconds to inserted time
-              "TO_TIMESTAMP('#{value.to_s(:db)}.#{("%.9f"%value.to_f).split('.')[1]}','YYYY-MM-DD HH24:MI:SS:FF9')"
+              quote_timestamp_with_to_timestamp(value)
             # RSI: NLS_DATE_FORMAT independent DATE support
             when :date, :time, :datetime
-              "TO_DATE('#{value.to_s(:db)}','YYYY-MM-DD HH24:MI:SS')"
+              quote_date_with_to_date(value)
             else
               super
             end
+          elsif value.acts_like?(:date)
+            quote_date_with_to_date(value)
+          elsif value.acts_like?(:time)
+            value.to_i == value.to_f ? quote_date_with_to_date(value) : quote_timestamp_with_to_timestamp(value)
           else
             super
           end
@@ -264,6 +267,17 @@ begin
           "0"
         end
 
+        # RSI: should support that composite_primary_keys gem will pass date as string
+        def quote_date_with_to_date(value)
+          value = value.to_s(:db) if value.acts_like?(:date) || value.acts_like?(:time)
+          "TO_DATE('#{value}','YYYY-MM-DD HH24:MI:SS')"
+        end
+
+        def quote_timestamp_with_to_timestamp(value)
+          # add up to 9 digits of fractional seconds to inserted time
+          value = "#{value.to_s(:db)}.#{("%.6f"%value.to_f).split('.')[1]}" if value.acts_like?(:time)
+          "TO_TIMESTAMP('#{value}','YYYY-MM-DD HH24:MI:SS.FF6')"
+        end
 
         # CONNECTION MANAGEMENT ====================================
         #
@@ -858,3 +872,6 @@ rescue LoadError
                               "Custom create, update and delete methods will not be available."
   end
 end
+
+# RSI: load additional methods for composite_primary_keys support
+require 'active_record/connection_adapters/oracle_enhanced_cpk'

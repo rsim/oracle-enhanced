@@ -716,4 +716,19 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
     @employee.created_at_ts.should == @now
   end
 
+  it "should quote Date values with TO_DATE" do
+    @conn.quote(@today).should == "TO_DATE('#{@today.year}-#{"%02d" % @today.month}-#{"%02d" % @today.day}','YYYY-MM-DD HH24:MI:SS')"
+  end
+
+  it "should quote Time values with TO_DATE" do
+    @conn.quote(@now).should == "TO_DATE('#{@now.year}-#{"%02d" % @now.month}-#{"%02d" % @now.day} "+
+                                "#{"%02d" % @now.hour}:#{"%02d" % @now.min}:#{"%02d" % @now.sec}','YYYY-MM-DD HH24:MI:SS')"
+  end
+
+  it "should quote Time values with TO_TIMESTAMP" do
+    @ts = Time.at(@now.to_f + 0.1)
+    @conn.quote(@ts).should == "TO_TIMESTAMP('#{@ts.year}-#{"%02d" % @ts.month}-#{"%02d" % @ts.day} "+
+                                "#{"%02d" % @ts.hour}:#{"%02d" % @ts.min}:#{"%02d" % @ts.sec}.100000','YYYY-MM-DD HH24:MI:SS.FF6')"
+  end
+
 end

@@ -1,3 +1,9 @@
+== 1.1.4 2008-07-14
+
+* Enhancements:
+  * Date/Time quoting changes to support composite_primary_keys
+  * Added additional methods that are used by composite_primary_keys
+
 == 1.1.3 2008-07-10
 
 * Enhancements:
