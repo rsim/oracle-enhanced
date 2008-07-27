@@ -35,6 +35,10 @@ describe "OracleEnhancedAdapter schema dump" do
     @new_conn.tables.should == @old_conn.tables
   end
 
+  it "should return the same index list as original oracle adapter" do
+    @new_conn.indexes('employees').should == @old_conn.indexes('employees')
+  end
+
   it "should return the same pk_and_sequence_for as original oracle adapter" do
     @new_conn.tables.each do |t|
       @new_conn.pk_and_sequence_for(t).should == @old_conn.pk_and_sequence_for(t)

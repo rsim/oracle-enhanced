@@ -405,10 +405,11 @@ begin
         def indexes(table_name, name = nil) #:nodoc:
           result = select_all(<<-SQL, name)
             SELECT lower(i.index_name) as index_name, i.uniqueness, lower(c.column_name) as column_name
-              FROM user_indexes i, user_ind_columns c
+              FROM all_indexes i, user_ind_columns c
              WHERE i.table_name = '#{table_name.to_s.upcase}'
                AND c.index_name = i.index_name
                AND i.index_name NOT IN (SELECT uc.index_name FROM user_constraints uc WHERE uc.constraint_type = 'P')
+               AND i.owner = sys_context('userenv','session_user')
               ORDER BY i.index_name, c.column_position
           SQL
 
