@@ -1,3 +1,9 @@
+== 1.1.5 2008-07-27
+
+* Bug fixes:
+  * Fixed that write_lobs callback works with partial_updates enabled (added additional record lock before writing BLOB data to database)
+
+
 == 1.1.4 2008-07-14
 
 * Enhancements:

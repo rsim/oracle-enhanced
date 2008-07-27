@@ -378,9 +378,11 @@ begin
             value = attributes[col.name]
             value = value.to_yaml if col.text? && klass.serialized_attributes[col.name]
             next if value.nil?  || (value == '')
-            lob = select_one("SELECT #{col.name} FROM #{table_name} WHERE #{klass.primary_key} = #{id}",
-                             'Writable Large Object')[col.name]
-            lob.write value
+            uncached do
+              lob = select_one("SELECT #{col.name} FROM #{table_name} WHERE #{klass.primary_key} = #{id} FOR UPDATE",
+                               'Writable Large Object')[col.name]
+              lob.write value
+            end
           end
         end
 

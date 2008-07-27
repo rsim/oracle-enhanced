@@ -98,6 +98,8 @@ describe "OracleEnhancedAdapter database session store" do
     @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("222222")
     @session.data = "other thing"
     @session.save!
+    # second save should call again blob writing callback
+    @session.save!
     @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("222222")
     @session.data.should == "other thing"
   end
