@@ -113,6 +113,32 @@ begin
           (value.hour == 0 and value.min == 0 and value.sec == 0) ?
             Date.new(value.year, value.month, value.day) : value
         end
+        
+        class <<self
+          protected
+
+          def fallback_string_to_date(string)
+            if OracleEnhancedAdapter.string_to_date_format || OracleEnhancedAdapter.string_to_time_format
+              return (string_to_date_or_time_using_format(string).to_date rescue super)
+            end
+            super
+          end
+
+          def fallback_string_to_time(string)
+            if OracleEnhancedAdapter.string_to_time_format || OracleEnhancedAdapter.string_to_date_format
+              return (string_to_date_or_time_using_format(string).to_time rescue super)
+            end
+            super
+          end
+
+          def string_to_date_or_time_using_format(string)
+            if OracleEnhancedAdapter.string_to_time_format && dt=Date._strptime(string, OracleEnhancedAdapter.string_to_time_format)
+              return Time.mktime(*dt.values_at(:year, :mon, :mday, :hour, :min, :sec, :zone, :wday))
+            end
+            DateTime.strptime(string, OracleEnhancedAdapter.string_to_date_format)
+          end
+          
+        end
       end
 
 
@@ -181,6 +207,10 @@ begin
         def self.boolean_to_string(bool)
           bool ? "Y" : "N"
         end
+
+        # RSI: use to set NLS specific date formats which will be used when assigning string to :date and :datetime columns
+        @@string_to_date_format = @@string_to_time_format = nil
+        cattr_accessor :string_to_date_format, :string_to_time_format
 
         def adapter_name #:nodoc:
           'OracleEnhanced'
