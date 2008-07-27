@@ -33,7 +33,7 @@
     <h1>ActiveRecord Oracle enhanced adapter</h1>
     <div id="version" class="clickable" onclick='document.location = "http://rubyforge.org/projects/oracle-enhanced"; return false'>
       <p>Get Version</p>
-      <a href="http://rubyforge.org/projects/oracle-enhanced" class="numbers">1.1.4</a>
+      <a href="http://rubyforge.org/projects/oracle-enhanced" class="numbers">1.1.5</a>
     </div>
     <h1>&#x2192; &#8216;oracle-enhanced&#8217;</h1>
 
@@ -86,6 +86,15 @@ The following configuration options are available:</p>
 	</ul>
 
 
+	<ul>
+	<li>specify other date and time formats that should be used when assigning string values to :date and :datetime columns, e.g.:
+<pre class='syntax'>
+<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span><span class="ident">string_to_date_format</span> <span class="punct">=</span> <span class="punct">&quot;</span><span class="string">%d.%m.%Y</span><span class="punct">&quot;</span>
+<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span><span class="ident">string_to_time_format</span> <span class="punct">=</span> <span class="punct">&quot;</span><span class="string">%d.%m.%Y %H:%M:%S</span><span class="punct">&quot;</span>
+</pre></li>
+	</ul>
+
+
 The following model class methods are available:
 	<ul>
 	<li>specify which table columns should be ignored by ActiveRecord
@@ -122,7 +131,10 @@ The following model class methods are available:
 	</ul>
 
 
-	<p>See http://blog.rayapps.com for more information.</p>
+	<p>Oracle enhanced adapter is also compatible with composite_primary_keys gem.</p>
+
+
+	<p>See http://blog.rayapps.com/category/oracle-enhanced for more information.</p>
 
 
 	<p>Look ar RSpec tests under spec directory for usage examples.</p>
@@ -159,7 +171,7 @@ rake install_gem</pre>
 
 	<p>This code is free to use under the terms of the <span class="caps">MIT</span> license.</p>
     <p class="coda">
-      <a href="http://blog.rayapps.com">Raimonds Simanovskis</a>, 10th July 2008<br>
+      <a href="http://blog.rayapps.com">Raimonds Simanovskis</a>, 27th July 2008<br>
       Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
     </p>
 </div>

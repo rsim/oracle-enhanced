@@ -7,7 +7,7 @@
 Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases
 from Rails which are extracted from current real projects' monkey patches of original Oracle adapter.
 
-See http://blog.rayapps.com for more information.
+See http://blog.rayapps.com/category/oracle-enhanced for more information.
 
 Look ar RSpec tests under spec directory for usage examples.
 
@@ -30,6 +30,10 @@ ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_colu
 * set to true if CHAR(1), VARCHAR2(1) columns or VARCHAR2 columns with FLAG or YN at the end of their name
   should be emulated as booleans (and do not use NUMBER(1) as type for booleans which is default)
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+
+* specify other date and time formats that should be used when assigning string values to :date and :datetime columns, e.g.:
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = "%d.%m.%Y"
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = "%d.%m.%Y %H:%M:%S"
 
 The following model class methods are available:
 * specify which table columns should be ignored by ActiveRecord
@@ -56,6 +60,8 @@ set_delete_method do
     :p_employee_id => id
   )
 end
+
+Oracle enhanced adapter is also compatible with composite_primary_keys gem.
 
 See History.txt for other enhancements to original Oracle adapter.
 
