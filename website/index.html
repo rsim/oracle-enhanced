@@ -64,7 +64,8 @@ The following configuration options are available:</p>
 	<ul>
 	<li>set to true if columns with <span class="caps">DATE</span> in their name should be emulated as Date (and not as Time which is default)
 <pre class='syntax'>
-<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span><span class="ident">emulate_dates_by_column_name</span> <span class="punct">=</span> <span class="constant">true</span>
+<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span>
+  <span class="ident">emulate_dates_by_column_name</span> <span class="punct">=</span> <span class="constant">true</span>
 </pre></li>
 	</ul>
 
@@ -72,7 +73,8 @@ The following configuration options are available:</p>
 	<ul>
 	<li>set to true if columns with ID at the end of column name should be emulated as Fixnum (and not as BigDecimal which is default)
 <pre class='syntax'>
-<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span><span class="ident">emulate_integers_by_column_name</span> <span class="punct">=</span> <span class="constant">true</span>
+<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span>
+  <span class="ident">emulate_integers_by_column_name</span> <span class="punct">=</span> <span class="constant">true</span>
 </pre></li>
 	</ul>
 
@@ -81,7 +83,8 @@ The following configuration options are available:</p>
 	<li>set to true if <acronym title="1">CHAR</acronym>, <acronym title="1">VARCHAR2</acronym> columns or or <span class="caps">VARCHAR2</span> columns with <span class="caps">FLAG</span> or YN at the end of their name
   should be emulated as booleans (and do not use <acronym title="1">NUMBER</acronym> as type for booleans which is default)
 <pre class='syntax'>
-<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span><span class="ident">emulate_booleans_from_strings</span> <span class="punct">=</span> <span class="constant">true</span>
+<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span>
+  <span class="ident">emulate_booleans_from_strings</span> <span class="punct">=</span> <span class="constant">true</span>
 </pre></li>
 	</ul>
 
@@ -89,8 +92,10 @@ The following configuration options are available:</p>
 	<ul>
 	<li>specify other date and time formats that should be used when assigning string values to :date and :datetime columns, e.g.:
 <pre class='syntax'>
-<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span><span class="ident">string_to_date_format</span> <span class="punct">=</span> <span class="punct">&quot;</span><span class="string">%d.%m.%Y</span><span class="punct">&quot;</span>
-<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span><span class="ident">string_to_time_format</span> <span class="punct">=</span> <span class="punct">&quot;</span><span class="string">%d.%m.%Y %H:%M:%S</span><span class="punct">&quot;</span>
+<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span><span class="ident">instance_eval</span> <span class="keyword">do</span>
+  <span class="constant">self</span><span class="punct">.</span><span class="ident">string_to_date_format</span> <span class="punct">=</span> <span class="punct">&quot;</span><span class="string">%d.%m.%Y</span><span class="punct">&quot;</span>
+  <span class="constant">self</span><span class="punct">.</span><span class="ident">string_to_time_format</span> <span class="punct">=</span> <span class="punct">&quot;</span><span class="string">%d.%m.%Y %H:%M:%S</span><span class="punct">&quot;</span>
+<span class="keyword">end</span>
 </pre></li>
 	</ul>
 
@@ -171,7 +176,7 @@ rake install_gem</pre>
 
 	<p>This code is free to use under the terms of the <span class="caps">MIT</span> license.</p>
     <p class="coda">
-      <a href="http://blog.rayapps.com">Raimonds Simanovskis</a>, 27th July 2008<br>
+      <a href="http://blog.rayapps.com">Raimonds Simanovskis</a>, 28th July 2008<br>
       Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
     </p>
 </div>
