@@ -206,6 +206,10 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       end
     end
 
+    after(:all) do
+      Object.send(:remove_const, "TestEmployee")
+    end
+    
     before(:each) do
       @employee = TestEmployee.create(
         :first_name => "First",

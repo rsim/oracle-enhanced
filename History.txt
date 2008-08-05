@@ -1,3 +1,8 @@
+== 1.1.6 2008-??-??
+
+* Bug fixes:
+  * Do not call write_lobs callback when custom create or update methods are defined
+    
 == 1.1.5 2008-07-27
 
 * Bug fixes:

@@ -23,6 +23,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
         last_name     VARCHAR2(25),
         hire_date     DATE,
         salary        NUMBER(8,2),
+        description   CLOB,
         version       NUMBER(15,0),
         create_time   DATE,
         update_time   DATE
@@ -40,13 +41,15 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
             p_last_name     VARCHAR2,
             p_hire_date     DATE,
             p_salary        NUMBER,
+            p_description   VARCHAR2,
             p_employee_id   OUT NUMBER);
         PROCEDURE update_employee(
             p_employee_id   NUMBER,
             p_first_name    VARCHAR2,
             p_last_name     VARCHAR2,
             p_hire_date     DATE,
-            p_salary        NUMBER);
+            p_salary        NUMBER,
+            p_description   VARCHAR2);
         PROCEDURE delete_employee(
             p_employee_id   NUMBER);
       END;
@@ -58,13 +61,14 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
             p_last_name     VARCHAR2,
             p_hire_date     DATE,
             p_salary        NUMBER,
+            p_description   VARCHAR2,
             p_employee_id   OUT NUMBER)
         IS
         BEGIN
           SELECT test_employees_s.NEXTVAL INTO p_employee_id FROM dual;
-          INSERT INTO test_employees (employee_id, first_name, last_name, hire_date, salary,
+          INSERT INTO test_employees (employee_id, first_name, last_name, hire_date, salary, description,
                                       version, create_time, update_time)
-          VALUES (p_employee_id, p_first_name, p_last_name, p_hire_date, p_salary,
+          VALUES (p_employee_id, p_first_name, p_last_name, p_hire_date, p_salary, p_description,
                                       1, SYSDATE, SYSDATE);
         END create_employee;
         
@@ -73,14 +77,15 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
             p_first_name    VARCHAR2,
             p_last_name     VARCHAR2,
             p_hire_date     DATE,
-            p_salary        NUMBER)
+            p_salary        NUMBER,
+            p_description   VARCHAR2)
         IS
             v_version       NUMBER;
         BEGIN
           SELECT version INTO v_version FROM test_employees WHERE employee_id = p_employee_id FOR UPDATE;
           UPDATE test_employees
           SET employee_id = p_employee_id, first_name = p_first_name, last_name = p_last_name,
-              hire_date = p_hire_date, salary = p_salary,
+              hire_date = p_hire_date, salary = p_salary, description = p_description,
               version = v_version + 1, update_time = SYSDATE;
         END update_employee;
         
@@ -107,6 +112,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
           :p_last_name => last_name,
           :p_hire_date => hire_date,
           :p_salary => salary,
+          :p_description => "#{first_name} #{last_name}",
           :p_employee_id => nil
         )[:p_employee_id]
       end
@@ -118,7 +124,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
           :p_first_name => first_name,
           :p_last_name => last_name,
           :p_hire_date => hire_date,
-          :p_salary => salary
+          :p_salary => salary,
+          :p_description => "#{first_name} #{last_name}"
         )
       end
 
@@ -154,6 +161,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.first_name.should == "First"
     @employee.last_name.should == "Last"
     @employee.hire_date.should == @today
+    @employee.description.should == "First Last"
     @employee.create_time.should_not be_nil
     @employee.update_time.should_not be_nil
   end
@@ -162,13 +170,14 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
-      :hire_date => @today
+      :hire_date => @today,
+      :description => "description"
     )
     @employee.reload
     @employee.first_name = "Second"
     @employee.save!
     @employee.reload
-    @employee.first_name.should == "Second"
+    @employee.description.should == "Second Last"
   end
 
   it "should not update record if nothing is changed and partial updates are enabled" do

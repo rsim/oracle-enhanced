@@ -61,7 +61,8 @@ begin
       # and write back the data.
       after_save :enhanced_write_lobs
       def enhanced_write_lobs #:nodoc:
-        if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter)
+        if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
+            !(self.class.custom_create_method || self.class.custom_update_method)
           connection.write_lobs(self.class.table_name, self.class, attributes)
         end
       end

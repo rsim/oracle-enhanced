@@ -24,7 +24,6 @@ module ActiveRecord #:nodoc:
         private
         def include_with_custom_methods
           unless included_modules.include? InstanceMethods
-            class_inheritable_accessor :custom_create_method, :custom_update_method, :custom_delete_method
             include InstanceMethods
           end
         end
@@ -96,6 +95,7 @@ end
 
 ActiveRecord::Base.class_eval do
   extend ActiveRecord::ConnectionAdapters::OracleEnhancedProcedures::ClassMethods
+  class_inheritable_accessor :custom_create_method, :custom_update_method, :custom_delete_method
 end
 
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.class_eval do
