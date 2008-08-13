@@ -52,7 +52,43 @@ describe "OracleEnhancedAdapter schema dump" do
   it "should return the same structure drop as original oracle adapter" do
     @new_conn.structure_drop.should == @old_conn.structure_drop
   end
+  
+  it "should return the character size of nvarchar fields" do
+    @new_conn.execute <<-SQL
+      CREATE TABLE nvarchartable (
+        session_id  NVARCHAR2(255) DEFAULT NULL
+      )
+    SQL
+    if /.*session_id nvarchar2\((\d+)\).*/ =~ @new_conn.structure_dump
+       "#$1".should == "255"
+    end
+    @new_conn.execute "DROP TABLE nvarchartable"
+  end
+end
 
+describe "OracleEnhancedAdapter database stucture dump extentions" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE nvarchartable (
+        unq_nvarchar  NVARCHAR2(255) DEFAULT NULL
+      )
+    SQL
+  end
+  
+  after(:all) do
+    @conn.execute "DROP TABLE nvarchartable"
+  end
+  
+  it "should return the character size of nvarchar fields" do
+    if /.*unq_nvarchar nvarchar2\((\d+)\).*/ =~ @conn.structure_dump
+       "#$1".should == "255"
+    end
+  end
 end
 
 describe "OracleEnhancedAdapter database session store" do
