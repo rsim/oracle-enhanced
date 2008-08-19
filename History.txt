@@ -4,6 +4,7 @@
   * Do not call write_lobs callback when custom create or update methods are defined
 * Enhancements:
   * Added support for set_date_columns and set_datetime_columns
+  * Added support for schema prefix in set_table_name (removed table name quoting)
     
 == 1.1.5 2008-07-27
 

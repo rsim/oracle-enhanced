@@ -302,6 +302,11 @@ begin
           name.to_s =~ /[A-Z]/ ? "\"#{name}\"" : name
         end
 
+        # abstract_adapter calls quote_column_name from quote_table_name, so prevent that
+        def quote_table_name(name)
+          name
+        end
+        
         def quote_string(s) #:nodoc:
           s.gsub(/'/, "''")
         end

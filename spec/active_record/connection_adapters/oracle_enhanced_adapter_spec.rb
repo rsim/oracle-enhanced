@@ -205,6 +205,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
       class TestEmployee < ActiveRecord::Base
+        set_table_name "hr.test_employees"
         set_primary_key :employee_id
       end
     end
