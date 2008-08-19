@@ -658,7 +658,7 @@ begin
           select_all("select table_name from all_tables where owner = sys_context('userenv','session_user')").inject(s) do |structure, table|
             ddl = "create table #{table.to_a.first.last} (\n "
             cols = select_all(%Q{
-              select column_name, data_type, data_length, data_precision, data_scale, data_default, nullable
+              select column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
               from user_tab_columns
               where table_name = '#{table.to_a.first.last}'
               order by column_id
@@ -669,7 +669,8 @@ begin
                 col << ",#{row['data_scale'].to_i}" if !row['data_scale'].nil?
                 col << ')'
               elsif row['data_type'].include?('CHAR')
-                col << "(#{row['data_length'].to_i})"
+                length = row['char_used'] == 'C' ? row['char_length'].to_i : row['data_length'].to_i
+                col <<  "(#{length})"
               end
               col << " default #{row['data_default']}" if !row['data_default'].nil?
               col << ' not null' if row['nullable'] == 'N'
