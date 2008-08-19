@@ -57,14 +57,19 @@ begin
         connection.ignore_table_columns(table_name,*args)
       end
 
-      # RSI: specify which table columns should be dreated as date (without time)
+      # RSI: specify which table columns should be treated as date (without time)
       def self.set_date_columns(*args)
         connection.set_type_for_columns(table_name,:date,*args)
       end
 
-      # RSI: specify which table columns should be dreated as datetime
+      # RSI: specify which table columns should be treated as datetime
       def self.set_datetime_columns(*args)
         connection.set_type_for_columns(table_name,:datetime,*args)
+      end
+
+      # RSI: specify which table columns should be treated as booleans
+      def self.set_boolean_columns(*args)
+        connection.set_type_for_columns(table_name,:boolean,*args)
       end
 
       # After setting large objects to empty, select the OCI8::LOB
@@ -123,7 +128,9 @@ begin
         def simplified_type(field_type)
           return :boolean if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
           return :boolean if OracleEnhancedAdapter.emulate_booleans_from_strings &&
-                            OracleEnhancedAdapter.is_boolean_column?(name, field_type, table_name)
+                            (forced_column_type == :boolean ||
+                            OracleEnhancedAdapter.is_boolean_column?(name, field_type, table_name))
+          
           case field_type
             when /date/i
               forced_column_type ||

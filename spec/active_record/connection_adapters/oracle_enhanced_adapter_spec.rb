@@ -417,7 +417,8 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
         has_email     CHAR(1),
         has_phone     VARCHAR2(1),
         active_flag   VARCHAR2(2),
-        manager_yn    VARCHAR2(3)
+        manager_yn    VARCHAR2(3),
+        test_boolean  VARCHAR2(3)
       )
     SQL
     @conn.execute <<-SQL
@@ -479,6 +480,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do
     before(:each) do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
       class Test3Employee < ActiveRecord::Base
       end
     end
@@ -487,14 +489,16 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       Object.send(:remove_const, "Test3Employee")
     end
     
-    def create_employee3
+    def create_employee3(params={})
       @employee3 = Test3Employee.create(
+        {
         :first_name => "First",
         :last_name => "Last",
         :has_email => true,
         :has_phone => false,
         :active_flag => true,
         :manager_yn => false
+        }.merge(params)
       )
       @employee3.reload
     end
@@ -524,6 +528,19 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
       create_employee3
       @employee3.first_name.class.should == String
+    end
+
+    it "should return boolean value from VARCHAR2 boolean column if column specified in set_boolean_columns" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+      class Test3Employee < ActiveRecord::Base
+        set_boolean_columns :test_boolean
+      end
+      create_employee3(:test_boolean => true)
+      @employee3.test_boolean.class.should == TrueClass
+      @employee3.test_boolean_before_type_cast.should == "Y"
+      create_employee3(:test_boolean => false)
+      @employee3.test_boolean.class.should == FalseClass
+      @employee3.test_boolean_before_type_cast.should == "N"
     end
   
   end
