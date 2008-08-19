@@ -2,6 +2,8 @@
 
 * Bug fixes:
   * Do not call write_lobs callback when custom create or update methods are defined
+* Enhancements:
+  * Added support for set_date_columns and set_datetime_columns
     
 == 1.1.5 2008-07-27
 

@@ -200,40 +200,78 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
   end
 
   describe "/ DATE values from ActiveRecord model" do
-    before(:all) do
+    before(:each) do
+      ActiveRecord::Base.connection.clear_types_for_columns
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
       class TestEmployee < ActiveRecord::Base
         set_primary_key :employee_id
       end
     end
-
-    after(:all) do
-      Object.send(:remove_const, "TestEmployee")
-    end
     
-    before(:each) do
+    def create_test_employee
+      @today = Date.new(2008,8,19)
+      @now = Time.local(2008,8,19,17,03,59)
       @employee = TestEmployee.create(
         :first_name => "First",
         :last_name => "Last",
-        :hire_date => Date.today,
-        :created_at => Time.now
+        :hire_date => @today,
+        :created_at => @now
       )
+      @employee.reload
+    end
+
+    after(:each) do
+      # @employee.destroy if @employee
+      Object.send(:remove_const, "TestEmployee")
     end
 
     it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
-      @employee.reload
+      create_test_employee
       @employee.hire_date.class.should == Time
     end
 
     it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-      @employee.reload
+      create_test_employee
       @employee.hire_date.class.should == Date
     end
 
     it "should return Time value from DATE column if column name does not contain 'date' and emulate_dates_by_column_name is true" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+      create_test_employee
+      @employee.created_at.class.should == Time
+    end
+
+    it "should return Date value from DATE column if emulate_dates_by_column_name is false but column is defined as date" do
+      class TestEmployee < ActiveRecord::Base
+        set_date_columns :hire_date
+      end
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      create_test_employee
+      @employee.hire_date.class.should == Date
+    end
+
+    it "should return Time value from DATE column if emulate_dates_by_column_name is true but column is defined as datetime" do
+      class TestEmployee < ActiveRecord::Base
+        set_datetime_columns :hire_date
+      end
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+      create_test_employee
+      @employee.hire_date.class.should == Time
+      # change to current time with hours, minutes and seconds
+      @employee.hire_date = @now
+      @employee.save!
       @employee.reload
+      @employee.hire_date.class.should == Time
+      @employee.hire_date.should == @now
+    end
+
+    it "should guess Date or Time value if emulate_dates is true" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = true
+      create_test_employee
+      @employee.hire_date.class.should == Date
       @employee.created_at.class.should == Time
     end
 
@@ -672,9 +710,6 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
       CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
-    class TestEmployee < ActiveRecord::Base
-      set_primary_key :employee_id
-    end
     # @conn.execute %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
     @conn.execute %q{alter session set nls_date_format = 'DD-MON-YYYY HH24:MI:SS'}
     # @conn.execute %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'}
@@ -682,14 +717,25 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
   end
   
   after(:all) do
-    Object.send(:remove_const, "TestEmployee")
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
   end
 
   before(:each) do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+    class TestEmployee < ActiveRecord::Base
+      set_primary_key :employee_id
+    end
     @today = Date.new(2008,6,28)
     @now = Time.local(2008,6,28,13,34,33)
+  end
+
+  after(:each) do
+    Object.send(:remove_const, "TestEmployee")    
+  end
+  
+  def create_test_employee
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -697,31 +743,32 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
       :created_at => @now,
       :created_at_ts => @now
     )
+    @employee.reload    
   end
 
   it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
-    @employee.reload
+    create_test_employee
     @employee.hire_date.class.should == Time
     @employee.hire_date.should == @today.to_time
   end
 
   it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-    @employee.reload
+    create_test_employee
     @employee.hire_date.class.should == Date
     @employee.hire_date.should == @today
   end
 
   it "should return Time value from DATE column if column name does not contain 'date' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-    @employee.reload
+    create_test_employee
     @employee.created_at.class.should == Time
     @employee.created_at.should == @now
   end
 
   it "should return Time value from TIMESTAMP columns" do
-    @employee.reload
+    create_test_employee
     @employee.created_at_ts.class.should == Time
     @employee.created_at_ts.should == @now
   end

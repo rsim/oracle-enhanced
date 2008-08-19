@@ -57,6 +57,16 @@ begin
         connection.ignore_table_columns(table_name,*args)
       end
 
+      # RSI: specify which table columns should be dreated as date (without time)
+      def self.set_date_columns(*args)
+        connection.set_type_for_columns(table_name,:date,*args)
+      end
+
+      # RSI: specify which table columns should be dreated as datetime
+      def self.set_datetime_columns(*args)
+        connection.set_type_for_columns(table_name,:datetime,*args)
+      end
+
       # After setting large objects to empty, select the OCI8::LOB
       # and write back the data.
       after_save :enhanced_write_lobs
@@ -74,8 +84,15 @@ begin
     module ConnectionAdapters #:nodoc:
       class OracleEnhancedColumn < Column #:nodoc:
 
+        attr_reader :table_name, :forced_column_type
+        
+        def initialize(name, default, sql_type = nil, null = true, table_name = nil, forced_column_type = nil)
+          @table_name = table_name
+          @forced_column_type = forced_column_type
+          super(name, default, sql_type, null)
+        end
+
         def type_cast(value)
-          return value.to_date if type == :date && OracleEnhancedAdapter.emulate_dates_by_column_name && value.class == Time
           return guess_date_or_time(value) if type == :datetime && OracleEnhancedAdapter.emulate_dates
           super
         end
@@ -89,29 +106,42 @@ begin
             %w(true t 1 y +).include?(value.to_s.downcase)
           end
         end
+
+        # RSI: convert Time value to Date for :date columns
+        def self.string_to_date(string)
+          return string.to_date if string.is_a?(Time)
+          super
+        end
+
+        # RSI: convert Date value to Time for :datetime columns
+        def self.string_to_time(string)
+          return string.to_time if string.is_a?(Date) && !OracleEnhancedAdapter.emulate_dates
+          super
+        end
         
         private
         def simplified_type(field_type)
           return :boolean if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
           return :boolean if OracleEnhancedAdapter.emulate_booleans_from_strings &&
-                            OracleEnhancedAdapter.is_boolean_column?(name, field_type)
+                            OracleEnhancedAdapter.is_boolean_column?(name, field_type, table_name)
           case field_type
             when /date/i
-              return :date if OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(name)
+              forced_column_type ||
+              (:date if OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(name, table_name)) ||
               :datetime
             when /timestamp/i then :timestamp
             when /time/i then :datetime
             when /decimal|numeric|number/i
               return :integer if extract_scale(field_type) == 0
               # RSI: if column name is ID or ends with _ID
-              return :integer if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name)
+              return :integer if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
               :decimal
             else super
           end
         end
 
         def guess_date_or_time(value)
-          (value.hour == 0 and value.min == 0 and value.sec == 0) ?
+          value.respond_to?(:hour) && (value.hour == 0 and value.min == 0 and value.sec == 0) ?
             Date.new(value.year, value.month, value.day) : value
         end
         
@@ -186,14 +216,25 @@ begin
         # RSI: set to true if columns with DATE in their name should be emulated as date
         @@emulate_dates_by_column_name = false
         cattr_accessor :emulate_dates_by_column_name
-        def self.is_date_column?(name)
+        def self.is_date_column?(name, table_name = nil)
           name =~ /(^|_)date(_|$)/i
+        end
+        # RSI: instance method uses at first check if column type defined at class level
+        def is_date_column?(name, table_name = nil)
+          case get_type_for_column(table_name, name)
+          when nil
+            self.class.is_date_column?(name, table_name)
+          when :date
+            true
+          else
+            false
+          end
         end
 
         # RSI: set to true if NUMBER columns with ID at the end of their name should be emulated as integers
         @@emulate_integers_by_column_name = false
         cattr_accessor :emulate_integers_by_column_name
-        def self.is_integer_column?(name)
+        def self.is_integer_column?(name, table_name = nil)
           name =~ /(^|_)id$/i
         end
 
@@ -201,7 +242,7 @@ begin
         # should be emulated as booleans
         @@emulate_booleans_from_strings = false
         cattr_accessor :emulate_booleans_from_strings
-        def self.is_boolean_column?(name, field_type)
+        def self.is_boolean_column?(name, field_type, table_name = nil)
           return true if ["CHAR(1)","VARCHAR2(1)"].include?(field_type)
           field_type =~ /^VARCHAR2/ && (name =~ /_flag$/i || name =~ /_yn$/i)
         end
@@ -472,11 +513,29 @@ begin
           @ignore_table_columns[table_name]
         end
         
+        # RSI: set explicit type for specified table columns
+        def set_type_for_columns(table_name, column_type, *args)
+          @table_column_type ||= {}
+          @table_column_type[table_name] ||= {}
+          args.each do |col|
+            @table_column_type[table_name][col.to_s.downcase] = column_type
+          end
+        end
+        
+        def get_type_for_column(table_name, column_name)
+          result = @table_column_type && @table_column_type[table_name] && @table_column_type[table_name][column_name.to_s.downcase]
+          result
+        end
+
+        def clear_types_for_columns
+          @table_column_type = nil
+        end
+
         def columns(table_name, name = nil) #:nodoc:
           # RSI: get ignored_columns by original table name
           ignored_columns = ignored_table_columns(table_name)
 
-          (owner, table_name) = @connection.describe(table_name)
+          (owner, desc_table_name) = @connection.describe(table_name)
 
           table_cols = <<-SQL
             select column_name as name, data_type as sql_type, data_default, nullable,
@@ -488,7 +547,7 @@ begin
                    decode(data_type, 'NUMBER', data_scale, null) as scale
               from all_tab_columns
              where owner      = '#{owner}'
-               and table_name = '#{table_name}'
+               and table_name = '#{desc_table_name}'
              order by column_id
           SQL
 
@@ -511,7 +570,11 @@ begin
             OracleEnhancedColumn.new(oracle_downcase(row['name']),
                              row['data_default'],
                              row['sql_type'],
-                             row['nullable'] == 'Y')
+                             row['nullable'] == 'Y',
+                             # RSI: pass table name for table specific column definitions
+                             table_name,
+                             # RSI: pass column type if specified in class definition
+                             get_type_for_column(table_name, oracle_downcase(row['name'])))
           end
         end
 
@@ -679,9 +742,10 @@ begin
                 when OraDate
                   d = row[i]
                   # RSI: added emulate_dates_by_column_name functionality
-                  if emulate_dates_by_column_name && self.class.is_date_column?(col)
-                    d.to_date
-                  elsif emulate_dates && (d.hour == 0 && d.minute == 0 && d.second == 0)
+                  # if emulate_dates_by_column_name && self.class.is_date_column?(col)
+                  #   d.to_date
+                  # elsif
+                  if emulate_dates && (d.hour == 0 && d.minute == 0 && d.second == 0)
                     d.to_date
                   else
                     # see string_to_time; Time overflowing to DateTime, respecting the default timezone
