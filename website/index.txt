@@ -52,6 +52,19 @@ The following model class methods are available:
 ignore_table_columns :column1, :column2, :column3
 </pre>
 
+* specify which table columns should be with :date type (without time) or with :datetime type (with date and time) - this could be used
+if emulation by column names is not working because of different naming conventions
+<pre syntax="ruby">
+set_date_columns :started_on, :finished_on
+set_datetime_columns :start_date_and_time, :end_date_and_time
+</pre>
+
+* specify which table columns should be with :boolean type  - this should be used together with boolean emulation from strings if
+there are other boolean columns with different naming convention
+<pre syntax="ruby">
+set_boolean_columns :some_boolean_column
+</pre>
+
 * specify custom create, update and delete methods which should be used instead of Rails generated INSERT, UPDATE and DELETE statements
 <pre syntax="ruby">
 # should return ID of new record

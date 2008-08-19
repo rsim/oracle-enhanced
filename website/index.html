@@ -33,7 +33,7 @@
     <h1>ActiveRecord Oracle enhanced adapter</h1>
     <div id="version" class="clickable" onclick='document.location = "http://rubyforge.org/projects/oracle-enhanced"; return false'>
       <p>Get Version</p>
-      <a href="http://rubyforge.org/projects/oracle-enhanced" class="numbers">1.1.5</a>
+      <a href="http://rubyforge.org/projects/oracle-enhanced" class="numbers">1.1.6</a>
     </div>
     <h1>&#x2192; &#8216;oracle-enhanced&#8217;</h1>
 
@@ -110,6 +110,25 @@ The following model class methods are available:
 
 
 	<ul>
+	<li>specify which table columns should be with :date type (without time) or with :datetime type (with date and time) &#8211; this could be used
+if emulation by column names is not working because of different naming conventions
+<pre class='syntax'>
+<span class="ident">set_date_columns</span> <span class="symbol">:started_on</span><span class="punct">,</span> <span class="symbol">:finished_on</span>
+<span class="ident">set_datetime_columns</span> <span class="symbol">:start_date_and_time</span><span class="punct">,</span> <span class="symbol">:end_date_and_time</span>
+</pre></li>
+	</ul>
+
+
+	<ul>
+	<li>specify which table columns should be with :boolean type  &#8211; this should be used together with boolean emulation from strings if
+there are other boolean columns with different naming convention
+<pre class='syntax'>
+<span class="ident">set_boolean_columns</span> <span class="symbol">:some_boolean_column</span>
+</pre></li>
+	</ul>
+
+
+	<ul>
 	<li>specify custom create, update and delete methods which should be used instead of Rails generated <span class="caps">INSERT</span>, UPDATE and <span class="caps">DELETE</span> statements
 <pre class='syntax'>
 <span class="comment"># should return ID of new record</span>
@@ -176,7 +195,7 @@ rake install_gem</pre>
 
 	<p>This code is free to use under the terms of the <span class="caps">MIT</span> license.</p>
     <p class="coda">
-      <a href="http://blog.rayapps.com">Raimonds Simanovskis</a>, 28th July 2008<br>
+      <a href="http://blog.rayapps.com">Raimonds Simanovskis</a>, 19th August 2008<br>
       Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
     </p>
 </div>

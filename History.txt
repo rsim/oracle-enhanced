@@ -1,11 +1,12 @@
-== 1.1.6 2008-??-??
+== 1.1.6 2008-08-19
 
-* Bug fixes:
-  * Do not call write_lobs callback when custom create or update methods are defined
 * Enhancements:
   * Added support for set_date_columns and set_datetime_columns
   * Added support for set_boolean_columns
   * Added support for schema prefix in set_table_name (removed table name quoting)
+  * Added support for NVARCHAR2 column type
+* Bug fixes:
+  * Do not call write_lobs callback when custom create or update methods are defined
     
 == 1.1.5 2008-07-27
 
