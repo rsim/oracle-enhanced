@@ -951,6 +951,10 @@ begin
 
 rescue LoadError
   # OCI8 driver is unavailable.
+  if defined?(RAILS_DEFAULT_LOGGER)
+    RAILS_DEFAULT_LOGGER.error "ERROR: ActiveRecord oracle_enhanced adapter could not load ruby-oci8 library. "+
+                              "Please install ruby-oci8 library or gem."
+  end
   module ActiveRecord # :nodoc:
     class Base
       @@oracle_error_message = "Oracle/OCI libraries could not be loaded: #{$!.to_s}"

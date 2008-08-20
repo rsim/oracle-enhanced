@@ -1,3 +1,8 @@
+== 1.1.7 2008-08-20
+
+* Bug fixes:
+  * Fixed that adapter works without ruby-plsql gem (in this case just custom create/update/delete methods are not available)
+
 == 1.1.6 2008-08-19
 
 * Enhancements:

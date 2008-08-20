@@ -1,3 +1,9 @@
+# define accessors before requiring ruby-plsql as these accessors are used in clob writing callback and should be
+# available also if ruby-plsql could not be loaded
+ActiveRecord::Base.class_eval do
+  class_inheritable_accessor :custom_create_method, :custom_update_method, :custom_delete_method
+end
+
 require 'ruby_plsql'
 require 'activesupport'
 
@@ -95,7 +101,6 @@ end
 
 ActiveRecord::Base.class_eval do
   extend ActiveRecord::ConnectionAdapters::OracleEnhancedProcedures::ClassMethods
-  class_inheritable_accessor :custom_create_method, :custom_update_method, :custom_delete_method
 end
 
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.class_eval do
