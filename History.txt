@@ -1,3 +1,8 @@
+== 1.1.8 2008-09-??
+
+* Bug fixes:
+  * Fixed storing of serialized LOB columns
+
 == 1.1.7 2008-08-20
 
 * Bug fixes:

@@ -976,3 +976,47 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
   
 end
+
+describe "OracleEnhancedAdapter handling of CLOB columns" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE test_employees (
+        employee_id   NUMBER(6,0),
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        comments      CLOB
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test_employees_seq  MINVALUE 1
+        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
+    SQL
+    class TestEmployee < ActiveRecord::Base
+      set_primary_key :employee_id
+    end
+  end
+  
+  after(:all) do
+    Object.send(:remove_const, "TestEmployee")
+    @conn.execute "DROP TABLE test_employees"
+    @conn.execute "DROP SEQUENCE test_employees_seq"
+  end
+
+  before(:each) do
+  end
+  
+  it "should create record without CLOB data when attribute is serialized" do
+    TestEmployee.serialize :comments
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last"
+    )
+    @employee.should be_valid
+  end
+  
+end
