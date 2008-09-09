@@ -81,8 +81,32 @@ begin
           connection.write_lobs(self.class.table_name, self.class, attributes)
         end
       end
-
       private :enhanced_write_lobs
+      
+      class << self
+        # RSI: patch ORDER BY to work with LOBs
+        def add_order_with_lobs!(sql, order, scope = :auto)
+          if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter)
+            order = connection.lob_order_by_expression(self, order) if order
+            
+            orig_scope = scope
+            scope = scope(:find) if :auto == scope
+            if scope
+              new_scope_order = connection.lob_order_by_expression(self, scope[:order])
+              if new_scope_order != scope[:order]
+                scope = scope.merge(:order => new_scope_order)
+              else
+                scope = orig_scope
+              end
+            end
+          end
+          add_order_without_lobs!(sql, order, scope = :auto)
+        end
+        private :add_order_with_lobs!
+        alias_method :add_order_without_lobs!, :add_order!
+        alias_method :add_order!, :add_order_with_lobs!
+      end
+      
     end
 
 
@@ -473,6 +497,22 @@ begin
           end
         end
 
+        # RSI: change LOB column for ORDER BY clause
+        # just first 100 characters are taken for ordering
+        def lob_order_by_expression(klass, order)
+          return order if order.nil?
+          changed = false
+          new_order = order.to_s.strip.split(/, */).map do |order_by_col|
+            column_name, asc_desc = order_by_col.split(/ +/)
+            if column = klass.columns.detect { |col| col.name == column_name && col.sql_type =~ /LOB$/i}
+              changed = true
+              "DBMS_LOB.SUBSTR(#{column_name},100,1) #{asc_desc}"
+            else
+              order_by_col
+            end
+          end.join(', ')
+          changed ? new_order : order
+        end
 
         # SCHEMA STATEMENTS ========================================
         #

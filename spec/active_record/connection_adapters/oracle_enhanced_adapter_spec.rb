@@ -1018,5 +1018,19 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     )
     @employee.should be_valid
   end
+
+  it "should order by CLOB column" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :comments => "comments"
+    )
+    TestEmployee.find(:all, :order => "comments ASC").should_not be_empty
+    TestEmployee.find(:all, :order => " comments ASC ").should_not be_empty
+    TestEmployee.find(:all, :order => "comments").should_not be_empty
+    TestEmployee.find(:all, :order => " comments ").should_not be_empty
+    TestEmployee.find(:all, :order => :comments).should_not be_empty
+    TestEmployee.find(:all, :order => "  first_name DESC,  last_name   ASC   ").should_not be_empty
+  end
   
 end
