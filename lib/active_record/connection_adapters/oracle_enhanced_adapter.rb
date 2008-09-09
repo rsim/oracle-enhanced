@@ -425,9 +425,11 @@ begin
         end
 
         def add_limit_offset!(sql, options) #:nodoc:
-          offset = options[:offset] || 0
+          # RSI: added to_i for limit and offset to protect from SQL injection
+          offset = (options[:offset] || 0).to_i
 
           if limit = options[:limit]
+            limit = limit.to_i
             sql.replace "select * from (select raw_sql_.*, rownum raw_rnum_ from (#{sql}) raw_sql_ where rownum <= #{offset+limit}) where raw_rnum_ > #{offset}"
           elsif offset > 0
             sql.replace "select * from (select raw_sql_.*, rownum raw_rnum_ from (#{sql}) raw_sql_) where raw_rnum_ > #{offset}"
