@@ -4,6 +4,7 @@
   * Fixed storing of serialized LOB columns
   * Prevent from SQL injection in :limit and :offset
   * Order by LOB columns (by replacing column with function which returns first 100 characters of LOB)
+  * Sequence creation for tables with non-default primary key in create_table block
 
 == 1.1.7 2008-08-20
 

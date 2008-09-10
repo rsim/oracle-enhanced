@@ -633,10 +633,25 @@ begin
           end
         end
 
-        def create_table(name, options = {}) #:nodoc:
-          super(name, options)
+        def create_table(name, options = {}, &block) #:nodoc:
+          create_sequence = options[:id] != false
+          if create_sequence
+            super(name, options, &block)
+          else
+            super(name, options) do |t|
+              class <<t
+                attr_accessor :create_sequence
+                def primary_key(*args)
+                  self.create_sequence = true
+                  super(*args)
+                end
+              end
+              result = block.call(t)
+              create_sequence = t.create_sequence
+            end
+          end
           seq_name = options[:sequence_name] || "#{name}_seq"
-          execute "CREATE SEQUENCE #{seq_name} START WITH 10000" unless options[:id] == false
+          execute "CREATE SEQUENCE #{seq_name} START WITH 10000" if create_sequence
         end
 
         def rename_table(name, new_name) #:nodoc:

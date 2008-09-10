@@ -1034,3 +1034,43 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
   end
   
 end
+
+describe "OracleEnhancedAdapter table and sequence creation with non-default primary key" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    ActiveRecord::Schema.define do
+      create_table :keyboards, :force => true, :id  => false do |t|
+        t.primary_key :key_number
+        t.string      :name
+      end
+      create_table :id_keyboards, :force => true do |t|
+        t.string      :name
+      end
+    end
+    class Keyboard < ActiveRecord::Base
+      set_primary_key :key_number
+    end
+    class IdKeyboard < ActiveRecord::Base
+    end
+  end
+  
+  after(:all) do
+    ActiveRecord::Schema.define do
+      drop_table :keyboards
+      drop_table :id_keyboards
+    end
+    Object.send(:remove_const, "Keyboard")
+    Object.send(:remove_const, "IdKeyboard")
+  end
+  
+  it "should create sequence for non-default primary key" do
+    ActiveRecord::Base.connection.next_sequence_value(Keyboard.sequence_name).should_not be_nil
+  end
+
+  it "should create sequence for default primary key" do
+    ActiveRecord::Base.connection.next_sequence_value(IdKeyboard.sequence_name).should_not be_nil
+  end
+end
