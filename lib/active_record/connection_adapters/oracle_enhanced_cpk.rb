@@ -3,8 +3,9 @@ module ActiveRecord #:nodoc:
     module OracleEnhancedCpk #:nodoc:
 
       # This mightn't be in Core, but count(distinct x,y) doesn't work for me
+      # RSI: return that not supported if composite_primary_keys gem is required
       def supports_count_distinct? #:nodoc:
-        false
+        @supports_count_distinct ||= ! defined?(CompositePrimaryKeys)
       end
       
       def concat(*columns)

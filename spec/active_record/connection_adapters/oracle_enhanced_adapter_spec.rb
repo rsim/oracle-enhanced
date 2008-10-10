@@ -1074,3 +1074,26 @@ describe "OracleEnhancedAdapter table and sequence creation with non-default pri
     ActiveRecord::Base.connection.next_sequence_value(IdKeyboard.sequence_name).should_not be_nil
   end
 end
+
+describe "OracleEnhancedAdapter without composite_primary_keys" do
+
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    Object.send(:remove_const, 'CompositePrimaryKeys') if defined?(CompositePrimaryKeys)
+    class Employee < ActiveRecord::Base
+      set_primary_key :employee_id
+    end
+  end
+
+  it "should tell ActiveRecord that count distinct is supported" do
+    ActiveRecord::Base.connection.supports_count_distinct?.should be_true
+  end
+
+  it "should execute correct SQL COUNT DISTINCT statement" do
+    lambda { Employee.count(:employee_id, :distinct => true) }.should_not raise_error
+  end
+
+end

@@ -5,6 +5,8 @@
   * Prevent from SQL injection in :limit and :offset
   * Order by LOB columns (by replacing column with function which returns first 100 characters of LOB)
   * Sequence creation for tables with non-default primary key in create_table block
+  * Do count distinct workaround only when composite_primary_keys gem is used
+    (otherwise count distinct did not work with ActiveRecord 2.1.1)
 
 == 1.1.7 2008-08-20
 
