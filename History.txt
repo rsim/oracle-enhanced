@@ -1,4 +1,4 @@
-== 1.1.8 2008-09-??
+== 1.1.8 2008-10-10
 
 * Bug fixes:
   * Fixed storing of serialized LOB columns
@@ -7,6 +7,8 @@
   * Sequence creation for tables with non-default primary key in create_table block
   * Do count distinct workaround only when composite_primary_keys gem is used
     (otherwise count distinct did not work with ActiveRecord 2.1.1)
+  * Fixed rake db:test:clone_structure task
+    (see http://rsim.lighthouseapp.com/projects/11468/tickets/11-rake-dbtestclone_structure-fails-in-117)
 
 == 1.1.7 2008-08-20
 

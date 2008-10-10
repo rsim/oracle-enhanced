@@ -27,16 +27,16 @@ namespace :db do
     redefine_task :clone_structure => [ "db:structure:dump", "db:test:purge" ] do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(:test)
-      IO.readlines("db/#{RAILS_ENV}_structure.sql").join.split(";\n\n").each do |ddl|
-        ActiveRecord::Base.connection.execute(ddl)
+      IO.readlines("db/#{RAILS_ENV}_structure.sql").join.split("\n\n").each do |ddl|
+        ActiveRecord::Base.connection.execute(ddl.chop)
       end
     end
 
     redefine_task :purge => :environment do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(:test)
-      ActiveRecord::Base.connection.structure_drop.split(";\n\n").each do |ddl|
-        ActiveRecord::Base.connection.execute(ddl)
+      ActiveRecord::Base.connection.structure_drop.split("\n\n").each do |ddl|
+        ActiveRecord::Base.connection.execute(ddl.chop)
       end
     end
 
