@@ -9,6 +9,8 @@
     (otherwise count distinct did not work with ActiveRecord 2.1.1)
   * Fixed rake db:test:clone_structure task
     (see http://rsim.lighthouseapp.com/projects/11468/tickets/11-rake-dbtestclone_structure-fails-in-117)
+  * Fixed bug when ActiveRecord::Base.allow_concurrency = true
+    (see http://dev.rubyonrails.org/ticket/11134)
 
 == 1.1.7 2008-08-20
 
