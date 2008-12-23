@@ -3,7 +3,11 @@ require File.dirname(__FILE__) + '/../../spec_helper.rb'
 describe "OracleEnhancedAdapter custom methods for create, update and destroy" do
   def log_to(stream)
     ActiveRecord::Base.logger = Logger.new(stream)
-    ActiveRecord::Base.clear_active_connections!
+    if ActiveRecord::Base.respond_to?(:connection_pool)
+      ActiveRecord::Base.connection_pool.clear_reloadable_connections!
+    else
+      ActiveRecord::Base.clear_active_connections!
+    end
     ActiveRecord::Base.colorize_logging = false
     ActiveRecord::Base.logger.level = Logger::DEBUG
   end
@@ -228,7 +232,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :last_name => "Last",
       :hire_date => @today
     )
-    @buffer.string.should match(/^TestEmployee Create \(\d+\.\d+\)  custom create method$/)
+    @buffer.string.should match(/^TestEmployee Create \(\d+\.\d+(ms)?\)  custom create method$/)
   end
 
   it "should log update record" do
@@ -240,7 +244,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     log_to @buffer
     @employee.save!
-    @buffer.string.should match(/^TestEmployee Update \(\d+\.\d+\)  custom update method with employee_id=#{@employee.id}$/)
+    @buffer.string.should match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with employee_id=#{@employee.id}$/)
   end
 
   it "should log delete record" do
@@ -251,7 +255,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     log_to @buffer
     @employee.destroy
-    @buffer.string.should match(/^TestEmployee Destroy \(\d+\.\d+\)  custom delete method with employee_id=#{@employee.id}$/)
+    @buffer.string.should match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with employee_id=#{@employee.id}$/)
   end
 
   it "should validate new record before creation" do
