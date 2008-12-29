@@ -1,3 +1,5 @@
+require File.dirname(__FILE__) + '/../../spec_helper.rb'
+
 describe "OracleEnhancedAdapter date type detection based on column names" do
   before(:all) do
     ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
@@ -352,6 +354,18 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       column.type_cast("Y").class.should == TrueClass
       column.type_cast("N").class.should == FalseClass
     end
+  end
+
+  it "should translate boolean type to VARCHAR2(1) if emulate_booleans_from_strings is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+    ActiveRecord::Base.connection.type_to_sql(
+      :boolean, nil, nil, nil).should == "VARCHAR2(1)"
+  end
+
+  it "should translate boolean type to NUMBER(1) if emulate_booleans_from_strings is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+    ActiveRecord::Base.connection.type_to_sql(
+      :boolean, nil, nil, nil).should == "NUMBER(1)"
   end
   
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do

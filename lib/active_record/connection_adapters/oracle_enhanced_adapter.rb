@@ -308,7 +308,9 @@ begin
             :time        => { :name => "DATE" },
             :date        => { :name => "DATE" },
             :binary      => { :name => "BLOB" },
-            :boolean     => { :name => "NUMBER", :limit => 1 }
+            # RSI: if emulate_booleans_from_strings then store booleans in VARCHAR2
+            :boolean     => emulate_booleans_from_strings ?
+              { :name => "VARCHAR2", :limit => 1 } : { :name => "NUMBER", :limit => 1 }
           }
         end
 
