@@ -1050,3 +1050,6 @@ end
 
 # RSI: load additional methods for composite_primary_keys support
 require 'active_record/connection_adapters/oracle_enhanced_cpk'
+
+# RSI: load patch for dirty tracking methods
+require 'active_record/connection_adapters/oracle_enhanced_dirty'
