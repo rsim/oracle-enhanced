@@ -229,18 +229,21 @@ describe "OracleEnhancedAdapter ignore specified table columns" do
 end
 
 describe "OracleEnhancedAdapter table and sequence creation with non-default primary key" do
+
   before(:all) do
     ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
                                             :database => "xe",
                                             :username => "hr",
                                             :password => "hr")
     ActiveRecord::Schema.define do
-      create_table :keyboards, :force => true, :id  => false do |t|
-        t.primary_key :key_number
-        t.string      :name
-      end
-      create_table :id_keyboards, :force => true do |t|
-        t.string      :name
+      suppress_messages do
+        create_table :keyboards, :force => true, :id  => false do |t|
+          t.primary_key :key_number
+          t.string      :name
+        end
+        create_table :id_keyboards, :force => true do |t|
+          t.string      :name
+        end
       end
     end
     class Keyboard < ActiveRecord::Base
@@ -252,8 +255,10 @@ describe "OracleEnhancedAdapter table and sequence creation with non-default pri
   
   after(:all) do
     ActiveRecord::Schema.define do
-      drop_table :keyboards
-      drop_table :id_keyboards
+      suppress_messages do
+        drop_table :keyboards
+        drop_table :id_keyboards
+      end
     end
     Object.send(:remove_const, "Keyboard")
     Object.send(:remove_const, "IdKeyboard")
