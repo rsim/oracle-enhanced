@@ -27,3 +27,16 @@ require 'action_controller/session/active_record_store'
 require 'active_record/connection_adapters/oracle_enhanced_adapter'
 gem "activerecord-oracle-adapter"
 require 'active_record/connection_adapters/oracle_adapter'
+
+module LoggerSpecHelper
+  def log_to(stream)
+    ActiveRecord::Base.logger = Logger.new(stream)
+    if ActiveRecord::Base.respond_to?(:connection_pool)
+      ActiveRecord::Base.connection_pool.clear_reloadable_connections!
+    else
+      ActiveRecord::Base.clear_active_connections!
+    end
+    ActiveRecord::Base.colorize_logging = false
+    ActiveRecord::Base.logger.level = Logger::DEBUG
+  end
+end

@@ -1,16 +1,7 @@
 require File.dirname(__FILE__) + '/../../spec_helper.rb'
 
 describe "OracleEnhancedAdapter custom methods for create, update and destroy" do
-  def log_to(stream)
-    ActiveRecord::Base.logger = Logger.new(stream)
-    if ActiveRecord::Base.respond_to?(:connection_pool)
-      ActiveRecord::Base.connection_pool.clear_reloadable_connections!
-    else
-      ActiveRecord::Base.clear_active_connections!
-    end
-    ActiveRecord::Base.colorize_logging = false
-    ActiveRecord::Base.logger.level = Logger::DEBUG
-  end
+  include LoggerSpecHelper
   
   before(:all) do
     ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
