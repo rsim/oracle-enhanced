@@ -376,3 +376,75 @@ describe "OracleEnhancedAdapter sequence creation parameters" do
   end
 
 end
+
+describe "OracleEnhancedAdapter table and column comments" do
+
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    @conn = ActiveRecord::Base.connection
+  end
+
+  def create_test_employees_table(table_comment=nil, column_comments={})
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        create_table :test_employees, :comment => table_comment do |t|
+          t.string      :first_name, :comment => column_comments[:first_name]
+          t.string      :last_name, :comment => column_comments[:last_name]
+        end
+      end
+    end
+  end
+
+  after(:each) do
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        drop_table :test_employees
+      end
+    end
+    Object.send(:remove_const, "TestEmployee")
+    ActiveRecord::Base.table_name_prefix = nil
+  end
+
+  it "should create table with table comment" do
+    table_comment = "Test Employees"
+    create_test_employees_table(table_comment)
+    class TestEmployee < ActiveRecord::Base; end
+    
+    @conn.table_comment("test_employees").should == table_comment
+    TestEmployee.table_comment.should == table_comment
+  end
+
+  it "should create table with columns comment" do
+    column_comments = {:first_name => "Given Name", :last_name => "Surname"}
+    create_test_employees_table(nil, column_comments)
+    class TestEmployee < ActiveRecord::Base; end
+    
+    [:first_name, :last_name].each do |attr|
+      @conn.column_comment("test_employees", attr.to_s).should == column_comments[attr]
+    end
+    [:first_name, :last_name].each do |attr|
+      TestEmployee.columns_hash[attr.to_s].comment.should == column_comments[attr]
+    end
+  end
+
+  it "should create table with table and columns comment and custom table name prefix" do
+    ActiveRecord::Base.table_name_prefix = "xxx_"
+    table_comment = "Test Employees"
+    column_comments = {:first_name => "Given Name", :last_name => "Surname"}
+    create_test_employees_table(table_comment, column_comments)
+    class TestEmployee < ActiveRecord::Base; end
+    
+    @conn.table_comment(TestEmployee.table_name).should == table_comment
+    TestEmployee.table_comment.should == table_comment
+    [:first_name, :last_name].each do |attr|
+      @conn.column_comment(TestEmployee.table_name, attr.to_s).should == column_comments[attr]
+    end
+    [:first_name, :last_name].each do |attr|
+      TestEmployee.columns_hash[attr.to_s].comment.should == column_comments[attr]
+    end
+  end
+
+end

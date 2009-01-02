@@ -107,6 +107,10 @@ begin
         alias_method :add_order!, :add_order_with_lobs!
       end
       
+      # RSI: get table comment from schema definition
+      def self.table_comment
+        self.connection.table_comment(self.table_name)
+      end
     end
 
 
@@ -146,6 +150,12 @@ begin
         def self.string_to_time(string)
           return string.to_time if string.is_a?(Date) && !OracleEnhancedAdapter.emulate_dates
           super
+        end
+
+        # RSI: get column comment from schema definition
+        # will work only if using default ActiveRecord connection
+        def comment
+          ActiveRecord::Base.connection.column_comment(@table_name, name)
         end
         
         private
@@ -641,10 +651,10 @@ begin
 
         def create_table(name, options = {}, &block) #:nodoc:
           create_sequence = options[:id] != false
-          if create_sequence
-            super(name, options, &block)
-          else
-            super(name, options) do |t|
+          column_comments = {}
+          super(name, options) do |t|
+            # store that primary key was defined in create_table block
+            unless create_sequence
               class <<t
                 attr_accessor :create_sequence
                 def primary_key(*args)
@@ -652,13 +662,34 @@ begin
                   super(*args)
                 end
               end
-              result = block.call(t)
-              create_sequence = t.create_sequence
             end
+
+            # store column comments
+            class <<t
+              attr_accessor :column_comments
+              def column(name, type, options = {})
+                if options[:comment]
+                  self.column_comments ||= {}
+                  self.column_comments[name] = options[:comment]
+                end
+                super(name, type, options)
+              end
+            end
+
+            result = block.call(t)
+            create_sequence = create_sequence || t.create_sequence
+            column_comments = t.column_comments if t.column_comments
           end
+
           seq_name = options[:sequence_name] || "#{name}_seq"
           seq_start_value = options[:sequence_start_value] || default_sequence_start_value
           execute "CREATE SEQUENCE #{seq_name} START WITH #{seq_start_value}" if create_sequence
+          
+          add_table_comment name, options[:comment]
+          column_comments.each do |column_name, comment|
+            add_comment name, column_name, comment
+          end
+          
         end
 
         def rename_table(name, new_name) #:nodoc:
@@ -692,6 +723,36 @@ begin
 
         def remove_column(table_name, column_name) #:nodoc:
           execute "ALTER TABLE #{table_name} DROP COLUMN #{quote_column_name(column_name)}"
+        end
+
+        # RSI: table and column comments
+        def add_comment(table_name, column_name, comment)
+          return if comment.blank?
+          execute "COMMENT ON COLUMN #{quote_table_name(table_name)}.#{column_name} IS '#{comment}'"
+        end
+
+        def add_table_comment(table_name, comment)
+          return if comment.blank?
+          execute "COMMENT ON TABLE #{quote_table_name(table_name)} IS '#{comment}'"
+        end
+
+        def table_comment(table_name)
+          (owner, table_name) = @connection.describe(table_name)
+          select_value <<-SQL
+            SELECT comments FROM all_tab_comments
+            WHERE owner = '#{owner}'
+              AND table_name = '#{table_name}'
+          SQL
+        end
+
+        def column_comment(table_name, column_name)
+          (owner, table_name) = @connection.describe(table_name)
+          select_value <<-SQL
+            SELECT comments FROM all_col_comments
+            WHERE owner = '#{owner}'
+              AND table_name = '#{table_name}'
+              AND column_name = '#{column_name.upcase}'
+          SQL
         end
 
         # Find a table's primary key and sequence. 
