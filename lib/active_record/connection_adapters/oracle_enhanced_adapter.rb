@@ -635,6 +635,10 @@ begin
           end
         end
 
+        # RSI: default sequence start with value
+        @@default_sequence_start_value = 10000
+        cattr_accessor :default_sequence_start_value
+
         def create_table(name, options = {}, &block) #:nodoc:
           create_sequence = options[:id] != false
           if create_sequence
@@ -653,7 +657,8 @@ begin
             end
           end
           seq_name = options[:sequence_name] || "#{name}_seq"
-          execute "CREATE SEQUENCE #{seq_name} START WITH 10000" if create_sequence
+          seq_start_value = options[:sequence_start_value] || default_sequence_start_value
+          execute "CREATE SEQUENCE #{seq_name} START WITH #{seq_start_value}" if create_sequence
         end
 
         def rename_table(name, new_name) #:nodoc:

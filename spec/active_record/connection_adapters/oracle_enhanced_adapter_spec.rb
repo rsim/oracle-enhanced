@@ -295,3 +295,84 @@ describe "OracleEnhancedAdapter without composite_primary_keys" do
   end
 
 end
+
+describe "OracleEnhancedAdapter sequence creation parameters" do
+
+  before(:all) do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+  end
+
+  def create_test_employees_table(sequence_start_value = nil)
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        create_table :test_employees, sequence_start_value ? {:sequence_start_value => sequence_start_value} : {} do |t|
+          t.string      :first_name
+          t.string      :last_name
+        end
+      end
+    end
+  end
+  
+  def save_default_sequence_start_value
+    @saved_sequence_start_value = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value
+  end
+
+  def restore_default_sequence_start_value
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = @saved_sequence_start_value
+  end
+
+  before(:each) do
+    save_default_sequence_start_value
+  end
+  after(:each) do
+    restore_default_sequence_start_value
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        drop_table :test_employees
+      end
+    end
+    Object.send(:remove_const, "TestEmployee")
+  end
+
+  it "should use default sequence start value 10000" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value.should == 10000
+
+    create_test_employees_table
+    class TestEmployee < ActiveRecord::Base; end
+
+    employee = TestEmployee.create!
+    employee.id.should == 10000
+  end
+
+  it "should use specified default sequence start value" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 1
+
+    create_test_employees_table
+    class TestEmployee < ActiveRecord::Base; end
+
+    employee = TestEmployee.create!
+    employee.id.should == 1
+  end
+
+  it "should use sequence start value from table definition" do
+    create_test_employees_table(10)
+    class TestEmployee < ActiveRecord::Base; end
+
+    employee = TestEmployee.create!
+    employee.id.should == 10
+  end
+
+  it "should use sequence start value and other options from table definition" do
+    create_test_employees_table("100 NOCACHE INCREMENT BY 10")
+    class TestEmployee < ActiveRecord::Base; end
+
+    employee = TestEmployee.create!
+    employee.id.should == 100
+    employee = TestEmployee.create!
+    employee.id.should == 110
+  end
+
+end
