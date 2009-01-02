@@ -33,169 +33,33 @@
     <h1>ActiveRecord Oracle enhanced adapter</h1>
     <div id="version" class="clickable" onclick='document.location = "http://rubyforge.org/projects/oracle-enhanced"; return false'>
       <p>Get Version</p>
-      <a href="http://rubyforge.org/projects/oracle-enhanced" class="numbers">1.1.8</a>
+      <a href="http://rubyforge.org/projects/oracle-enhanced" class="numbers">1.1.9</a>
     </div>
-    <h1>&#x2192; &#8216;oracle-enhanced&#8217;</h1>
-
-
-	<h2>What</h2>
-
-
-	<p>Oracle &#8220;enhanced&#8221; ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases
+    <h1>&amp;#x2192; &#8216;oracle-enhanced&#8217;</h1>
+<h2>What</h2>
+<p>Oracle &#8220;enhanced&#8221; ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases<br />
 from Rails which are extracted from current real projects&#8217; monkey patches of original Oracle adapter.</p>
-
-
-	<h2>Installing</h2>
-
-
-	<p><pre class='syntax'><span class="ident">sudo</span> <span class="ident">gem</span> <span class="ident">install</span> <span class="ident">activerecord</span><span class="punct">-</span><span class="ident">oracle_enhanced</span><span class="punct">-</span><span class="ident">adapter</span></pre></p>
-
-
-	<h2>The basics</h2>
-
-
-	<p>In Rails config/database.yml file use oracle_enhanced as adapter name.</p>
-
-
-	<p>Create config/initializers/oracle_advanced.rb file in your Rails application and put configuration options there.
-The following configuration options are available:</p>
-
-
-	<ul>
-	<li>set to true if columns with <span class="caps">DATE</span> in their name should be emulated as Date (and not as Time which is default)
-<pre class='syntax'>
-<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span>
-  <span class="ident">emulate_dates_by_column_name</span> <span class="punct">=</span> <span class="constant">true</span>
-</pre></li>
-	</ul>
-
-
-	<ul>
-	<li>set to true if columns with ID at the end of column name should be emulated as Fixnum (and not as BigDecimal which is default)
-<pre class='syntax'>
-<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span>
-  <span class="ident">emulate_integers_by_column_name</span> <span class="punct">=</span> <span class="constant">true</span>
-</pre></li>
-	</ul>
-
-
-	<ul>
-	<li>set to true if <acronym title="1">CHAR</acronym>, <acronym title="1">VARCHAR2</acronym> columns or or <span class="caps">VARCHAR2</span> columns with <span class="caps">FLAG</span> or YN at the end of their name
-  should be emulated as booleans (and do not use <acronym title="1">NUMBER</acronym> as type for booleans which is default)
-<pre class='syntax'>
-<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span>
-  <span class="ident">emulate_booleans_from_strings</span> <span class="punct">=</span> <span class="constant">true</span>
-</pre></li>
-	</ul>
-
-
-	<ul>
-	<li>specify other date and time formats that should be used when assigning string values to :date and :datetime columns, e.g.:
-<pre class='syntax'>
-<span class="constant">ActiveRecord</span><span class="punct">::</span><span class="constant">ConnectionAdapters</span><span class="punct">::</span><span class="constant">OracleEnhancedAdapter</span><span class="punct">.</span><span class="ident">instance_eval</span> <span class="keyword">do</span>
-  <span class="constant">self</span><span class="punct">.</span><span class="ident">string_to_date_format</span> <span class="punct">=</span> <span class="punct">&quot;</span><span class="string">%d.%m.%Y</span><span class="punct">&quot;</span>
-  <span class="constant">self</span><span class="punct">.</span><span class="ident">string_to_time_format</span> <span class="punct">=</span> <span class="punct">&quot;</span><span class="string">%d.%m.%Y %H:%M:%S</span><span class="punct">&quot;</span>
-<span class="keyword">end</span>
-</pre></li>
-	</ul>
-
-
-The following model class methods are available:
-	<ul>
-	<li>specify which table columns should be ignored by ActiveRecord
-<pre class='syntax'>
-<span class="ident">ignore_table_columns</span> <span class="symbol">:column1</span><span class="punct">,</span> <span class="symbol">:column2</span><span class="punct">,</span> <span class="symbol">:column3</span>
-</pre></li>
-	</ul>
-
-
-	<ul>
-	<li>specify which table columns should be with :date type (without time) or with :datetime type (with date and time) &#8211; this could be used
-if emulation by column names is not working because of different naming conventions
-<pre class='syntax'>
-<span class="ident">set_date_columns</span> <span class="symbol">:started_on</span><span class="punct">,</span> <span class="symbol">:finished_on</span>
-<span class="ident">set_datetime_columns</span> <span class="symbol">:start_date_and_time</span><span class="punct">,</span> <span class="symbol">:end_date_and_time</span>
-</pre></li>
-	</ul>
-
-
-	<ul>
-	<li>specify which table columns should be with :boolean type  &#8211; this should be used together with boolean emulation from strings if
-there are other boolean columns with different naming convention
-<pre class='syntax'>
-<span class="ident">set_boolean_columns</span> <span class="symbol">:some_boolean_column</span>
-</pre></li>
-	</ul>
-
-
-	<ul>
-	<li>specify custom create, update and delete methods which should be used instead of Rails generated <span class="caps">INSERT</span>, UPDATE and <span class="caps">DELETE</span> statements
-<pre class='syntax'>
-<span class="comment"># should return ID of new record</span>
-<span class="ident">set_create_method</span> <span class="keyword">do</span>
-  <span class="ident">plsql</span><span class="punct">.</span><span class="ident">employees_pkg</span><span class="punct">.</span><span class="ident">create_employee</span><span class="punct">(</span>
-    <span class="symbol">:p_first_name</span> <span class="punct">=&gt;</span> <span class="ident">first_name</span><span class="punct">,</span>
-    <span class="symbol">:p_last_name</span> <span class="punct">=&gt;</span> <span class="ident">last_name</span><span class="punct">,</span>
-    <span class="symbol">:p_employee_id</span> <span class="punct">=&gt;</span> <span class="constant">nil</span>
-  <span class="punct">)[</span><span class="symbol">:p_employee_id</span><span class="punct">]</span>
-<span class="keyword">end</span>
-<span class="ident">set_update_method</span> <span class="keyword">do</span>
-  <span class="ident">plsql</span><span class="punct">.</span><span class="ident">employees_pkg</span><span class="punct">.</span><span class="ident">update_employee</span><span class="punct">(</span>
-    <span class="symbol">:p_employee_id</span> <span class="punct">=&gt;</span> <span class="ident">id</span><span class="punct">,</span>
-    <span class="symbol">:p_first_name</span> <span class="punct">=&gt;</span> <span class="ident">first_name</span><span class="punct">,</span>
-    <span class="symbol">:p_last_name</span> <span class="punct">=&gt;</span> <span class="ident">last_name</span>
-  <span class="punct">)</span>
-<span class="keyword">end</span>
-<span class="ident">set_delete_method</span> <span class="keyword">do</span>
-  <span class="ident">plsql</span><span class="punct">.</span><span class="ident">employees_pkg</span><span class="punct">.</span><span class="ident">delete_employee</span><span class="punct">(</span>
-    <span class="symbol">:p_employee_id</span> <span class="punct">=&gt;</span> <span class="ident">id</span>
-  <span class="punct">)</span>
-<span class="keyword">end</span>
-</pre></li>
-	</ul>
-
-
-	<p>Oracle enhanced adapter is also compatible with composite_primary_keys gem.</p>
-
-
-	<p>See http://blog.rayapps.com/category/oracle-enhanced for more information.</p>
-
-
-	<p>Look ar RSpec tests under spec directory for usage examples.</p>
-
-
-	<h2>Feedback</h2>
-
-
-	<p>Submit your feedback as comments <a href="http://blog.rayapps.com">here.</a></p>
-
-
-	<h2>How to submit patches</h2>
-
-
-	<p>You can fetch the source from:</p>
-
-
-	<ul>
+<h2>Installing</h2>
+<p><pre class='syntax'><span class="ident">sudo</span> <span class="ident">gem</span> <span class="ident">install</span> <span class="ident">activerecord</span><span class="punct">-</span><span class="ident">oracle_enhanced</span><span class="punct">-</span><span class="ident">adapter</span></pre></p>
+<h2>More information</h2>
+<p>See http://github.com/rsim/oracle-enhanced/wikis for more information.</p>
+<p>For questions and feature discussion please use http://groups.google.com/group/oracle-enhanced</p>
+<p>Blog posts about oracle-enahnced can be found at http://blog.rayapps.com/category/oracle-enhanced</p>
+<p>Bugs and enhancement requests can be reported at http://rsim.lighthouseapp.com/projects/11468-oracle-enhanced</p>
+<h2>How to submit patches</h2>
+<p>You can fetch the source from:</p>
+<ul>
 	<li>github: <a href="http://github.com/rsim/oracle-enhanced/tree/master">http://github.com/rsim/oracle-enhanced/tree/master</a></li>
-	</ul>
-
-
+</ul>
 <pre>git clone git://github.com/rsim/oracle-enhanced.git</pre>
-
-	<h3>Build and test instructions</h3>
-
-
+<h3>Build and test instructions</h3>
 <pre>cd oracle-enhanced
 rake spec
 rake install_gem</pre>
-
-	<h2>License</h2>
-
-
-	<p>This code is free to use under the terms of the <span class="caps">MIT</span> license.</p>
+<h2>License</h2>
+<p>This code is free to use under the terms of the <span class="caps">MIT</span> license.</p>
     <p class="coda">
-      <a href="http://blog.rayapps.com">Raimonds Simanovskis</a>, 19th August 2008<br>
+      <a href="http://blog.rayapps.com">Raimonds Simanovskis</a>, 2nd January 2009<br>
       Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
     </p>
 </div>

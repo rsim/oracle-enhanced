@@ -1,3 +1,13 @@
+== 1.1.9 2009-01-02
+
+* Enhancements
+  * Added support for table and column comments in migrations
+  * Added support for specifying sequence start values
+  * Added :privilege option (e.g. :SYSDBA) to ActiveRecord::Base.establish_connection
+* Bug fixes:
+  * Do not mark empty decimals, strings and texts (stored as NULL in database) as changed when reassigning them (starting from Rails 2.1)
+  * Create booleans as VARCHAR2(1) columns if emulate_booleans_from_strings is true
+
 == 1.1.8 2008-10-10
 
 * Bug fixes:
