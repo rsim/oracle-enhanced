@@ -918,8 +918,8 @@ begin
   # The OracleConnectionFactory factors out the code necessary to connect and
   # configure an Oracle/OCI connection.
   class OracleEnhancedConnectionFactory #:nodoc:
-    def new_connection(username, password, database, async, prefetch_rows, cursor_sharing)
-      conn = OCI8.new username, password, database
+    def new_connection(username, password, database, async, prefetch_rows, cursor_sharing, privilege)
+      conn = OCI8.new username, password, database, privilege
       conn.exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
       conn.exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'} rescue nil
       conn.autocommit = true
@@ -955,7 +955,8 @@ begin
       @prefetch_rows = config[:prefetch_rows] || 100
       @cursor_sharing = config[:cursor_sharing] || 'similar'
       @factory = factory
-      @connection  = @factory.new_connection @username, @password, @database, @async, @prefetch_rows, @cursor_sharing
+      @privilege = config[:privilege]
+      @connection  = @factory.new_connection @username, @password, @database, @async, @prefetch_rows, @cursor_sharing, @privilege
       super @connection
     end
 
@@ -974,7 +975,7 @@ begin
     def reset!
       logoff rescue nil
       begin
-        @connection = @factory.new_connection @username, @password, @database, @async, @prefetch_rows, @cursor_sharing
+        @connection = @factory.new_connection @username, @password, @database, @async, @prefetch_rows, @cursor_sharing, @privilege
         __setobj__ @connection
         @active = true
       rescue
