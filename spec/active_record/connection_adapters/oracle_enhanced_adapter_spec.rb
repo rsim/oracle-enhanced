@@ -20,6 +20,32 @@ describe "OracleEnhancedAdapter establish connection" do
     ActiveRecord::Base.connection.should_not be_nil
     ActiveRecord::Base.connection.class.should == ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
   end
+
+  it "should be active after connection to database" do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    ActiveRecord::Base.connection.should be_active
+  end
+
+  it "should not be active after disconnection to database" do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    ActiveRecord::Base.connection.disconnect!
+    ActiveRecord::Base.connection.should_not be_active
+  end
+
+  it "should be active after reconnection to database" do
+    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
+                                            :database => "xe",
+                                            :username => "hr",
+                                            :password => "hr")
+    ActiveRecord::Base.connection.reconnect!
+    ActiveRecord::Base.connection.should be_active
+  end
   
 end
 
