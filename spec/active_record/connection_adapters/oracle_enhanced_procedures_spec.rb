@@ -6,7 +6,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-    plsql.connection = @conn.raw_connection
+    plsql.connection = ActiveRecord::Base.connection.raw_connection
     @conn.execute("DROP TABLE test_employees") rescue nil
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
@@ -133,6 +133,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   
   after(:all) do
     Object.send(:remove_const, "TestEmployee")
+    @conn = ActiveRecord::Base.connection    
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_s"
     @conn.execute "DROP PACKAGE test_employees_pkg"
@@ -216,8 +217,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   it "should log create record" do
     log_to @buffer
     if defined? JRUBY_VERSION
-      @conn.reconnect!
-      plsql.connection = @conn.raw_connection
+      plsql.connection = ActiveRecord::Base.connection.raw_connection
     end
     @employee = TestEmployee.create(
       :first_name => "First",
@@ -236,8 +236,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     log_to @buffer
     if defined? JRUBY_VERSION
-      @conn.reconnect!
-      plsql.connection = @conn.raw_connection
+      plsql.connection = ActiveRecord::Base.connection.raw_connection
     end
     @employee.save!
     @buffer.string.should match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with employee_id=#{@employee.id}$/)
@@ -251,8 +250,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     log_to @buffer
     if defined? JRUBY_VERSION
-      @conn.reconnect!
-      plsql.connection = @conn.raw_connection
+      plsql.connection = ActiveRecord::Base.connection.raw_connection
     end
     @employee.destroy
     @buffer.string.should match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with employee_id=#{@employee.id}$/)

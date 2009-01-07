@@ -389,6 +389,16 @@ module ActiveRecord
       # CONNECTION MANAGEMENT ====================================
       #
 
+      # If SQL statement fails due to lost connection then reconnect
+      # and retry SQL statement if autocommit mode is enabled.
+      # By default this functionality is disabled.
+      @auto_retry = false
+      attr_reader :auto_retry
+      def auto_retry=(value)
+        @auto_retry = value
+        @connection.auto_retry = value if @connection
+      end
+
       def raw_connection
         @connection.raw_connection
       end

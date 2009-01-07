@@ -30,6 +30,14 @@ module ActiveRecord
         @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
       end
 
+      def auto_retry
+        @raw_connection.auto_retry if @raw_connection
+      end
+
+      def auto_retry=(value)
+        @raw_connection.auto_retry = value if @raw_connection
+      end
+
       def logoff
         @raw_connection.logoff
         @raw_connection.active = false
@@ -228,8 +236,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   class << self
     alias :auto_retry? :auto_retry
   end
-  # @@auto_retry = false
-  @@auto_retry = true
+  @@auto_retry = false
 
   def initialize(config, factory)
     @active = true
@@ -267,7 +274,8 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   # ORA-01012: not logged on
   # ORA-03113: end-of-file on communication channel
   # ORA-03114: not connected to ORACLE
-  LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114 ]
+  # ORA-03135: connection lost contact
+  LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ]
 
   # Adds auto-recovery functionality.
   #

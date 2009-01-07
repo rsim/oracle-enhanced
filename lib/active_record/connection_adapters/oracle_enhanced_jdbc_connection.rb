@@ -37,12 +37,9 @@ module ActiveRecord
       attr_accessor :active
       alias :active? :active
 
-      cattr_accessor :auto_retry
-      class << self
-        alias :auto_retry? :auto_retry
-      end
-      # @@auto_retry = false
-      @@auto_retry = true
+      attr_accessor :auto_retry
+      alias :auto_retry? :auto_retry
+      @auto_retry = false
 
       def initialize(config)
         @active = true
@@ -139,7 +136,7 @@ module ActiveRecord
 
       # mark connection as dead if connection lost
       def with_retry(&block)
-        should_retry = self.class.auto_retry? && autocommit?
+        should_retry = auto_retry? && autocommit?
         begin
           yield if block_given?
         rescue NativeException => e
@@ -152,7 +149,11 @@ module ActiveRecord
         end
       end
 
-      # Methods from ruby-plsql
+      def exec(sql)
+        with_retry do
+          exec_no_retry(sql)
+        end
+      end
 
       def exec_no_retry(sql)
         cs = prepare_call(sql)
@@ -162,17 +163,13 @@ module ActiveRecord
         cs.close rescue nil        
       end
 
-      def exec(sql)
+      def select(sql, name = nil)
         with_retry do
-          cs = prepare_call(sql)
-          cs.execute
-          true
-        end
-      ensure
-        cs.close rescue nil
+          select_no_retry(sql, name)
+        end        
       end
 
-      def select(sql, name = nil)
+      def select_no_retry(sql, name = nil)
         stmt = prepare_statement(sql)
         rset = stmt.executeQuery
         metadata = rset.getMetaData

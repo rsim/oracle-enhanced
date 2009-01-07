@@ -55,21 +55,27 @@ describe "OracleEnhancedConnection SQL execution" do
   it "should execute SQL statement" do
     @conn.exec("SELECT * FROM dual").should_not be_nil
   end
+
+  it "should execute SQL select" do
+    @conn.select("SELECT * FROM dual").should == [{'dummy' => 'X'}]
+  end
+
 end
 
 describe "OracleEnhancedConnection auto reconnection" do
 
   before(:all) do
-    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection.instance_variable_get("@connection")
     @sys_conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(SYS_CONNECTION_PARAMS)
   end
   
   before(:each) do
-    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS) unless @conn.active?
+    ActiveRecord::Base.connection.reconnect! unless @conn.active?
   end
 
   after(:all) do
-    @conn.logoff if @conn.active?
+    ActiveRecord::Base.connection.disconnect! if @conn.active?
   end
 
   def kill_current_session
@@ -80,9 +86,32 @@ describe "OracleEnhancedConnection auto reconnection" do
     @sys_conn.exec "ALTER SYSTEM KILL SESSION '#{sid_serial}' IMMEDIATE"
   end
 
-  it "should reconnect and execute SQL statement if connection is lost" do
+  it "should reconnect and execute SQL statement if connection is lost and auto retry is enabled" do
+    # @conn.auto_retry = true
+    ActiveRecord::Base.connection.auto_retry = true
     kill_current_session
     @conn.exec("SELECT * FROM dual").should_not be_nil
+  end
+
+  it "should not reconnect and execute SQL statement if connection is lost and auto retry is disabled" do
+    # @conn.auto_retry = false
+    ActiveRecord::Base.connection.auto_retry = false
+    kill_current_session
+    lambda { @conn.exec("SELECT * FROM dual") }.should raise_error
+  end
+
+  it "should reconnect and execute SQL select if connection is lost and auto retry is enabled" do
+    # @conn.auto_retry = true
+    ActiveRecord::Base.connection.auto_retry = true
+    kill_current_session
+    @conn.select("SELECT * FROM dual").should == [{'dummy' => 'X'}]
+  end
+
+  it "should not reconnect and execute SQL select if connection is lost and auto retry is disabled" do
+    # @conn.auto_retry = false
+    ActiveRecord::Base.connection.auto_retry = false
+    kill_current_session
+    lambda { @conn.select("SELECT * FROM dual") }.should raise_error
   end
 
 end
