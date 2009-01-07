@@ -5,10 +5,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
   describe "OracleEnhancedAdapter dirty object tracking" do
 
     before(:all) do
-      ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                              :database => "xe",
-                                              :username => "hr",
-                                              :password => "hr")
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       @conn = ActiveRecord::Base.connection
       @conn.execute <<-SQL
         CREATE TABLE test_employees (

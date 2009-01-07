@@ -132,6 +132,8 @@ module ActiveRecord
       
       def describe(name)
         @raw_connection.describe(name)
+      rescue OCIException => e
+        raise OracleEnhancedConnectionException, e.message
       end
       
     end
@@ -140,7 +142,7 @@ module ActiveRecord
     # configure an Oracle/OCI connection.
     class OracleEnhancedOCIFactory #:nodoc:
       def self.new_connection(config)
-        username, password, database, = config[:username].to_s, config[:password].to_s, config[:database].to_s
+        username, password, database = config[:username].to_s, config[:password].to_s, config[:database].to_s
         privilege = config[:privilege] && config[:privilege].to_sym
         async = config[:allow_concurrency]
         prefetch_rows = config[:prefetch_rows] || 100
@@ -193,7 +195,7 @@ class OCI8 #:nodoc:
   def describe(name)
     @desc ||= @@env.alloc(OCIDescribe)
     @desc.attrSet(OCI_ATTR_DESC_PUBLIC, -1) if VERSION >= '0.1.14'
-    do_ocicall(@ctx) { @desc.describeAny(@svc, name.to_s, OCI_PTYPE_UNK) } rescue raise %Q{"DESC #{name}" failed; does it exist?}
+    do_ocicall(@ctx) { @desc.describeAny(@svc, name.to_s, OCI_PTYPE_UNK) } rescue raise OCIException, %Q{"DESC #{name}" failed; does it exist?}
     info = @desc.attrGet(OCI_ATTR_PARAM)
 
     case info.attrGet(OCI_ATTR_PTYPE)
@@ -205,7 +207,7 @@ class OCI8 #:nodoc:
       schema = info.attrGet(OCI_ATTR_SCHEMA_NAME)
       name   = info.attrGet(OCI_ATTR_NAME)
       describe(schema + '.' + name)
-    else raise %Q{"DESC #{name}" failed; not a table or view.}
+    else raise OCIException, %Q{"DESC #{name}" failed; not a table or view.}
     end
   end
 
@@ -226,7 +228,8 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   class << self
     alias :auto_retry? :auto_retry
   end
-  @@auto_retry = false
+  # @@auto_retry = false
+  @@auto_retry = true
 
   def initialize(config, factory)
     @active = true

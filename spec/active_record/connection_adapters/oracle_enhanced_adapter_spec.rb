@@ -3,46 +3,30 @@ require File.dirname(__FILE__) + '/../../spec_helper.rb'
 describe "OracleEnhancedAdapter establish connection" do
   
   it "should connect to database" do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Base.connection.should_not be_nil
     ActiveRecord::Base.connection.class.should == ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
   end
 
   it "should connect to database as SYSDBA" do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "sys",
-                                            :password => "manager",
-                                            :privilege => :SYSDBA)
+    ActiveRecord::Base.establish_connection(SYS_CONNECTION_PARAMS)
     ActiveRecord::Base.connection.should_not be_nil
     ActiveRecord::Base.connection.class.should == ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
   end
 
   it "should be active after connection to database" do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Base.connection.should be_active
   end
 
   it "should not be active after disconnection to database" do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Base.connection.disconnect!
     ActiveRecord::Base.connection.should_not be_active
   end
 
   it "should be active after reconnection to database" do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Base.connection.reconnect!
     ActiveRecord::Base.connection.should be_active
   end
@@ -52,30 +36,32 @@ end
 describe "OracleEnhancedAdapter schema dump" do
   
   before(:all) do
-    @old_conn = ActiveRecord::Base.oracle_connection(
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
-    @old_conn.class.should == ActiveRecord::ConnectionAdapters::OracleAdapter
-    @new_conn = ActiveRecord::Base.oracle_enhanced_connection(
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    if !defined?(RUBY_ENGINE)
+      @old_conn = ActiveRecord::Base.oracle_connection(CONNECTION_PARAMS)
+      @old_conn.class.should == ActiveRecord::ConnectionAdapters::OracleAdapter
+    elsif RUBY_ENGINE == 'jruby'
+      @old_conn = ActiveRecord::Base.jdbc_connection(JDBC_CONNECTION_PARAMS)
+      @old_conn.class.should == ActiveRecord::ConnectionAdapters::JdbcAdapter
+    end
+
+    @new_conn = ActiveRecord::Base.oracle_enhanced_connection(CONNECTION_PARAMS)
     @new_conn.class.should == ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
   end
 
   it "should return the same tables list as original oracle adapter" do
-    @new_conn.tables.should == @old_conn.tables
+    @new_conn.tables.sort.should == @old_conn.tables.sort
   end
 
   it "should return the same index list as original oracle adapter" do
-    @new_conn.indexes('employees').should == @old_conn.indexes('employees')
+    @new_conn.indexes('employees').sort_by(&:name).should == @old_conn.indexes('employees').sort_by(&:name)
   end
 
   it "should return the same pk_and_sequence_for as original oracle adapter" do
-    @new_conn.tables.each do |t|
-      @new_conn.pk_and_sequence_for(t).should == @old_conn.pk_and_sequence_for(t)
-    end    
+    if @old_conn.respond_to?(:pk_and_sequence_for)
+      @new_conn.tables.each do |t|
+        @new_conn.pk_and_sequence_for(t).should == @old_conn.pk_and_sequence_for(t)
+      end
+    end
   end
 
   it "should return the same structure dump as original oracle adapter" do
@@ -101,10 +87,7 @@ end
 
 describe "OracleEnhancedAdapter database stucture dump extentions" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE nvarchartable (
@@ -126,10 +109,7 @@ end
 
 describe "OracleEnhancedAdapter database session store" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE sessions (
@@ -193,10 +173,7 @@ end
 
 describe "OracleEnhancedAdapter ignore specified table columns" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
@@ -257,10 +234,7 @@ end
 describe "OracleEnhancedAdapter table and sequence creation with non-default primary key" do
 
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Schema.define do
       suppress_messages do
         create_table :keyboards, :force => true, :id  => false do |t|
@@ -302,10 +276,7 @@ end
 describe "OracleEnhancedAdapter without composite_primary_keys" do
 
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     Object.send(:remove_const, 'CompositePrimaryKeys') if defined?(CompositePrimaryKeys)
     class Employee < ActiveRecord::Base
       set_primary_key :employee_id
@@ -325,10 +296,7 @@ end
 describe "OracleEnhancedAdapter sequence creation parameters" do
 
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   def create_test_employees_table(sequence_start_value = nil)
@@ -406,10 +374,7 @@ end
 describe "OracleEnhancedAdapter table and column comments" do
 
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
   end
 

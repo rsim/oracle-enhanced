@@ -24,9 +24,15 @@ end
 require 'activerecord'
 require 'actionpack'
 require 'action_controller/session/active_record_store'
+if !defined?(RUBY_ENGINE)
+  gem "activerecord-oracle-adapter"
+  require 'active_record/connection_adapters/oracle_adapter'
+elsif RUBY_ENGINE == 'jruby'
+  gem "activerecord-jdbc-adapter"
+  require 'active_record/connection_adapters/jdbc_adapter'
+end
+
 require 'active_record/connection_adapters/oracle_enhanced_adapter'
-gem "activerecord-oracle-adapter"
-require 'active_record/connection_adapters/oracle_adapter'
 
 module LoggerSpecHelper
   def log_to(stream)
@@ -40,3 +46,28 @@ module LoggerSpecHelper
     ActiveRecord::Base.logger.level = Logger::DEBUG
   end
 end
+
+CONNECTION_PARAMS = {
+  :adapter => "oracle_enhanced",
+  :database => "xe",
+  :host => "ubuntu810",
+  :username => "hr",
+  :password => "hr"
+}
+
+JDBC_CONNECTION_PARAMS = {
+  :adapter => "jdbc",
+  :driver => "oracle.jdbc.driver.OracleDriver",
+  :url => "jdbc:oracle:thin:@ubuntu810:1521:XE",
+  :username => "hr",
+  :password => "hr"
+}
+
+SYS_CONNECTION_PARAMS = {
+  :adapter => "oracle_enhanced",
+  :database => "xe",
+  :host => "ubuntu810",
+  :username => "sys",
+  :password => "manager",
+  :privilege => "SYSDBA"
+}

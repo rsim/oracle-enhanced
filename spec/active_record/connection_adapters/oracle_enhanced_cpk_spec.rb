@@ -4,10 +4,7 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
 
   before(:all) do
     require "composite_primary_keys"
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     class JobHistory < ActiveRecord::Base
       set_table_name "job_history"
       set_primary_keys :employee_id, :start_date

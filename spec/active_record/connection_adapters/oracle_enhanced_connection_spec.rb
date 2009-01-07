@@ -3,17 +3,11 @@ require File.dirname(__FILE__) + '/../../spec_helper.rb'
 describe "OracleEnhancedConnection create connection" do
 
   before(:all) do
-    @config = {
-      :adapter => "oracle_enhanced",
-      :database => "xe",
-      :username => "hr",
-      :password => "hr"
-    }
-    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(@config)
+    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
   end
   
   before(:each) do
-    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(@config) unless @conn.active?
+    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS) unless @conn.active?
   end
 
   after(:all) do
@@ -47,17 +41,11 @@ end
 describe "OracleEnhancedConnection SQL execution" do
 
   before(:all) do
-    @config = {
-      :adapter => "oracle_enhanced",
-      :database => "xe",
-      :username => "hr",
-      :password => "hr"
-    }
-    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(@config)
+    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
   end
   
   before(:each) do
-    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(@config) unless @conn.active?
+    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS) unless @conn.active?
   end
 
   after(:all) do
@@ -66,6 +54,84 @@ describe "OracleEnhancedConnection SQL execution" do
 
   it "should execute SQL statement" do
     @conn.exec("SELECT * FROM dual").should_not be_nil
+  end
+end
+
+describe "OracleEnhancedConnection auto reconnection" do
+
+  before(:all) do
+    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+    @sys_conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(SYS_CONNECTION_PARAMS)
+  end
+  
+  before(:each) do
+    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS) unless @conn.active?
+  end
+
+  after(:all) do
+    @conn.logoff if @conn.active?
+  end
+
+  def kill_current_session
+    audsid = @conn.select("SELECT userenv('sessionid') audsid FROM dual").first['audsid']
+    sid_serial = @sys_conn.select("SELECT s.sid||','||s.serial# sid_serial
+        FROM   v$session s
+        WHERE  audsid = '#{audsid}'").first['sid_serial']
+    @sys_conn.exec "ALTER SYSTEM KILL SESSION '#{sid_serial}' IMMEDIATE"
+  end
+
+  it "should reconnect and execute SQL statement if connection is lost" do
+    kill_current_session
+    @conn.exec("SELECT * FROM dual").should_not be_nil
+  end
+
+end
+
+describe "OracleEnhancedConnection describe table" do
+
+  before(:all) do
+    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+    @owner = CONNECTION_PARAMS[:username].upcase
+  end
+  
+  after(:all) do
+    @conn.logoff if @conn.active?
+  end
+
+  it "should describe existing table" do
+    @conn.exec "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
+    @conn.describe("test_employees").should == [@owner, "TEST_EMPLOYEES"]
+    @conn.exec "DROP TABLE test_employees" rescue nil
+  end
+
+  it "should not describe non-existing table" do
+    lambda { @conn.describe("test_xxx") }.should raise_error(ActiveRecord::ConnectionAdapters::OracleEnhancedConnectionException)
+  end
+
+  it "should describe table in other schema" do
+    @conn.describe("sys.dual").should == ["SYS", "DUAL"]
+  end
+
+  it "should describe existing view" do
+    @conn.exec "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
+    @conn.exec "CREATE VIEW test_employees_v AS SELECT * FROM test_employees" rescue nil
+    @conn.describe("test_employees_v").should == [@owner, "TEST_EMPLOYEES_V"]
+    @conn.exec "DROP VIEW test_employees_v" rescue nil
+    @conn.exec "DROP TABLE test_employees" rescue nil
+  end
+
+  it "should describe view in other schema" do
+    @conn.describe("sys.v_$version").should == ["SYS", "V_$VERSION"]
+  end
+
+  it "should describe existing private synonym" do
+    @conn.exec "CREATE SYNONYM test_dual FOR sys.dual" rescue nil
+    @conn.describe("test_dual").should == ["SYS", "DUAL"]
+    @conn.exec "DROP SYNONYM test_dual" rescue nil
+  end
+
+  it "should describe existing public synonym" do
+    @conn.describe("all_tables").should == ["SYS", "ALL_TABLES"]
   end
 
 end

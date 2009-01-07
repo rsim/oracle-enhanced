@@ -4,10 +4,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   include LoggerSpecHelper
   
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     plsql.connection = @conn.raw_connection
     @conn.execute("DROP TABLE test_employees") rescue nil
@@ -218,6 +215,10 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
 
   it "should log create record" do
     log_to @buffer
+    if defined? JRUBY_VERSION
+      @conn.reconnect!
+      plsql.connection = @conn.raw_connection
+    end
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -234,6 +235,10 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     log_to @buffer
+    if defined? JRUBY_VERSION
+      @conn.reconnect!
+      plsql.connection = @conn.raw_connection
+    end
     @employee.save!
     @buffer.string.should match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with employee_id=#{@employee.id}$/)
   end
@@ -245,6 +250,10 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     log_to @buffer
+    if defined? JRUBY_VERSION
+      @conn.reconnect!
+      plsql.connection = @conn.raw_connection
+    end
     @employee.destroy
     @buffer.string.should match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with employee_id=#{@employee.id}$/)
   end

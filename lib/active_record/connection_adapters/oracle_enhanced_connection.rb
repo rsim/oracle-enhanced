@@ -7,6 +7,8 @@ module ActiveRecord
         case ORACLE_ENHANCED_CONNECTION
         when :oci
           OracleEnhancedOCIConnection.new(config)
+        when :jdbc
+          OracleEnhancedJDBCConnection.new(config)
         else
           nil
         end
@@ -24,6 +26,30 @@ module ActiveRecord
         column_name =~ /[a-z]/ ? column_name : column_name.downcase
       end
 
+      private
+      
+      # Returns a record hash with the column names as keys and column values
+      # as values.
+      def select_one(sql)
+        result = select(sql)
+        result.first if result
+      end
+
+      # Returns a single value from a record
+      def select_value(sql)
+        if result = select_one(sql)
+          result.values.first
+        end
+      end
+
+      # Returns an array of the values of the first column in a select:
+      #   select_values("SELECT id FROM companies LIMIT 3") => [1,2,3]
+      def select_values(sql)
+        result = select(sql)
+        result.map { |r| r.values.first }
+      end
+      
+
     end
     
     class OracleEnhancedConnectionException < StandardError
@@ -39,7 +65,7 @@ if !defined?(RUBY_ENGINE)
 # if JRuby
 elsif RUBY_ENGINE == 'jruby'
   ORACLE_ENHANCED_CONNECTION = :jdbc
-
+  require 'active_record/connection_adapters/oracle_enhanced_jdbc_connection'
 else
   raise "Unsupported Ruby engine #{RUBY_ENGINE}"
-end 
+end

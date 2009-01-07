@@ -2,10 +2,7 @@ require File.dirname(__FILE__) + '/../../spec_helper.rb'
 
 describe "OracleEnhancedAdapter date type detection based on column names" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
@@ -160,10 +157,7 @@ end
 
 describe "OracleEnhancedAdapter integer type detection based on column names" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test2_employees (
@@ -273,10 +267,7 @@ end
 
 describe "OracleEnhancedAdapter boolean type detection based on string column types and names" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test3_employees (
@@ -439,10 +430,7 @@ end
 
 describe "OracleEnhancedAdapter timestamp with timezone support" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
@@ -527,10 +515,7 @@ end
 
 describe "OracleEnhancedAdapter date and timestamp with different NLS date formats" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
@@ -626,7 +611,7 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
   end
 
   it "should quote Time values with TO_TIMESTAMP" do
-    @ts = Time.at(@now.to_f + 0.1)
+    @ts = @now + 0.1
     @conn.quote(@ts).should == "TO_TIMESTAMP('#{@ts.year}-#{"%02d" % @ts.month}-#{"%02d" % @ts.day} "+
                                 "#{"%02d" % @ts.hour}:#{"%02d" % @ts.min}:#{"%02d" % @ts.sec}.100000','YYYY-MM-DD HH24:MI:SS.FF6')"
   end
@@ -635,10 +620,7 @@ end
 
 describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
@@ -768,10 +750,7 @@ end
 
 describe "OracleEnhancedAdapter handling of CLOB columns" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced",
-                                            :database => "xe",
-                                            :username => "hr",
-                                            :password => "hr")
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
