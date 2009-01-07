@@ -1,7 +1,7 @@
 require File.dirname(__FILE__) + '/../../spec_helper.rb'
 
 describe "OracleEnhancedAdapter establish connection" do
-  
+
   it "should connect to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Base.connection.should_not be_nil
@@ -34,7 +34,7 @@ describe "OracleEnhancedAdapter establish connection" do
 end
 
 describe "OracleEnhancedAdapter schema dump" do
-  
+
   before(:all) do
     if !defined?(RUBY_ENGINE)
       @old_conn = ActiveRecord::Base.oracle_connection(CONNECTION_PARAMS)
@@ -73,7 +73,7 @@ describe "OracleEnhancedAdapter schema dump" do
       @new_conn.structure_drop.should == @old_conn.structure_drop
     end
   end
-  
+
   it "should return the character size of nvarchar fields" do
     @new_conn.execute <<-SQL
       CREATE TABLE nvarchartable (
@@ -97,11 +97,11 @@ describe "OracleEnhancedAdapter database stucture dump extentions" do
       )
     SQL
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE nvarchartable"
   end
-  
+
   it "should return the character size of nvarchar fields" do
     if /.*unq_nvarchar nvarchar2\((\d+)\).*/ =~ @conn.structure_dump
        "#$1".should == "255"
@@ -198,7 +198,7 @@ describe "OracleEnhancedAdapter ignore specified table columns" do
         INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER NOCYCLE
     SQL
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
@@ -254,7 +254,7 @@ describe "OracleEnhancedAdapter table and sequence creation with non-default pri
     class IdKeyboard < ActiveRecord::Base
     end
   end
-  
+
   after(:all) do
     ActiveRecord::Schema.define do
       suppress_messages do
@@ -265,7 +265,7 @@ describe "OracleEnhancedAdapter table and sequence creation with non-default pri
     Object.send(:remove_const, "Keyboard")
     Object.send(:remove_const, "IdKeyboard")
   end
-  
+
   it "should create sequence for non-default primary key" do
     ActiveRecord::Base.connection.next_sequence_value(Keyboard.sequence_name).should_not be_nil
   end
@@ -311,7 +311,7 @@ describe "OracleEnhancedAdapter sequence creation parameters" do
       end
     end
   end
-  
+
   def save_default_sequence_start_value
     @saved_sequence_start_value = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value
   end
@@ -405,7 +405,7 @@ describe "OracleEnhancedAdapter table and column comments" do
     table_comment = "Test Employees"
     create_test_employees_table(table_comment)
     class TestEmployee < ActiveRecord::Base; end
-    
+
     @conn.table_comment("test_employees").should == table_comment
     TestEmployee.table_comment.should == table_comment
   end
@@ -414,7 +414,7 @@ describe "OracleEnhancedAdapter table and column comments" do
     column_comments = {:first_name => "Given Name", :last_name => "Surname"}
     create_test_employees_table(nil, column_comments)
     class TestEmployee < ActiveRecord::Base; end
-    
+
     [:first_name, :last_name].each do |attr|
       @conn.column_comment("test_employees", attr.to_s).should == column_comments[attr]
     end
@@ -429,7 +429,7 @@ describe "OracleEnhancedAdapter table and column comments" do
     column_comments = {:first_name => "Given Name", :last_name => "Surname"}
     create_test_employees_table(table_comment, column_comments)
     class TestEmployee < ActiveRecord::Base; end
-    
+
     @conn.table_comment(TestEmployee.table_name).should == table_comment
     TestEmployee.table_comment.should == table_comment
     [:first_name, :last_name].each do |attr|
@@ -438,6 +438,85 @@ describe "OracleEnhancedAdapter table and column comments" do
     [:first_name, :last_name].each do |attr|
       TestEmployee.columns_hash[attr.to_s].comment.should == column_comments[attr]
     end
+  end
+
+end
+
+describe "OracleEnhancedAdapter column quoting" do
+
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+  end
+
+  def create_test_reserved_words_table
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        create_table :test_reserved_words do |t|
+          t.string      :varchar2
+          t.integer     :integer
+        end
+      end
+    end
+  end
+
+  after(:each) do
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        drop_table :test_reserved_words
+      end
+    end
+    Object.send(:remove_const, "TestReservedWord")
+    ActiveRecord::Base.table_name_prefix = nil
+  end
+
+  it "should allow creation of a table with oracle reserved words as column names" do
+    create_test_reserved_words_table
+    class TestReservedWord < ActiveRecord::Base; end
+
+    [:varchar2, :integer].each do |attr|
+      TestReservedWord.columns_hash[attr.to_s].name.should == attr.to_s
+    end
+  end
+
+end
+
+describe "OracleEnhancedAdapter table quoting" do
+
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+  end
+
+  def create_warehouse_things_table
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        create_table "warehouse-things" do |t|
+          t.string      :name
+          t.integer     :foo
+        end
+      end
+    end
+  end
+
+  after(:each) do
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        drop_table "warehouse-things"
+      end
+    end
+    Object.send(:remove_const, "WarehouseThing")
+    ActiveRecord::Base.table_name_prefix = nil
+  end
+
+  it "should allow creation of a table with oracle reserved words as column names" do
+    create_warehouse_things_table
+    class WarehouseThing < ActiveRecord::Base
+      set_table_name "warehouse-things"
+    end
+
+    wh = WarehouseThing.create!(:name => "Foo", :foo => 2)
+    wh.id.should_not be_nil
   end
 
 end

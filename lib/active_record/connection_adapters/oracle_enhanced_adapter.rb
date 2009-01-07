@@ -5,11 +5,11 @@
 # Current maintainer: Raimonds Simanovskis (http://blog.rayapps.com)
 #
 #########################################################################
-# 
+#
 # See History.txt for changes added to original oracle_adapter.rb
-# 
+#
 #########################################################################
-# 
+#
 # From original oracle_adapter.rb:
 #
 # Implementation notes:
@@ -329,12 +329,16 @@ module ActiveRecord
       # camelCase column names need to be quoted; not that anyone using Oracle
       # would really do this, but handling this case means we pass the test...
       def quote_column_name(name) #:nodoc:
-        name.to_s =~ /[A-Z]/ ? "\"#{name}\"" : name
+        name.to_s =~ /[A-Z]/ ? "\"#{name}\"" : quote_oracle_reserved_words(name)
       end
 
       # abstract_adapter calls quote_column_name from quote_table_name, so prevent that
       def quote_table_name(name)
-        name
+        if name.to_s =~ /^[A-Z_0-9\.]+$/i
+          name
+        else
+          "\"#{name}\""
+        end
       end
       
       def quote_string(s) #:nodoc:
@@ -477,7 +481,7 @@ module ActiveRecord
       end
 
       def default_sequence_name(table, column) #:nodoc:
-        "#{table}_seq"
+        quote_table_name("#{table}_seq")
       end
 
 
@@ -597,7 +601,7 @@ module ActiveRecord
         # RSI: get ignored_columns by original table name
         ignored_columns = ignored_table_columns(table_name)
 
-        (owner, desc_table_name) = @connection.describe(table_name)
+        (owner, desc_table_name) = @connection.describe(quote_table_name(table_name))
 
         table_cols = <<-SQL
           select column_name as name, data_type as sql_type, data_default, nullable,
@@ -676,7 +680,7 @@ module ActiveRecord
           column_comments = t.column_comments if t.column_comments
         end
 
-        seq_name = options[:sequence_name] || "#{name}_seq"
+        seq_name = options[:sequence_name] || quote_table_name("#{name}_seq")
         seq_start_value = options[:sequence_start_value] || default_sequence_start_value
         execute "CREATE SEQUENCE #{seq_name} START WITH #{seq_start_value}" if create_sequence
         
@@ -694,7 +698,7 @@ module ActiveRecord
 
       def drop_table(name, options = {}) #:nodoc:
         super(name)
-        seq_name = options[:sequence_name] || "#{name}_seq"
+        seq_name = options[:sequence_name] || quote_table_name("#{name}_seq")
         execute "DROP SEQUENCE #{seq_name}" rescue nil
       end
 
@@ -732,7 +736,7 @@ module ActiveRecord
       end
 
       def table_comment(table_name)
-        (owner, table_name) = @connection.describe(table_name)
+        (owner, table_name) = @connection.describe(quote_table_name(table_name))
         select_value <<-SQL
           SELECT comments FROM all_tab_comments
           WHERE owner = '#{owner}'
@@ -741,7 +745,7 @@ module ActiveRecord
       end
 
       def column_comment(table_name, column_name)
-        (owner, table_name) = @connection.describe(table_name)
+        (owner, table_name) = @connection.describe(quote_table_name(table_name))
         select_value <<-SQL
           SELECT comments FROM all_col_comments
           WHERE owner = '#{owner}'
@@ -753,7 +757,7 @@ module ActiveRecord
       # Find a table's primary key and sequence. 
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name)
-        (owner, table_name) = @connection.describe(table_name)
+        (owner, table_name) = @connection.describe(quote_table_name(table_name))
 
         # RSI: changed select from all_constraints to user_constraints - much faster in large data dictionaries
         pks = select_values(<<-SQL, 'Primary Key')
@@ -908,3 +912,5 @@ begin
 rescue LoadError
 end if defined?(RAILS_ROOT)
 
+# handles quoting of oracle reserved words
+require 'active_record/connection_adapters/oracle_enhanced_reserved_words'
