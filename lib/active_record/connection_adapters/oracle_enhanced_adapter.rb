@@ -35,8 +35,16 @@ require 'active_record/connection_adapters/oracle_enhanced_connection'
 module ActiveRecord
   class Base
     def self.oracle_enhanced_connection(config)
-      ConnectionAdapters::OracleEnhancedAdapter.new(
-        ConnectionAdapters::OracleEnhancedConnection.create(config), logger)
+      if config[:emulate_oracle_adapter] == true
+        # allows the enhanced adapter to look like the OracleAdapter. Useful to pick up
+        # conditionals in the rails activerecord test suite
+        require 'active_record/connection_adapters/emulation/oracle_adapter'
+        ConnectionAdapters::OracleAdapter.new(
+          ConnectionAdapters::OracleEnhancedConnection.create(config), logger)
+      else
+        ConnectionAdapters::OracleEnhancedAdapter.new(
+          ConnectionAdapters::OracleEnhancedConnection.create(config), logger)
+      end
     end
 
     # RSI: specify table columns which should be ifnored
