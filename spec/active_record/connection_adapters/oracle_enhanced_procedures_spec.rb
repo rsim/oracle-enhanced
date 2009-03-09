@@ -216,9 +216,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
 
   it "should log create record" do
     log_to @buffer
-    if defined? JRUBY_VERSION
-      plsql.connection = ActiveRecord::Base.connection.raw_connection
-    end
+    # reestablish plsql.connection as log_to might reset existing connection
+    plsql.connection = ActiveRecord::Base.connection.raw_connection
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -235,9 +234,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     log_to @buffer
-    if defined? JRUBY_VERSION
-      plsql.connection = ActiveRecord::Base.connection.raw_connection
-    end
+    # reestablish plsql.connection as log_to might reset existing connection
+    plsql.connection = ActiveRecord::Base.connection.raw_connection
     @employee.save!
     @buffer.string.should match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with employee_id=#{@employee.id}$/)
   end
@@ -249,9 +247,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     log_to @buffer
-    if defined? JRUBY_VERSION
-      plsql.connection = ActiveRecord::Base.connection.raw_connection
-    end
+    # reestablish plsql.connection as log_to might reset existing connection
+    plsql.connection = ActiveRecord::Base.connection.raw_connection
     @employee.destroy
     @buffer.string.should match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with employee_id=#{@employee.id}$/)
   end
