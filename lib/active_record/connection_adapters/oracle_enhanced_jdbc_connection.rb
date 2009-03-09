@@ -315,11 +315,17 @@ module ActiveRecord
         case val
         when Float, BigDecimal
           ora_number_to_ruby_number(val)
-        when ::Java::OracleSql::CLOB, ::Java::OracleSql::BLOB
+        when ::Java::OracleSql::CLOB
           if val.isEmptyLob
             nil
           else
             val.getSubString(1, val.length)
+          end
+        when ::Java::OracleSql::BLOB
+          if val.isEmptyLob
+            nil
+          else
+            String.from_java_bytes(val.getBytes(1, val.length))
           end
         else
           val

@@ -803,3 +803,89 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
   
 end
 
+describe "OracleEnhancedAdapter handling of BLOB columns" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE test_employees (
+        employee_id   NUMBER(6,0),
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        binary_data   BLOB
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test_employees_seq  MINVALUE 1
+        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
+    SQL
+    @binary_data = "\0\1\2\3\4\5\6\7\8\9"*10000
+    @binary_data2 = "\1\2\3\4\5\6\7\8\9\0"*10000
+  end
+  
+  after(:all) do
+    @conn.execute "DROP TABLE test_employees"
+    @conn.execute "DROP SEQUENCE test_employees_seq"
+  end
+
+  before(:each) do
+    class TestEmployee < ActiveRecord::Base
+      set_primary_key :employee_id
+    end
+  end
+  
+  after(:each) do
+    Object.send(:remove_const, "TestEmployee")
+  end
+  
+  it "should create record with BLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => @binary_data
+    )
+    @employee.reload
+    @employee.binary_data.should == @binary_data
+  end
+  
+  it "should update record with BLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last"
+    )
+    @employee.reload
+    @employee.binary_data.should be_nil
+    @employee.binary_data = @binary_data
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should == @binary_data
+  end
+
+  it "should update record that has existing BLOB data with different BLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => @binary_data
+    )
+    @employee.reload
+    @employee.binary_data = @binary_data2
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should == @binary_data2
+  end
+
+  it "should update record that has existing BLOB data with nil" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => @binary_data
+    )
+    @employee.reload
+    @employee.binary_data = nil
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should be_nil
+  end
+  
+end
+
