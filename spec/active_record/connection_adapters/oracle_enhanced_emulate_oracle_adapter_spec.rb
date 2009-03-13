@@ -16,4 +16,10 @@ describe "OracleEnhancedAdapter emulate OracleAdapter" do
     ActiveRecord::Base.connection.is_a?(ActiveRecord::ConnectionAdapters::OracleAdapter).should be_true
   end
 
+  after(:all) do
+    if defined?(ActiveRecord::ConnectionAdapters::OracleAdapter)
+      ActiveRecord::ConnectionAdapters.send(:remove_const, :OracleAdapter)
+    end    
+  end
+
 end
