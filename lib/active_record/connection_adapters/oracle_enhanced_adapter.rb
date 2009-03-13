@@ -332,9 +332,16 @@ module ActiveRecord
         name.to_s =~ /[A-Z]/ ? "\"#{name}\"" : quote_oracle_reserved_words(name)
       end
 
+      # unescaped table name should start with letter and
+      # contain letters, digits, _, $ or #
+      # can be prefixed with schema name
+      def self.valid_table_name?(name)
+        name.to_s =~ /^([A-Z_0-9]+\.)?[A-Z][A-Z_0-9\$#]*$/i ? true : false
+      end
+
       # abstract_adapter calls quote_column_name from quote_table_name, so prevent that
       def quote_table_name(name)
-        if name.to_s =~ /^[A-Z_0-9\.]+$/i
+        if self.class.valid_table_name?(name)
           name
         else
           "\"#{name}\""
@@ -601,7 +608,7 @@ module ActiveRecord
         # RSI: get ignored_columns by original table name
         ignored_columns = ignored_table_columns(table_name)
 
-        (owner, desc_table_name) = @connection.describe(quote_table_name(table_name))
+        (owner, desc_table_name) = @connection.describe(table_name)
 
         table_cols = <<-SQL
           select column_name as name, data_type as sql_type, data_default, nullable,
@@ -736,7 +743,7 @@ module ActiveRecord
       end
 
       def table_comment(table_name)
-        (owner, table_name) = @connection.describe(quote_table_name(table_name))
+        (owner, table_name) = @connection.describe(table_name)
         select_value <<-SQL
           SELECT comments FROM all_tab_comments
           WHERE owner = '#{owner}'
@@ -745,7 +752,7 @@ module ActiveRecord
       end
 
       def column_comment(table_name, column_name)
-        (owner, table_name) = @connection.describe(quote_table_name(table_name))
+        (owner, table_name) = @connection.describe(table_name)
         select_value <<-SQL
           SELECT comments FROM all_col_comments
           WHERE owner = '#{owner}'
@@ -757,7 +764,7 @@ module ActiveRecord
       # Find a table's primary key and sequence. 
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name)
-        (owner, table_name) = @connection.describe(quote_table_name(table_name))
+        (owner, table_name) = @connection.describe(table_name)
 
         # RSI: changed select from all_constraints to user_constraints - much faster in large data dictionaries
         pks = select_values(<<-SQL, 'Primary Key')

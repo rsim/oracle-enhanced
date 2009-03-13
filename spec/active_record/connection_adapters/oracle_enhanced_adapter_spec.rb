@@ -481,6 +481,32 @@ describe "OracleEnhancedAdapter column quoting" do
 
 end
 
+describe "OracleEnhancedAdapter valid table names" do
+  before(:all) do
+    @adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
+  end
+  it "should be valid with letters and digits" do
+    @adapter.valid_table_name?("abc_123").should be_true
+  end
+
+  it "should be valid with schema name" do
+    @adapter.valid_table_name?("abc_123.def_456").should be_true
+  end
+
+  it "should be valid with $ in name" do
+    @adapter.valid_table_name?("sys.v$session").should be_true
+  end
+
+  it "should not be valid with two dots in name" do
+    @adapter.valid_table_name?("abc_123.def_456.ghi_789").should be_false
+  end
+
+  it "should not be valid with invalid characters" do
+    @adapter.valid_table_name?("warehouse-things").should be_false
+  end
+
+end
+
 describe "OracleEnhancedAdapter table quoting" do
 
   before(:all) do
@@ -509,7 +535,7 @@ describe "OracleEnhancedAdapter table quoting" do
     ActiveRecord::Base.table_name_prefix = nil
   end
 
-  it "should allow creation of a table with oracle reserved words as column names" do
+  it "should allow creation of a table with non alphanumeric characters" do
     create_warehouse_things_table
     class WarehouseThing < ActiveRecord::Base
       set_table_name "warehouse-things"

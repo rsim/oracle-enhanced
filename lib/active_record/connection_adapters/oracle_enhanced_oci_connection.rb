@@ -139,7 +139,8 @@ module ActiveRecord
       end
       
       def describe(name)
-        @raw_connection.describe(name)
+        quoted_name = OracleEnhancedAdapter.valid_table_name?(name) ? name : "\"#{name}\""
+        @raw_connection.describe(quoted_name)
       rescue OCIException => e
         raise OracleEnhancedConnectionException, e.message
       end

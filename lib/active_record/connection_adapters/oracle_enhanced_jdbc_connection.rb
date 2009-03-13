@@ -237,10 +237,11 @@ module ActiveRecord
       end
 
       def describe(name)
+        real_name = OracleEnhancedAdapter.valid_table_name?(name) ? name.upcase : name
         if name.include?('.')
-          table_owner, table_name = name.upcase.split('.')
+          table_owner, table_name = real_name.split('.')
         else
-          table_owner, table_name = @owner, name.upcase
+          table_owner, table_name = @owner, real_name
         end
         sql = <<-SQL
           SELECT owner, table_name, 'TABLE' name_type
