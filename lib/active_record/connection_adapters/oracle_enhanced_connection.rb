@@ -58,8 +58,8 @@ module ActiveRecord
   end
 end
 
-# if MRI
-if !defined?(RUBY_ENGINE)
+# if MRI or YARV
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
   ORACLE_ENHANCED_CONNECTION = :oci
   require 'active_record/connection_adapters/oracle_enhanced_oci_connection'
 # if JRuby

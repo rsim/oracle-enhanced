@@ -1,7 +1,7 @@
 require 'delegate'
 
 begin
-  require_library_or_gem 'oci8' unless self.class.const_defined? :OCI8
+  require 'oci8' unless self.class.const_defined? :OCI8
 
   # RSI: added mapping for TIMESTAMP / WITH TIME ZONE / LOCAL TIME ZONE types
   # currently Ruby-OCI8 does not support fractional seconds for timestamps
@@ -175,47 +175,63 @@ end
 
 class OCI8 #:nodoc:
 
-  # This OCI8 patch may not longer be required with the upcoming
-  # release of version 0.2.
   class Cursor #:nodoc:
-    alias :enhanced_define_a_column_pre_ar :define_a_column
-    def define_a_column(i)
-      case do_ocicall(@ctx) { @parms[i - 1].attrGet(OCI_ATTR_DATA_TYPE) }
-      when 8;   @stmt.defineByPos(i, String, 65535) # Read LONG values
-      when 187; @stmt.defineByPos(i, OraDate) # Read TIMESTAMP values
-      when 108
-        if @parms[i - 1].attrGet(OCI_ATTR_TYPE_NAME) == 'XMLTYPE'
-          @stmt.defineByPos(i, String, 65535)
-        else
-          raise 'unsupported datatype'
+    if method_defined? :define_a_column
+      # This OCI8 patch is required with the ruby-oci8 1.0.x or lower.
+      # Set OCI8::BindType::Mapping[] to change the column type
+      # when using ruby-oci8 2.0.
+
+      alias :enhanced_define_a_column_pre_ar :define_a_column
+      def define_a_column(i)
+        case do_ocicall(@ctx) { @parms[i - 1].attrGet(OCI_ATTR_DATA_TYPE) }
+        when 8;   @stmt.defineByPos(i, String, 65535) # Read LONG values
+        when 187; @stmt.defineByPos(i, OraDate) # Read TIMESTAMP values
+        when 108
+          if @parms[i - 1].attrGet(OCI_ATTR_TYPE_NAME) == 'XMLTYPE'
+            @stmt.defineByPos(i, String, 65535)
+          else
+            raise 'unsupported datatype'
+          end
+        else enhanced_define_a_column_pre_ar i
         end
-      else enhanced_define_a_column_pre_ar i
       end
     end
   end
 
-  # missing constant from oci8 < 0.1.14
-  OCI_PTYPE_UNK = 0 unless defined?(OCI_PTYPE_UNK)
+  if OCI8.public_method_defined?(:describe_table)
+    # ruby-oci8 2.0 or upper
 
-  # Uses the describeAny OCI call to find the target owner and table_name
-  # indicated by +name+, parsing through synonynms as necessary. Returns
-  # an array of [owner, table_name].
-  def describe(name)
-    @desc ||= @@env.alloc(OCIDescribe)
-    @desc.attrSet(OCI_ATTR_DESC_PUBLIC, -1) if VERSION >= '0.1.14'
-    do_ocicall(@ctx) { @desc.describeAny(@svc, name.to_s, OCI_PTYPE_UNK) } rescue raise OCIException, %Q{"DESC #{name}" failed; does it exist?}
-    info = @desc.attrGet(OCI_ATTR_PARAM)
+    def describe(name)
+      info = describe_table(name.to_s)
+      raise %Q{"DESC #{name}" failed} if info.nil?
+      [info.obj_schema, info.obj_name]
+    end
+  else
+    # ruby-oci8 1.0.x or lower
 
-    case info.attrGet(OCI_ATTR_PTYPE)
-    when OCI_PTYPE_TABLE, OCI_PTYPE_VIEW
-      owner      = info.attrGet(OCI_ATTR_OBJ_SCHEMA)
-      table_name = info.attrGet(OCI_ATTR_OBJ_NAME)
-      [owner, table_name]
-    when OCI_PTYPE_SYN
-      schema = info.attrGet(OCI_ATTR_SCHEMA_NAME)
-      name   = info.attrGet(OCI_ATTR_NAME)
-      describe(schema + '.' + name)
-    else raise OCIException, %Q{"DESC #{name}" failed; not a table or view.}
+    # missing constant from oci8 < 0.1.14
+    OCI_PTYPE_UNK = 0 unless defined?(OCI_PTYPE_UNK)
+
+    # Uses the describeAny OCI call to find the target owner and table_name
+    # indicated by +name+, parsing through synonynms as necessary. Returns
+    # an array of [owner, table_name].
+    def describe(name)
+      @desc ||= @@env.alloc(OCIDescribe)
+      @desc.attrSet(OCI_ATTR_DESC_PUBLIC, -1) if VERSION >= '0.1.14'
+      do_ocicall(@ctx) { @desc.describeAny(@svc, name.to_s, OCI_PTYPE_UNK) } rescue raise %Q{"DESC #{name}" failed; does it exist?}
+      info = @desc.attrGet(OCI_ATTR_PARAM)
+
+      case info.attrGet(OCI_ATTR_PTYPE)
+      when OCI_PTYPE_TABLE, OCI_PTYPE_VIEW
+        owner      = info.attrGet(OCI_ATTR_OBJ_SCHEMA)
+        table_name = info.attrGet(OCI_ATTR_OBJ_NAME)
+        [owner, table_name]
+      when OCI_PTYPE_SYN
+        schema = info.attrGet(OCI_ATTR_SCHEMA_NAME)
+        name   = info.attrGet(OCI_ATTR_NAME)
+        describe(schema + '.' + name)
+      else raise %Q{"DESC #{name}" failed; not a table or view.}
+      end
     end
   end
 
@@ -292,6 +308,13 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
       should_retry = false
       reset! rescue nil
       retry
+    end
+  end
+
+  # RSI: otherwise not working in Ruby 1.9.1
+  if RUBY_VERSION =~ /^1\.9/
+    def describe(name)
+      @connection.describe(name)
     end
   end
 

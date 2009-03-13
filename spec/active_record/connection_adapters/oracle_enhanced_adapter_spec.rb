@@ -48,28 +48,30 @@ describe "OracleEnhancedAdapter schema dump" do
     @new_conn.class.should == ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
   end
 
-  it "should return the same tables list as original oracle adapter" do
-    @new_conn.tables.sort.should == @old_conn.tables.sort
-  end
+  unless defined?(RUBY_ENGINE) && RUBY_ENGINE == "ruby" && RUBY_VERSION =~ /^1\.9/
+    it "should return the same tables list as original oracle adapter" do
+      @new_conn.tables.sort.should == @old_conn.tables.sort
+    end
 
-  it "should return the same index list as original oracle adapter" do
-    @new_conn.indexes('employees').sort_by(&:name).should == @old_conn.indexes('employees').sort_by(&:name)
-  end
+    it "should return the same index list as original oracle adapter" do
+      @new_conn.indexes('employees').sort_by(&:name).should == @old_conn.indexes('employees').sort_by(&:name)
+    end
 
-  it "should return the same pk_and_sequence_for as original oracle adapter" do
-    if @old_conn.respond_to?(:pk_and_sequence_for)
-      @new_conn.tables.each do |t|
-        @new_conn.pk_and_sequence_for(t).should == @old_conn.pk_and_sequence_for(t)
+    it "should return the same pk_and_sequence_for as original oracle adapter" do
+      if @old_conn.respond_to?(:pk_and_sequence_for)
+        @new_conn.tables.each do |t|
+          @new_conn.pk_and_sequence_for(t).should == @old_conn.pk_and_sequence_for(t)
+        end
       end
     end
-  end
 
-  it "should return the same structure dump as original oracle adapter" do
-    @new_conn.structure_dump.should == @old_conn.structure_dump
-  end
+    it "should return the same structure dump as original oracle adapter" do
+      @new_conn.structure_dump.should == @old_conn.structure_dump
+    end
 
-  it "should return the same structure drop as original oracle adapter" do
-    @new_conn.structure_drop.should == @old_conn.structure_drop
+    it "should return the same structure drop as original oracle adapter" do
+      @new_conn.structure_drop.should == @old_conn.structure_drop
+    end
   end
   
   it "should return the character size of nvarchar fields" do
