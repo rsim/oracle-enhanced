@@ -422,6 +422,12 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       create_employee3(:test_boolean => false)
       @employee3.test_boolean.class.should == FalseClass
       @employee3.test_boolean_before_type_cast.should == "N"
+      create_employee3(:test_boolean => nil)
+      @employee3.test_boolean.class.should == NilClass
+      @employee3.test_boolean_before_type_cast.should == nil
+      create_employee3(:test_boolean => "")
+      @employee3.test_boolean.class.should == NilClass
+      @employee3.test_boolean_before_type_cast.should == nil
     end
   
   end

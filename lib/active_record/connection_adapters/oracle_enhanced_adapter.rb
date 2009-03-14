@@ -130,6 +130,8 @@ module ActiveRecord
       def self.value_to_boolean(value)
         if value == true || value == false
           value
+        elsif value.is_a?(String) && value.blank?
+          nil
         else
           %w(true t 1 y +).include?(value.to_s.downcase)
         end
