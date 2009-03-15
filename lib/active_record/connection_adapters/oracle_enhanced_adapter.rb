@@ -559,13 +559,16 @@ module ActiveRecord
       end
 
       def indexes(table_name, name = nil) #:nodoc:
+        (owner, table_name) = @connection.describe(table_name)
         result = select_all(<<-SQL, name)
           SELECT lower(i.index_name) as index_name, i.uniqueness, lower(c.column_name) as column_name
-            FROM all_indexes i, user_ind_columns c
-           WHERE i.table_name = '#{table_name.to_s.upcase}'
+            FROM all_indexes i, all_ind_columns c
+           WHERE i.table_name = '#{table_name}'
+             AND i.owner = '#{owner}'
+             AND i.table_owner = '#{owner}'
              AND c.index_name = i.index_name
-             AND i.index_name NOT IN (SELECT uc.index_name FROM user_constraints uc WHERE uc.constraint_type = 'P')
-             AND i.owner = sys_context('userenv','session_user')
+             AND c.index_owner = i.owner
+             AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
             ORDER BY i.index_name, c.column_position
         SQL
 
@@ -574,7 +577,7 @@ module ActiveRecord
 
         result.each do |row|
           if current_index != row['index_name']
-            indexes << IndexDefinition.new(table_name, row['index_name'], row['uniqueness'] == "UNIQUE", [])
+            indexes << IndexDefinition.new(table_name.downcase, row['index_name'], row['uniqueness'] == "UNIQUE", [])
             current_index = row['index_name']
           end
 
@@ -779,7 +782,7 @@ module ActiveRecord
         # RSI: changed select from all_constraints to user_constraints - much faster in large data dictionaries
         pks = select_values(<<-SQL, 'Primary Key')
           select cc.column_name
-            from user_constraints c, all_cons_columns cc
+            from user_constraints c, user_cons_columns cc
            where c.owner = '#{owner}'
              and c.table_name = '#{table_name}'
              and c.constraint_type = 'P'
