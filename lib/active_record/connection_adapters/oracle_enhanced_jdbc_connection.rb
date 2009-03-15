@@ -157,8 +157,13 @@ module ActiveRecord
 
       def exec_no_retry(sql)
         cs = prepare_call(sql)
-        cs.execute
-        true
+        case sql
+        when /^UPDATE/i, /^INSERT/i, /^DELETE/i
+          cs.executeUpdate
+        else
+          cs.execute
+          true
+        end
       ensure
         cs.close rescue nil        
       end
@@ -289,7 +294,7 @@ module ActiveRecord
 
       def get_ruby_value_from_result_set(rset, i, type_name)
         case type_name
-        when "CHAR", "VARCHAR2"
+        when "CHAR", "VARCHAR2", "LONG"
           rset.getString(i)
         when "CLOB"
           ora_value_to_ruby_value(rset.getClob(i))

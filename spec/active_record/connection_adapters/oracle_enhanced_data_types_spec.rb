@@ -284,9 +284,9 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
         department_id NUMBER(4,0),
         created_at    DATE,
         has_email     CHAR(1),
-        has_phone     VARCHAR2(1),
+        has_phone     VARCHAR2(1) DEFAULT 'Y',
         active_flag   VARCHAR2(2),
-        manager_yn    VARCHAR2(3),
+        manager_yn    VARCHAR2(3) DEFAULT 'N',
         test_boolean  VARCHAR2(3)
       )
     SQL
@@ -357,6 +357,13 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
     ActiveRecord::Base.connection.type_to_sql(
       :boolean, nil, nil, nil).should == "NUMBER(1)"
+  end
+
+  it "should get default value from VARCHAR2 boolean column if emulate_booleans_from_strings is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+    columns = @conn.columns('test3_employees')
+    columns.detect{|c| c.name == 'has_phone'}.default.should be_true
+    columns.detect{|c| c.name == 'manager_yn'}.default.should be_false
   end
   
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do
