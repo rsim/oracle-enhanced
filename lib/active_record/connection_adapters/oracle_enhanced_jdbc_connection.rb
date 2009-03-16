@@ -242,8 +242,8 @@ module ActiveRecord
       end
 
       def describe(name)
-        real_name = OracleEnhancedAdapter.valid_table_name?(name) ? name.upcase : name
-        if name.include?('.')
+        real_name = OracleEnhancedAdapter.valid_table_name?(name) ? name.to_s.upcase : name.to_s
+        if real_name.include?('.')
           table_owner, table_name = real_name.split('.')
         else
           table_owner, table_name = @owner, real_name
@@ -267,7 +267,7 @@ module ActiveRecord
           SELECT table_owner, table_name, 'SYNONYM' name_type
           FROM all_synonyms
           WHERE owner = 'PUBLIC'
-            AND synonym_name = '#{name.upcase}'
+            AND synonym_name = '#{real_name}'
         SQL
         if result = select_one(sql)
           case result['name_type']
@@ -305,9 +305,9 @@ module ActiveRecord
           if d.nil?
             nil
           elsif d.scale == 0
-            d.longValue
+            d.toBigInteger+0
           else
-            d.doubleValue
+            d.toString.to_d
           end
         when "DATE", /^TIMESTAMP/
           ts = rset.getTimestamp(i)
