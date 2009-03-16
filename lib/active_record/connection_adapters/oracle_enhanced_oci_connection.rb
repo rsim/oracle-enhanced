@@ -104,14 +104,12 @@ module ActiveRecord
                 if OracleEnhancedAdapter.emulate_dates && (d.hour == 0 && d.minute == 0 && d.second == 0)
                   d.to_date
                 else
-                  # see string_to_time; Time overflowing to DateTime, respecting the default timezone
-                  time_array = [d.year, d.month, d.day, d.hour, d.minute, d.second]
+                  # code from Time.time_with_datetime_fallback
                   begin
-                    Time.send(Base.default_timezone, *time_array)
+                    Time.send(Base.default_timezone, d.year, d.month, d.day, d.hour, d.minute, d.second)
                   rescue
-                    zone_offset = if Base.default_timezone == :local then DateTime.now.offset else 0 end
-                    # Append zero calendar reform start to account for dates skipped by calendar reform
-                    DateTime.new(*time_array[0..5] << zone_offset << 0) rescue nil
+                    offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
+                    ::DateTime.civil(d.year, d.month, d.day, d.hour, d.minute, d.second, offset)
                   end
                 end
               # RSI: added emulate_integers_by_column_name functionality
