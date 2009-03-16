@@ -712,8 +712,8 @@ module ActiveRecord
       end
 
       def rename_table(name, new_name) #:nodoc:
-        execute "RENAME #{name} TO #{new_name}"
-        execute "RENAME #{name}_seq TO #{new_name}_seq" rescue nil
+        execute "RENAME #{quote_table_name(name)} TO #{quote_table_name(new_name)}"
+        execute "RENAME #{quote_table_name("#{name}_seq")} TO #{quote_table_name("#{new_name}_seq")}" rescue nil
       end
 
       def drop_table(name, options = {}) #:nodoc:
@@ -726,22 +726,48 @@ module ActiveRecord
         execute "DROP INDEX #{index_name(table_name, options)}"
       end
 
+      def add_column(table_name, column_name, type, options = {})
+        add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
+        options[:type] = type
+        add_column_options!(add_column_sql, options)
+        execute(add_column_sql)
+      end
+
       def change_column_default(table_name, column_name, default) #:nodoc:
-        execute "ALTER TABLE #{table_name} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
+        execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
+      end
+
+      def change_column_null(table_name, column_name, null, default = nil)
+        column = column_for(table_name, column_name)
+
+        unless null || default.nil?
+          execute("UPDATE #{quote_table_name(table_name)} SET #{quote_column_name(column_name)}=#{quote(default)} WHERE #{quote_column_name(column_name)} IS NULL")
+        end
+
+        change_column table_name, column_name, column.sql_type, :null => null
       end
 
       def change_column(table_name, column_name, type, options = {}) #:nodoc:
-        change_column_sql = "ALTER TABLE #{table_name} MODIFY #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
+        column = column_for(table_name, column_name)
+
+        # remove :null option if its value is the same as current column definition
+        # otherwise Oracle will raise error
+        if options.has_key?(:null) && options[:null] == column.null
+          options[:null] = nil
+        end
+
+        change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
+        options[:type] = type
         add_column_options!(change_column_sql, options)
         execute(change_column_sql)
       end
 
       def rename_column(table_name, column_name, new_column_name) #:nodoc:
-        execute "ALTER TABLE #{table_name} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
+        execute "ALTER TABLE #{quote_table_name(table_name)} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
       end
 
       def remove_column(table_name, column_name) #:nodoc:
-        execute "ALTER TABLE #{table_name} DROP COLUMN #{quote_column_name(column_name)}"
+        execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)}"
       end
 
       # RSI: table and column comments
@@ -839,11 +865,23 @@ module ActiveRecord
       end
 
       def add_column_options!(sql, options) #:nodoc:
+        type = options[:type] || ((column = options[:column]) && column.type)
+        type = type && type.to_sym
         # handle case of defaults for CLOB columns, which would otherwise get "quoted" incorrectly
-        if options_include_default?(options) && (column = options[:column]) && column.type == :text
-          sql << " DEFAULT #{quote(options.delete(:default))}" 
+        if options_include_default?(options)
+          if type == :text
+            sql << " DEFAULT #{quote(options[:default])}"
+          else
+            # from abstract adapter
+            sql << " DEFAULT #{quote(options[:default], options[:column])}"
+          end
         end
-        super
+        # must explicitly add NULL or NOT NULL to allow change_column to work on migrations
+        if options[:null] == false
+          sql << " NOT NULL"
+        elsif options[:null] == true
+          sql << " NULL" unless type == :primary_key
+        end
       end
 
       # SELECT DISTINCT clause for a given set of columns and a given ORDER BY clause.
@@ -892,6 +930,13 @@ module ActiveRecord
 
       def oracle_downcase(column_name)
         @connection.oracle_downcase(column_name)
+      end
+
+      def column_for(table_name, column_name)
+        unless column = columns(table_name).find { |c| c.name == column_name.to_s }
+          raise "No such column: #{table_name}.#{column_name}"
+        end
+        column
       end
 
     end
