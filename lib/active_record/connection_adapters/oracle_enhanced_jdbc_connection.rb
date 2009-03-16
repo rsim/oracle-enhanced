@@ -158,7 +158,7 @@ module ActiveRecord
       def exec_no_retry(sql)
         cs = prepare_call(sql)
         case sql
-        when /^UPDATE/i, /^INSERT/i, /^DELETE/i
+        when /\A\s*UPDATE/i, /\A\s*INSERT/i, /\A\s*DELETE/i
           cs.executeUpdate
         else
           cs.execute

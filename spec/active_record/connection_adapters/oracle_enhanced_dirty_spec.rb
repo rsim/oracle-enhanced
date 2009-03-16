@@ -12,7 +12,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
           id            NUMBER,
           first_name    VARCHAR2(20),
           last_name     VARCHAR2(25),
-          job_id        NUMBER(6,0),
+          job_id        NUMBER(6,0) NULL,
           salary        NUMBER(8,2),
           comments      CLOB,
           hire_date     DATE
@@ -74,6 +74,17 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
       @employee.should_not be_changed
       @employee.reload
       @employee.hire_date = ''
+      @employee.should_not be_changed
+    end
+
+    it "should not mark integer as changed when reassigning it" do
+      @employee = TestEmployee.new
+      @employee.job_id = 0
+      @employee.save!.should be_true
+      
+      @employee.should_not be_changed
+
+      @employee.job_id = '0'
       @employee.should_not be_changed
     end
 
