@@ -328,8 +328,9 @@ module ActiveRecord
       # Returns an array of arrays containing the field values.
       # Order is the same as that returned by #columns.
       def select_rows(sql, name = nil)
-        result = select(sql, name)
-        result.map{ |v| v.values}
+        # last parameter indicates to return also column list
+        result, columns = select(sql, name, true)
+        result.map{ |v| columns.map{|c| v[c]} }
       end
 
       # QUOTING ==================================================
@@ -922,9 +923,9 @@ module ActiveRecord
 
       private
 
-      def select(sql, name = nil)
+      def select(sql, name = nil, return_column_names = false)
         log(sql, name) do
-          @connection.select(sql, name)
+          @connection.select(sql, name, return_column_names)
         end
       end
 

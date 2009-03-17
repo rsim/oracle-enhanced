@@ -60,6 +60,10 @@ describe "OracleEnhancedConnection SQL execution" do
     @conn.select("SELECT * FROM dual").should == [{'dummy' => 'X'}]
   end
 
+  it "should execute SQL select and return also columns" do
+    @conn.select("SELECT * FROM dual", nil, true).should == [ [{'dummy' => 'X'}], ['dummy'] ]
+  end
+
 end
 
 describe "OracleEnhancedConnection auto reconnection" do

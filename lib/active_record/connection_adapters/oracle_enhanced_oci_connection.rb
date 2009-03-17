@@ -82,7 +82,7 @@ module ActiveRecord
         @raw_connection.exec(sql, *bindvars, &block)
       end
 
-      def select(sql, name = nil)
+      def select(sql, name = nil, return_column_names = false)
         cursor = @raw_connection.exec(sql)
         cols = cursor.get_col_names.map { |x| oracle_downcase(x) }
         rows = []
@@ -127,7 +127,7 @@ module ActiveRecord
           rows << hash
         end
 
-        rows
+        return_column_names ? [rows, cols] : rows
       ensure
         cursor.close if cursor
       end

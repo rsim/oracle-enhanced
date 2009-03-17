@@ -168,13 +168,13 @@ module ActiveRecord
         cs.close rescue nil        
       end
 
-      def select(sql, name = nil)
+      def select(sql, name = nil, return_also_column_list = false)
         with_retry do
-          select_no_retry(sql, name)
+          select_no_retry(sql, name, return_also_column_list)
         end        
       end
 
-      def select_no_retry(sql, name = nil)
+      def select_no_retry(sql, name = nil, return_also_column_list = false)
         stmt = prepare_statement(sql)
         rset = stmt.executeQuery
         metadata = rset.getMetaData
@@ -227,7 +227,7 @@ module ActiveRecord
           rows << hash
         end
 
-        rows
+        return_also_column_list ? [rows, cols] : rows
       ensure
         rset.close rescue nil
         stmt.close rescue nil
