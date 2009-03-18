@@ -506,18 +506,35 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
       end
     end
 
-    it "should return Time value without fractional seconds from TIMESTAMP columns" do
-      # currently fractional seconds are not retrieved from database
-      @now = Time.local(2008,5,26,23,11,11,10)
-      @employee = TestEmployee.create(
-        :created_at => @now,
-        :created_at_tz => @now,
-        :created_at_ltz => @now
-      )
-      @employee.reload
-      [:created_at, :created_at_tz, :created_at_ltz].each do |c|
-        @employee.send(c).class.should == Time
-        @employee.send(c).to_f.should == @now.to_f.to_i.to_f # remove fractional seconds
+    if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+      it "should return Time value with fractional seconds from TIMESTAMP columns" do
+        # currently fractional seconds are not retrieved from database
+        @now = Time.local(2008,5,26,23,11,11,10)
+        @employee = TestEmployee.create(
+          :created_at => @now,
+          :created_at_tz => @now,
+          :created_at_ltz => @now
+        )
+        @employee.reload
+        [:created_at, :created_at_tz, :created_at_ltz].each do |c|
+          @employee.send(c).class.should == Time
+          @employee.send(c).to_f.should == @now.to_f
+        end
+      end
+    else
+      it "should return Time value without fractional seconds from TIMESTAMP columns" do
+        # currently fractional seconds are not retrieved from database
+        @now = Time.local(2008,5,26,23,11,11,10)
+        @employee = TestEmployee.create(
+          :created_at => @now,
+          :created_at_tz => @now,
+          :created_at_ltz => @now
+        )
+        @employee.reload
+        [:created_at, :created_at_tz, :created_at_ltz].each do |c|
+          @employee.send(c).class.should == Time
+          @employee.send(c).to_f.should == @now.to_f.to_i.to_f # remove fractional seconds
+        end
       end
     end
 

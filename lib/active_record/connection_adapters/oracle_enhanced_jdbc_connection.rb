@@ -168,13 +168,13 @@ module ActiveRecord
         cs.close rescue nil        
       end
 
-      def select(sql, name = nil, return_also_column_list = false)
+      def select(sql, name = nil, return_column_names = false)
         with_retry do
-          select_no_retry(sql, name, return_also_column_list)
+          select_no_retry(sql, name, return_column_names)
         end        
       end
 
-      def select_no_retry(sql, name = nil, return_also_column_list = false)
+      def select_no_retry(sql, name = nil, return_column_names = false)
         stmt = prepare_statement(sql)
         rset = stmt.executeQuery
         metadata = rset.getMetaData
@@ -227,7 +227,7 @@ module ActiveRecord
           rows << hash
         end
 
-        return_also_column_list ? [rows, cols] : rows
+        return_column_names ? [rows, cols] : rows
       ensure
         rset.close rescue nil
         stmt.close rescue nil
@@ -309,9 +309,18 @@ module ActiveRecord
           else
             d.toString.to_d
           end
-        when "DATE", /^TIMESTAMP/
+        when "DATE"
+          if dt = rset.getDATE(i)
+            d = dt.dateValue
+            t = dt.timeValue
+            Time.send(Base.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
+          else
+            nil
+          end
+        when /^TIMESTAMP/
           ts = rset.getTimestamp(i)
-          ts && Time.at(ts.getTime/1000)
+          ts && Time.send(Base.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
+            ts.nanos / 1000)
         else
           nil
         end
