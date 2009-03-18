@@ -307,6 +307,7 @@ module ActiveRecord
           elsif d.scale == 0
             d.toBigInteger+0
           else
+            # Is there better way how to convert Java BigDecimal to Ruby BigDecimal?
             d.toString.to_d
           end
         when "DATE"
@@ -328,8 +329,6 @@ module ActiveRecord
       
       def ora_value_to_ruby_value(val)
         case val
-        when Float, BigDecimal
-          ora_number_to_ruby_number(val)
         when ::Java::OracleSql::CLOB
           if val.isEmptyLob
             nil
@@ -347,13 +346,33 @@ module ActiveRecord
         end
       end
 
-      def ora_number_to_ruby_number(num)
-        num.to_i == num.to_f ? num.to_i : num.to_f
-      end
-      
-
     end
     
   end
 end
 
+# add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
+require "bigdecimal"
+unless BigDecimal.instance_methods.include?("to_d")
+  BigDecimal.class_eval do
+    def to_d
+      self
+    end
+  end
+end
+
+unless Bignum.instance_methods.include?("to_d")
+  Bignum.class_eval do
+    def to_d
+      BigDecimal.new(self.to_s)
+    end
+  end
+end
+
+unless Fixnum.instance_methods.include?("to_d")
+  Fixnum.class_eval do
+    def to_d
+      BigDecimal.new(self.to_s)
+    end
+  end
+end
