@@ -1,3 +1,14 @@
+== 1.2.0 2009-03-22
+
+* Enhancements
+  * support for JRuby and JDBC
+  * support for Ruby 1.9.1 and ruby-oci8 2.0
+  * support for Rails 2.3
+  * quoting of Oracle reserved words in table names and column names
+  * emulation of OracleAdapter (for ActiveRecord unit tests)
+* Bug fixes:
+  * several bug fixes that were identified during running of ActiveRecord unit tests
+
 == 1.1.9 2009-01-02
 
 * Enhancements

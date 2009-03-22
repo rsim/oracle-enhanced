@@ -17,8 +17,12 @@ Bugs and enhancement requests can be reported at http://rsim.lighthouseapp.com/p
 
 == REQUIREMENTS:
 
-* Works (has been tested) with ActiveRecord version 2.0, 2.1 and 2.2 (these are the same as Rails versions)
-* Requires ruby-oci8 library to connect to Oracle
+* Works (has been tested) with ActiveRecord version 2.0, 2.1, 2.2 and 2.3 (these are the same as Rails versions)
+* Can be used on the following Ruby platforms:
+  * MRI - requires ruby-oci8 1.x or 2.x library to connect to Oracle
+  * Ruby/YARV 1.9.1 - requires ruby-oci8 2.x library to connect to Oracle
+    unicode_utils gem is recommended for Unicode aware string upcase and downcase
+  * JRuby - uses JDBC driver ojdbc14.jar to connect to Oracle (should be in JRUBY_HOME/lib or in PATH)
 * Requires ruby-plsql gem to support custom create, update and delete methods (but can be used without ruby-plsql if this functionality is not needed)
 
 == INSTALL:
