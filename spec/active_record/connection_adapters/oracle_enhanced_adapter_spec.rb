@@ -127,6 +127,11 @@ describe "OracleEnhancedAdapter database session store" do
       CREATE SEQUENCE sessions_seq  MINVALUE 1 MAXVALUE 999999999999999999999999999
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
+    if ENV['RAILS_GEM_VERSION'] >= '2.3'
+      SESSION_CLASS = ActiveRecord::SessionStore::Session
+    else
+      SESSION_CLASS = CGI::Session::ActiveRecordStore::Session
+    end
   end
 
   after(:all) do
@@ -139,29 +144,29 @@ describe "OracleEnhancedAdapter database session store" do
   end
 
   it "should save session data" do
-    @session = CGI::Session::ActiveRecordStore::Session.new :session_id => "111111", :data  => "something" #, :updated_at => Time.now
+    @session = SESSION_CLASS.new :session_id => "111111", :data  => "something" #, :updated_at => Time.now
     @session.save!
-    @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("111111")
+    @session = SESSION_CLASS.find_by_session_id("111111")
     @session.data.should == "something"
   end
 
   it "should change session data when partial updates enabled" do
-    return pending("Not in this ActiveRecord version") unless CGI::Session::ActiveRecordStore::Session.respond_to?(:partial_updates=)
-    CGI::Session::ActiveRecordStore::Session.partial_updates = true
-    @session = CGI::Session::ActiveRecordStore::Session.new :session_id => "222222", :data  => "something" #, :updated_at => Time.now
+    return pending("Not in this ActiveRecord version") unless SESSION_CLASS.respond_to?(:partial_updates=)
+    SESSION_CLASS.partial_updates = true
+    @session = SESSION_CLASS.new :session_id => "222222", :data  => "something" #, :updated_at => Time.now
     @session.save!
-    @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("222222")
+    @session = SESSION_CLASS.find_by_session_id("222222")
     @session.data = "other thing"
     @session.save!
     # second save should call again blob writing callback
     @session.save!
-    @session = CGI::Session::ActiveRecordStore::Session.find_by_session_id("222222")
+    @session = SESSION_CLASS.find_by_session_id("222222")
     @session.data.should == "other thing"
   end
 
   it "should have one enhanced_write_lobs callback" do
-    return pending("Not in this ActiveRecord version") unless CGI::Session::ActiveRecordStore::Session.respond_to?(:after_save_callback_chain)
-    CGI::Session::ActiveRecordStore::Session.after_save_callback_chain.select{|cb| cb.method == :enhanced_write_lobs}.should have(1).record
+    return pending("Not in this ActiveRecord version") unless SESSION_CLASS.respond_to?(:after_save_callback_chain)
+    SESSION_CLASS.after_save_callback_chain.select{|cb| cb.method == :enhanced_write_lobs}.should have(1).record
   end
 
   it "should not set sessions table session_id column type as integer if emulate_integers_by_column_name is true" do

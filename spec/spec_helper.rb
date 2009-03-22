@@ -14,16 +14,27 @@ elsif ENV['RAILS_GEM_VERSION'] =~ /^2.1/
   gem 'actionpack', '=2.1.2'
   gem 'activesupport', '=2.1.2'
   gem 'composite_primary_keys', '=1.0.8'
-else
+elsif ENV['RAILS_GEM_VERSION'] =~ /^2.2/
   gem 'activerecord', '=2.2.2'
   gem 'actionpack', '=2.2.2'
   gem 'activesupport', '=2.2.2'
-  gem 'composite_primary_keys', '=2.2.0'
+  gem 'composite_primary_keys', '=2.2.2'
+else
+  ENV['RAILS_GEM_VERSION'] ||= '2.3.2'
+  gem 'activerecord', '=2.3.2'
+  gem 'actionpack', '=2.3.2'
+  gem 'activesupport', '=2.3.2'
+  gem 'composite_primary_keys', '=2.2.2'
 end
 
 require 'activerecord'
 require 'actionpack'
-require 'action_controller/session/active_record_store'
+if ENV['RAILS_GEM_VERSION'] >= '2.3'
+  require 'action_controller/session/abstract_store'
+  require 'active_record/session_store'
+else
+  require 'action_controller/session/active_record_store'
+end
 if !defined?(RUBY_ENGINE)
   gem "activerecord-oracle-adapter"
   require 'active_record/connection_adapters/oracle_adapter'
