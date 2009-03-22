@@ -82,3 +82,6 @@ SYS_CONNECTION_PARAMS = {
   :password => "manager",
   :privilege => "SYSDBA"
 }
+
+# For JRuby Set default $KCODE to UTF8
+$KCODE = "UTF8" if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'

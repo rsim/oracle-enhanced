@@ -128,9 +128,9 @@ describe "OracleEnhancedAdapter database session store" do
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
     if ENV['RAILS_GEM_VERSION'] >= '2.3'
-      SESSION_CLASS = ActiveRecord::SessionStore::Session
+      @session_class = ActiveRecord::SessionStore::Session
     else
-      SESSION_CLASS = CGI::Session::ActiveRecordStore::Session
+      @session_class = CGI::Session::ActiveRecordStore::Session
     end
   end
 
@@ -144,29 +144,29 @@ describe "OracleEnhancedAdapter database session store" do
   end
 
   it "should save session data" do
-    @session = SESSION_CLASS.new :session_id => "111111", :data  => "something" #, :updated_at => Time.now
+    @session = @session_class.new :session_id => "111111", :data  => "something" #, :updated_at => Time.now
     @session.save!
-    @session = SESSION_CLASS.find_by_session_id("111111")
+    @session = @session_class.find_by_session_id("111111")
     @session.data.should == "something"
   end
 
   it "should change session data when partial updates enabled" do
-    return pending("Not in this ActiveRecord version") unless SESSION_CLASS.respond_to?(:partial_updates=)
-    SESSION_CLASS.partial_updates = true
-    @session = SESSION_CLASS.new :session_id => "222222", :data  => "something" #, :updated_at => Time.now
+    return pending("Not in this ActiveRecord version") unless @session_class.respond_to?(:partial_updates=)
+    @session_class.partial_updates = true
+    @session = @session_class.new :session_id => "222222", :data  => "something" #, :updated_at => Time.now
     @session.save!
-    @session = SESSION_CLASS.find_by_session_id("222222")
+    @session = @session_class.find_by_session_id("222222")
     @session.data = "other thing"
     @session.save!
     # second save should call again blob writing callback
     @session.save!
-    @session = SESSION_CLASS.find_by_session_id("222222")
+    @session = @session_class.find_by_session_id("222222")
     @session.data.should == "other thing"
   end
 
   it "should have one enhanced_write_lobs callback" do
-    return pending("Not in this ActiveRecord version") unless SESSION_CLASS.respond_to?(:after_save_callback_chain)
-    SESSION_CLASS.after_save_callback_chain.select{|cb| cb.method == :enhanced_write_lobs}.should have(1).record
+    return pending("Not in this ActiveRecord version") unless @session_class.respond_to?(:after_save_callback_chain)
+    @session_class.after_save_callback_chain.select{|cb| cb.method == :enhanced_write_lobs}.should have(1).record
   end
 
   it "should not set sessions table session_id column type as integer if emulate_integers_by_column_name is true" do
@@ -214,14 +214,14 @@ describe "OracleEnhancedAdapter ignore specified table columns" do
   end
 
   it "should ignore specified table columns" do
-    class TestEmployee < ActiveRecord::Base
+    class ::TestEmployee < ActiveRecord::Base
       ignore_table_columns  :phone_number, :hire_date
     end
     TestEmployee.connection.columns('test_employees').select{|c| ['phone_number','hire_date'].include?(c.name) }.should be_empty
   end
 
   it "should ignore specified table columns specified in several lines" do
-    class TestEmployee < ActiveRecord::Base
+    class ::TestEmployee < ActiveRecord::Base
       ignore_table_columns  :phone_number
       ignore_table_columns  :hire_date
     end
@@ -229,7 +229,7 @@ describe "OracleEnhancedAdapter ignore specified table columns" do
   end
 
   it "should not ignore unspecified table columns" do
-    class TestEmployee < ActiveRecord::Base
+    class ::TestEmployee < ActiveRecord::Base
       ignore_table_columns  :phone_number, :hire_date
     end
     TestEmployee.connection.columns('test_employees').select{|c| c.name == 'email' }.should_not be_empty
@@ -253,10 +253,10 @@ describe "OracleEnhancedAdapter table and sequence creation with non-default pri
         end
       end
     end
-    class Keyboard < ActiveRecord::Base
+    class ::Keyboard < ActiveRecord::Base
       set_primary_key :key_number
     end
-    class IdKeyboard < ActiveRecord::Base
+    class ::IdKeyboard < ActiveRecord::Base
     end
   end
 
@@ -285,7 +285,7 @@ describe "OracleEnhancedAdapter without composite_primary_keys" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     Object.send(:remove_const, 'CompositePrimaryKeys') if defined?(CompositePrimaryKeys)
-    class Employee < ActiveRecord::Base
+    class ::Employee < ActiveRecord::Base
       set_primary_key :employee_id
     end
   end
@@ -342,7 +342,7 @@ describe "OracleEnhancedAdapter sequence creation parameters" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value.should == 10000
 
     create_test_employees_table
-    class TestEmployee < ActiveRecord::Base; end
+    class ::TestEmployee < ActiveRecord::Base; end
 
     employee = TestEmployee.create!
     employee.id.should == 10000
@@ -352,7 +352,7 @@ describe "OracleEnhancedAdapter sequence creation parameters" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 1
 
     create_test_employees_table
-    class TestEmployee < ActiveRecord::Base; end
+    class ::TestEmployee < ActiveRecord::Base; end
 
     employee = TestEmployee.create!
     employee.id.should == 1
@@ -360,7 +360,7 @@ describe "OracleEnhancedAdapter sequence creation parameters" do
 
   it "should use sequence start value from table definition" do
     create_test_employees_table(10)
-    class TestEmployee < ActiveRecord::Base; end
+    class ::TestEmployee < ActiveRecord::Base; end
 
     employee = TestEmployee.create!
     employee.id.should == 10
@@ -368,7 +368,7 @@ describe "OracleEnhancedAdapter sequence creation parameters" do
 
   it "should use sequence start value and other options from table definition" do
     create_test_employees_table("100 NOCACHE INCREMENT BY 10")
-    class TestEmployee < ActiveRecord::Base; end
+    class ::TestEmployee < ActiveRecord::Base; end
 
     employee = TestEmployee.create!
     employee.id.should == 100
@@ -409,7 +409,7 @@ describe "OracleEnhancedAdapter table and column comments" do
   it "should create table with table comment" do
     table_comment = "Test Employees"
     create_test_employees_table(table_comment)
-    class TestEmployee < ActiveRecord::Base; end
+    class ::TestEmployee < ActiveRecord::Base; end
 
     @conn.table_comment("test_employees").should == table_comment
     TestEmployee.table_comment.should == table_comment
@@ -418,7 +418,7 @@ describe "OracleEnhancedAdapter table and column comments" do
   it "should create table with columns comment" do
     column_comments = {:first_name => "Given Name", :last_name => "Surname"}
     create_test_employees_table(nil, column_comments)
-    class TestEmployee < ActiveRecord::Base; end
+    class ::TestEmployee < ActiveRecord::Base; end
 
     [:first_name, :last_name].each do |attr|
       @conn.column_comment("test_employees", attr.to_s).should == column_comments[attr]
@@ -433,7 +433,7 @@ describe "OracleEnhancedAdapter table and column comments" do
     table_comment = "Test Employees"
     column_comments = {:first_name => "Given Name", :last_name => "Surname"}
     create_test_employees_table(table_comment, column_comments)
-    class TestEmployee < ActiveRecord::Base; end
+    class ::TestEmployee < ActiveRecord::Base; end
 
     @conn.table_comment(TestEmployee.table_name).should == table_comment
     TestEmployee.table_comment.should == table_comment
@@ -477,7 +477,7 @@ describe "OracleEnhancedAdapter column quoting" do
 
   it "should allow creation of a table with oracle reserved words as column names" do
     create_test_reserved_words_table
-    class TestReservedWord < ActiveRecord::Base; end
+    class ::TestReservedWord < ActiveRecord::Base; end
 
     [:varchar2, :integer].each do |attr|
       TestReservedWord.columns_hash[attr.to_s].name.should == attr.to_s
@@ -542,7 +542,7 @@ describe "OracleEnhancedAdapter table quoting" do
 
   it "should allow creation of a table with non alphanumeric characters" do
     create_warehouse_things_table
-    class WarehouseThing < ActiveRecord::Base
+    class ::WarehouseThing < ActiveRecord::Base
       set_table_name "warehouse-things"
     end
 

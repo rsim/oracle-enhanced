@@ -980,3 +980,7 @@ end if defined?(RAILS_ROOT)
 
 # handles quoting of oracle reserved words
 require 'active_record/connection_adapters/oracle_enhanced_reserved_words'
+
+# add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
+require 'active_record/connection_adapters/oracle_enhanced_core_ext'
+

@@ -79,7 +79,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       ActiveRecord::Base.connection.clear_types_for_columns
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
-      class TestEmployee < ActiveRecord::Base
+      class ::TestEmployee < ActiveRecord::Base
         set_table_name "hr.test_employees"
         set_primary_key :employee_id
       end
@@ -121,7 +121,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     end
 
     it "should return Date value from DATE column if emulate_dates_by_column_name is false but column is defined as date" do
-      class TestEmployee < ActiveRecord::Base
+      class ::TestEmployee < ActiveRecord::Base
         set_date_columns :hire_date
       end
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
@@ -130,7 +130,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     end
 
     it "should return Time value from DATE column if emulate_dates_by_column_name is true but column is defined as datetime" do
-      class TestEmployee < ActiveRecord::Base
+      class ::TestEmployee < ActiveRecord::Base
         set_datetime_columns :hire_date
       end
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
@@ -225,7 +225,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
 
   describe "/ NUMBER values from ActiveRecord model" do
     before(:each) do
-      class Test2Employee < ActiveRecord::Base
+      class ::Test2Employee < ActiveRecord::Base
       end
     end
     
@@ -369,7 +369,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do
     before(:each) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
-      class Test3Employee < ActiveRecord::Base
+      class ::Test3Employee < ActiveRecord::Base
       end
     end
     
@@ -420,7 +420,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
     it "should return boolean value from VARCHAR2 boolean column if column specified in set_boolean_columns" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
-      class Test3Employee < ActiveRecord::Base
+      class ::Test3Employee < ActiveRecord::Base
         set_boolean_columns :test_boolean
       end
       create_employee3(:test_boolean => true)
@@ -482,7 +482,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
 
   describe "/ TIMESTAMP WITH TIME ZONE values from ActiveRecord model" do
     before(:all) do
-      class TestEmployee < ActiveRecord::Base
+      class ::TestEmployee < ActiveRecord::Base
         set_primary_key :employee_id
       end
     end
@@ -582,7 +582,7 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
   before(:each) do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
-    class TestEmployee < ActiveRecord::Base
+    class ::TestEmployee < ActiveRecord::Base
       set_primary_key :employee_id
     end
     @today = Date.new(2008,6,28)
@@ -666,7 +666,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
-    class TestEmployee < ActiveRecord::Base
+    class ::TestEmployee < ActiveRecord::Base
       set_primary_key :employee_id
     end
   end
@@ -794,7 +794,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
-    class TestEmployee < ActiveRecord::Base
+    class ::TestEmployee < ActiveRecord::Base
       set_primary_key :employee_id
     end
   end
@@ -859,7 +859,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
   end
 
   before(:each) do
-    class TestEmployee < ActiveRecord::Base
+    class ::TestEmployee < ActiveRecord::Base
       set_primary_key :employee_id
     end
   end

@@ -92,7 +92,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
 
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
 
-    class TestEmployee < ActiveRecord::Base
+    class ::TestEmployee < ActiveRecord::Base
       set_primary_key :employee_id
       
       validates_presence_of :first_name, :last_name, :hire_date

@@ -40,7 +40,8 @@ module ActiveRecord #:nodoc:
           base.instance_eval do
             alias_method_chain :create, :custom_method
             # insert after dirty checking in Rails 2.1
-            if private_instance_methods.include?('update_without_dirty')
+            # in Ruby 1.9 methods names are returned as symbols
+            if private_instance_methods.include?('update_without_dirty') || private_instance_methods.include?(:update_without_dirty)
               alias_method :update_without_custom_method, :update_without_dirty
               alias_method :update_without_dirty, :update_with_custom_method
             else

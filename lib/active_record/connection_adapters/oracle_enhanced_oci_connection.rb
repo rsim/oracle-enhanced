@@ -94,7 +94,15 @@ module ActiveRecord
             hash[col] =
               case row[i]
               when OCI8::LOB
-                name == 'Writable Large Object' ? row[i]: row[i].read
+                if name == 'Writable Large Object'
+                  row[i]
+                else
+                  data =  row[i].read
+                  # In Ruby 1.9.1 always change encoding to ASCII-8BIT for binaries
+                  data.force_encoding('ASCII-8BIT') if data.respond_to?(:force_encoding) && row[i].is_a?(OCI8::BLOB)
+                  data
+                end
+              # ruby-oci8 1.0 returns OraDate
               when OraDate
                 d = row[i]
                 # RSI: added emulate_dates_by_column_name functionality
@@ -112,6 +120,20 @@ module ActiveRecord
                     ::DateTime.civil(d.year, d.month, d.day, d.hour, d.minute, d.second, offset)
                   end
                 end
+              # ruby-oci8 2.0 returns Time or DateTime
+              when Time, DateTime
+                d = row[i]
+                if OracleEnhancedAdapter.emulate_dates && (d.hour == 0 && d.min == 0 && d.sec == 0)
+                  d.to_date
+                else
+                  # recreate Time or DateTime using Base.default_timezone
+                  begin
+                    Time.send(Base.default_timezone, d.year, d.month, d.day, d.hour, d.min, d.sec)
+                  rescue
+                    offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
+                    ::DateTime.civil(d.year, d.month, d.day, d.hour, d.min, d.sec, offset)
+                  end
+                end
               # RSI: added emulate_integers_by_column_name functionality
               when Float
                 n = row[i]
@@ -120,6 +142,10 @@ module ActiveRecord
                 else
                   n
                 end
+              # ruby-oci8 2.0 returns OraNumber - convert it to Integer or BigDecimal
+              when OraNumber
+                n = row[i]
+                n == (n_to_i = n.to_i) ? n_to_i : BigDecimal.new(n.to_s)
               else row[i]
               end unless col == 'raw_rnum_'
           end
