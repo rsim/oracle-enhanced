@@ -137,9 +137,9 @@ module ActiveRecord
         end
       end
 
-      # RSI: convert Time value to Date for :date columns
+      # RSI: convert Time or DateTime value to Date for :date columns
       def self.string_to_date(string)
-        return string.to_date if string.is_a?(Time)
+        return string.to_date if string.is_a?(Time) || string.is_a?(DateTime)
         super
       end
 

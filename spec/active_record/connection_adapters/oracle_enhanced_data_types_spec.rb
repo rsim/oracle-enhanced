@@ -74,6 +74,13 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     column.type_cast(Time.now).class.should == Date
   end
 
+  it "should typecast DateTime value to Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+    columns = @conn.columns('test_employees')
+    column = columns.detect{|c| c.name == "hire_date"}
+    column.type_cast(DateTime.new(1900,1,1)).class.should == Date
+  end
+
   describe "/ DATE values from ActiveRecord model" do
     before(:each) do
       ActiveRecord::Base.connection.clear_types_for_columns
@@ -85,9 +92,9 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       end
     end
     
-    def create_test_employee
-      @today = Date.new(2008,8,19)
-      @now = Time.local(2008,8,19,17,03,59)
+    def create_test_employee(params={})
+      @today = params[:today] || Date.new(2008,8,19)
+      @now = params[:now] || Time.local(2008,8,19,17,03,59)
       @employee = TestEmployee.create(
         :first_name => "First",
         :last_name => "Last",
@@ -111,6 +118,12 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
       create_test_employee
+      @employee.hire_date.class.should == Date
+    end
+
+    it "should return Date value from DATE column with old date value if column name contains 'date' and emulate_dates_by_column_name is true" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+      create_test_employee(:today => Date.new(1900,1,1))
       @employee.hire_date.class.should == Date
     end
 
