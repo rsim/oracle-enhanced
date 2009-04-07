@@ -142,6 +142,15 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       @employee.hire_date.class.should == Date
     end
 
+    it "should return Date value from DATE column with old date value if emulate_dates_by_column_name is false but column is defined as date" do
+      class ::TestEmployee < ActiveRecord::Base
+        set_date_columns :hire_date
+      end
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      create_test_employee(:today => Date.new(1900,1,1))
+      @employee.hire_date.class.should == Date
+    end
+
     it "should return Time value from DATE column if emulate_dates_by_column_name is true but column is defined as datetime" do
       class ::TestEmployee < ActiveRecord::Base
         set_datetime_columns :hire_date

@@ -1,3 +1,8 @@
+== master development branch
+
+* Bug fixes:
+  * return Date (and not DateTime) values for :date column value before year 1970
+
 == 1.2.0 2009-03-22
 
 * Enhancements
