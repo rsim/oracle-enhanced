@@ -822,12 +822,12 @@ module ActiveRecord
       end
 
       def structure_dump #:nodoc:
-        s = select_all("select sequence_name from user_sequences").inject("") do |structure, seq|
+        s = select_all("select sequence_name from user_sequences order by 1").inject("") do |structure, seq|
           structure << "create sequence #{seq.to_a.first.last};\n\n"
         end
 
         # RSI: changed select from user_tables to all_tables - much faster in large data dictionaries
-        select_all("select table_name from all_tables where owner = sys_context('userenv','session_user')").inject(s) do |structure, table|
+        select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").inject(s) do |structure, table|
           ddl = "create table #{table.to_a.first.last} (\n "
           cols = select_all(%Q{
             select column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
@@ -855,12 +855,12 @@ module ActiveRecord
       end
 
       def structure_drop #:nodoc:
-        s = select_all("select sequence_name from user_sequences").inject("") do |drop, seq|
+        s = select_all("select sequence_name from user_sequences order by 1").inject("") do |drop, seq|
           drop << "drop sequence #{seq.to_a.first.last};\n\n"
         end
 
         # RSI: changed select from user_tables to all_tables - much faster in large data dictionaries
-        select_all("select table_name from all_tables where owner = sys_context('userenv','session_user')").inject(s) do |drop, table|
+        select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").inject(s) do |drop, table|
           drop << "drop table #{table.to_a.first.last} cascade constraints;\n\n"
         end
       end

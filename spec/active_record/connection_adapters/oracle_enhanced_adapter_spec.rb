@@ -66,11 +66,11 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should return the same structure dump as original oracle adapter" do
-      @new_conn.structure_dump.should == @old_conn.structure_dump
+      @new_conn.structure_dump.split(";\n\n").sort.should == @old_conn.structure_dump.split(";\n\n").sort
     end
 
     it "should return the same structure drop as original oracle adapter" do
-      @new_conn.structure_drop.should == @old_conn.structure_drop
+      @new_conn.structure_drop.split(";\n\n").sort.should == @old_conn.structure_drop.split(";\n\n").sort
     end
   end
 
