@@ -47,6 +47,17 @@ describe "OracleEnhancedAdapter schema dump" do
     @new_conn = ActiveRecord::Base.oracle_enhanced_connection(CONNECTION_PARAMS)
     @new_conn.class.should == ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
   end
+  
+  after(:all) do
+    # Workaround for undefining callback that was defined by JDBC adapter
+    if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+      ActiveRecord::Base.class_eval do
+        def after_save_with_oracle_lob
+          nil
+        end
+      end
+    end
+  end
 
   unless defined?(RUBY_ENGINE) && RUBY_ENGINE == "ruby" && RUBY_VERSION =~ /^1\.9/
     it "should return the same tables list as original oracle adapter" do
