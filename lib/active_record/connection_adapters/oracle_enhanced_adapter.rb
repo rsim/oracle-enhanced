@@ -346,8 +346,11 @@ module ActiveRecord
       # unescaped table name should start with letter and
       # contain letters, digits, _, $ or #
       # can be prefixed with schema name
+      # CamelCase table names should be quoted
       def self.valid_table_name?(name)
-        name.to_s =~ /^([A-Z_0-9]+\.)?[A-Z][A-Z_0-9\$#]*$/i ? true : false
+        name = name.to_s
+        name =~ /^([A-Za-z_0-9]+\.)?[a-z][a-z_0-9\$#]*$/ ||
+        name =~ /^([A-Za-z_0-9]+\.)?[A-Z][A-Z_0-9\$#]*$/ ? true : false
       end
 
       # abstract_adapter calls quote_column_name from quote_table_name, so prevent that
@@ -556,7 +559,7 @@ module ActiveRecord
 
       # RSI: changed select from user_tables to all_tables - much faster in large data dictionaries
       def tables(name = nil) #:nodoc:
-        select_all("select lower(table_name) name from all_tables where owner = sys_context('userenv','session_user')").map {|t| t['name']}
+        select_all("select decode(table_name,upper(table_name),lower(table_name),table_name) name from all_tables where owner = sys_context('userenv','session_user')").map {|t| t['name']}
       end
 
       def indexes(table_name, name = nil) #:nodoc:

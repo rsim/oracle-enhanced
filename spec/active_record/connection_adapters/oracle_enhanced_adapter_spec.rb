@@ -541,14 +541,26 @@ describe "OracleEnhancedAdapter table quoting" do
     end
   end
 
+  def create_camel_case_table
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        create_table "CamelCase" do |t|
+          t.string      :name
+          t.integer     :foo
+        end
+      end
+    end
+  end
+
   after(:each) do
     ActiveRecord::Schema.define do
       suppress_messages do
-        drop_table "warehouse-things"
+        drop_table "warehouse-things" rescue nil
+        drop_table "CamelCase" rescue nil
       end
     end
-    Object.send(:remove_const, "WarehouseThing")
-    ActiveRecord::Base.table_name_prefix = nil
+    Object.send(:remove_const, "WarehouseThing") rescue nil
+    Object.send(:remove_const, "CamelCase") rescue nil
   end
 
   it "should allow creation of a table with non alphanumeric characters" do
@@ -559,6 +571,20 @@ describe "OracleEnhancedAdapter table quoting" do
 
     wh = WarehouseThing.create!(:name => "Foo", :foo => 2)
     wh.id.should_not be_nil
+
+    @conn.tables.should include("warehouse-things")
+  end
+
+  it "should allow creation of a table with CamelCase name" do
+    create_camel_case_table
+    class ::CamelCase < ActiveRecord::Base
+      set_table_name "CamelCase"
+    end
+
+    cc = CamelCase.create!(:name => "Foo", :foo => 2)
+    cc.id.should_not be_nil
+    
+    @conn.tables.should include("CamelCase")
   end
 
 end
