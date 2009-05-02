@@ -1,27 +1,16 @@
 #!/usr/bin/env ruby
 
-GEM_NAME = 'activerecord-oracle_enhanced-adapter' # what ppl will type to install your gem
-RUBYFORGE_PROJECT = 'oracle-enhanced'
-
-require 'rubygems'
-begin
-  require 'newgem'
-  require 'rubyforge'
-rescue LoadError
-  puts "\n\nGenerating the website requires the newgem RubyGem"
-  puts "Install: gem install newgem\n\n"
-  exit(1)
-end
+load File.dirname(__FILE__) + "/../Rakefile"
+require 'rubyforge'
 require 'redcloth'
 require 'syntax/convertors/html'
 require 'erb'
-require File.dirname(__FILE__) + "/../lib/active_record/connection_adapters/oracle_enhanced_version.rb"
 
-version = ActiveRecord::ConnectionAdapters::OracleEnhancedVersion::STRING
-download = "http://rubyforge.org/projects/#{RUBYFORGE_PROJECT}"
+download = "http://rubyforge.org/projects/#{$hoe.rubyforge_name}"
+version  = $hoe.version
 
 def rubyforge_project_id
-  RubyForge.new.autoconfig["group_ids"][RUBYFORGE_PROJECT]
+  RubyForge.new.configure.autoconfig["group_ids"][$hoe.rubyforge_name]
 end
 
 class Fixnum
