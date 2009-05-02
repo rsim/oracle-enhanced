@@ -58,28 +58,35 @@ module LoggerSpecHelper
   end
 end
 
+DATABASE_NAME = ENV['DATABASE_NAME'] || 'orcl'
+DATABASE_HOST = ENV['DATABASE_HOST'] || 'localhost'
+DATABASE_PORT = ENV['DATABASE_PORT'] || 1521
+DATABASE_USER = ENV['DATABASE_USER'] || 'hr'
+DATABASE_PASSWORD = ENV['DATABASE_PASSWORD'] || 'hr'
+DATABASE_SYS_PASSWORD = ENV['DATABASE_SYS_PASSWORD'] || 'admin'
+
 CONNECTION_PARAMS = {
   :adapter => "oracle_enhanced",
-  :database => "xe",
-  :host => "ubuntu810",
-  :username => "hr",
-  :password => "hr"
+  :database => DATABASE_NAME,
+  :host => DATABASE_HOST,
+  :username => DATABASE_USER,
+  :password => DATABASE_PASSWORD
 }
 
 JDBC_CONNECTION_PARAMS = {
   :adapter => "jdbc",
   :driver => "oracle.jdbc.driver.OracleDriver",
-  :url => "jdbc:oracle:thin:@ubuntu810:1521:XE",
-  :username => "hr",
-  :password => "hr"
+  :url => "jdbc:oracle:thin:@#{DATABASE_HOST}:#{DATABASE_PORT}:#{DATABASE_NAME}",
+  :username => DATABASE_USER,
+  :password => DATABASE_PASSWORD
 }
 
 SYS_CONNECTION_PARAMS = {
   :adapter => "oracle_enhanced",
-  :database => "xe",
-  :host => "ubuntu810",
+  :database => DATABASE_NAME,
+  :host => DATABASE_HOST,
   :username => "sys",
-  :password => "manager",
+  :password => DATABASE_SYS_PASSWORD,
   :privilege => "SYSDBA"
 }
 
