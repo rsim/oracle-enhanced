@@ -38,17 +38,30 @@ module ActiveRecord #:nodoc:
       module InstanceMethods
         def self.included(base)
           base.instance_eval do
-            alias_method_chain :create, :custom_method
+            if private_instance_methods.include?('create_without_callbacks') || private_instance_methods.include?(:create_without_callbacks)
+              alias_method :create_without_custom_method, :create_without_callbacks
+              alias_method :create_without_callbacks, :create_with_custom_method
+            else
+              alias_method_chain :create, :custom_method
+            end
             # insert after dirty checking in Rails 2.1
             # in Ruby 1.9 methods names are returned as symbols
             if private_instance_methods.include?('update_without_dirty') || private_instance_methods.include?(:update_without_dirty)
               alias_method :update_without_custom_method, :update_without_dirty
               alias_method :update_without_dirty, :update_with_custom_method
+            elsif private_instance_methods.include?('update_without_callbacks') || private_instance_methods.include?(:update_without_callbacks)
+              alias_method :update_without_custom_method, :update_without_callbacks
+              alias_method :update_without_callbacks, :update_with_custom_method
             else
               alias_method_chain :update, :custom_method
             end
             private :create, :update
-            alias_method_chain :destroy, :custom_method
+            if public_instance_methods.include?('destroy_without_callbacks') || public_instance_methods.include?(:destroy_without_callbacks)
+              alias_method :destroy_without_custom_method, :destroy_without_callbacks
+              alias_method :destroy_without_callbacks, :destroy_with_custom_method
+            else
+              alias_method_chain :destroy, :custom_method
+            end
             public :destroy
           end
         end
