@@ -287,9 +287,9 @@ module ActiveRecord
           if d.nil?
             nil
           elsif d.isInt
-            d.intValue
+            Integer(d.stringValue)
           else
-            d.stringValue.to_d
+            BigDecimal.new(d.stringValue)
           end
         when :VARCHAR2, :CHAR, :LONG
           rset.getString(i)

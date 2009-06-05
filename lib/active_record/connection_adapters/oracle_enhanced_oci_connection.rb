@@ -84,7 +84,12 @@ module ActiveRecord
 
       def select(sql, name = nil, return_column_names = false)
         cursor = @raw_connection.exec(sql)
-        cols = cursor.get_col_names.map { |x| oracle_downcase(x) }
+        cols = []
+        # Ignore raw_rnum_ which is used to simulate LIMIT and OFFSET
+        cursor.get_col_names.each do |col_name|
+          col_name = oracle_downcase(col_name)
+          cols << col_name unless col_name == 'raw_rnum_'
+        end
         # Reuse the same hash for all rows
         column_hash = {}
         cols.each {|c| column_hash[c] = nil}
@@ -147,7 +152,7 @@ module ActiveRecord
                   end
                 end
               else v
-              end unless col == 'raw_rnum_'
+              end
           end
 
           rows << hash
