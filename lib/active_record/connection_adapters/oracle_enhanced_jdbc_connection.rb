@@ -72,6 +72,9 @@ module ActiveRecord
         # Set session time zone to current time zone
         @raw_connection.setSessionTimeZone(java.util.TimeZone.default.getID)
         
+        # Set default number of rows to prefetch
+        # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
+        
         # default schema owner
         @owner = username.upcase
         
@@ -156,7 +159,7 @@ module ActiveRecord
       end
 
       def exec_no_retry(sql)
-        cs = prepare_call(sql)
+        cs = @raw_connection.prepareCall(sql)
         case sql
         when /\A\s*UPDATE/i, /\A\s*INSERT/i, /\A\s*DELETE/i
           cs.executeUpdate
@@ -175,59 +178,35 @@ module ActiveRecord
       end
 
       def select_no_retry(sql, name = nil, return_column_names = false)
-        stmt = prepare_statement(sql)
+        stmt = @raw_connection.prepareStatement(sql)
         rset = stmt.executeQuery
+
+        # Reuse the same hash for all rows
+        column_hash = {}
+
         metadata = rset.getMetaData
         column_count = metadata.getColumnCount
-        cols = (1..column_count).map do |i|
-          oracle_downcase(metadata.getColumnName(i))
+        
+        cols_types_index = (1..column_count).map do |i|
+          col_name = oracle_downcase(metadata.getColumnName(i))
+          next if col_name == 'raw_rnum_'
+          column_hash[col_name] = nil
+          [col_name, metadata.getColumnTypeName(i).to_sym, i]
         end
-        col_types = (1..column_count).map do |i|
-          metadata.getColumnTypeName(i)
-        end
+        cols_types_index.delete(nil)
 
         rows = []
-
+        get_lob_value = !(name == 'Writable Large Object')
+        
         while rset.next
-          hash = Hash.new
-
-          cols.each_with_index do |col, i0|
-            i = i0 + 1
-            hash[col] = 
-              case column_type = col_types[i0]
-              when /CLOB/
-                name == 'Writable Large Object' ? rset.getClob(i) : get_ruby_value_from_result_set(rset, i, column_type)
-              when /BLOB/
-                name == 'Writable Large Object' ? rset.getBlob(i) : get_ruby_value_from_result_set(rset, i, column_type)
-              when 'DATE'
-                t = get_ruby_value_from_result_set(rset, i, column_type)
-                # RSI: added emulate_dates_by_column_name functionality
-                # if emulate_dates_by_column_name && self.class.is_date_column?(col)
-                #   d.to_date
-                # elsif
-                if t && OracleEnhancedAdapter.emulate_dates && (t.hour == 0 && t.min == 0 && t.sec == 0)
-                  t.to_date
-                else
-                  # JRuby Time supports time before year 1900 therefore now need to fall back to DateTime
-                  t
-                end
-              # RSI: added emulate_integers_by_column_name functionality
-              when "NUMBER"
-                n = get_ruby_value_from_result_set(rset, i, column_type)
-                if n && n.is_a?(Float) && OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(col)
-                  n.to_i
-                else
-                  n
-                end
-              else
-                get_ruby_value_from_result_set(rset, i, column_type)
-              end unless col == 'raw_rnum_'
+          hash = column_hash.dup
+          cols_types_index.each do |col, column_type, i|
+            hash[col] = get_ruby_value_from_result_set(rset, i, column_type, get_lob_value)
           end
-
           rows << hash
         end
 
-        return_column_names ? [rows, cols] : rows
+        return_column_names ? [rows, cols_types_index.map(&:first)] : rows
       ensure
         rset.close rescue nil
         stmt.close rescue nil
@@ -284,50 +263,62 @@ module ActiveRecord
 
       private
 
-      def prepare_statement(sql)
-        @raw_connection.prepareStatement(sql)
-      end
+      # def prepare_statement(sql)
+      #   @raw_connection.prepareStatement(sql)
+      # end
 
-      def prepare_call(sql, *bindvars)
-        @raw_connection.prepareCall(sql)
-      end
+      # def prepare_call(sql, *bindvars)
+      #   @raw_connection.prepareCall(sql)
+      # end
 
-      def get_ruby_value_from_result_set(rset, i, type_name)
+      def get_ruby_value_from_result_set(rset, i, type_name, get_lob_value = true)
         case type_name
-        when "CHAR", "VARCHAR2", "LONG"
-          rset.getString(i)
-        when "CLOB"
-          ora_value_to_ruby_value(rset.getClob(i))
-        when "BLOB"
-          ora_value_to_ruby_value(rset.getBlob(i))
-        when "NUMBER"
-          d = rset.getBigDecimal(i)
+        when :NUMBER
+          # d = rset.getBigDecimal(i)
+          # if d.nil?
+          #   nil
+          # elsif d.scale == 0
+          #   d.toBigInteger+0
+          # else
+          #   # Is there better way how to convert Java BigDecimal to Ruby BigDecimal?
+          #   d.toString.to_d
+          # end
+          d = rset.getNUMBER(i)
           if d.nil?
             nil
-          elsif d.scale == 0
-            d.toBigInteger+0
+          elsif d.isInt
+            d.intValue
           else
-            # Is there better way how to convert Java BigDecimal to Ruby BigDecimal?
-            d.toString.to_d
+            d.stringValue.to_d
           end
-        when "DATE"
+        when :VARCHAR2, :CHAR, :LONG
+          rset.getString(i)
+        when :DATE
           if dt = rset.getDATE(i)
             d = dt.dateValue
             t = dt.timeValue
-            Time.send(Base.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
+            if OracleEnhancedAdapter.emulate_dates && t.hours == 0 && t.minutes == 0 && t.seconds == 0
+              Date.new(d.year + 1900, d.month + 1, d.date)
+            else
+              Time.send(Base.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
+            end
           else
             nil
           end
-        when /^TIMESTAMP/
+        when :TIMESTAMP, :TIMESTAMPTZ, :TIMESTAMPLTZ
           ts = rset.getTimestamp(i)
           ts && Time.send(Base.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
             ts.nanos / 1000)
+        when :CLOB
+          get_lob_value ? lob_to_ruby_value(rset.getClob(i)) : rset.getClob(i)
+        when :BLOB
+          get_lob_value ? lob_to_ruby_value(rset.getBlob(i)) : rset.getBlob(i)
         else
           nil
         end
       end
       
-      def ora_value_to_ruby_value(val)
+      def lob_to_ruby_value(val)
         case val
         when ::Java::OracleSql::CLOB
           if val.isEmptyLob
@@ -341,8 +332,6 @@ module ActiveRecord
           else
             String.from_java_bytes(val.getBytes(1, val.length))
           end
-        else
-          val
         end
       end
 

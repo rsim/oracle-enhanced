@@ -85,68 +85,68 @@ module ActiveRecord
       def select(sql, name = nil, return_column_names = false)
         cursor = @raw_connection.exec(sql)
         cols = cursor.get_col_names.map { |x| oracle_downcase(x) }
+        # Reuse the same hash for all rows
+        column_hash = {}
+        cols.each {|c| column_hash[c] = nil}
         rows = []
+        get_lob_value = !(name == 'Writable Large Object')
 
         while row = cursor.fetch
-          hash = Hash.new
+          hash = column_hash.dup
 
           cols.each_with_index do |col, i|
             hash[col] =
-              case row[i]
+              case v = row[i]
+              # RSI: added emulate_integers_by_column_name functionality
+              when Float
+                # if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(col)
+                #   v.to_i
+                # else
+                #   v
+                # end
+                v == (v_to_i = v.to_i) ? v_to_i : v
+              # ruby-oci8 2.0 returns OraNumber - convert it to Integer or BigDecimal
+              when OraNumber
+                v == (v_to_i = v.to_i) ? v_to_i : BigDecimal.new(v.to_s)
+              when String
+                v
               when OCI8::LOB
-                if name == 'Writable Large Object'
-                  row[i]
-                else
-                  data =  row[i].read
+                if get_lob_value
+                  data = v.read
                   # In Ruby 1.9.1 always change encoding to ASCII-8BIT for binaries
-                  data.force_encoding('ASCII-8BIT') if data.respond_to?(:force_encoding) && row[i].is_a?(OCI8::BLOB)
+                  data.force_encoding('ASCII-8BIT') if data.respond_to?(:force_encoding) && v.is_a?(OCI8::BLOB)
                   data
+                else
+                  v
                 end
               # ruby-oci8 1.0 returns OraDate
               when OraDate
-                d = row[i]
                 # RSI: added emulate_dates_by_column_name functionality
-                # if emulate_dates_by_column_name && self.class.is_date_column?(col)
-                #   d.to_date
-                # elsif
-                if OracleEnhancedAdapter.emulate_dates && (d.hour == 0 && d.minute == 0 && d.second == 0)
-                  d.to_date
+                if OracleEnhancedAdapter.emulate_dates && (v.hour == 0 && v.minute == 0 && v.second == 0)
+                  v.to_date
                 else
                   # code from Time.time_with_datetime_fallback
                   begin
-                    Time.send(Base.default_timezone, d.year, d.month, d.day, d.hour, d.minute, d.second)
+                    Time.send(Base.default_timezone, v.year, v.month, v.day, v.hour, v.minute, v.second)
                   rescue
                     offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
-                    ::DateTime.civil(d.year, d.month, d.day, d.hour, d.minute, d.second, offset)
+                    ::DateTime.civil(v.year, v.month, v.day, v.hour, v.minute, v.second, offset)
                   end
                 end
               # ruby-oci8 2.0 returns Time or DateTime
               when Time, DateTime
-                d = row[i]
-                if OracleEnhancedAdapter.emulate_dates && (d.hour == 0 && d.min == 0 && d.sec == 0)
-                  d.to_date
+                if OracleEnhancedAdapter.emulate_dates && (v.hour == 0 && v.min == 0 && v.sec == 0)
+                  v.to_date
                 else
                   # recreate Time or DateTime using Base.default_timezone
                   begin
-                    Time.send(Base.default_timezone, d.year, d.month, d.day, d.hour, d.min, d.sec)
+                    Time.send(Base.default_timezone, v.year, v.month, v.day, v.hour, v.min, v.sec)
                   rescue
                     offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
-                    ::DateTime.civil(d.year, d.month, d.day, d.hour, d.min, d.sec, offset)
+                    ::DateTime.civil(v.year, v.month, v.day, v.hour, v.min, v.sec, offset)
                   end
                 end
-              # RSI: added emulate_integers_by_column_name functionality
-              when Float
-                n = row[i]
-                if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(col)
-                  n.to_i
-                else
-                  n
-                end
-              # ruby-oci8 2.0 returns OraNumber - convert it to Integer or BigDecimal
-              when OraNumber
-                n = row[i]
-                n == (n_to_i = n.to_i) ? n_to_i : BigDecimal.new(n.to_s)
-              else row[i]
+              else v
               end unless col == 'raw_rnum_'
           end
 
