@@ -159,6 +159,26 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.update_time.should_not be_nil
   end
 
+  it "should rollback record when exception is raised in after_create callback" do
+    @employee = TestEmployee.new(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    TestEmployee.class_eval { def after_create() raise "Make the transaction rollback" end }
+    begin
+      employees_count = TestEmployee.count
+      @employee.save
+      fail "Did not raise exception"
+    rescue => e
+      e.message.should == "Make the transaction rollback"
+      @employee.id.should == nil
+      TestEmployee.count.should == employees_count
+    ensure
+      TestEmployee.class_eval { remove_method :after_create }
+    end
+  end
+
   it "should update record" do
     @employee = TestEmployee.create(
       :first_name => "First",
@@ -171,6 +191,29 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.save!
     @employee.reload
     @employee.description.should == "Second Last"
+  end
+
+  it "should rollback record when exception is raised in after_update callback" do
+    TestEmployee.class_eval { def after_update() raise "Make the transaction rollback" end }
+    begin
+      @employee = TestEmployee.create(
+        :first_name => "First",
+        :last_name => "Last",
+        :hire_date => @today,
+        :description => "description"
+      )
+      empl_id = @employee.id
+      @employee.reload
+      @employee.first_name = "Second"
+      @employee.save!
+      fail "Did not raise exception"
+    rescue => e
+      e.message.should == "Make the transaction rollback"
+      @employee.reload
+      @employee.first_name.should == "First"
+    ensure
+      TestEmployee.class_eval { remove_method :after_update }
+    end
   end
 
   it "should not update record if nothing is changed and partial updates are enabled" do
@@ -212,6 +255,27 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.destroy
     @employee.should be_frozen
     TestEmployee.find_by_employee_id(empl_id).should be_nil
+  end
+
+  it "should rollback record when exception is raised in after_desotry callback" do
+    TestEmployee.class_eval { def after_destroy() raise "Make the transaction rollback" end }
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @employee.reload
+    empl_id = @employee.id
+    begin
+      @employee.destroy
+      fail "Did not raise exception"
+    rescue => e
+      e.message.should == "Make the transaction rollback"
+      @employee.id.should == empl_id
+      TestEmployee.find_by_employee_id(empl_id).should_not be_nil
+    ensure
+      TestEmployee.class_eval { remove_method :after_destroy }
+    end
   end
 
   it "should log create record" do
