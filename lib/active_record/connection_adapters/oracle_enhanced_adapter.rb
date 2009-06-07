@@ -573,33 +573,42 @@ module ActiveRecord
         select_all("select decode(table_name,upper(table_name),lower(table_name),table_name) name from all_tables where owner = sys_context('userenv','session_user')").map {|t| t['name']}
       end
 
-      def indexes(table_name, name = nil) #:nodoc:
+      cattr_accessor :all_schema_indexes
+
+      # This method selects all indexes at once, and caches them in a class variable.
+      # Subsequent index calls get them from the variable, without going to the DB.
+      def indexes(table_name, name = nil)
         (owner, table_name) = @connection.describe(table_name)
-        result = select_all(<<-SQL, name)
-          SELECT lower(i.index_name) as index_name, i.uniqueness, lower(c.column_name) as column_name
-            FROM all_indexes i, all_ind_columns c
-           WHERE i.table_name = '#{table_name}'
-             AND i.owner = '#{owner}'
-             AND i.table_owner = '#{owner}'
-             AND c.index_name = i.index_name
-             AND c.index_owner = i.owner
-             AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
-            ORDER BY i.index_name, c.column_position
-        SQL
-
-        current_index = nil
-        indexes = []
-
-        result.each do |row|
-          if current_index != row['index_name']
-            indexes << IndexDefinition.new(table_name.downcase, row['index_name'], row['uniqueness'] == "UNIQUE", [])
-            current_index = row['index_name']
+        unless all_schema_indexes
+          result = select_all(<<-SQL)
+            SELECT lower(i.table_name) as table_name, lower(i.index_name) as index_name, i.uniqueness, lower(c.column_name) as column_name
+              FROM all_indexes i, all_ind_columns c
+             WHERE i.owner = '#{owner}'
+               AND i.table_owner = '#{owner}'
+               AND c.index_name = i.index_name
+               AND c.index_owner = i.owner
+               AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
+              ORDER BY i.index_name, c.column_position
+          SQL
+      
+          current_index = nil
+          self.all_schema_indexes = []
+      
+          result.each do |row|
+            # have to keep track of indexes because above query returns dups
+            # there is probably a better query we could figure out
+            if current_index != row['index_name']
+              self.all_schema_indexes << ::ActiveRecord::ConnectionAdapters::IndexDefinition.new(row['table_name'], row['index_name'], row['uniqueness'] == "UNIQUE", [])
+              current_index = row['index_name']
+            end
+      
+            self.all_schema_indexes.last.columns << row['column_name']
           end
-
-          indexes.last.columns << row['column_name']
         end
-
-        indexes
+      
+        # Return the indexes just for the requested table, since AR is structured that way
+        table_name = table_name.downcase
+        all_schema_indexes.select{|i| i.table == table_name}
       end
       
       # RSI: set ignored columns for table
@@ -737,7 +746,15 @@ module ActiveRecord
         execute "DROP SEQUENCE #{seq_name}" rescue nil
       end
 
+      # clear cached indexes when adding new index
+      def add_index(table_name, column_name, options = {})
+        self.all_schema_indexes = nil
+        super
+      end
+
+      # clear cached indexes when removing index
       def remove_index(table_name, options = {}) #:nodoc:
+        self.all_schema_indexes = nil
         execute "DROP INDEX #{index_name(table_name, options)}"
       end
 
