@@ -518,15 +518,26 @@ module ActiveRecord
 
       # Writes LOB values from attributes, as indicated by the LOB columns of klass.
       def write_lobs(table_name, klass, attributes)
-        id = quote(attributes[klass.primary_key])
+        # is class with composite primary key>
+        is_with_cpk = klass.respond_to?(:composite?) && klass.composite?
+        if is_with_cpk
+          id = klass.primary_key.map {|pk| attributes[pk.to_s] }
+        else
+          id = quote(attributes[klass.primary_key])
+        end
         klass.columns.select { |col| col.sql_type =~ /LOB$/i }.each do |col|
           value = attributes[col.name]
           # RSI: changed sequence of next two lines - should check if value is nil before converting to yaml
           next if value.nil?  || (value == '')
           value = value.to_yaml if col.text? && klass.serialized_attributes[col.name]
           uncached do
-            lob = select_one("SELECT #{col.name} FROM #{table_name} WHERE #{klass.primary_key} = #{id} FOR UPDATE",
+            if is_with_cpk
+              lob = select_one("SELECT #{col.name} FROM #{table_name} WHERE #{klass.composite_where_clause(id)} FOR UPDATE",
+                                'Writable Large Object')[col.name]
+            else
+              lob = select_one("SELECT #{col.name} FROM #{table_name} WHERE #{klass.primary_key} = #{id} FOR UPDATE",
                                'Writable Large Object')[col.name]
+            end
             @connection.write_lob(lob, value, col.type == :binary)
           end
         end
