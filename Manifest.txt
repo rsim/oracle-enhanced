@@ -1,6 +1,6 @@
 History.txt
 License.txt
-README.txt
+README.rdoc
 lib/active_record/connection_adapters/emulation/oracle_adapter.rb
 lib/active_record/connection_adapters/oracle_enhanced.rake
 lib/active_record/connection_adapters/oracle_enhanced_adapter.rb

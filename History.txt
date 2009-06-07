@@ -1,7 +1,13 @@
-== master development branch
+== 1.2.1 2009-06-07
 
+* Enhancements
+  * caching of table indexes query which makes schema dump much faster
 * Bug fixes:
   * return Date (and not DateTime) values for :date column value before year 1970
+  * fixed after_create/update/destroy callbacks with plsql custom methods
+  * fixed creation of large integers in JRuby
+  * Made test tasks respect RAILS_ENV
+  * fixed support for composite primary keys for tables with LOBs
 
 == 1.2.0 2009-03-22
 

@@ -2,15 +2,15 @@
 
 Gem::Specification.new do |s|
   s.name = %q{activerecord-oracle_enhanced-adapter}
-  s.version = "1.2.0.2"
+  s.version = "1.2.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Raimonds Simanovskis"]
-  s.date = %q{2009-04-07}
+  s.date = %q{2009-06-07}
   s.description = %q{Oracle enhanced adapter for ActiveRecord}
   s.email = ["raimonds.simanovskis@gmail.com"]
-  s.extra_rdoc_files = ["History.txt", "License.txt", "Manifest.txt", "README.txt"]
-  s.files = ["History.txt", "License.txt", "Manifest.txt", "README.txt",
+  s.extra_rdoc_files = ["History.txt", "License.txt", "Manifest.txt", "README.rdoc"]
+  s.files = ["History.txt", "License.txt", "Manifest.txt", "README.rdoc",
     "lib/active_record/connection_adapters/emulation/oracle_adapter.rb",
     "lib/active_record/connection_adapters/oracle_enhanced.rake",
     "lib/active_record/connection_adapters/oracle_enhanced_adapter.rb",

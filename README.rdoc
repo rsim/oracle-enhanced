@@ -29,6 +29,17 @@ Bugs and enhancement requests can be reported at http://rsim.lighthouseapp.com/p
 
 * sudo gem install activerecord-oracle_enhanced-adapter
 
+== CONTRIBUTORS:
+
+* Raimonds Simanovskis
+* Jorge Dias
+* James Wylder
+* Rob Christie
+* Nate Wieger
+* Edgars Beigarts
+* Lachlan Laycock
+* toddwf
+
 == LICENSE:
 
 (The MIT License)
