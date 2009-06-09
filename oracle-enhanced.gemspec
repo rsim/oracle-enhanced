@@ -38,7 +38,7 @@ Gem::Specification.new do |s|
   s.has_rdoc = true
   s.homepage = %q{http://oracle-enhanced.rubyforge.org}
   s.post_install_message = %q{}
-  s.rdoc_options = ["--main", "README.txt"]
+  s.rdoc_options = ["--main", "README.rdoc"]
   s.require_paths = ["lib"]
   s.rubyforge_project = %q{oracle-enhanced}
   s.rubygems_version = %q{1.3.1}
