@@ -890,6 +890,47 @@ module ActiveRecord
         end
       end
 
+      # DGS. Extract all stored procedures, packages,  synonyms and views.
+      def structure_dump_db_stored_code #:nodoc:
+        structure = "\n"
+        select_all("select distinct name, type 
+                     from all_source 
+                    where type in ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION') 
+                      and  owner = sys_context('userenv','session_user')").inject("\n\n") do |structure, source|
+            ddl = "create or replace   \n "
+            lines = select_all(%Q{
+                    select text
+                      from all_source
+                     where name = '#{source['name']}'
+                       and type = '#{source['type']}'
+                       and owner = sys_context('userenv','session_user')
+                     order by line 
+                  }).map do |row|
+              ddl << row['text'] if row['text'].size > 1
+            end
+            ddl << ";"
+            structure << ddl << "\n"
+        end
+
+        # export views 
+        select_all("select view_name, text from user_views").inject(structure) do |structure, view|
+          ddl = "create or replace view #{view['view_name']} AS\n "
+          # any views with empty lines will cause OCI to barf when loading. remove blank lines =/ 
+          ddl << view['text'].gsub(/^\n/, '') 
+          ddl << ";\n\n"
+          structure << ddl
+        end
+
+        # export synonyms 
+        select_all("select owner, synonym_name, table_name, table_owner 
+                      from all_synonyms  
+                     where table_owner = sys_context('userenv','session_user') ").inject(structure) do |structure, synonym|
+          ddl = "create or replace #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']} for #{synonym['table_owner']}.#{synonym['table_name']};\n\n"
+          structure << ddl;
+        end
+      end
+
+
       def structure_drop #:nodoc:
         s = select_all("select sequence_name from user_sequences order by 1").inject("") do |drop, seq|
           drop << "drop sequence #{seq.to_a.first.last};\n\n"
@@ -900,6 +941,7 @@ module ActiveRecord
           drop << "drop table #{table.to_a.first.last} cascade constraints;\n\n"
         end
       end
+
 
       def add_column_options!(sql, options) #:nodoc:
         type = options[:type] || ((column = options[:column]) && column.type)
