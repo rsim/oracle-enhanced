@@ -1,5 +1,5 @@
 # RSI: implementation idea taken from JDBC adapter
-if defined?(Rake.application) && Rake.application
+if defined?(Rake.application) && Rake.application && ActiveRecord::Base.configurations[RAILS_ENV]['adapter'] == 'oracle_enhanced'
   oracle_enhanced_rakefile = File.dirname(__FILE__) + "/oracle_enhanced.rake"
   if Rake.application.lookup("environment")
     # rails tasks already defined; load the override tasks now
