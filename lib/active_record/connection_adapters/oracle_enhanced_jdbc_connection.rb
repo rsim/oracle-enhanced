@@ -262,7 +262,11 @@ module ActiveRecord
           raise OracleEnhancedConnectionException, %Q{"DESC #{name}" failed; does it exist?}
         end
       end
-      
+
+      # Return NativeException / java.sql.SQLException error code
+      def error_code(exception)
+        exception.cause.getErrorCode
+      end
 
       private
 

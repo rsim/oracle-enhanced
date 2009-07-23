@@ -174,6 +174,11 @@ module ActiveRecord
         raise OracleEnhancedConnectionException, e.message
       end
       
+      # Return OCIError error code
+      def error_code(exception)
+        exception.code
+      end
+      
     end
     
     # The OracleEnhancedOCIFactory factors out the code necessary to connect and

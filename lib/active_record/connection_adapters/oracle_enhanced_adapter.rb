@@ -952,6 +952,19 @@ module ActiveRecord
         sql << " ORDER BY #{order}"
       end
 
+      protected
+
+      def translate_exception(exception, message)
+        case @connection.error_code(exception)
+        when 1
+          RecordNotUnique.new(message, exception)
+        when 2291
+          InvalidForeignKey.new(message, exception)
+        else
+          super
+        end
+      end
+
       private
 
       def select(sql, name = nil, return_column_names = false)
