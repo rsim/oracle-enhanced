@@ -1,18 +1,21 @@
 begin
   require "java"
   require "jruby"
-  # Adds JRuby classloader to current thread classloader - as a result ojdbc14.jar should not be in $JRUBY_HOME/lib
-  java.lang.Thread.currentThread.setContextClassLoader(JRuby.runtime.jruby_class_loader)
+
+  # ojdbc14.jar file should be in JRUBY_HOME/lib or should be in ENV['PATH'] or load path
 
   ojdbc_jar = "ojdbc14.jar"
-  if ojdbc_jar_path = ENV["PATH"].split(/[:;]/).find{|d| File.exists?(File.join(d,ojdbc_jar))}
-    require File.join(ojdbc_jar_path,ojdbc_jar)
+
+  unless ENV_JAVA['java.class.path'] =~ Regexp.new(ojdbc_jar)
+    # Adds JRuby classloader to current thread classloader - as a result ojdbc14.jar should not be in $JRUBY_HOME/lib
+    # not necessary anymore for JRuby 1.3
+    # java.lang.Thread.currentThread.setContextClassLoader(JRuby.runtime.jruby_class_loader)
+
+    if ojdbc_jar_path = ENV["PATH"].split(/[:;]/).concat($LOAD_PATH).find{|d| File.exists?(File.join(d,ojdbc_jar))}
+      require File.join(ojdbc_jar_path,ojdbc_jar)
+    end
   end
-  # import java.sql.Statement
-  # import java.sql.Connection
-  # import java.sql.SQLException
-  # import java.sql.Types
-  # import java.sql.DriverManager
+
   java.sql.DriverManager.registerDriver Java::oracle.jdbc.driver.OracleDriver.new
 
 rescue LoadError, NameError
