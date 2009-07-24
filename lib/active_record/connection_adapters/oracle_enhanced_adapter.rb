@@ -719,7 +719,7 @@ module ActiveRecord
             end
           end
 
-          result = block.call(t)
+          result = block.call(t) if block
           create_sequence = create_sequence || t.create_sequence
           column_comments = t.column_comments if t.column_comments
         end
