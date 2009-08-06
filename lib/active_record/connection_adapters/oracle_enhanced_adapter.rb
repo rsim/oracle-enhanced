@@ -292,6 +292,11 @@ module ActiveRecord
       @@string_to_date_format = @@string_to_time_format = nil
       cattr_accessor :string_to_date_format, :string_to_time_format
 
+      def initialize(connection, logger = nil) #:nodoc:
+        super
+        @quoted_column_names, @quoted_table_names = {}, {}
+      end
+
       def adapter_name #:nodoc:
         'OracleEnhanced'
       end
@@ -340,7 +345,7 @@ module ActiveRecord
       # camelCase column names need to be quoted; not that anyone using Oracle
       # would really do this, but handling this case means we pass the test...
       def quote_column_name(name) #:nodoc:
-        name.to_s =~ /[A-Z]/ ? "\"#{name}\"" : quote_oracle_reserved_words(name)
+        @quoted_column_names[name] = name.to_s =~ /[A-Z]/ ? "\"#{name}\"" : quote_oracle_reserved_words(name)
       end
 
       # unescaped table name should start with letter and
@@ -355,7 +360,7 @@ module ActiveRecord
 
       # abstract_adapter calls quote_column_name from quote_table_name, so prevent that
       def quote_table_name(name)
-        if self.class.valid_table_name?(name)
+        @quoted_table_names[name] ||= if self.class.valid_table_name?(name)
           name
         else
           "\"#{name}\""
