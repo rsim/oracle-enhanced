@@ -406,13 +406,13 @@ module ActiveRecord
 
       # RSI: should support that composite_primary_keys gem will pass date as string
       def quote_date_with_to_date(value)
-        value = value.to_s(:db) if value.acts_like?(:date) || value.acts_like?(:time)
+        value = quoted_date(value) if value.acts_like?(:date) || value.acts_like?(:time)
         "TO_DATE('#{value}','YYYY-MM-DD HH24:MI:SS')"
       end
 
       def quote_timestamp_with_to_timestamp(value)
         # add up to 9 digits of fractional seconds to inserted time
-        value = "#{value.to_s(:db)}.#{("%.6f"%value.to_f).split('.')[1]}" if value.acts_like?(:time)
+        value = "#{quoted_date(value)}.#{("%.6f"%value.to_f).split('.')[1]}" if value.acts_like?(:time)
         "TO_TIMESTAMP('#{value}','YYYY-MM-DD HH24:MI:SS.FF6')"
       end
 
