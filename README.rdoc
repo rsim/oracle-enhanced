@@ -39,6 +39,8 @@ Bugs and enhancement requests can be reported at http://rsim.lighthouseapp.com/p
 * Edgars Beigarts
 * Lachlan Laycock
 * toddwf
+* Anton Jenkins
+* Dave Smylie
 
 == LICENSE:
 
