@@ -837,6 +837,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       :last_name => "Last"
     )
     @employee.should be_valid
+    TestEmployee.serialized_attributes.delete('comments')
   end
 
   it "should order by CLOB column" do
@@ -852,7 +853,14 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     TestEmployee.find(:all, :order => :comments).should_not be_empty
     TestEmployee.find(:all, :order => "  first_name DESC,  last_name   ASC   ").should_not be_empty
   end
-  
+
+  it "should accept Symbol value for CLOB column" do
+    @employee = TestEmployee.create!(
+      :comments => :test_comment
+    )
+    @employee.should be_valid
+  end
+
 end
 
 describe "OracleEnhancedAdapter handling of BLOB columns" do

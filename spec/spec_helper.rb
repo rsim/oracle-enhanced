@@ -20,10 +20,10 @@ elsif ENV['RAILS_GEM_VERSION'] =~ /^2.2/
   gem 'activesupport', '=2.2.2'
   gem 'composite_primary_keys', '=2.2.2'
 else
-  ENV['RAILS_GEM_VERSION'] ||= '2.3.2'
-  gem 'activerecord', '=2.3.2'
-  gem 'actionpack', '=2.3.2'
-  gem 'activesupport', '=2.3.2'
+  ENV['RAILS_GEM_VERSION'] ||= '2.3.3'
+  gem 'activerecord', '=2.3.3'
+  gem 'actionpack', '=2.3.3'
+  gem 'activesupport', '=2.3.3'
   gem 'composite_primary_keys', '=2.2.2'
 end
 

@@ -543,7 +543,7 @@ module ActiveRecord
               lob = select_one("SELECT #{col.name} FROM #{table_name} WHERE #{klass.primary_key} = #{id} FOR UPDATE",
                                'Writable Large Object')[col.name]
             end
-            @connection.write_lob(lob, value, col.type == :binary)
+            @connection.write_lob(lob, value.to_s, col.type == :binary)
           end
         end
       end
