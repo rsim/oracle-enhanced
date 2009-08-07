@@ -588,3 +588,45 @@ describe "OracleEnhancedAdapter table quoting" do
   end
 
 end
+
+describe "OracleEnhancedAdapter create triggers" do
+
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        create_table  :test_employees do |t|
+          t.string    :first_name
+          t.string    :last_name
+        end
+      end
+    end
+    class ::TestEmployee < ActiveRecord::Base; end
+  end
+
+  after(:all) do
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        drop_table :test_employees
+      end
+    end
+    Object.send(:remove_const, "TestEmployee")
+  end
+
+  it "should create table trigger with :new reference" do
+    lambda do
+      @conn.execute <<-SQL
+      CREATE OR REPLACE TRIGGER test_employees_pkt
+      BEFORE INSERT ON test_employees FOR EACH ROW
+      BEGIN
+        IF inserting THEN
+          IF :new.id IS NULL THEN
+            SELECT test_employees_seq.NEXTVAL INTO :new.id FROM dual;
+          END IF;
+        END IF;
+      END;
+      SQL
+    end.should_not raise_error
+  end
+end

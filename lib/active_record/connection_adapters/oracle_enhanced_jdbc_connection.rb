@@ -162,16 +162,23 @@ module ActiveRecord
       end
 
       def exec_no_retry(sql)
-        cs = @raw_connection.prepareCall(sql)
         case sql
-        when /\A\s*UPDATE/i, /\A\s*INSERT/i, /\A\s*DELETE/i
-          cs.executeUpdate
+        when /\A\s*(UPDATE|INSERT|DELETE)/i
+          s = @raw_connection.prepareStatement(sql)
+          s.executeUpdate
+        # it is safer for CREATE and DROP statements not to use PreparedStatement
+        # as it does not allow creation of triggers with :NEW in their definition
+        when /\A\s*(CREATE|DROP)/i
+          s = @raw_connection.createStatement()
+          s.execute(sql)
+          true
         else
-          cs.execute
+          s = @raw_connection.prepareStatement(sql)
+          s.execute
           true
         end
       ensure
-        cs.close rescue nil        
+        s.close rescue nil
       end
 
       def select(sql, name = nil, return_column_names = false)
