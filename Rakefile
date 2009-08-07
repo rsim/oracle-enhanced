@@ -20,6 +20,7 @@ $hoe = Hoe.spec('activerecord-oracle_enhanced-adapter') do
   self.extra_deps         = [
     ['activerecord', '>= 2.0.0']
   ]
+  self.extra_rdoc_files     = ['README.rdoc']
   
   self.clean_globs |= %w[**/.DS_Store tmp *.log]
   path = self.rubyforge_name
