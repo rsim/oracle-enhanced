@@ -197,6 +197,8 @@ module ActiveRecord
         async = config[:allow_concurrency]
         prefetch_rows = config[:prefetch_rows] || 100
         cursor_sharing = config[:cursor_sharing] || 'similar'
+        # by default VARCHAR2 column size will be interpreted as max number of characters (and not bytes)
+        nls_length_semantics = config[:nls_length_semantics] || 'CHAR'
 
         conn = OCI8.new username, password, database, privilege
         conn.exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
@@ -205,6 +207,7 @@ module ActiveRecord
         conn.non_blocking = true if async
         conn.prefetch_rows = prefetch_rows
         conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil
+        conn.exec "alter session set nls_length_semantics = '#{nls_length_semantics}'"
         conn
       end
     end

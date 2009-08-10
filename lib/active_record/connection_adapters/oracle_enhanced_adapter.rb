@@ -656,8 +656,8 @@ module ActiveRecord
           select column_name as name, data_type as sql_type, data_default, nullable,
                  decode(data_type, 'NUMBER', data_precision,
                                    'FLOAT', data_precision,
-                                   'VARCHAR2', data_length,
-                                   'CHAR', data_length,
+                                   'VARCHAR2', decode(char_used, 'C', char_length, data_length),
+                                   'CHAR', decode(char_used, 'C', char_length, data_length),
                                     null) as limit,
                  decode(data_type, 'NUMBER', data_scale, null) as scale
             from all_tab_columns

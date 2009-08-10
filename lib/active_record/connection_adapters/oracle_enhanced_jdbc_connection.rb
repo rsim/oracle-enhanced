@@ -59,6 +59,8 @@ module ActiveRecord
 
         prefetch_rows = config[:prefetch_rows] || 100
         cursor_sharing = config[:cursor_sharing] || 'similar'
+        # by default VARCHAR2 column size will be interpreted as max number of characters (and not bytes)
+        nls_length_semantics = config[:nls_length_semantics] || 'CHAR'
 
         properties = java.util.Properties.new
         properties.put("user", username)
@@ -68,8 +70,9 @@ module ActiveRecord
 
         @raw_connection = java.sql.DriverManager.getConnection(url, properties)
         exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
-        exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'} # rescue nil
-        exec "alter session set cursor_sharing = #{cursor_sharing}" # rescue nil
+        exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'}
+        exec "alter session set cursor_sharing = #{cursor_sharing}"
+        exec "alter session set nls_length_semantics = '#{nls_length_semantics}'"
         self.autocommit = true
         
         # Set session time zone to current time zone
