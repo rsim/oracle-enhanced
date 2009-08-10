@@ -100,59 +100,7 @@ module ActiveRecord
           hash = column_hash.dup
 
           cols.each_with_index do |col, i|
-            hash[col] =
-              case v = row[i]
-              # RSI: added emulate_integers_by_column_name functionality
-              when Float
-                # if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(col)
-                #   v.to_i
-                # else
-                #   v
-                # end
-                v == (v_to_i = v.to_i) ? v_to_i : v
-              # ruby-oci8 2.0 returns OraNumber - convert it to Integer or BigDecimal
-              when OraNumber
-                v == (v_to_i = v.to_i) ? v_to_i : BigDecimal.new(v.to_s)
-              when String
-                v
-              when OCI8::LOB
-                if get_lob_value
-                  data = v.read
-                  # In Ruby 1.9.1 always change encoding to ASCII-8BIT for binaries
-                  data.force_encoding('ASCII-8BIT') if data.respond_to?(:force_encoding) && v.is_a?(OCI8::BLOB)
-                  data
-                else
-                  v
-                end
-              # ruby-oci8 1.0 returns OraDate
-              when OraDate
-                # RSI: added emulate_dates_by_column_name functionality
-                if OracleEnhancedAdapter.emulate_dates && (v.hour == 0 && v.minute == 0 && v.second == 0)
-                  v.to_date
-                else
-                  # code from Time.time_with_datetime_fallback
-                  begin
-                    Time.send(Base.default_timezone, v.year, v.month, v.day, v.hour, v.minute, v.second)
-                  rescue
-                    offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
-                    ::DateTime.civil(v.year, v.month, v.day, v.hour, v.minute, v.second, offset)
-                  end
-                end
-              # ruby-oci8 2.0 returns Time or DateTime
-              when Time, DateTime
-                if OracleEnhancedAdapter.emulate_dates && (v.hour == 0 && v.min == 0 && v.sec == 0)
-                  v.to_date
-                else
-                  # recreate Time or DateTime using Base.default_timezone
-                  begin
-                    Time.send(Base.default_timezone, v.year, v.month, v.day, v.hour, v.min, v.sec)
-                  rescue
-                    offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
-                    ::DateTime.civil(v.year, v.month, v.day, v.hour, v.min, v.sec, offset)
-                  end
-                end
-              else v
-              end
+            hash[col] = typecast_result_value(row[i], get_lob_value)
           end
 
           rows << hash
@@ -178,7 +126,66 @@ module ActiveRecord
       def error_code(exception)
         exception.code
       end
+
+      private
+
+      def typecast_result_value(value, get_lob_value)
+        case value
+        when Fixnum, Bignum
+          value
+        when String
+          value
+        when Float
+          value == (v_to_i = value.to_i) ? v_to_i : value
+        # ruby-oci8 2.0 returns OraNumber if Oracle type is NUMBER
+        when OraNumber
+          value == (v_to_i = value.to_i) ? v_to_i : BigDecimal.new(value.to_s)
+        when OCI8::LOB
+          if get_lob_value
+            data = value.read
+            # In Ruby 1.9.1 always change encoding to ASCII-8BIT for binaries
+            data.force_encoding('ASCII-8BIT') if data.respond_to?(:force_encoding) && value.is_a?(OCI8::BLOB)
+            data
+          else
+            value
+          end
+        # ruby-oci8 1.0 returns OraDate
+        # ruby-oci8 2.0 returns Time or DateTime
+        when OraDate, Time, DateTime
+          if OracleEnhancedAdapter.emulate_dates && date_without_time?(value)
+            value.to_date
+          else
+            create_time_with_default_timezone(value)
+          end
+        else
+          value
+        end
+      end
       
+      def date_without_time?(value)
+        case value
+        when OraDate
+          value.hour == 0 && value.minute == 0 && value.second == 0
+        else
+          value.hour == 0 && value.min == 0 && value.sec == 0
+        end
+      end
+      
+      def create_time_with_default_timezone(value)
+        year, month, day, hour, min, sec = case value
+        when OraDate
+          [value.year, value.month, value.day, value.hour, value.minute, value.second]
+        else
+          [value.year, value.month, value.day, value.hour, value.min, value.sec]
+        end
+        # code from Time.time_with_datetime_fallback
+        begin
+          Time.send(Base.default_timezone, year, month, day, hour, min, sec)
+        rescue
+          offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
+          ::DateTime.civil(year, month, day, hour, min, sec, offset)
+        end
+      end
     end
     
     # The OracleEnhancedOCIFactory factors out the code necessary to connect and
