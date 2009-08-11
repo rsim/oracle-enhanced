@@ -3,7 +3,7 @@ require 'delegate'
 begin
   require 'oci8' unless self.class.const_defined? :OCI8
 
-  # RSI: added mapping for TIMESTAMP / WITH TIME ZONE / LOCAL TIME ZONE types
+  # added mapping for TIMESTAMP / WITH TIME ZONE / LOCAL TIME ZONE types
   # currently Ruby-OCI8 does not support fractional seconds for timestamps
   OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP] = OCI8::BindType::OraDate
   OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_TZ] = OCI8::BindType::OraDate
@@ -24,7 +24,7 @@ module ActiveRecord
   module ConnectionAdapters
 
     # OCI database interface for MRI
-    class OracleEnhancedOCIConnection < OracleEnhancedConnection
+    class OracleEnhancedOCIConnection < OracleEnhancedConnection #:nodoc:
 
       def initialize(config)
         @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
@@ -289,17 +289,18 @@ end
 # this would be dangerous (as the earlier part of the implied transaction
 # may have failed silently if the connection died) -- so instead the
 # connection is marked as dead, to be reconnected on it's next use.
+#:stopdoc:
 class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
-  attr_accessor :active
-  alias :active? :active
+  attr_accessor :active #:nodoc:
+  alias :active? :active #:nodoc:
 
   cattr_accessor :auto_retry
   class << self
-    alias :auto_retry? :auto_retry
+    alias :auto_retry? :auto_retry #:nodoc:
   end
   @@auto_retry = false
 
-  def initialize(config, factory)
+  def initialize(config, factory) #:nodoc:
     @active = true
     @config = config
     @factory = factory
@@ -310,7 +311,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   # Checks connection, returns true if active. Note that ping actively
   # checks the connection, while #active? simply returns the last
   # known state.
-  def ping
+  def ping #:nodoc:
     @connection.exec("select 1 from dual") { |r| nil }
     @active = true
   rescue
@@ -319,7 +320,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   end
 
   # Resets connection, by logging off and creating a new connection.
-  def reset!
+  def reset! #:nodoc:
     logoff rescue nil
     begin
       @connection = @factory.new_connection @config
@@ -336,12 +337,12 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   # ORA-03113: end-of-file on communication channel
   # ORA-03114: not connected to ORACLE
   # ORA-03135: connection lost contact
-  LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ]
+  LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] #:nodoc:
 
   # Adds auto-recovery functionality.
   #
   # See: http://www.jiubao.org/ruby-oci8/api.en.html#label-11
-  def exec(sql, *bindvars, &block)
+  def exec(sql, *bindvars, &block) #:nodoc:
     should_retry = self.class.auto_retry? && autocommit?
 
     begin
@@ -356,11 +357,12 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     end
   end
 
-  # RSI: otherwise not working in Ruby 1.9.1
+  # otherwise not working in Ruby 1.9.1
   if RUBY_VERSION =~ /^1\.9/
-    def describe(name)
+    def describe(name) #:nodoc:
       @connection.describe(name)
     end
   end
 
 end
+#:startdoc:

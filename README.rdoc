@@ -1,13 +1,13 @@
-= activerecord-oracle_enhanced-adapter
+= Activerecord Oracle enhanced adapter
 
-* http://rubyforge.org/projects/oracle-enhanced/
+* http://github.com/rsim/oracle-enhanced
 
 == DESCRIPTION:
 
 Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases
 from Rails which are extracted from current real projects' monkey patches of original Oracle adapter.
 
-See http://github.com/rsim/oracle-enhanced/wikis for more information.
+See http://github.com/rsim/oracle-enhanced/wikis for usage information.
 
 For questions and feature discussion please use http://groups.google.com/group/oracle-enhanced
 
@@ -22,12 +22,12 @@ Bugs and enhancement requests can be reported at http://rsim.lighthouseapp.com/p
   * MRI - requires ruby-oci8 1.x or 2.x library to connect to Oracle
   * Ruby/YARV 1.9.1 - requires ruby-oci8 2.x library to connect to Oracle
     unicode_utils gem is recommended for Unicode aware string upcase and downcase
-  * JRuby - uses JDBC driver ojdbc14.jar to connect to Oracle (should be in JRUBY_HOME/lib or in PATH)
+  * JRuby - uses JDBC driver ojdbc14.jar to connect to Oracle (should be in JRUBY_HOME/lib or in Java class path)
 * Requires ruby-plsql gem to support custom create, update and delete methods (but can be used without ruby-plsql if this functionality is not needed)
 
 == INSTALL:
 
-* sudo gem install activerecord-oracle_enhanced-adapter
+* [sudo] gem install activerecord-oracle_enhanced-adapter
 
 == CONTRIBUTORS:
 

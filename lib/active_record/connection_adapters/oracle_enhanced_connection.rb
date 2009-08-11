@@ -1,7 +1,7 @@
 module ActiveRecord
   module ConnectionAdapters
     # interface independent methods
-    class OracleEnhancedConnection
+    class OracleEnhancedConnection #:nodoc:
 
       def self.create(config)
         case ORACLE_ENHANCED_CONNECTION
@@ -52,7 +52,7 @@ module ActiveRecord
 
     end
     
-    class OracleEnhancedConnectionException < StandardError
+    class OracleEnhancedConnectionException < StandardError #:nodoc:
     end
 
   end

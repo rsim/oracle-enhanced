@@ -1,7 +1,7 @@
 require "bigdecimal"
 unless BigDecimal.instance_methods.include?("to_d")
   BigDecimal.class_eval do
-    def to_d
+    def to_d #:nodoc:
       self
     end
   end
@@ -9,7 +9,7 @@ end
 
 unless Bignum.instance_methods.include?("to_d")
   Bignum.class_eval do
-    def to_d
+    def to_d #:nodoc:
       BigDecimal.new(self.to_s)
     end
   end
@@ -17,7 +17,7 @@ end
 
 unless Fixnum.instance_methods.include?("to_d")
   Fixnum.class_eval do
-    def to_d
+    def to_d #:nodoc:
       BigDecimal.new(self.to_s)
     end
   end
@@ -30,22 +30,22 @@ if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'ruby' && RUBY_VERSION >= '1.9'
     require "unicode_utils/upcase"
     require "unicode_utils/downcase"
 
-    module ActiveRecord
-      module ConnectionAdapters
-        module OracleEnhancedUnicodeString
-          def upcase
+    module ActiveRecord #:nodoc:
+      module ConnectionAdapters #:nodoc:
+        module OracleEnhancedUnicodeString #:nodoc:
+          def upcase #:nodoc:
             UnicodeUtils.upcase(self)
           end
 
-          def downcase
+          def downcase #:nodoc:
             UnicodeUtils.downcase(self)
           end
         end
       end
     end
 
-    class String
-      def mb_chars
+    class String #:nodoc:
+      def mb_chars #:nodoc:
         self.extend(ActiveRecord::ConnectionAdapters::OracleEnhancedUnicodeString)
         self
       end
