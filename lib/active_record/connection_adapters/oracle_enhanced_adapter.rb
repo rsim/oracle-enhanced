@@ -397,8 +397,11 @@ module ActiveRecord
         }
       end
 
+      # maximum length of Oracle identifiers
+      IDENTIFIER_MAX_LENGTH = 30
+
       def table_alias_length #:nodoc:
-        30
+        IDENTIFIER_MAX_LENGTH
       end
 
       # QUOTING ==================================================
@@ -513,7 +516,7 @@ module ActiveRecord
       def reconnect! #:nodoc:
         @connection.reset!
       rescue OracleEnhancedConnectionException => e
-        @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}"
+        @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
       end
 
       # Disconnects from the database.
@@ -859,6 +862,27 @@ module ActiveRecord
       def remove_index(table_name, options = {}) #:nodoc:
         self.all_schema_indexes = nil
         execute "DROP INDEX #{index_name(table_name, options)}"
+      end
+      
+      # returned shortened index name if default is too large
+      def index_name(table_name, options) #:nodoc:
+        default_name = super(table_name, options)
+        return default_name if default_name.length <= IDENTIFIER_MAX_LENGTH
+        
+        # remove 'index', 'on' and 'and' keywords
+        shortened_name = "i_#{table_name}_#{Array(options[:column]) * '_'}"
+        
+        # leave just first three letters from each word
+        if shortened_name.length > IDENTIFIER_MAX_LENGTH
+          shortened_name = shortened_name.split('_').map{|w| w[0,3]}.join('_')
+        end
+        
+        if shortened_name.length <= IDENTIFIER_MAX_LENGTH
+          @logger.warn "#{adapter_name} shortened index name #{default_name} to #{shortened_name}" if @logger
+          return shortened_name
+        else
+          raise ArgumentError, "#{adapter_name} cannot shorten index name #{default_name}, please use add_index with :name option"
+        end
       end
 
       def add_column(table_name, column_name, type, options = {}) #:nodoc:

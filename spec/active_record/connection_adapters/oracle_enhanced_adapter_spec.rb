@@ -630,3 +630,30 @@ describe "OracleEnhancedAdapter create triggers" do
     end.should_not raise_error
   end
 end
+
+describe "OracleEnhancedAdapter add index" do
+
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+  end
+
+  it "should return default index name if it is not larger than 30 characters" do
+    @conn.index_name("employees", :column => "first_name").should == "index_employees_on_first_name"
+  end
+
+  it "should return shortened index name by removing 'index', 'on' and 'and' keywords" do
+    @conn.index_name("employees", :column => ["first_name", "email"]).should == "i_employees_first_name_email"
+  end
+
+  it "should return shortened index name by shortening table and column names" do
+    @conn.index_name("employees", :column => ["first_name", "last_name"]).should == "i_emp_fir_nam_las_nam"
+  end
+
+  it "should raise error if too large index name cannot be shortened" do
+    lambda do
+      @conn.index_name("test_employees", :column => ["first_name", "middle_name", "last_name"])
+    end.should raise_error(ArgumentError)
+  end
+
+end
