@@ -184,6 +184,47 @@ module ActiveRecord
         s.close rescue nil
       end
 
+      def returning_clause(quoted_pk)
+        " RETURNING #{quoted_pk} INTO ?"
+      end
+
+      # execute sql with RETURNING ... INTO :insert_id
+      # and return :insert_id value
+      def exec_with_returning(sql)
+        with_retry do
+          begin
+            # it will always be INSERT statement
+
+            # TODO: need to investigate why PreparedStatement is giving strange exception "Protocol violation"
+            # s = @raw_connection.prepareStatement(sql)
+            # s.registerReturnParameter(1, ::Java::oracle.jdbc.OracleTypes::NUMBER)
+            # count = s.executeUpdate
+            # if count > 0
+            #   rs = s.getReturnResultSet
+            #   if rs.next
+            #     # Assuming that primary key will not be larger as long max value
+            #     insert_id = rs.getLong(1)
+            #     rs.wasNull ? nil : insert_id
+            #   else
+            #     nil
+            #   end
+            # else
+            #   nil
+            # end
+            
+            # Workaround with CallableStatement
+            s = @raw_connection.prepareCall("BEGIN #{sql}; END;")
+            s.registerOutParameter(1, java.sql.Types::BIGINT)
+            s.execute
+            insert_id = s.getLong(1)
+            s.wasNull ? nil : insert_id
+          ensure
+            # rs.close rescue nil
+            s.close rescue nil
+          end
+        end
+      end
+
       def select(sql, name = nil, return_column_names = false)
         with_retry do
           select_no_retry(sql, name, return_column_names)
