@@ -1,11 +1,13 @@
-require File.dirname(__FILE__) + '/../../spec_helper.rb'
+require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "OracleEnhancedAdapter schema dump" do
 
   before(:all) do
     if !defined?(RUBY_ENGINE)
-      @old_conn = ActiveRecord::Base.oracle_connection(CONNECTION_PARAMS)
-      @old_conn.class.should == ActiveRecord::ConnectionAdapters::OracleAdapter
+      if ActiveRecord::Base.respond_to?(:oracle_connection)
+        @old_conn = ActiveRecord::Base.oracle_connection(CONNECTION_PARAMS)
+        @old_conn.class.should == ActiveRecord::ConnectionAdapters::OracleAdapter
+      end
     elsif RUBY_ENGINE == 'jruby'
       @old_conn = ActiveRecord::Base.jdbc_connection(JDBC_CONNECTION_PARAMS)
       @old_conn.class.should == ActiveRecord::ConnectionAdapters::JdbcAdapter
@@ -26,7 +28,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
-  unless defined?(RUBY_ENGINE) && RUBY_ENGINE == "ruby" && RUBY_VERSION =~ /^1\.9/
+  if @old_conn
     it "should return the same tables list as original oracle adapter" do
       @new_conn.tables.sort.should == @old_conn.tables.sort
     end

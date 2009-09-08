@@ -19,12 +19,17 @@ elsif ENV['RAILS_GEM_VERSION'] =~ /^2.2/
   gem 'actionpack', '=2.2.2'
   gem 'activesupport', '=2.2.2'
   gem 'composite_primary_keys', '=2.2.2'
-else
-  ENV['RAILS_GEM_VERSION'] ||= '2.3.3'
+elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3.3/
   gem 'activerecord', '=2.3.3'
   gem 'actionpack', '=2.3.3'
   gem 'activesupport', '=2.3.3'
-  gem 'composite_primary_keys', '=2.2.2'
+  gem 'composite_primary_keys', '=2.3.2'
+else
+  ENV['RAILS_GEM_VERSION'] ||= '2.3.4'
+  gem 'activerecord', '=2.3.4'
+  gem 'actionpack', '=2.3.4'
+  gem 'activesupport', '=2.3.4'
+  NO_COMPOSITE_PRIMARY_KEYS = true
 end
 
 require 'activerecord'
@@ -36,8 +41,16 @@ else
   require 'action_controller/session/active_record_store'
 end
 if !defined?(RUBY_ENGINE)
-  gem "activerecord-oracle-adapter"
-  require 'active_record/connection_adapters/oracle_adapter'
+  # change version to 1.0.6 to test with old oracle_adapter
+  gem 'ruby-oci8', '>=2.0.2'
+  require 'oci8'
+  if OCI8::VERSION =~ /^1\./
+    gem "activerecord-oracle-adapter"
+    require 'active_record/connection_adapters/oracle_adapter'
+  end
+elsif RUBY_ENGINE == 'ruby'
+  gem 'ruby-oci8', '>=2.0.2'
+  require 'oci8'
 elsif RUBY_ENGINE == 'jruby'
   gem "activerecord-jdbc-adapter"
   require 'active_record/connection_adapters/jdbc_adapter'

@@ -1,4 +1,6 @@
-require File.dirname(__FILE__) + '/../../spec_helper.rb'
+require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
+
+unless defined?(NO_COMPOSITE_PRIMARY_KEYS)
 
 describe "OracleEnhancedAdapter composite_primary_keys support" do
 
@@ -99,5 +101,7 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
   end
   
   # Other testing was done based on composite_primary_keys tests
+
+end
 
 end
