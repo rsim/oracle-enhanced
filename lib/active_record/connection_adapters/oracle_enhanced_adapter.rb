@@ -607,7 +607,7 @@ module ActiveRecord
       # Will take all or first 26 characters of table name and append _seq suffix
       def default_sequence_name(table_name, primary_key = nil)
         # truncate table name if necessary to fit in max length of identifier
-        "#{table_name[0,IDENTIFIER_MAX_LENGTH-4]}_seq"
+        "#{table_name.to_s[0,IDENTIFIER_MAX_LENGTH-4]}_seq"
       end
 
       # Inserts the given fixture into the table. Overridden to properly handle lobs.
@@ -1196,7 +1196,7 @@ module ActiveRecord
 
       def default_trigger_name(table_name)
         # truncate table name if necessary to fit in max length of identifier
-        "#{table_name[0,IDENTIFIER_MAX_LENGTH-4]}_pkt"
+        "#{table_name.to_s[0,IDENTIFIER_MAX_LENGTH-4]}_pkt"
       end
 
       def compress_lines(string, spaced = true)
