@@ -137,6 +137,7 @@ describe "OracleEnhancedAdapter" do
 
     after(:each) do
       Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.connection.clear_ignored_table_columns
     end
 
     it "should ignore specified table columns" do
@@ -159,6 +160,15 @@ describe "OracleEnhancedAdapter" do
         ignore_table_columns  :phone_number, :hire_date
       end
       TestEmployee.connection.columns('test_employees').select{|c| c.name == 'email' }.should_not be_empty
+    end
+
+    it "should ignore specified table columns in other connection" do
+      class ::TestEmployee < ActiveRecord::Base
+        ignore_table_columns  :phone_number, :hire_date
+      end
+      # establish other connection
+      other_conn = ActiveRecord::Base.oracle_enhanced_connection(CONNECTION_PARAMS)
+      other_conn.columns('test_employees').select{|c| ['phone_number','hire_date'].include?(c.name) }.should be_empty
     end
 
   end

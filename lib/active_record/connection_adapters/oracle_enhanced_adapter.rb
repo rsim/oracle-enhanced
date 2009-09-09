@@ -717,34 +717,44 @@ module ActiveRecord
         all_schema_indexes.select{|i| i.table == table_name}
       end
       
+      @@ignore_table_columns = nil #:nodoc:
+
       # set ignored columns for table
       def ignore_table_columns(table_name, *args) #:nodoc:
-        @ignore_table_columns ||= {}
-        @ignore_table_columns[table_name] ||= []
-        @ignore_table_columns[table_name] += args.map{|a| a.to_s.downcase}
-        @ignore_table_columns[table_name].uniq!
+        @@ignore_table_columns ||= {}
+        @@ignore_table_columns[table_name] ||= []
+        @@ignore_table_columns[table_name] += args.map{|a| a.to_s.downcase}
+        @@ignore_table_columns[table_name].uniq!
       end
       
       def ignored_table_columns(table_name) #:nodoc:
-        @ignore_table_columns ||= {}
-        @ignore_table_columns[table_name]
+        @@ignore_table_columns ||= {}
+        @@ignore_table_columns[table_name]
       end
       
+      # used just in tests to clear ignored table columns
+      def clear_ignored_table_columns #:nodoc:
+        @@ignore_table_columns = nil
+      end
+
+      @@table_column_type = nil #:nodoc:
+
       # set explicit type for specified table columns
       def set_type_for_columns(table_name, column_type, *args) #:nodoc:
-        @table_column_type ||= {}
-        @table_column_type[table_name] ||= {}
+        @@table_column_type ||= {}
+        @@table_column_type[table_name] ||= {}
         args.each do |col|
-          @table_column_type[table_name][col.to_s.downcase] = column_type
+          @@table_column_type[table_name][col.to_s.downcase] = column_type
         end
       end
       
       def get_type_for_column(table_name, column_name) #:nodoc:
-        @table_column_type && @table_column_type[table_name] && @table_column_type[table_name][column_name.to_s.downcase]
+        @@table_column_type && @@table_column_type[table_name] && @@table_column_type[table_name][column_name.to_s.downcase]
       end
 
+      # used just in tests to clear column data type definitions
       def clear_types_for_columns #:nodoc:
-        @table_column_type = nil
+        @@table_column_type = nil
       end
 
       def columns(table_name, name = nil) #:nodoc:

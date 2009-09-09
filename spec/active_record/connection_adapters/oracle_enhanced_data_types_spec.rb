@@ -83,11 +83,9 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
 
   describe "/ DATE values from ActiveRecord model" do
     before(:each) do
-      ActiveRecord::Base.connection.clear_types_for_columns
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
       class ::TestEmployee < ActiveRecord::Base
-        set_table_name "hr.test_employees"
         set_primary_key :employee_id
       end
     end
@@ -107,6 +105,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     after(:each) do
       # @employee.destroy if @employee
       Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.connection.clear_types_for_columns
     end
 
     it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
@@ -149,6 +148,16 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
       create_test_employee(:today => Date.new(1900,1,1))
       @employee.hire_date.class.should == Date
+    end
+
+    it "should see set_date_columns values in different connection" do
+      class ::TestEmployee < ActiveRecord::Base
+        set_date_columns :hire_date
+      end
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      # establish other connection
+      other_conn = ActiveRecord::Base.oracle_enhanced_connection(CONNECTION_PARAMS)
+      other_conn.get_type_for_column('test_employees', 'hire_date').should == :date
     end
 
     it "should return Time value from DATE column if emulate_dates_by_column_name is true but column is defined as datetime" do
