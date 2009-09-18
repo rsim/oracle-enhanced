@@ -103,5 +103,13 @@ SYS_CONNECTION_PARAMS = {
   :privilege => "SYSDBA"
 }
 
+SYSTEM_CONNECTION_PARAMS = {
+  :adapter => "oracle_enhanced",
+  :database => DATABASE_NAME,
+  :host => DATABASE_HOST,
+  :username => "system",
+  :password => DATABASE_SYS_PASSWORD
+}
+
 # For JRuby Set default $KCODE to UTF8
 $KCODE = "UTF8" if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'

@@ -274,46 +274,6 @@ module ActiveRecord
         end
       end
 
-      def describe(name)
-        real_name = OracleEnhancedAdapter.valid_table_name?(name) ? name.to_s.upcase : name.to_s
-        if real_name.include?('.')
-          table_owner, table_name = real_name.split('.')
-        else
-          table_owner, table_name = @owner, real_name
-        end
-        sql = <<-SQL
-          SELECT owner, table_name, 'TABLE' name_type
-          FROM all_tables
-          WHERE owner = '#{table_owner}'
-            AND table_name = '#{table_name}'
-          UNION ALL
-          SELECT owner, view_name table_name, 'VIEW' name_type
-          FROM all_views
-          WHERE owner = '#{table_owner}'
-            AND view_name = '#{table_name}'
-          UNION ALL
-          SELECT table_owner, table_name, 'SYNONYM' name_type
-          FROM all_synonyms
-          WHERE owner = '#{table_owner}'
-            AND synonym_name = '#{table_name}'
-          UNION ALL
-          SELECT table_owner, table_name, 'SYNONYM' name_type
-          FROM all_synonyms
-          WHERE owner = 'PUBLIC'
-            AND synonym_name = '#{real_name}'
-        SQL
-        if result = select_one(sql)
-          case result['name_type']
-          when 'SYNONYM'
-            describe("#{result['owner']}.#{result['table_name']}")
-          else
-            [result['owner'], result['table_name']]
-          end
-        else
-          raise OracleEnhancedConnectionException, %Q{"DESC #{name}" failed; does it exist?}
-        end
-      end
-
       # Return NativeException / java.sql.SQLException error code
       def error_code(exception)
         exception.cause.getErrorCode

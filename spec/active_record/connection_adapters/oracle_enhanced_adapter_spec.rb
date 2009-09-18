@@ -315,4 +315,51 @@ describe "OracleEnhancedAdapter" do
 
   end
 
+  describe "access table over database link" do
+    before(:all) do
+      @db_link = "db_link"
+      @sys_conn = ActiveRecord::Base.oracle_enhanced_connection(SYSTEM_CONNECTION_PARAMS)
+      @sys_conn.drop_table :test_posts rescue nil
+      @sys_conn.create_table :test_posts do |t|
+        t.string      :title
+        # cannot update LOBs over database link
+        t.string      :body
+        t.timestamps
+      end
+      @db_link_username = SYSTEM_CONNECTION_PARAMS[:username]
+      @db_link_password = SYSTEM_CONNECTION_PARAMS[:password]
+      @db_link_database = SYSTEM_CONNECTION_PARAMS[:database]
+      @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
+      @conn.execute "CREATE DATABASE LINK #{@db_link} CONNECT TO #{@db_link_username} IDENTIFIED BY #{@db_link_password} USING '#{@db_link_database}'"
+      @conn.execute "CREATE OR REPLACE SYNONYM test_posts FOR test_posts@#{@db_link}"
+      @conn.execute "CREATE OR REPLACE SYNONYM test_posts_seq FOR test_posts_seq@#{@db_link}"
+      class ::TestPost < ActiveRecord::Base
+      end
+      TestPost.set_table_name "test_posts"
+    end
+
+    after(:all) do
+      @conn.execute "DROP SYNONYM test_posts"
+      @conn.execute "DROP SYNONYM test_posts_seq"
+      @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
+      @sys_conn.drop_table :test_posts rescue nil
+      Object.send(:remove_const, "TestPost") rescue nil
+    end
+
+    it "should verify database link" do
+      @conn.select_value("select * from dual@#{@db_link}") == 'X'
+    end
+
+    it "should get column names" do
+      TestPost.column_names.should == ["id", "title", "body", "created_at", "updated_at"]
+    end
+
+    it "should create record" do
+      p = TestPost.create(:title => "Title", :body => "Body")
+      p.id.should_not be_nil
+      TestPost.find(p.id).should_not be_nil
+    end
+
+  end
+
 end

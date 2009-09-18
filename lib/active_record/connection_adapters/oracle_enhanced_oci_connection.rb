@@ -28,6 +28,8 @@ module ActiveRecord
 
       def initialize(config)
         @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
+        # default schema owner
+        @owner = config[:username].to_s.upcase
       end
 
       def auto_retry
@@ -131,12 +133,15 @@ module ActiveRecord
       end
       
       def describe(name)
+        # fall back to SELECT based describe if using database link
+        return super if name.to_s.include?('@')
         quoted_name = OracleEnhancedAdapter.valid_table_name?(name) ? name : "\"#{name}\""
         @raw_connection.describe(quoted_name)
       rescue OCIException => e
-        raise OracleEnhancedConnectionException, e.message
+        # fall back to SELECT which can handle synonyms to database links
+        super
       end
-      
+
       # Return OCIError error code
       def error_code(exception)
         exception.code
