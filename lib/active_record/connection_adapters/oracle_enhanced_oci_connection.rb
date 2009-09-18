@@ -363,7 +363,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     begin
       @connection.exec(sql, *bindvars, &block)
     rescue OCIException => e
-      raise unless LOST_CONNECTION_ERROR_CODES.include?(e.code)
+      raise unless e.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(e.code)
       @active = false
       raise unless should_retry
       should_retry = false
