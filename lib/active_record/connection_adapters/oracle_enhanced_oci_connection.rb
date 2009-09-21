@@ -216,7 +216,7 @@ module ActiveRecord
         privilege = config[:privilege] && config[:privilege].to_sym
         async = config[:allow_concurrency]
         prefetch_rows = config[:prefetch_rows] || 100
-        cursor_sharing = config[:cursor_sharing] || 'similar'
+        cursor_sharing = config[:cursor_sharing] || 'force'
         # by default VARCHAR2 column size will be interpreted as max number of characters (and not bytes)
         nls_length_semantics = config[:nls_length_semantics] || 'CHAR'
 
