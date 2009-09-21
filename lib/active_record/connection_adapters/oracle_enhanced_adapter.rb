@@ -1005,6 +1005,14 @@ module ActiveRecord
         SQL
       end
 
+      # Maps logical Rails types to Oracle-specific data types.
+      def type_to_sql(type, limit = nil, precision = nil, scale = nil)
+        # Ignore options for :text and :binary columns
+        return super(type, nil, nil, nil) if ['text', 'binary'].include?(type.to_s)
+
+        super
+      end
+
       # Find a table's primary key and sequence. 
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name) #:nodoc:

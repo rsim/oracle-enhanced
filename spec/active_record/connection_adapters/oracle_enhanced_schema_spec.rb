@@ -411,4 +411,39 @@ describe "OracleEnhancedAdapter" do
 
   end
 
+  describe "ignore options for LOB columns" do
+    after(:each) do
+      ActiveRecord::Schema.define do
+        suppress_messages do
+          drop_table :test_posts
+        end
+      end
+    end
+
+    it "should ignore :limit option for :text column" do
+      lambda do
+        ActiveRecord::Schema.define do
+          suppress_messages do
+            create_table :test_posts, :force => true do |t|
+              t.text :body, :limit => 10000
+            end
+          end
+        end
+      end.should_not raise_error
+    end
+
+    it "should ignore :limit option for :binary column" do
+      lambda do
+        ActiveRecord::Schema.define do
+          suppress_messages do
+            create_table :test_posts, :force => true do |t|
+              t.binary :picture, :limit => 10000
+            end
+          end
+        end
+      end.should_not raise_error
+    end
+
+  end
+
 end
