@@ -598,10 +598,12 @@ module ActiveRecord
         end
       end
 
+      @@do_not_prefetch_primary_key = {}
+
       # Returns true for Oracle adapter (since Oracle requires primary key
       # values to be pre-fetched before insert). See also #next_sequence_value.
       def prefetch_primary_key?(table_name = nil)
-        true
+        ! @@do_not_prefetch_primary_key[table_name.to_s]
       end
 
       # Returns default sequence name for table.
@@ -763,6 +765,20 @@ module ActiveRecord
 
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
+        trigger_name = default_trigger_name(table_name).upcase
+        pkt_sql = <<-SQL
+          SELECT trigger_name
+          FROM all_triggers#{db_link}
+          WHERE owner = '#{owner}'
+            AND trigger_name = '#{trigger_name}'
+            AND table_owner = '#{owner}'
+            AND table_name = '#{desc_table_name}'
+            AND status = 'ENABLED'
+        SQL
+        if select_value(pkt_sql)
+          @@do_not_prefetch_primary_key[table_name] = true
+        end
+
         table_cols = <<-SQL
           select column_name as name, data_type as sql_type, data_default, nullable,
                  decode(data_type, 'NUMBER', data_precision,
@@ -826,6 +842,16 @@ module ActiveRecord
       #     # ...
       #   end
       #
+      # Create primary key trigger (so that you can skip primary key value in INSERT statement).
+      # By default trigger name will be "table_name_pkt", you can override the name with 
+      # :trigger_name option (but it is not recommended to override it as then this trigger will
+      # not be detected by ActiveRecord model and it will still do prefetching of sequence value).
+      # Example:
+      # 
+      #   create_table :users, :primary_key_trigger => true do |t|
+      #     # ...
+      #   end
+      #
       # It is possible to add table and column comments in table creation migration files:
       #
       #   create_table :employees, :comment => “Employees and contractors” do |t|
@@ -880,8 +906,8 @@ module ActiveRecord
 
       def drop_table(name, options = {}) #:nodoc:
         super(name)
-        seq_name = options[:sequence_name] || quote_table_name("#{name}_seq")
-        execute "DROP SEQUENCE #{seq_name}" rescue nil
+        seq_name = options[:sequence_name] || default_sequence_name(name)
+        execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
       end
 
       # clear cached indexes when adding new index
