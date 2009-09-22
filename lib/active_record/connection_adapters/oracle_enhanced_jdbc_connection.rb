@@ -18,6 +18,11 @@ begin
 
   java.sql.DriverManager.registerDriver Java::oracle.jdbc.driver.OracleDriver.new
 
+  # set tns_admin property from TNS_ADMIN environment variable
+  if !java.lang.System.get_property("oracle.net.tns_admin") && ENV["TNS_ADMIN"]
+    java.lang.System.set_property("oracle.net.tns_admin", ENV["TNS_ADMIN"])
+  end
+
 rescue LoadError, NameError
   # JDBC driver is unavailable.
   error_message = "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. "+
@@ -55,7 +60,12 @@ module ActiveRecord
         privilege = config[:privilege] && config[:privilege].to_s
         host, port = config[:host], config[:port]
 
-        url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}:#{database || 'XE'}"
+        # connection using TNS alias
+        if database && !host && !config[:url] && ENV['TNS_ADMIN']
+          url = "jdbc:oracle:thin:@#{database || 'XE'}"
+        else
+          url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}:#{database || 'XE'}"
+        end
 
         prefetch_rows = config[:prefetch_rows] || 100
         cursor_sharing = config[:cursor_sharing] || 'force'

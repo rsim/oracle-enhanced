@@ -38,6 +38,42 @@ describe "OracleEnhancedConnection create connection" do
 
 end
 
+if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+
+  describe "OracleEnhancedConnection create JDBC connection" do
+    after(:each) do
+      @conn.logoff if @conn.active?
+    end
+
+    it "should create new connection using :url" do
+      params = CONNECTION_PARAMS.dup
+      params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST}:#{DATABASE_PORT}:#{DATABASE_NAME}"
+      params[:host] = nil
+      params[:database] = nil
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      @conn.should be_active
+    end
+
+    it "should create new connection using :url and tnsnames alias" do
+      params = CONNECTION_PARAMS.dup
+      params[:url] = "jdbc:oracle:thin:@#{DATABASE_NAME}"
+      params[:host] = nil
+      params[:database] = nil
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      @conn.should be_active
+    end
+
+    it "should create new connection using just tnsnames alias" do
+      params = CONNECTION_PARAMS.dup
+      params[:host] = nil
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      @conn.should be_active
+    end
+
+  end
+
+end
+
 describe "OracleEnhancedConnection SQL execution" do
 
   before(:all) do
