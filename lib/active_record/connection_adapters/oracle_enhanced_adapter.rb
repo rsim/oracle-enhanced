@@ -759,11 +759,8 @@ module ActiveRecord
         @@table_column_type = nil
       end
 
-      def columns(table_name, name = nil) #:nodoc:
-        # get ignored_columns by original table name
-        ignored_columns = ignored_table_columns(table_name)
-
-        (owner, desc_table_name, db_link) = @connection.describe(table_name)
+      def has_primary_key_trigger?(table_name, owner = nil, desc_table_name = nil, db_link = nil)
+        (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
         trigger_name = default_trigger_name(table_name).upcase
         pkt_sql = <<-SQL
@@ -775,7 +772,16 @@ module ActiveRecord
             AND table_name = '#{desc_table_name}'
             AND status = 'ENABLED'
         SQL
-        if select_value(pkt_sql)
+        select_value(pkt_sql) ? true : false
+      end
+
+      def columns(table_name, name = nil) #:nodoc:
+        # get ignored_columns by original table name
+        ignored_columns = ignored_table_columns(table_name)
+
+        (owner, desc_table_name, db_link) = @connection.describe(table_name)
+
+        if has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
           @@do_not_prefetch_primary_key[table_name] = true
         end
 
@@ -1222,22 +1228,25 @@ module ActiveRecord
         seq_name = options[:sequence_name] || default_sequence_name(table_name)
         seq_start_value = options[:sequence_start_value] || default_sequence_start_value
         execute "CREATE SEQUENCE #{quote_table_name(seq_name)} START WITH #{seq_start_value}"
-        
-        if options[:primary_key_trigger]
-          trigger_name = options[:trigger_name] || default_trigger_name(table_name)
-          primary_key = options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)
-          execute compress_lines(<<-SQL)
-            CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
-            BEFORE INSERT ON #{quote_table_name(table_name)} FOR EACH ROW
-            BEGIN
-              IF inserting THEN
-                IF :new.#{quote_column_name(primary_key)} IS NULL THEN
-                  SELECT #{quote_table_name(seq_name)}.NEXTVAL INTO :new.#{quote_column_name(primary_key)} FROM dual;
-                END IF;
+
+        create_primary_key_trigger(table_name, options) if options[:primary_key_trigger]
+      end
+      
+      def create_primary_key_trigger(table_name, options)
+        seq_name = options[:sequence_name] || default_sequence_name(table_name)
+        trigger_name = options[:trigger_name] || default_trigger_name(table_name)
+        primary_key = options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)
+        execute compress_lines(<<-SQL)
+          CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
+          BEFORE INSERT ON #{quote_table_name(table_name)} FOR EACH ROW
+          BEGIN
+            IF inserting THEN
+              IF :new.#{quote_column_name(primary_key)} IS NULL THEN
+                SELECT #{quote_table_name(seq_name)}.NEXTVAL INTO :new.#{quote_column_name(primary_key)} FROM dual;
               END IF;
-            END;
-          SQL
-        end
+            END IF;
+          END;
+        SQL
       end
 
       def default_trigger_name(table_name)
@@ -1344,6 +1353,9 @@ require 'active_record/connection_adapters/oracle_enhanced_reserved_words'
 
 # Patches and enhancements for schema dumper
 require 'active_record/connection_adapters/oracle_enhanced_schema_dumper'
+
+# Extensions for schema definition statements
+require 'active_record/connection_adapters/oracle_enhanced_schema_statements_ext'
 
 # Add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
 require 'active_record/connection_adapters/oracle_enhanced_core_ext'

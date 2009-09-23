@@ -69,33 +69,34 @@ describe "OracleEnhancedAdapter schema dump" do
     stream.string
   end
 
+  def create_test_posts_table(options = {})
+    options.merge! :force => true
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        create_table :test_posts, options do |t|
+          t.string :title
+        end
+        add_index :test_posts, :title
+      end
+    end
+  end
+
+  def drop_test_posts_table
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        drop_table :test_posts
+      end
+    end
+  rescue
+    nil
+  end
+
   describe "table prefixes and suffixes" do
     after(:each) do
       drop_test_posts_table
       @conn.drop_table(ActiveRecord::Migrator.schema_migrations_table_name) if @conn.table_exists?(ActiveRecord::Migrator.schema_migrations_table_name)
       ActiveRecord::Base.table_name_prefix = ''
       ActiveRecord::Base.table_name_suffix = ''
-    end
-
-    def create_test_posts_table
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          create_table :test_posts, :force => true do |t|
-            t.string :title
-          end
-          add_index :test_posts, :title
-        end
-      end
-    end
-    
-    def drop_test_posts_table
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          drop_table :test_posts
-        end
-      end
-    rescue
-      nil
     end
 
     it "should remove table prefix in schema dump" do
@@ -124,6 +125,35 @@ describe "OracleEnhancedAdapter schema dump" do
 
   end
 
+  describe "table with non-default primary key" do
+    after(:each) do
+      drop_test_posts_table
+    end
+
+    it "should include non-default primary key in schema dump" do
+      create_test_posts_table(:primary_key => 'post_id')
+      standard_dump.should =~ /create_table "test_posts", :primary_key => "post_id"/
+    end
+
+  end
+
+  describe "table with primary key trigger" do
+
+    after(:each) do
+      drop_test_posts_table
+    end
+
+    it "should include primary key trigger in schema dump" do
+      create_test_posts_table(:primary_key_trigger => true)
+      standard_dump.should =~ /create_table "test_posts".*add_primary_key_trigger "test_posts"/m
+    end
+
+    it "should include primary key trigger with non-default primary key in schema dump" do
+      create_test_posts_table(:primary_key_trigger => true, :primary_key => 'post_id')
+      standard_dump.should =~ /create_table "test_posts", :primary_key => "post_id".*add_primary_key_trigger "test_posts", :primary_key => "post_id"/m
+    end
+
+  end
 end
 
 describe "OracleEnhancedAdapter structure dump" do
