@@ -16,7 +16,6 @@ module ActiveRecord #:nodoc:
         @connection.tables.sort.each do |tbl|
           # add table prefix or suffix for schema_migrations
           next if [ActiveRecord::Migrator.proper_table_name('schema_migrations'), ignore_tables].flatten.any? do |ignored|
-          # next if ['schema_migrations', ignore_tables].flatten.any? do |ignored|
             case ignored
             when String; tbl == ignored
             when Regexp; tbl =~ ignored
@@ -31,14 +30,20 @@ module ActiveRecord #:nodoc:
       end
 
       def indexes_with_oracle_enhanced(table, stream)
-        indexes = @connection.indexes(table)
-        indexes.each do |index|
-          # use table.inspect as it will remove prefix and suffix
-          stream.print "  add_index #{table.inspect}, #{index.columns.inspect}, :name => #{index.name.inspect}"
-          stream.print ", :unique => true" if index.unique
+        if (indexes = @connection.indexes(table)).any?
+          add_index_statements = indexes.map do |index|
+            # use table.inspect as it will remove prefix and suffix
+            statment_parts = [ ('add_index ' + table.inspect) ]
+            statment_parts << index.columns.inspect
+            statment_parts << (':name => ' + index.name.inspect)
+            statment_parts << ':unique => true' if index.unique
+
+            '  ' + statment_parts.join(', ')
+          end
+
+          stream.puts add_index_statements.sort.join("\n")
           stream.puts
         end
-        stream.puts unless indexes.empty?
       end
 
       # remove table name prefix and suffix when doing #inspect (which is used in tables method)
