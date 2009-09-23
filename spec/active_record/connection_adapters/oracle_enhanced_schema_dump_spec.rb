@@ -56,6 +56,76 @@ describe "OracleEnhancedAdapter original schema dump" do
 
 end
 
+describe "OracleEnhancedAdapter schema dump" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+  end
+
+  def standard_dump
+    stream = StringIO.new
+    ActiveRecord::SchemaDumper.ignore_tables = []
+    ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
+    stream.string
+  end
+
+  describe "table prefixes and suffixes" do
+    after(:each) do
+      drop_test_posts_table
+      @conn.drop_table(ActiveRecord::Migrator.schema_migrations_table_name) if @conn.table_exists?(ActiveRecord::Migrator.schema_migrations_table_name)
+      ActiveRecord::Base.table_name_prefix = ''
+      ActiveRecord::Base.table_name_suffix = ''
+    end
+
+    def create_test_posts_table
+      ActiveRecord::Schema.define do
+        suppress_messages do
+          create_table :test_posts, :force => true do |t|
+            t.string :title
+          end
+          add_index :test_posts, :title
+        end
+      end
+    end
+    
+    def drop_test_posts_table
+      ActiveRecord::Schema.define do
+        suppress_messages do
+          drop_table :test_posts
+        end
+      end
+    rescue
+      nil
+    end
+
+    it "should remove table prefix in schema dump" do
+      ActiveRecord::Base.table_name_prefix = 'xxx_'
+      create_test_posts_table
+      standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
+    end
+
+    it "should remove table suffix in schema dump" do
+      ActiveRecord::Base.table_name_suffix = '_xxx'
+      create_test_posts_table
+      standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
+    end
+
+    it "should not include schema_migrations table with prefix in schema dump" do
+      ActiveRecord::Base.table_name_prefix = 'xxx_'
+      @conn.initialize_schema_migrations_table
+      standard_dump.should_not =~ /schema_migrations/
+    end
+
+    it "should not include schema_migrations table with suffix in schema dump" do
+      ActiveRecord::Base.table_name_suffix = '_xxx'
+      @conn.initialize_schema_migrations_table
+      standard_dump.should_not =~ /schema_migrations/
+    end
+
+  end
+
+end
+
 describe "OracleEnhancedAdapter structure dump" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
