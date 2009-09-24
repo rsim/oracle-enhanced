@@ -6,18 +6,24 @@ describe "OracleEnhancedAdapter schema definition" do
     @conn = ActiveRecord::Base.connection
   end
 
+  def schema_define(&block)
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        instance_eval(&block)
+      end
+    end
+  end
+
   describe "table and sequence creation with non-default primary key" do
 
     before(:all) do
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          create_table :keyboards, :force => true, :id  => false do |t|
-            t.primary_key :key_number
-            t.string      :name
-          end
-          create_table :id_keyboards, :force => true do |t|
-            t.string      :name
-          end
+      schema_define do
+        create_table :keyboards, :force => true, :id  => false do |t|
+          t.primary_key :key_number
+          t.string      :name
+        end
+        create_table :id_keyboards, :force => true do |t|
+          t.string      :name
         end
       end
       class ::Keyboard < ActiveRecord::Base
@@ -28,11 +34,9 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     after(:all) do
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          drop_table :keyboards
-          drop_table :id_keyboards
-        end
+      schema_define do
+        drop_table :keyboards
+        drop_table :id_keyboards
       end
       Object.send(:remove_const, "Keyboard")
       Object.send(:remove_const, "IdKeyboard")
@@ -50,12 +54,10 @@ describe "OracleEnhancedAdapter schema definition" do
   describe "sequence creation parameters" do
 
     def create_test_employees_table(sequence_start_value = nil)
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          create_table :test_employees, sequence_start_value ? {:sequence_start_value => sequence_start_value} : {} do |t|
-            t.string      :first_name
-            t.string      :last_name
-          end
+      schema_define do
+        create_table :test_employees, sequence_start_value ? {:sequence_start_value => sequence_start_value} : {} do |t|
+          t.string      :first_name
+          t.string      :last_name
         end
       end
     end
@@ -73,10 +75,8 @@ describe "OracleEnhancedAdapter schema definition" do
     end
     after(:each) do
       restore_default_sequence_start_value
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          drop_table :test_employees
-        end
+      schema_define do
+        drop_table :test_employees
       end
       Object.send(:remove_const, "TestEmployee")
     end
@@ -124,35 +124,29 @@ describe "OracleEnhancedAdapter schema definition" do
   describe "create table with primary key trigger" do
     def create_table_with_trigger(options = {})
       options.merge! :primary_key_trigger => true, :force => true
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          create_table :test_employees, options do |t|
-            t.string      :first_name
-            t.string      :last_name
-          end
+      schema_define do
+        create_table :test_employees, options do |t|
+          t.string      :first_name
+          t.string      :last_name
         end
       end
     end
 
     def create_table_and_separately_trigger(options = {})
       options.merge! :force => true
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          create_table :test_employees, options do |t|
-            t.string      :first_name
-            t.string      :last_name
-          end
-          add_primary_key_trigger :test_employees, options
+      schema_define do
+        create_table :test_employees, options do |t|
+          t.string      :first_name
+          t.string      :last_name
         end
+        add_primary_key_trigger :test_employees, options
       end
     end
 
     after(:all) do
       seq_name = @sequence_name
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          drop_table :test_employees, (seq_name ? {:sequence_name => seq_name} : {})
-        end
+      schema_define do
+        drop_table :test_employees, (seq_name ? {:sequence_name => seq_name} : {})
       end
       Object.send(:remove_const, "TestEmployee")
     end
@@ -263,21 +257,17 @@ describe "OracleEnhancedAdapter schema definition" do
   describe "table and column comments" do
 
     def create_test_employees_table(table_comment=nil, column_comments={})
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          create_table :test_employees, :comment => table_comment do |t|
-            t.string      :first_name, :comment => column_comments[:first_name]
-            t.string      :last_name, :comment => column_comments[:last_name]
-          end
+      schema_define do
+        create_table :test_employees, :comment => table_comment do |t|
+          t.string      :first_name, :comment => column_comments[:first_name]
+          t.string      :last_name, :comment => column_comments[:last_name]
         end
       end
     end
 
     after(:each) do
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          drop_table :test_employees
-        end
+      schema_define do
+        drop_table :test_employees
       end
       Object.send(:remove_const, "TestEmployee")
       ActiveRecord::Base.table_name_prefix = nil
@@ -327,22 +317,18 @@ describe "OracleEnhancedAdapter schema definition" do
   describe "create triggers" do
 
     before(:all) do
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          create_table  :test_employees do |t|
-            t.string    :first_name
-            t.string    :last_name
-          end
+      schema_define do
+        create_table  :test_employees do |t|
+          t.string    :first_name
+          t.string    :last_name
         end
       end
       class ::TestEmployee < ActiveRecord::Base; end
     end
 
     after(:all) do
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          drop_table :test_employees
-        end
+      schema_define do
+        drop_table :test_employees
       end
       Object.send(:remove_const, "TestEmployee")
     end
@@ -388,20 +374,16 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "ignore options for LOB columns" do
     after(:each) do
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          drop_table :test_posts
-        end
+      schema_define do
+        drop_table :test_posts
       end
     end
 
     it "should ignore :limit option for :text column" do
       lambda do
-        ActiveRecord::Schema.define do
-          suppress_messages do
-            create_table :test_posts, :force => true do |t|
-              t.text :body, :limit => 10000
-            end
+        schema_define do
+          create_table :test_posts, :force => true do |t|
+            t.text :body, :limit => 10000
           end
         end
       end.should_not raise_error
@@ -409,13 +391,138 @@ describe "OracleEnhancedAdapter schema definition" do
 
     it "should ignore :limit option for :binary column" do
       lambda do
-        ActiveRecord::Schema.define do
-          suppress_messages do
-            create_table :test_posts, :force => true do |t|
-              t.binary :picture, :limit => 10000
-            end
+        schema_define do
+          create_table :test_posts, :force => true do |t|
+            t.binary :picture, :limit => 10000
           end
         end
+      end.should_not raise_error
+    end
+
+  end
+
+  describe "foreign key constraints" do
+    before(:each) do
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.string :title
+        end
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post
+          t.integer :post_id
+        end
+      end
+      class TestPost < ActiveRecord::Base
+        has_many :test_comments
+      end
+      class TestComment < ActiveRecord::Base
+        belongs_to :test_post
+      end
+    end
+    
+    after(:each) do
+      Object.send(:remove_const, "TestPost")
+      Object.send(:remove_const, "TestComment")
+      schema_define do
+        drop_table :test_comments rescue nil
+        drop_table :test_posts rescue nil
+      end
+    end
+
+    it "should add foreign key" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TEST_COMMENTS_TEST_POST_ID_FK/}
+    end
+
+    it "should add foreign key with name" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :name => "comments_posts_fk"
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.COMMENTS_POSTS_FK/}
+    end
+
+    it "should add foreign key with long name which is shortened" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :name => "test_comments_test_post_id_foreign_key"
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TES_COM_TES_POS_ID_FOR_KEY/}
+    end
+
+    it "should add foreign key with very long name which is shortened" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :name => "long_prefix_test_comments_test_post_id_foreign_key"
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should raise_error() {|e| e.message.should =~
+        /ORA-02291.*\.C#{Digest::SHA1.hexdigest("long_prefix_test_comments_test_post_id_foreign_key")[0,29].upcase}/}
+    end
+
+    it "should add foreign key with column" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :column => "post_id"
+      end
+      lambda do
+        TestComment.create(:body => "test", :post_id => 1)
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TEST_COMMENTS_POST_ID_FK/}
+    end
+
+    it "should add foreign key with delete dependency" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :dependent => :delete
+      end
+      p = TestPost.create(:title => "test")
+      c = TestComment.create(:body => "test", :test_post => p)
+      TestPost.delete(p.id)
+      TestComment.find_by_id(c.id).should be_nil
+    end
+
+    it "should add foreign key with nullify dependency" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :dependent => :nullify
+      end
+      p = TestPost.create(:title => "test")
+      c = TestComment.create(:body => "test", :test_post => p)
+      TestPost.delete(p.id)
+      TestComment.find_by_id(c.id).test_post_id.should be_nil
+    end
+
+    it "should remove foreign key by table name" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+        remove_foreign_key :test_comments, :test_posts
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should_not raise_error
+    end
+
+    it "should remove foreign key by constraint name" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :name => "comments_posts_fk"
+        remove_foreign_key :test_comments, :name => "comments_posts_fk"
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should_not raise_error
+    end
+
+    it "should remove foreign key by column name" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+        remove_foreign_key :test_comments, :column => "test_post_id"
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
       end.should_not raise_error
     end
 
