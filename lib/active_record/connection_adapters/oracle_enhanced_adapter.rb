@@ -606,6 +606,11 @@ module ActiveRecord
         ! @@do_not_prefetch_primary_key[table_name.to_s]
       end
 
+      # used just in tests to clear prefetch primary key flag for all tables
+      def clear_prefetch_primary_key #:nodoc:
+        @@do_not_prefetch_primary_key = {}
+      end
+
       # Returns default sequence name for table.
       # Will take all or first 26 characters of table name and append _seq suffix
       def default_sequence_name(table_name, primary_key = nil)
@@ -1356,6 +1361,9 @@ require 'active_record/connection_adapters/oracle_enhanced_schema_dumper'
 
 # Extensions for schema definition statements
 require 'active_record/connection_adapters/oracle_enhanced_schema_statements_ext'
+
+# Extensions for schema definition
+require 'active_record/connection_adapters/oracle_enhanced_schema_definitions'
 
 # Add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
 require 'active_record/connection_adapters/oracle_enhanced_core_ext'

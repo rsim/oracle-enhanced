@@ -149,6 +149,7 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :test_employees, (seq_name ? {:sequence_name => seq_name} : {})
       end
       Object.send(:remove_const, "TestEmployee")
+      @conn.clear_prefetch_primary_key
     end
 
     describe "with default primary key" do
@@ -413,10 +414,10 @@ describe "OracleEnhancedAdapter schema definition" do
           t.integer :post_id
         end
       end
-      class TestPost < ActiveRecord::Base
+      class ::TestPost < ActiveRecord::Base
         has_many :test_comments
       end
-      class TestComment < ActiveRecord::Base
+      class ::TestComment < ActiveRecord::Base
         belongs_to :test_post
       end
     end
@@ -520,6 +521,104 @@ describe "OracleEnhancedAdapter schema definition" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
         remove_foreign_key :test_comments, :column => "test_post_id"
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should_not raise_error
+    end
+
+  end
+
+  describe "foreign key in table definition" do
+    before(:each) do
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.string :title
+        end
+      end
+      class ::TestPost < ActiveRecord::Base
+        has_many :test_comments
+      end
+      class ::TestComment < ActiveRecord::Base
+        belongs_to :test_post
+      end
+    end
+    
+    after(:each) do
+      Object.send(:remove_const, "TestPost")
+      Object.send(:remove_const, "TestComment")
+      schema_define do
+        drop_table :test_comments rescue nil
+        drop_table :test_posts rescue nil
+      end
+    end
+
+    it "should add foreign key in create_table" do
+      schema_define do
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post
+          t.foreign_key :test_posts
+        end
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291/}
+    end
+
+    it "should add foreign key in create_table references" do
+      schema_define do
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post, :foreign_key => true
+        end
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291/}
+    end
+
+    it "should add foreign key in change_table" do
+      schema_define do
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post
+        end
+        change_table :test_comments do |t|
+          t.foreign_key :test_posts
+        end
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291/}
+    end
+
+    it "should add foreign key in change_table references" do
+      schema_define do
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+        end
+        change_table :test_comments do |t|
+          t.references :test_post, :foreign_key => true
+        end
+      end
+      lambda do
+        TestComment.create(:body => "test", :test_post_id => 1)
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291/}
+    end
+
+    it "should remove foreign key by table name" do
+      schema_define do
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post
+        end
+        change_table :test_comments do |t|
+          t.foreign_key :test_posts
+        end
+        change_table :test_comments do |t|
+          t.remove_foreign_key :test_posts
+        end
       end
       lambda do
         TestComment.create(:body => "test", :test_post_id => 1)

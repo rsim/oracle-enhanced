@@ -3,6 +3,9 @@ require 'digest/sha1'
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhancedSchemaStatementsExt
+      def supports_foreign_keys? #:nodoc:
+        true
+      end
 
       # Create primary key trigger (so that you can skip primary key value in INSERT statement).
       # By default trigger name will be "table_name_pkt", you can override the name with 
@@ -64,7 +67,6 @@ module ActiveRecord
       #   If set to <tt>:nullify</tt>, the foreign key column is set to +NULL+.
       def add_foreign_key(from_table, to_table, options = {})
         column = options[:column] || "#{to_table.to_s.singularize}_id"
-        primary_key = options[:primary_key] || "id"
         constraint_name = foreign_key_constraint_name(from_table, column, options)
         sql = "ALTER TABLE #{quote_table_name(from_table)} ADD CONSTRAINT #{quote_column_name(constraint_name)} "
         sql << foreign_key_definition(to_table, options)
