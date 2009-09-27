@@ -57,6 +57,8 @@ describe "OracleEnhancedAdapter original schema dump" do
 end
 
 describe "OracleEnhancedAdapter schema dump" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
@@ -71,21 +73,17 @@ describe "OracleEnhancedAdapter schema dump" do
 
   def create_test_posts_table(options = {})
     options.merge! :force => true
-    ActiveRecord::Schema.define do
-      suppress_messages do
-        create_table :test_posts, options do |t|
-          t.string :title
-        end
-        add_index :test_posts, :title
+    schema_define do
+      create_table :test_posts, options do |t|
+        t.string :title
       end
+      add_index :test_posts, :title
     end
   end
 
   def drop_test_posts_table
-    ActiveRecord::Schema.define do
-      suppress_messages do
-        drop_table :test_posts
-      end
+    schema_define do
+      drop_table :test_posts
     end
   rescue
     nil
@@ -154,6 +152,55 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
   end
+
+  describe "foreign key constraints" do
+    before(:all) do
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.string :title
+        end
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post
+        end
+      end
+    end
+    
+    after(:each) do
+      schema_define do
+        remove_foreign_key :test_comments, :test_posts
+      end
+    end
+    after(:all) do
+      schema_define do
+        drop_table :test_comments rescue nil
+        drop_table :test_posts rescue nil
+      end
+    end
+
+    it "should include foreign key in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :name => "test_comments_test_post_id_fk"/
+    end
+
+    it "should include foreign key with delete dependency in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :dependent => :delete
+      end
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :name => "test_comments_test_post_id_fk", :dependent => :delete/
+    end
+
+    it "should include foreign key with nullify dependency in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :dependent => :nullify
+      end
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :name => "test_comments_test_post_id_fk", :dependent => :nullify/
+    end
+
+  end
+
 end
 
 describe "OracleEnhancedAdapter structure dump" do

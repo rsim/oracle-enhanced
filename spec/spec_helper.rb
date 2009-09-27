@@ -71,6 +71,16 @@ module LoggerSpecHelper
   end
 end
 
+module SchemaSpecHelper
+  def schema_define(&block)
+    ActiveRecord::Schema.define do
+      suppress_messages do
+        instance_eval(&block)
+      end
+    end
+  end
+end
+
 DATABASE_NAME = ENV['DATABASE_NAME'] || 'orcl'
 DATABASE_HOST = ENV['DATABASE_HOST'] || 'localhost'
 DATABASE_PORT = ENV['DATABASE_PORT'] || 1521

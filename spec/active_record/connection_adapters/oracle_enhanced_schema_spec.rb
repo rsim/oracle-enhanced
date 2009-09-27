@@ -1,17 +1,11 @@
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "OracleEnhancedAdapter schema definition" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-  end
-
-  def schema_define(&block)
-    ActiveRecord::Schema.define do
-      suppress_messages do
-        instance_eval(&block)
-      end
-    end
   end
 
   describe "table and sequence creation with non-default primary key" do

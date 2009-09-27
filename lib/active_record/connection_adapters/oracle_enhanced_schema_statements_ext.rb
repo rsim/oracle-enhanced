@@ -118,6 +118,47 @@ module ActiveRecord
         @logger.warn "#{adapter_name} shortened foreign key constraint name #{original_name} to #{constraint_name}" if @logger
         constraint_name
       end
+      
+
+      public
+
+      # get table foreign keys for schema dump
+      def foreign_keys(table_name) #:nodoc:
+        (owner, desc_table_name, db_link) = @connection.describe(table_name)
+
+        fk_info = select_all(<<-SQL, 'Foreign Keys')
+          SELECT r.table_name to_table
+                ,rc.column_name primary_key
+                ,cc.column_name
+                ,c.constraint_name name
+                ,c.delete_rule
+            FROM user_constraints#{db_link} c, user_cons_columns#{db_link} cc,
+                 user_constraints#{db_link} r, user_cons_columns#{db_link} rc
+           WHERE c.owner = '#{owner}'
+             AND c.table_name = '#{desc_table_name}'
+             AND c.constraint_type = 'R'
+             AND cc.owner = c.owner
+             AND cc.constraint_name = c.constraint_name
+             AND r.constraint_name = c.r_constraint_name
+             AND r.owner = c.owner
+             AND rc.owner = r.owner
+             AND rc.constraint_name = r.constraint_name
+             AND rc.position = cc.position
+        SQL
+
+        fk_info.map do |row|
+          options = {:column => oracle_downcase(row['column_name']), :name => oracle_downcase(row['name']),
+            :primary_key => oracle_downcase(row['primary_key'])}
+          case row['delete_rule']
+          when 'CASCADE'
+            options[:dependent] = :delete
+          when 'SET NULL'
+            options[:dependent] = :nullify
+          end
+          OracleEnhancedForeignKeyDefinition.new(table_name, oracle_downcase(row['to_table']), options)
+        end
+      end
+
     end
   end
 end
