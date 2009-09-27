@@ -23,6 +23,7 @@ module ActiveRecord
       # camelCase column name. I imagine other dbs handle this different, since there's a
       # unit test that's currently failing test_oci.
       def oracle_downcase(column_name)
+        return nil if column_name.nil?
         column_name =~ /[a-z]/ ? column_name : column_name.downcase
       end
 

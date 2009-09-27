@@ -201,6 +201,29 @@ describe "OracleEnhancedAdapter schema dump" do
 
   end
 
+  describe "synonyms" do
+    after(:each) do
+      schema_define do
+        remove_synonym :test_synonym
+      end
+    end
+
+    it "should include synonym to other schema table in schema dump" do
+      schema_define do
+        add_synonym :test_synonym, "schema_name.table_name", :force => true
+      end
+      standard_dump.should =~ /add_synonym "test_synonym", "schema_name.table_name", :force => true/
+    end
+
+    it "should include synonym to other database table in schema dump" do
+      schema_define do
+        add_synonym :test_synonym, "table_name@link_name", :force => true
+      end
+      standard_dump.should =~ /add_synonym "test_synonym", "table_name@link_name", :force => true/
+    end
+
+  end
+
 end
 
 describe "OracleEnhancedAdapter structure dump" do

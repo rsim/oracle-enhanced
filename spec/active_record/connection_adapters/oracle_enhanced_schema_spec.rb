@@ -658,4 +658,64 @@ describe "OracleEnhancedAdapter schema definition" do
 
   end
 
+  describe "synonyms" do
+    before(:all) do
+      @db_link = "db_link"
+      @username = @db_link_username = CONNECTION_PARAMS[:username]
+      @db_link_password = CONNECTION_PARAMS[:password]
+      @db_link_database = CONNECTION_PARAMS[:database]
+      @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
+      @conn.execute "CREATE DATABASE LINK #{@db_link} CONNECT TO #{@db_link_username} IDENTIFIED BY #{@db_link_password} USING '#{@db_link_database}'"
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.string :title
+        end
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_posts
+      end
+      @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
+    end
+
+    before(:each) do
+      class ::TestPost < ActiveRecord::Base
+        set_table_name "synonym_to_posts"
+      end
+    end
+
+    after(:each) do
+      Object.send(:remove_const, "TestPost")
+      schema_define do
+        remove_synonym :synonym_to_posts
+        remove_synonym :synonym_to_posts_seq
+      end
+    end
+
+    it "should create synonym to table and sequence" do
+      schema_name = @username
+      schema_define do
+        add_synonym :synonym_to_posts, "#{schema_name}.test_posts", :force => true
+        add_synonym :synonym_to_posts_seq, "#{schema_name}.test_posts_seq", :force => true
+      end
+      lambda do
+        TestPost.create(:title => "test")
+      end.should_not raise_error
+    end
+
+    it "should create synonym to table over database link" do
+      db_link = @db_link
+      schema_define do
+        add_synonym :synonym_to_posts, "test_posts@#{db_link}", :force => true
+        add_synonym :synonym_to_posts_seq, "test_posts_seq@#{db_link}", :force => true
+      end
+      lambda do
+        TestPost.create(:title => "test")
+      end.should_not raise_error
+    end
+
+  end
+
 end

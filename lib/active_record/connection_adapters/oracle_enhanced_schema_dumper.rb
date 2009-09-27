@@ -28,9 +28,10 @@ module ActiveRecord #:nodoc:
           table(tbl, stream)
           # add primary key trigger if table has it
           primary_key_trigger(tbl, stream)
-          # add foreign keys if table has it
+          # add foreign keys if table has them
           foreign_keys(tbl, stream)
         end
+        synonyms(stream)
       end
 
       def primary_key_trigger(table_name, stream)
@@ -65,6 +66,18 @@ module ActiveRecord #:nodoc:
           stream.puts add_foreign_key_statements.sort.join("\n")
           stream.puts
         end
+      end
+
+      def synonyms(stream)
+        syns = @connection.synonyms
+        syns.each do |syn|
+          table_name = syn.table_name
+          table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
+          table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
+          stream.print "  add_synonym #{syn.name.inspect}, #{table_name.inspect}, :force => true"
+          stream.puts
+        end
+        stream.puts unless syns.empty?
       end
 
       def indexes_with_oracle_enhanced(table, stream)

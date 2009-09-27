@@ -3,6 +3,9 @@ module ActiveRecord
     class OracleEnhancedForeignKeyDefinition < Struct.new(:from_table, :to_table, :options) #:nodoc:
     end
 
+    class OracleEnhancedSynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
+    end
+
     module OracleEnhancedSchemaDefinitions
       def self.included(base)
         base::TableDefinition.class_eval do
