@@ -159,6 +159,28 @@ module ActiveRecord
         end
       end
 
+      # REFERENTIAL INTEGRITY ====================================
+
+      def disable_referential_integrity(&block) #:nodoc:
+        sql_constraints = <<-SQL
+        SELECT constraint_name, owner, table_name
+          FROM user_constraints
+          WHERE constraint_type = 'R'
+          AND status = 'ENABLED'
+        SQL
+        old_constraints = select_all(sql_constraints)
+        begin
+          old_constraints.each do |constraint|
+            execute "ALTER TABLE #{constraint["table_name"]} DISABLE CONSTRAINT #{constraint["constraint_name"]}"
+          end
+          yield
+        ensure
+          old_constraints.each do |constraint|
+            execute "ALTER TABLE #{constraint["table_name"]} ENABLE CONSTRAINT #{constraint["constraint_name"]}"
+          end
+        end
+      end
+
     end
   end
 end

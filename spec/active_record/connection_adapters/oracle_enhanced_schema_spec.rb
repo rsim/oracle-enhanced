@@ -621,4 +621,41 @@ describe "OracleEnhancedAdapter schema definition" do
 
   end
 
+  describe "disable referential integrity" do
+    before(:each) do
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.string :title
+        end
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post, :foreign_key => true
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_comments rescue nil
+        drop_table :test_posts rescue nil
+      end
+    end
+
+    it "should disable all foreign keys" do
+      lambda do
+        @conn.execute "INSERT INTO test_comments (id, body, test_post_id) VALUES (1, 'test', 1)"
+      end.should raise_error
+      @conn.disable_referential_integrity do
+        lambda do
+          @conn.execute "INSERT INTO test_comments (id, body, test_post_id) VALUES (2, 'test', 2)"
+          @conn.execute "INSERT INTO test_posts (id, title) VALUES (2, 'test')"
+        end.should_not raise_error
+      end
+      lambda do
+        @conn.execute "INSERT INTO test_comments (id, body, test_post_id) VALUES (3, 'test', 3)"
+      end.should raise_error
+    end
+
+  end
+
 end
