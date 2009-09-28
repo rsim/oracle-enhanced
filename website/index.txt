@@ -1,7 +1,6 @@
 h1. ActiveRecord Oracle enhanced adapter
 
-h1. &#x2192; 'oracle-enhanced'
-
+h1. oracle-enhanced
 
 h2. What
 
@@ -15,6 +14,8 @@ h2. Installing
 h2. More information
 
 See http://github.com/rsim/oracle-enhanced/wikis for more information.
+
+See http://oracle-enhanced.rubyforge.org/rdoc for detailed API documentation.
 
 For questions and feature discussion please use http://groups.google.com/group/oracle-enhanced
 

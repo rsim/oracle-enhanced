@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{activerecord-oracle_enhanced-adapter}
-  s.version = "1.2.1"
+  s.version = "1.2.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Raimonds Simanovskis"]
@@ -22,6 +22,9 @@ Gem::Specification.new do |s|
     "lib/active_record/connection_adapters/oracle_enhanced_oci_connection.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_procedures.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_reserved_words.rb",
+    "lib/active_record/connection_adapters/oracle_enhanced_schema_definitions.rb",
+    "lib/active_record/connection_adapters/oracle_enhanced_schema_dumper.rb",
+    "lib/active_record/connection_adapters/oracle_enhanced_schema_statements_ext.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_tasks.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_version.rb",
     "oracle-enhanced.gemspec",
@@ -30,9 +33,12 @@ Gem::Specification.new do |s|
     "spec/active_record/connection_adapters/oracle_enhanced_core_ext_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_cpk_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_data_types_spec.rb",
+    "spec/active_record/connection_adapters/oracle_enhanced_dbms_output_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_dirty_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_emulate_oracle_adapter_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_procedures_spec.rb",
+    "spec/active_record/connection_adapters/oracle_enhanced_schema_dump_spec.rb",
+    "spec/active_record/connection_adapters/oracle_enhanced_schema_spec.rb",
     "spec/spec.opts",
     "spec/spec_helper.rb"]
   s.has_rdoc = true

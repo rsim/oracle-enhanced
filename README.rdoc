@@ -9,6 +9,8 @@ from Rails which are extracted from current real projects' monkey patches of ori
 
 See http://github.com/rsim/oracle-enhanced/wikis for usage information.
 
+See http://oracle-enhanced.rubyforge.org/rdoc for detailed API documentation.
+
 For questions and feature discussion please use http://groups.google.com/group/oracle-enhanced
 
 Blog posts about oracle-enahnced can be found at http://blog.rayapps.com/category/oracle-enhanced
@@ -41,6 +43,7 @@ Bugs and enhancement requests can be reported at http://rsim.lighthouseapp.com/p
 * toddwf
 * Anton Jenkins
 * Dave Smylie
+* Alex Rothenberg
 
 == LICENSE:
 
