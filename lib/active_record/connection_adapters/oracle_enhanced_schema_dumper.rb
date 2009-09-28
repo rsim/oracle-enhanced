@@ -2,7 +2,7 @@ module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhancedSchemaDumper #:nodoc:
 
-      def self.included(base)
+      def self.included(base) #:nodoc:
         base.class_eval do
           private
           alias_method_chain :tables, :oracle_enhanced
@@ -98,7 +98,7 @@ module ActiveRecord #:nodoc:
       end
 
       # remove table name prefix and suffix when doing #inspect (which is used in tables method)
-      module TableInspect
+      module TableInspect #:nodoc:
         def inspect
           remove_prefix_and_suffix(self)
         end

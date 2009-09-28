@@ -6,7 +6,7 @@ module ActiveRecord
     class OracleEnhancedSynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
     end
 
-    module OracleEnhancedSchemaDefinitions
+    module OracleEnhancedSchemaDefinitions #:nodoc:
       def self.included(base)
         base::TableDefinition.class_eval do
           include OracleEnhancedTableDefinition
@@ -19,14 +19,14 @@ module ActiveRecord
     end
   
     module OracleEnhancedTableDefinition
-      class ForeignKey < Struct.new(:base, :to_table, :options)
+      class ForeignKey < Struct.new(:base, :to_table, :options) #:nodoc:
         def to_sql
           base.foreign_key_definition(to_table, options)
         end
         alias to_s :to_sql
       end
 
-      def self.included(base)
+      def self.included(base) #:nodoc:
         base.class_eval do
           alias_method_chain :references, :foreign_keys
           alias_method_chain :to_sql, :foreign_keys
@@ -78,7 +78,7 @@ module ActiveRecord
         end
       end
     
-      def to_sql_with_foreign_keys
+      def to_sql_with_foreign_keys #:nodoc:
         sql = to_sql_without_foreign_keys
         sql << ', ' << (foreign_keys * ', ') if foreign_keys.present?
         sql
@@ -91,7 +91,7 @@ module ActiveRecord
     end
 
     module OracleEnhancedTable
-      def self.included(base)
+      def self.included(base) #:nodoc:
         base.class_eval do
           alias_method_chain :references, :foreign_keys
         end
