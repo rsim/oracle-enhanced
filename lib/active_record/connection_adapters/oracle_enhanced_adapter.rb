@@ -32,6 +32,8 @@ require 'active_record/connection_adapters/abstract_adapter'
 
 require 'active_record/connection_adapters/oracle_enhanced_connection'
 
+require 'digest/sha1'
+
 module ActiveRecord
   class Base
     # Establishes a connection to the database that's used by all Active Record objects.
@@ -945,13 +947,12 @@ module ActiveRecord
         if shortened_name.length > IDENTIFIER_MAX_LENGTH
           shortened_name = shortened_name.split('_').map{|w| w[0,3]}.join('_')
         end
-        
-        if shortened_name.length <= IDENTIFIER_MAX_LENGTH
-          @logger.warn "#{adapter_name} shortened index name #{default_name} to #{shortened_name}" if @logger
-          return shortened_name
-        else
-          raise ArgumentError, "#{adapter_name} cannot shorten index name #{default_name}, please use add_index with :name option"
+        # generate unique name using hash function
+        if shortened_name.length > OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH
+          shortened_name = 'i'+Digest::SHA1.hexdigest(default_name)[0,OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH-1]
         end
+        @logger.warn "#{adapter_name} shortened default index name #{default_name} to #{shortened_name}" if @logger
+        shortened_name
       end
 
       def add_column(table_name, column_name, type, options = {}) #:nodoc:
