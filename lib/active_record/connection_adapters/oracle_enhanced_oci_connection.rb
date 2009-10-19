@@ -4,10 +4,11 @@ begin
   require 'oci8' unless self.class.const_defined? :OCI8
 
   # added mapping for TIMESTAMP / WITH TIME ZONE / LOCAL TIME ZONE types
-  # currently Ruby-OCI8 does not support fractional seconds for timestamps
-  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP] = OCI8::BindType::OraDate
-  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_TZ] = OCI8::BindType::OraDate
-  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_LTZ] = OCI8::BindType::OraDate
+  # latest version of Ruby-OCI8 supports fractional seconds for timestamps
+  # therefore default binding to Time class should be used
+  # OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP] = OCI8::BindType::OraDate
+  # OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_TZ] = OCI8::BindType::OraDate
+  # OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_LTZ] = OCI8::BindType::OraDate
 rescue LoadError
   # OCI8 driver is unavailable.
   error_message = "ERROR: ActiveRecord oracle_enhanced adapter could not load ruby-oci8 library. "+
@@ -192,15 +193,17 @@ module ActiveRecord
       end
       
       def create_time_with_default_timezone(value)
-        year, month, day, hour, min, sec = case value
+        year, month, day, hour, min, sec, usec = case value
+        when Time
+          [value.year, value.month, value.day, value.hour, value.min, value.sec, value.usec]
         when OraDate
-          [value.year, value.month, value.day, value.hour, value.minute, value.second]
+          [value.year, value.month, value.day, value.hour, value.minute, value.second, 0]
         else
-          [value.year, value.month, value.day, value.hour, value.min, value.sec]
+          [value.year, value.month, value.day, value.hour, value.min, value.sec, 0]
         end
         # code from Time.time_with_datetime_fallback
         begin
-          Time.send(Base.default_timezone, year, month, day, hour, min, sec)
+          Time.send(Base.default_timezone, year, month, day, hour, min, sec, usec)
         rescue
           offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
           ::DateTime.civil(year, month, day, hour, min, sec, offset)
