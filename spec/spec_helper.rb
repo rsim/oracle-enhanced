@@ -49,7 +49,7 @@ if !defined?(RUBY_ENGINE)
     require 'active_record/connection_adapters/oracle_adapter'
   end
 elsif RUBY_ENGINE == 'ruby'
-  gem 'ruby-oci8', '>=2.0.2'
+  gem 'ruby-oci8', '>=2.0.3'
   require 'oci8'
 elsif RUBY_ENGINE == 'jruby'
   gem "activerecord-jdbc-adapter"

@@ -139,6 +139,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     after(:each) do
       drop_test_posts_table
+      @conn.clear_prefetch_primary_key
     end
 
     it "should include primary key trigger in schema dump" do
