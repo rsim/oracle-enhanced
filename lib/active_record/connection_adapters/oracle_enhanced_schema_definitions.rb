@@ -80,7 +80,7 @@ module ActiveRecord
     
       def to_sql_with_foreign_keys #:nodoc:
         sql = to_sql_without_foreign_keys
-        sql << ', ' << (foreign_keys * ', ') if foreign_keys.present?
+        sql << ', ' << (foreign_keys * ', ') unless foreign_keys.blank?
         sql
       end
     

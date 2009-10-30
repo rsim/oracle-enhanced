@@ -56,7 +56,7 @@ module ActiveRecord #:nodoc:
             if foreign_key.options[:primary_key] != 'id'
               statement_parts << (':primary_key => ' + foreign_key.options[:primary_key].inspect)
             end
-            if foreign_key.options[:dependent].present?
+            unless foreign_key.options[:dependent].blank?
               statement_parts << (':dependent => ' + foreign_key.options[:dependent].inspect)
             end
 
