@@ -12,9 +12,10 @@ module ActiveRecord
           include OracleEnhancedTableDefinition
         end
         
+        # Available starting from ActiveRecord 2.1
         base::Table.class_eval do
           include OracleEnhancedTable
-        end
+        end if defined?(base::Table)
       end
     end
   

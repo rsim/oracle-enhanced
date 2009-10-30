@@ -572,6 +572,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should add foreign key in change_table" do
+      return pending("Not in this ActiveRecord version") unless ENV['RAILS_GEM_VERSION'] >= '2.1'
       schema_define do
         create_table :test_comments, :force => true do |t|
           t.string :body, :limit => 4000
@@ -587,6 +588,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should add foreign key in change_table references" do
+      return pending("Not in this ActiveRecord version") unless ENV['RAILS_GEM_VERSION'] >= '2.1'
       schema_define do
         create_table :test_comments, :force => true do |t|
           t.string :body, :limit => 4000
@@ -601,6 +603,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should remove foreign key by table name" do
+      return pending("Not in this ActiveRecord version") unless ENV['RAILS_GEM_VERSION'] >= '2.1'
       schema_define do
         create_table :test_comments, :force => true do |t|
           t.string :body, :limit => 4000
