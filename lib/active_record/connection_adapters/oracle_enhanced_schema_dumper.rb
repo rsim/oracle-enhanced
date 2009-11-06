@@ -13,7 +13,8 @@ module ActiveRecord #:nodoc:
       private
       
       def tables_with_oracle_enhanced(stream)
-        @connection.tables.sort.each do |tbl|
+        sorted_tables = @connection.tables.sort
+        sorted_tables.each do |tbl|
           # add table prefix or suffix for schema_migrations
           next if [ActiveRecord::Migrator.proper_table_name('schema_migrations'), ignore_tables].flatten.any? do |ignored|
             case ignored
@@ -28,9 +29,12 @@ module ActiveRecord #:nodoc:
           table(tbl, stream)
           # add primary key trigger if table has it
           primary_key_trigger(tbl, stream)
+        end
+        sorted_tables.each do |tbl|
           # add foreign keys if table has them
           foreign_keys(tbl, stream)
         end
+        # add synonyms in local schema
         synonyms(stream)
       end
 
