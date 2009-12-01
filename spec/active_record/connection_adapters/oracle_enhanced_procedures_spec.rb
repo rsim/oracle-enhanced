@@ -18,7 +18,9 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
         description   CLOB,
         version       NUMBER(15,0),
         create_time   DATE,
-        update_time   DATE
+        update_time   DATE,
+        created_at    DATE,
+        updated_at    DATE
       )
     SQL
     @conn.execute("DROP SEQUENCE test_employees_s") rescue nil
@@ -168,10 +170,9 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     TestEmployee.class_eval { def after_create() raise "Make the transaction rollback" end }
     begin
       employees_count = TestEmployee.count
-      @employee.save
-      fail "Did not raise exception"
-    rescue => e
-      e.message.should == "Make the transaction rollback"
+      lambda {
+        @employee.save
+      }.should raise_error("Make the transaction rollback")
       @employee.id.should == nil
       TestEmployee.count.should == employees_count
     ensure
@@ -205,10 +206,9 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       empl_id = @employee.id
       @employee.reload
       @employee.first_name = "Second"
-      @employee.save!
-      fail "Did not raise exception"
-    rescue => e
-      e.message.should == "Make the transaction rollback"
+      lambda {
+        @employee.save
+      }.should raise_error("Make the transaction rollback")
       @employee.reload
       @employee.first_name.should == "First"
     ensure
@@ -259,23 +259,49 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
 
   it "should rollback record when exception is raised in after_desotry callback" do
     TestEmployee.class_eval { def after_destroy() raise "Make the transaction rollback" end }
+    begin
+      @employee = TestEmployee.create(
+        :first_name => "First",
+        :last_name => "Last",
+        :hire_date => @today
+      )
+      @employee.reload
+      empl_id = @employee.id
+      lambda {
+        @employee.destroy
+      }.should raise_error("Make the transaction rollback")
+      @employee.id.should == empl_id
+      TestEmployee.find_by_employee_id(empl_id).should_not be_nil
+    ensure
+      TestEmployee.class_eval { remove_method :after_destroy }
+    end
+  end
+
+  it "should set timestamps when creating record" do
+    plsql.connection = ActiveRecord::Base.connection.raw_connection
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @employee.created_at.should_not be_nil
+    @employee.updated_at.should_not be_nil
+  end
+
+  it "should set timestamps when updating record" do
+    plsql.connection = ActiveRecord::Base.connection.raw_connection
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
       :hire_date => @today
     )
     @employee.reload
-    empl_id = @employee.id
-    begin
-      @employee.destroy
-      fail "Did not raise exception"
-    rescue => e
-      e.message.should == "Make the transaction rollback"
-      @employee.id.should == empl_id
-      TestEmployee.find_by_employee_id(empl_id).should_not be_nil
-    ensure
-      TestEmployee.class_eval { remove_method :after_destroy }
-    end
+    @employee.created_at.should be_nil
+    @employee.updated_at.should be_nil
+    @employee.first_name = "Second"
+    @employee.save!
+    @employee.created_at.should be_nil
+    @employee.updated_at.should_not be_nil
   end
 
   it "should log create record" do
