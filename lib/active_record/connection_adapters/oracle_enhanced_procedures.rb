@@ -5,7 +5,7 @@ ActiveRecord::Base.class_eval do
 end
 
 require 'ruby_plsql'
-require 'activesupport'
+require 'active_support'
 
 module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:

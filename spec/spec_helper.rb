@@ -25,15 +25,15 @@ elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3.3/
   gem 'activesupport', '=2.3.3'
   gem 'composite_primary_keys', '=2.3.2'
 else
-  ENV['RAILS_GEM_VERSION'] ||= '2.3.4'
-  gem 'activerecord', '=2.3.4'
-  gem 'actionpack', '=2.3.4'
-  gem 'activesupport', '=2.3.4'
+  ENV['RAILS_GEM_VERSION'] ||= '2.3.5'
+  gem 'activerecord', '=2.3.5'
+  gem 'actionpack', '=2.3.5'
+  gem 'activesupport', '=2.3.5'
   NO_COMPOSITE_PRIMARY_KEYS = true
 end
 
-require 'activerecord'
-require 'actionpack'
+require 'active_record'
+require 'action_pack'
 if ENV['RAILS_GEM_VERSION'] >= '2.3'
   require 'action_controller/session/abstract_store'
   require 'active_record/session_store'
