@@ -656,7 +656,7 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
   it "should quote Time values with TO_TIMESTAMP" do
     @ts = @now + 0.1
     @conn.quote(@ts).should == "TO_TIMESTAMP('#{@ts.year}-#{"%02d" % @ts.month}-#{"%02d" % @ts.day} "+
-                                "#{"%02d" % @ts.hour}:#{"%02d" % @ts.min}:#{"%02d" % @ts.sec}.100000','YYYY-MM-DD HH24:MI:SS.FF6')"
+                                "#{"%02d" % @ts.hour}:#{"%02d" % @ts.min}:#{"%02d" % @ts.sec}:100000','YYYY-MM-DD HH24:MI:SS:FF6')"
   end
 
 end
