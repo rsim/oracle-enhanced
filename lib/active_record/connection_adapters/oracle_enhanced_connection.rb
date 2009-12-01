@@ -1,7 +1,7 @@
 module ActiveRecord
   module ConnectionAdapters
     # interface independent methods
-    class OracleEnhancedConnection
+    class OracleEnhancedConnection #:nodoc:
 
       def self.create(config)
         case ORACLE_ENHANCED_CONNECTION
@@ -23,7 +23,58 @@ module ActiveRecord
       # camelCase column name. I imagine other dbs handle this different, since there's a
       # unit test that's currently failing test_oci.
       def oracle_downcase(column_name)
+        return nil if column_name.nil?
         column_name =~ /[a-z]/ ? column_name : column_name.downcase
+      end
+
+      # Used always by JDBC connection as well by OCI connection when describing tables over database link
+      def describe(name)
+        name = name.to_s
+        if name.include?('@')
+          name, db_link = name.split('@')
+          default_owner = select_value("SELECT username FROM all_db_links WHERE db_link = '#{db_link.upcase}'")
+          db_link = "@#{db_link}"
+        else
+          db_link = nil
+          default_owner = @owner
+        end
+        real_name = OracleEnhancedAdapter.valid_table_name?(name) ? name.upcase : name
+        if real_name.include?('.')
+          table_owner, table_name = real_name.split('.')
+        else
+          table_owner, table_name = default_owner, real_name
+        end
+        sql = <<-SQL
+          SELECT owner, table_name, 'TABLE' name_type
+          FROM all_tables#{db_link}
+          WHERE owner = '#{table_owner}'
+            AND table_name = '#{table_name}'
+          UNION ALL
+          SELECT owner, view_name table_name, 'VIEW' name_type
+          FROM all_views#{db_link}
+          WHERE owner = '#{table_owner}'
+            AND view_name = '#{table_name}'
+          UNION ALL
+          SELECT table_owner, DECODE(db_link, NULL, table_name, table_name||'@'||db_link), 'SYNONYM' name_type
+          FROM all_synonyms#{db_link}
+          WHERE owner = '#{table_owner}'
+            AND synonym_name = '#{table_name}'
+          UNION ALL
+          SELECT table_owner, DECODE(db_link, NULL, table_name, table_name||'@'||db_link), 'SYNONYM' name_type
+          FROM all_synonyms#{db_link}
+          WHERE owner = 'PUBLIC'
+            AND synonym_name = '#{real_name}'
+        SQL
+        if result = select_one(sql)
+          case result['name_type']
+          when 'SYNONYM'
+            describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}#{db_link}")
+          else
+            db_link ? [result['owner'], result['table_name'], db_link] : [result['owner'], result['table_name']]
+          end
+        else
+          raise OracleEnhancedConnectionException, %Q{"DESC #{name}" failed; does it exist?}
+        end
       end
 
       private
@@ -48,11 +99,10 @@ module ActiveRecord
         result = select(sql)
         result.map { |r| r.values.first }
       end
-      
 
     end
     
-    class OracleEnhancedConnectionException < StandardError
+    class OracleEnhancedConnectionException < StandardError #:nodoc:
     end
 
   end

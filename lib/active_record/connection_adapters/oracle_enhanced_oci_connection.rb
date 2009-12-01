@@ -3,11 +3,12 @@ require 'delegate'
 begin
   require 'oci8' unless self.class.const_defined? :OCI8
 
-  # RSI: added mapping for TIMESTAMP / WITH TIME ZONE / LOCAL TIME ZONE types
-  # currently Ruby-OCI8 does not support fractional seconds for timestamps
-  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP] = OCI8::BindType::OraDate
-  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_TZ] = OCI8::BindType::OraDate
-  OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_LTZ] = OCI8::BindType::OraDate
+  # added mapping for TIMESTAMP / WITH TIME ZONE / LOCAL TIME ZONE types
+  # latest version of Ruby-OCI8 supports fractional seconds for timestamps
+  # therefore default binding to Time class should be used
+  # OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP] = OCI8::BindType::OraDate
+  # OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_TZ] = OCI8::BindType::OraDate
+  # OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_LTZ] = OCI8::BindType::OraDate
 rescue LoadError
   # OCI8 driver is unavailable.
   error_message = "ERROR: ActiveRecord oracle_enhanced adapter could not load ruby-oci8 library. "+
@@ -24,10 +25,12 @@ module ActiveRecord
   module ConnectionAdapters
 
     # OCI database interface for MRI
-    class OracleEnhancedOCIConnection < OracleEnhancedConnection
+    class OracleEnhancedOCIConnection < OracleEnhancedConnection #:nodoc:
 
       def initialize(config)
         @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
+        # default schema owner
+        @owner = config[:username].to_s.upcase
       end
 
       def auto_retry
@@ -81,73 +84,41 @@ module ActiveRecord
       def exec(sql, *bindvars, &block)
         @raw_connection.exec(sql, *bindvars, &block)
       end
+      
+      def returning_clause(quoted_pk)
+        " RETURNING #{quoted_pk} INTO :insert_id"
+      end
+
+      # execute sql with RETURNING ... INTO :insert_id
+      # and return :insert_id value
+      def exec_with_returning(sql)
+        cursor = @raw_connection.parse(sql)
+        cursor.bind_param(':insert_id', nil, Integer)
+        cursor.exec
+        cursor[':insert_id']
+      ensure
+        cursor.close rescue nil
+      end
 
       def select(sql, name = nil, return_column_names = false)
         cursor = @raw_connection.exec(sql)
-        cols = cursor.get_col_names.map { |x| oracle_downcase(x) }
+        cols = []
+        # Ignore raw_rnum_ which is used to simulate LIMIT and OFFSET
+        cursor.get_col_names.each do |col_name|
+          col_name = oracle_downcase(col_name)
+          cols << col_name unless col_name == 'raw_rnum_'
+        end
+        # Reuse the same hash for all rows
+        column_hash = {}
+        cols.each {|c| column_hash[c] = nil}
         rows = []
+        get_lob_value = !(name == 'Writable Large Object')
 
         while row = cursor.fetch
-          hash = Hash.new
+          hash = column_hash.dup
 
           cols.each_with_index do |col, i|
-            hash[col] =
-              case row[i]
-              when OCI8::LOB
-                if name == 'Writable Large Object'
-                  row[i]
-                else
-                  data =  row[i].read
-                  # In Ruby 1.9.1 always change encoding to ASCII-8BIT for binaries
-                  data.force_encoding('ASCII-8BIT') if data.respond_to?(:force_encoding) && row[i].is_a?(OCI8::BLOB)
-                  data
-                end
-              # ruby-oci8 1.0 returns OraDate
-              when OraDate
-                d = row[i]
-                # RSI: added emulate_dates_by_column_name functionality
-                # if emulate_dates_by_column_name && self.class.is_date_column?(col)
-                #   d.to_date
-                # elsif
-                if OracleEnhancedAdapter.emulate_dates && (d.hour == 0 && d.minute == 0 && d.second == 0)
-                  d.to_date
-                else
-                  # code from Time.time_with_datetime_fallback
-                  begin
-                    Time.send(Base.default_timezone, d.year, d.month, d.day, d.hour, d.minute, d.second)
-                  rescue
-                    offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
-                    ::DateTime.civil(d.year, d.month, d.day, d.hour, d.minute, d.second, offset)
-                  end
-                end
-              # ruby-oci8 2.0 returns Time or DateTime
-              when Time, DateTime
-                d = row[i]
-                if OracleEnhancedAdapter.emulate_dates && (d.hour == 0 && d.min == 0 && d.sec == 0)
-                  d.to_date
-                else
-                  # recreate Time or DateTime using Base.default_timezone
-                  begin
-                    Time.send(Base.default_timezone, d.year, d.month, d.day, d.hour, d.min, d.sec)
-                  rescue
-                    offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
-                    ::DateTime.civil(d.year, d.month, d.day, d.hour, d.min, d.sec, offset)
-                  end
-                end
-              # RSI: added emulate_integers_by_column_name functionality
-              when Float
-                n = row[i]
-                if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(col)
-                  n.to_i
-                else
-                  n
-                end
-              # ruby-oci8 2.0 returns OraNumber - convert it to Integer or BigDecimal
-              when OraNumber
-                n = row[i]
-                n == (n_to_i = n.to_i) ? n_to_i : BigDecimal.new(n.to_s)
-              else row[i]
-              end unless col == 'raw_rnum_'
+            hash[col] = typecast_result_value(row[i], get_lob_value)
           end
 
           rows << hash
@@ -163,12 +134,81 @@ module ActiveRecord
       end
       
       def describe(name)
+        # fall back to SELECT based describe if using database link
+        return super if name.to_s.include?('@')
         quoted_name = OracleEnhancedAdapter.valid_table_name?(name) ? name : "\"#{name}\""
         @raw_connection.describe(quoted_name)
       rescue OCIException => e
-        raise OracleEnhancedConnectionException, e.message
+        # fall back to SELECT which can handle synonyms to database links
+        super
+      end
+
+      # Return OCIError error code
+      def error_code(exception)
+        exception.code
+      end
+
+      private
+
+      def typecast_result_value(value, get_lob_value)
+        case value
+        when Fixnum, Bignum
+          value
+        when String
+          value
+        when Float
+          value == (v_to_i = value.to_i) ? v_to_i : value
+        # ruby-oci8 2.0 returns OraNumber if Oracle type is NUMBER
+        when OraNumber
+          value == (v_to_i = value.to_i) ? v_to_i : BigDecimal.new(value.to_s)
+        when OCI8::LOB
+          if get_lob_value
+            data = value.read
+            # In Ruby 1.9.1 always change encoding to ASCII-8BIT for binaries
+            data.force_encoding('ASCII-8BIT') if data.respond_to?(:force_encoding) && value.is_a?(OCI8::BLOB)
+            data
+          else
+            value
+          end
+        # ruby-oci8 1.0 returns OraDate
+        # ruby-oci8 2.0 returns Time or DateTime
+        when OraDate, Time, DateTime
+          if OracleEnhancedAdapter.emulate_dates && date_without_time?(value)
+            value.to_date
+          else
+            create_time_with_default_timezone(value)
+          end
+        else
+          value
+        end
       end
       
+      def date_without_time?(value)
+        case value
+        when OraDate
+          value.hour == 0 && value.minute == 0 && value.second == 0
+        else
+          value.hour == 0 && value.min == 0 && value.sec == 0
+        end
+      end
+      
+      def create_time_with_default_timezone(value)
+        year, month, day, hour, min, sec, usec = case value
+        when Time
+          [value.year, value.month, value.day, value.hour, value.min, value.sec, value.usec]
+        when OraDate
+          [value.year, value.month, value.day, value.hour, value.minute, value.second, 0]
+        else
+          [value.year, value.month, value.day, value.hour, value.min, value.sec, 0]
+        end
+        # code from Time.time_with_datetime_fallback
+        begin
+          Time.send(Base.default_timezone, year, month, day, hour, min, sec, usec)
+        rescue
+          offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
+          ::DateTime.civil(year, month, day, hour, min, sec, offset)
+        end
+      end
     end
     
     # The OracleEnhancedOCIFactory factors out the code necessary to connect and
@@ -179,7 +219,9 @@ module ActiveRecord
         privilege = config[:privilege] && config[:privilege].to_sym
         async = config[:allow_concurrency]
         prefetch_rows = config[:prefetch_rows] || 100
-        cursor_sharing = config[:cursor_sharing] || 'similar'
+        cursor_sharing = config[:cursor_sharing] || 'force'
+        # by default VARCHAR2 column size will be interpreted as max number of characters (and not bytes)
+        nls_length_semantics = config[:nls_length_semantics] || 'CHAR'
 
         conn = OCI8.new username, password, database, privilege
         conn.exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
@@ -188,6 +230,7 @@ module ActiveRecord
         conn.non_blocking = true if async
         conn.prefetch_rows = prefetch_rows
         conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil
+        conn.exec "alter session set nls_length_semantics = '#{nls_length_semantics}'"
         conn
       end
     end
@@ -269,17 +312,18 @@ end
 # this would be dangerous (as the earlier part of the implied transaction
 # may have failed silently if the connection died) -- so instead the
 # connection is marked as dead, to be reconnected on it's next use.
+#:stopdoc:
 class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
-  attr_accessor :active
-  alias :active? :active
+  attr_accessor :active #:nodoc:
+  alias :active? :active #:nodoc:
 
   cattr_accessor :auto_retry
   class << self
-    alias :auto_retry? :auto_retry
+    alias :auto_retry? :auto_retry #:nodoc:
   end
   @@auto_retry = false
 
-  def initialize(config, factory)
+  def initialize(config, factory) #:nodoc:
     @active = true
     @config = config
     @factory = factory
@@ -290,7 +334,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   # Checks connection, returns true if active. Note that ping actively
   # checks the connection, while #active? simply returns the last
   # known state.
-  def ping
+  def ping #:nodoc:
     @connection.exec("select 1 from dual") { |r| nil }
     @active = true
   rescue
@@ -299,7 +343,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   end
 
   # Resets connection, by logging off and creating a new connection.
-  def reset!
+  def reset! #:nodoc:
     logoff rescue nil
     begin
       @connection = @factory.new_connection @config
@@ -316,18 +360,18 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   # ORA-03113: end-of-file on communication channel
   # ORA-03114: not connected to ORACLE
   # ORA-03135: connection lost contact
-  LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ]
+  LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] #:nodoc:
 
   # Adds auto-recovery functionality.
   #
   # See: http://www.jiubao.org/ruby-oci8/api.en.html#label-11
-  def exec(sql, *bindvars, &block)
+  def exec(sql, *bindvars, &block) #:nodoc:
     should_retry = self.class.auto_retry? && autocommit?
 
     begin
       @connection.exec(sql, *bindvars, &block)
     rescue OCIException => e
-      raise unless LOST_CONNECTION_ERROR_CODES.include?(e.code)
+      raise unless e.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(e.code)
       @active = false
       raise unless should_retry
       should_retry = false
@@ -336,11 +380,12 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     end
   end
 
-  # RSI: otherwise not working in Ruby 1.9.1
+  # otherwise not working in Ruby 1.9.1
   if RUBY_VERSION =~ /^1\.9/
-    def describe(name)
+    def describe(name) #:nodoc:
       @connection.describe(name)
     end
   end
 
 end
+#:startdoc:

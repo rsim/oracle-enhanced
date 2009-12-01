@@ -12,16 +12,42 @@ module ActiveRecord #:nodoc:
     module OracleEnhancedProcedures #:nodoc:
 
       module ClassMethods
+        # Specify custom create method which should be used instead of Rails generated INSERT statement.
+        # Provided block should return ID of new record.
+        # Example:
+        #   set_create_method do
+        #     plsql.employees_pkg.create_employee(
+        #       :p_first_name => first_name,
+        #       :p_last_name => last_name,
+        #       :p_employee_id => nil
+        #     )[:p_employee_id]
+        #   end
         def set_create_method(&block)
           include_with_custom_methods
           self.custom_create_method = block
         end
 
+        # Specify custom update method which should be used instead of Rails generated UPDATE statement.
+        # Example:
+        #   set_update_method do
+        #     plsql.employees_pkg.update_employee(
+        #       :p_employee_id => id,
+        #       :p_first_name => first_name,
+        #       :p_last_name => last_name
+        #     )
+        #   end
         def set_update_method(&block)
           include_with_custom_methods
           self.custom_update_method = block
         end
 
+        # Specify custom delete method which should be used instead of Rails generated DELETE statement.
+        # Example:
+        #   set_delete_method do
+        #     plsql.employees_pkg.delete_employee(
+        #       :p_employee_id => id
+        #     )
+        #   end
         def set_delete_method(&block)
           include_with_custom_methods
           self.custom_delete_method = block
@@ -35,7 +61,7 @@ module ActiveRecord #:nodoc:
         end
       end
       
-      module InstanceMethods
+      module InstanceMethods #:nodoc:
         def self.included(base)
           base.instance_eval do
             if private_instance_methods.include?('create_without_callbacks') || private_instance_methods.include?(:create_without_callbacks)

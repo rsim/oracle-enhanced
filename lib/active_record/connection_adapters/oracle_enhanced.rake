@@ -20,6 +20,10 @@ namespace :db do
       if ActiveRecord::Base.connection.supports_migrations?
         File.open("db/#{RAILS_ENV}_structure.sql", "a") { |f| f << ActiveRecord::Base.connection.dump_schema_information }
       end
+      if abcs[RAILS_ENV]['structure_dump'] == "db_stored_code"
+         File.open("db/#{RAILS_ENV}_structure.sql", "a") { |f| f << ActiveRecord::Base.connection.structure_dump_db_stored_code }
+      end
+
     end
   end
 

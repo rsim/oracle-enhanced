@@ -1,19 +1,25 @@
 begin
   require "java"
   require "jruby"
-  # Adds JRuby classloader to current thread classloader - as a result ojdbc14.jar should not be in $JRUBY_HOME/lib
-  java.lang.Thread.currentThread.setContextClassLoader(JRuby.runtime.jruby_class_loader)
+
+  # ojdbc14.jar file should be in JRUBY_HOME/lib or should be in ENV['PATH'] or load path
 
   ojdbc_jar = "ojdbc14.jar"
-  if ojdbc_jar_path = ENV["PATH"].split(/[:;]/).find{|d| File.exists?(File.join(d,ojdbc_jar))}
-    require File.join(ojdbc_jar_path,ojdbc_jar)
+
+  unless ENV_JAVA['java.class.path'] =~ Regexp.new(ojdbc_jar)
+    # On Unix environment variable should be PATH, on Windows it is sometimes Path
+    env_path = ENV["PATH"] || ENV["Path"] || ''
+    if ojdbc_jar_path = env_path.split(/[:;]/).concat($LOAD_PATH).find{|d| File.exists?(File.join(d,ojdbc_jar))}
+      require File.join(ojdbc_jar_path,ojdbc_jar)
+    end
   end
-  # import java.sql.Statement
-  # import java.sql.Connection
-  # import java.sql.SQLException
-  # import java.sql.Types
-  # import java.sql.DriverManager
+
   java.sql.DriverManager.registerDriver Java::oracle.jdbc.driver.OracleDriver.new
+
+  # set tns_admin property from TNS_ADMIN environment variable
+  if !java.lang.System.get_property("oracle.net.tns_admin") && ENV["TNS_ADMIN"]
+    java.lang.System.set_property("oracle.net.tns_admin", ENV["TNS_ADMIN"])
+  end
 
 rescue LoadError, NameError
   # JDBC driver is unavailable.
@@ -32,7 +38,7 @@ module ActiveRecord
   module ConnectionAdapters
 
     # JDBC database interface for JRuby
-    class OracleEnhancedJDBCConnection < OracleEnhancedConnection
+    class OracleEnhancedJDBCConnection < OracleEnhancedConnection #:nodoc:
 
       attr_accessor :active
       alias :active? :active
@@ -52,10 +58,17 @@ module ActiveRecord
         privilege = config[:privilege] && config[:privilege].to_s
         host, port = config[:host], config[:port]
 
-        url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}:#{database || 'XE'}"
+        # connection using TNS alias
+        if database && !host && !config[:url] && ENV['TNS_ADMIN']
+          url = "jdbc:oracle:thin:@#{database || 'XE'}"
+        else
+          url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}:#{database || 'XE'}"
+        end
 
         prefetch_rows = config[:prefetch_rows] || 100
-        cursor_sharing = config[:cursor_sharing] || 'similar'
+        cursor_sharing = config[:cursor_sharing] || 'force'
+        # by default VARCHAR2 column size will be interpreted as max number of characters (and not bytes)
+        nls_length_semantics = config[:nls_length_semantics] || 'CHAR'
 
         properties = java.util.Properties.new
         properties.put("user", username)
@@ -65,12 +78,16 @@ module ActiveRecord
 
         @raw_connection = java.sql.DriverManager.getConnection(url, properties)
         exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
-        exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'} # rescue nil
-        exec "alter session set cursor_sharing = #{cursor_sharing}" # rescue nil
+        exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'}
+        exec "alter session set cursor_sharing = #{cursor_sharing}"
+        exec "alter session set nls_length_semantics = '#{nls_length_semantics}'"
         self.autocommit = true
         
         # Set session time zone to current time zone
         @raw_connection.setSessionTimeZone(java.util.TimeZone.default.getID)
+        
+        # Set default number of rows to prefetch
+        # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
         
         # default schema owner
         @owner = username.upcase
@@ -156,16 +173,64 @@ module ActiveRecord
       end
 
       def exec_no_retry(sql)
-        cs = prepare_call(sql)
         case sql
-        when /\A\s*UPDATE/i, /\A\s*INSERT/i, /\A\s*DELETE/i
-          cs.executeUpdate
+        when /\A\s*(UPDATE|INSERT|DELETE)/i
+          s = @raw_connection.prepareStatement(sql)
+          s.executeUpdate
+        # it is safer for CREATE and DROP statements not to use PreparedStatement
+        # as it does not allow creation of triggers with :NEW in their definition
+        when /\A\s*(CREATE|DROP)/i
+          s = @raw_connection.createStatement()
+          s.execute(sql)
+          true
         else
-          cs.execute
+          s = @raw_connection.prepareStatement(sql)
+          s.execute
           true
         end
       ensure
-        cs.close rescue nil        
+        s.close rescue nil
+      end
+
+      def returning_clause(quoted_pk)
+        " RETURNING #{quoted_pk} INTO ?"
+      end
+
+      # execute sql with RETURNING ... INTO :insert_id
+      # and return :insert_id value
+      def exec_with_returning(sql)
+        with_retry do
+          begin
+            # it will always be INSERT statement
+
+            # TODO: need to investigate why PreparedStatement is giving strange exception "Protocol violation"
+            # s = @raw_connection.prepareStatement(sql)
+            # s.registerReturnParameter(1, ::Java::oracle.jdbc.OracleTypes::NUMBER)
+            # count = s.executeUpdate
+            # if count > 0
+            #   rs = s.getReturnResultSet
+            #   if rs.next
+            #     # Assuming that primary key will not be larger as long max value
+            #     insert_id = rs.getLong(1)
+            #     rs.wasNull ? nil : insert_id
+            #   else
+            #     nil
+            #   end
+            # else
+            #   nil
+            # end
+            
+            # Workaround with CallableStatement
+            s = @raw_connection.prepareCall("BEGIN #{sql}; END;")
+            s.registerOutParameter(1, java.sql.Types::BIGINT)
+            s.execute
+            insert_id = s.getLong(1)
+            s.wasNull ? nil : insert_id
+          ensure
+            # rs.close rescue nil
+            s.close rescue nil
+          end
+        end
       end
 
       def select(sql, name = nil, return_column_names = false)
@@ -175,59 +240,35 @@ module ActiveRecord
       end
 
       def select_no_retry(sql, name = nil, return_column_names = false)
-        stmt = prepare_statement(sql)
+        stmt = @raw_connection.prepareStatement(sql)
         rset = stmt.executeQuery
+
+        # Reuse the same hash for all rows
+        column_hash = {}
+
         metadata = rset.getMetaData
         column_count = metadata.getColumnCount
-        cols = (1..column_count).map do |i|
-          oracle_downcase(metadata.getColumnName(i))
+        
+        cols_types_index = (1..column_count).map do |i|
+          col_name = oracle_downcase(metadata.getColumnName(i))
+          next if col_name == 'raw_rnum_'
+          column_hash[col_name] = nil
+          [col_name, metadata.getColumnTypeName(i).to_sym, i]
         end
-        col_types = (1..column_count).map do |i|
-          metadata.getColumnTypeName(i)
-        end
+        cols_types_index.delete(nil)
 
         rows = []
-
+        get_lob_value = !(name == 'Writable Large Object')
+        
         while rset.next
-          hash = Hash.new
-
-          cols.each_with_index do |col, i0|
-            i = i0 + 1
-            hash[col] = 
-              case column_type = col_types[i0]
-              when /CLOB/
-                name == 'Writable Large Object' ? rset.getClob(i) : get_ruby_value_from_result_set(rset, i, column_type)
-              when /BLOB/
-                name == 'Writable Large Object' ? rset.getBlob(i) : get_ruby_value_from_result_set(rset, i, column_type)
-              when 'DATE'
-                t = get_ruby_value_from_result_set(rset, i, column_type)
-                # RSI: added emulate_dates_by_column_name functionality
-                # if emulate_dates_by_column_name && self.class.is_date_column?(col)
-                #   d.to_date
-                # elsif
-                if t && OracleEnhancedAdapter.emulate_dates && (t.hour == 0 && t.min == 0 && t.sec == 0)
-                  t.to_date
-                else
-                  # JRuby Time supports time before year 1900 therefore now need to fall back to DateTime
-                  t
-                end
-              # RSI: added emulate_integers_by_column_name functionality
-              when "NUMBER"
-                n = get_ruby_value_from_result_set(rset, i, column_type)
-                if n && n.is_a?(Float) && OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(col)
-                  n.to_i
-                else
-                  n
-                end
-              else
-                get_ruby_value_from_result_set(rset, i, column_type)
-              end unless col == 'raw_rnum_'
+          hash = column_hash.dup
+          cols_types_index.each do |col, column_type, i|
+            hash[col] = get_ruby_value_from_result_set(rset, i, column_type, get_lob_value)
           end
-
           rows << hash
         end
 
-        return_column_names ? [rows, cols] : rows
+        return_column_names ? [rows, cols_types_index.map(&:first)] : rows
       ensure
         rset.close rescue nil
         stmt.close rescue nil
@@ -241,93 +282,69 @@ module ActiveRecord
         end
       end
 
-      def describe(name)
-        real_name = OracleEnhancedAdapter.valid_table_name?(name) ? name.to_s.upcase : name.to_s
-        if real_name.include?('.')
-          table_owner, table_name = real_name.split('.')
-        else
-          table_owner, table_name = @owner, real_name
-        end
-        sql = <<-SQL
-          SELECT owner, table_name, 'TABLE' name_type
-          FROM all_tables
-          WHERE owner = '#{table_owner}'
-            AND table_name = '#{table_name}'
-          UNION ALL
-          SELECT owner, view_name table_name, 'VIEW' name_type
-          FROM all_views
-          WHERE owner = '#{table_owner}'
-            AND view_name = '#{table_name}'
-          UNION ALL
-          SELECT table_owner, table_name, 'SYNONYM' name_type
-          FROM all_synonyms
-          WHERE owner = '#{table_owner}'
-            AND synonym_name = '#{table_name}'
-          UNION ALL
-          SELECT table_owner, table_name, 'SYNONYM' name_type
-          FROM all_synonyms
-          WHERE owner = 'PUBLIC'
-            AND synonym_name = '#{real_name}'
-        SQL
-        if result = select_one(sql)
-          case result['name_type']
-          when 'SYNONYM'
-            describe("#{result['owner']}.#{result['table_name']}")
-          else
-            [result['owner'], result['table_name']]
-          end
-        else
-          raise OracleEnhancedConnectionException, %Q{"DESC #{name}" failed; does it exist?}
-        end
+      # Return NativeException / java.sql.SQLException error code
+      def error_code(exception)
+        exception.cause.getErrorCode
       end
-      
 
       private
 
-      def prepare_statement(sql)
-        @raw_connection.prepareStatement(sql)
-      end
+      # def prepare_statement(sql)
+      #   @raw_connection.prepareStatement(sql)
+      # end
 
-      def prepare_call(sql, *bindvars)
-        @raw_connection.prepareCall(sql)
-      end
+      # def prepare_call(sql, *bindvars)
+      #   @raw_connection.prepareCall(sql)
+      # end
 
-      def get_ruby_value_from_result_set(rset, i, type_name)
+      def get_ruby_value_from_result_set(rset, i, type_name, get_lob_value = true)
         case type_name
-        when "CHAR", "VARCHAR2", "LONG"
-          rset.getString(i)
-        when "CLOB"
-          ora_value_to_ruby_value(rset.getClob(i))
-        when "BLOB"
-          ora_value_to_ruby_value(rset.getBlob(i))
-        when "NUMBER"
-          d = rset.getBigDecimal(i)
+        when :NUMBER
+          # d = rset.getBigDecimal(i)
+          # if d.nil?
+          #   nil
+          # elsif d.scale == 0
+          #   d.toBigInteger+0
+          # else
+          #   # Is there better way how to convert Java BigDecimal to Ruby BigDecimal?
+          #   d.toString.to_d
+          # end
+          d = rset.getNUMBER(i)
           if d.nil?
             nil
-          elsif d.scale == 0
-            d.toBigInteger+0
+          elsif d.isInt
+            Integer(d.stringValue)
           else
-            # Is there better way how to convert Java BigDecimal to Ruby BigDecimal?
-            d.toString.to_d
+            BigDecimal.new(d.stringValue)
           end
-        when "DATE"
+        when :VARCHAR2, :CHAR, :LONG
+          rset.getString(i)
+        when :DATE
           if dt = rset.getDATE(i)
             d = dt.dateValue
             t = dt.timeValue
-            Time.send(Base.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
+            if OracleEnhancedAdapter.emulate_dates && t.hours == 0 && t.minutes == 0 && t.seconds == 0
+              Date.new(d.year + 1900, d.month + 1, d.date)
+            else
+              Time.send(Base.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
+            end
           else
             nil
           end
-        when /^TIMESTAMP/
+        when :TIMESTAMP, :TIMESTAMPTZ, :TIMESTAMPLTZ
           ts = rset.getTimestamp(i)
           ts && Time.send(Base.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
             ts.nanos / 1000)
+        when :CLOB
+          get_lob_value ? lob_to_ruby_value(rset.getClob(i)) : rset.getClob(i)
+        when :BLOB
+          get_lob_value ? lob_to_ruby_value(rset.getBlob(i)) : rset.getBlob(i)
         else
           nil
         end
       end
       
-      def ora_value_to_ruby_value(val)
+      def lob_to_ruby_value(val)
         case val
         when ::Java::OracleSql::CLOB
           if val.isEmptyLob
@@ -341,8 +358,6 @@ module ActiveRecord
           else
             String.from_java_bytes(val.getBytes(1, val.length))
           end
-        else
-          val
         end
       end
 
