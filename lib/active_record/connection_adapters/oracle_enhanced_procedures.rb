@@ -143,6 +143,7 @@ module ActiveRecord #:nodoc:
             end
           end
 
+          @destroyed = true
           freeze
         end
 

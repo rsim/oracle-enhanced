@@ -257,6 +257,18 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     TestEmployee.find_by_employee_id(empl_id).should be_nil
   end
 
+  it "should delete record and set destroyed flag" do
+    return pending("Not in this ActiveRecord version (requires >= 2.3.5)") unless TestEmployee.method_defined?(:destroyed?)
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :hire_date => @today
+    )
+    @employee.reload
+    @employee.destroy
+    @employee.should be_destroyed
+  end
+
   it "should rollback record when exception is raised in after_desotry callback" do
     TestEmployee.class_eval { def after_destroy() raise "Make the transaction rollback" end }
     begin
