@@ -48,7 +48,7 @@ module ActiveRecord #:nodoc:
       end
 
       def foreign_keys(table_name, stream)
-        if (foreign_keys = @connection.foreign_keys(table_name)).any?
+        if @connection.respond_to?(:foreign_keys) && (foreign_keys = @connection.foreign_keys(table_name)).any?
           add_foreign_key_statements = foreign_keys.map do |foreign_key|
             statement_parts = [ ('add_foreign_key ' + foreign_key.from_table.inspect) ]
             statement_parts << foreign_key.to_table.inspect
@@ -73,15 +73,17 @@ module ActiveRecord #:nodoc:
       end
 
       def synonyms(stream)
-        syns = @connection.synonyms
-        syns.each do |syn|
-          table_name = syn.table_name
-          table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
-          table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
-          stream.print "  add_synonym #{syn.name.inspect}, #{table_name.inspect}, :force => true"
-          stream.puts
+        if @connection.respond_to?(:synonyms)
+          syns = @connection.synonyms
+          syns.each do |syn|
+            table_name = syn.table_name
+            table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
+            table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
+            stream.print "  add_synonym #{syn.name.inspect}, #{table_name.inspect}, :force => true"
+            stream.puts
+          end
+          stream.puts unless syns.empty?
         end
-        stream.puts unless syns.empty?
       end
 
       def indexes_with_oracle_enhanced(table, stream)
