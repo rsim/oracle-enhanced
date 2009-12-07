@@ -537,7 +537,6 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
     end
 
     it "should return Time value with fractional seconds from TIMESTAMP columns" do
-      # currently fractional seconds are not retrieved from database
       @now = Time.local(2008,5,26,23,11,11,10)
       @employee = TestEmployee.create(
         :created_at => @now,

@@ -69,6 +69,8 @@ module ActiveRecord
         cursor_sharing = config[:cursor_sharing] || 'force'
         # by default VARCHAR2 column size will be interpreted as max number of characters (and not bytes)
         nls_length_semantics = config[:nls_length_semantics] || 'CHAR'
+        # get session time_zone from configuration or from TZ environment variable
+        time_zone = config[:time_zone] || ENV['TZ'] || java.util.TimeZone.default.getID
 
         properties = java.util.Properties.new
         properties.put("user", username)
@@ -78,13 +80,13 @@ module ActiveRecord
 
         @raw_connection = java.sql.DriverManager.getConnection(url, properties)
         exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
-        exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'}
+        exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS:FF6'}
         exec "alter session set cursor_sharing = #{cursor_sharing}"
         exec "alter session set nls_length_semantics = '#{nls_length_semantics}'"
         self.autocommit = true
         
         # Set session time zone to current time zone
-        @raw_connection.setSessionTimeZone(java.util.TimeZone.default.getID)
+        @raw_connection.setSessionTimeZone(time_zone)
         
         # Set default number of rows to prefetch
         # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows

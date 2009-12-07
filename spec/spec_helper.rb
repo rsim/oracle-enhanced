@@ -42,14 +42,14 @@ else
 end
 if !defined?(RUBY_ENGINE)
   # change version to 1.0.6 to test with old oracle_adapter
-  gem 'ruby-oci8', '=2.0.2'
+  gem 'ruby-oci8', '=2.0.3'
   require 'oci8'
   if OCI8::VERSION =~ /^1\./
     gem "activerecord-oracle-adapter"
     require 'active_record/connection_adapters/oracle_adapter'
   end
 elsif RUBY_ENGINE == 'ruby'
-  gem 'ruby-oci8', '=2.0.2'
+  gem 'ruby-oci8', '=2.0.3'
   require 'oci8'
 elsif RUBY_ENGINE == 'jruby'
   gem "activerecord-jdbc-adapter"
@@ -123,3 +123,7 @@ SYSTEM_CONNECTION_PARAMS = {
 
 # For JRuby Set default $KCODE to UTF8
 $KCODE = "UTF8" if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+
+# set default time zone in TZ environment variable
+# which will be used to set session time zone
+ENV['TZ'] ||= 'Europe/Riga'
