@@ -363,12 +363,16 @@ module ActiveRecord
         bool ? "Y" : "N"
       end
 
+      ##
+      # :singleton-method:
       # Specify non-default date format that should be used when assigning string values to :date columns, e.g.:
       # 
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = “%d.%m.%Y”
       cattr_accessor :string_to_date_format
       self.string_to_date_format = nil
       
+      ##
+      # :singleton-method:
       # Specify non-default time format that should be used when assigning string values to :datetime columns, e.g.:
       # 
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = “%d.%m.%Y %H:%M:%S”
@@ -793,7 +797,27 @@ module ActiveRecord
         select_value(pkt_sql) ? true : false
       end
 
+      ##
+      # :singleton-method:
+      # Cache column description between requests.
+      # Could be used in development environment to avoid selecting table columns from data dictionary tables for each request.
+      # This can speed up request processing in development mode if development database is not on local computer.
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
+      cattr_accessor :cache_columns
+      self.cache_columns = false
+
       def columns(table_name, name = nil) #:nodoc:
+        # Don't double cache if config.cache_classes is turned on
+        if @@cache_columns && !(defined?(Rails) && Rails.configuration.cache_classes)
+          @@columns_cache ||= {}
+          @@columns_cache[table_name] ||= columns_without_cache(table_name, name)
+        else
+          columns_without_cache(table_name, name)
+        end
+      end
+
+      def columns_without_cache(table_name, name = nil) #:nodoc:
         # get ignored_columns by original table name
         ignored_columns = ignored_table_columns(table_name)
 
@@ -842,6 +866,11 @@ module ActiveRecord
                            # pass column type if specified in class definition
                            get_type_for_column(table_name, oracle_downcase(row['name'])))
         end
+      end
+
+      # used just in tests to clear column cache
+      def clear_columns_cache #:nodoc:
+        @@columns_cache = nil
       end
 
       ##

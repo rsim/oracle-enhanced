@@ -34,6 +34,8 @@ describe "OracleEnhancedAdapter establish connection" do
 end
 
 describe "OracleEnhancedAdapter" do
+  include LoggerSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
@@ -169,6 +171,77 @@ describe "OracleEnhancedAdapter" do
       # establish other connection
       other_conn = ActiveRecord::Base.oracle_enhanced_connection(CONNECTION_PARAMS)
       other_conn.columns('test_employees').select{|c| ['phone_number','hire_date'].include?(c.name) }.should be_empty
+    end
+
+  end
+
+  describe "cache table columns" do
+    before(:all) do
+      @conn.execute "DROP TABLE test_employees" rescue nil
+      @conn.execute <<-SQL
+        CREATE TABLE test_employees (
+          id            NUMBER,
+          first_name    VARCHAR2(20),
+          last_name     VARCHAR2(25),
+          hire_date     DATE
+        )
+      SQL
+      @column_names = ['id', 'first_name', 'last_name', 'hire_date']
+      class ::TestEmployee < ActiveRecord::Base
+      end
+    end
+
+    after(:all) do
+      Object.send(:remove_const, "TestEmployee")
+      @conn.execute "DROP TABLE test_employees"
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
+    end
+
+    before(:each) do
+      @buffer = StringIO.new
+      log_to @buffer
+      @conn = ActiveRecord::Base.connection
+      @conn.clear_columns_cache
+    end
+
+    describe "without column caching" do
+
+      before(:each) do
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = false
+      end
+
+      it "should get columns from database at first time" do
+        TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
+        @buffer.string.should =~ /select .* from all_tab_columns/im
+      end
+
+      it "should get columns from database at second time" do
+        TestEmployee.connection.columns('test_employees')
+        @buffer.truncate(0)
+        TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
+        @buffer.string.should =~ /select .* from all_tab_columns/im
+      end
+
+    end
+
+    describe "with column caching" do
+
+      before(:each) do
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
+      end
+
+      it "should get columns from database at first time" do
+        TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
+        @buffer.string.should =~ /select .* from all_tab_columns/im
+      end
+
+      it "should get columns from cache at second time" do
+        TestEmployee.connection.columns('test_employees')
+        @buffer.truncate(0)
+        TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
+        @buffer.string.should be_blank
+      end
+
     end
 
   end
