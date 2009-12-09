@@ -26,6 +26,10 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
     SQL
   end
 
+  after(:all) do
+    ActiveRecord::Base.connection.execute "DROP FUNCTION MORE_THAN_FIVE_CHARACTERS_LONG"
+  end
+
   before(:each) do
     @buffer = StringIO.new
     log_to @buffer
