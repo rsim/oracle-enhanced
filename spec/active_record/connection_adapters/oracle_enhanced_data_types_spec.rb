@@ -105,7 +105,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     after(:each) do
       # @employee.destroy if @employee
       Object.send(:remove_const, "TestEmployee")
-      ActiveRecord::Base.connection.clear_types_for_columns
+      @conn.clear_types_for_columns
     end
 
     it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
@@ -202,6 +202,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
         salary        NUMBER,
         commission_pct  NUMBER(2,2),
         manager_id    NUMBER(6),
+        is_manager    NUMBER(1),
         department_id NUMBER(4,0),
         created_at    DATE
       )
@@ -262,6 +263,8 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
     
     after(:each) do
       Object.send(:remove_const, "Test2Employee")
+      @conn.clear_types_for_columns
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
     end
     
     def create_employee2
@@ -269,6 +272,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
         :first_name => "First",
         :last_name => "Last",
         :job_id => 1,
+        :is_manager => 1,
         :salary => 1000
       )
       @employee2.reload
@@ -290,6 +294,32 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
       create_employee2
       @employee2.salary.class.should == BigDecimal
+    end
+
+    it "should return Fixnum value from NUMBER column if column specified in set_integer_columns" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
+      Test2Employee.set_integer_columns :job_id
+      create_employee2
+      @employee2.job_id.class.should == Fixnum
+    end
+
+    it "should return Boolean value from NUMBER(1) column if emulate booleans is used" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
+      create_employee2
+      @employee2.is_manager.class.should == TrueClass
+    end
+
+    it "should return Fixnum value from NUMBER(1) column if emulate booleans is not used" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = false
+      create_employee2
+      @employee2.is_manager.class.should == Fixnum
+    end
+
+    it "should return Fixnum value from NUMBER(1) column if column specified in set_integer_columns" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
+      Test2Employee.set_integer_columns :is_manager
+      create_employee2
+      @employee2.is_manager.class.should == Fixnum
     end
 
   end
@@ -330,6 +360,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   after(:all) do
     @conn.execute "DROP TABLE test3_employees"
     @conn.execute "DROP SEQUENCE test3_employees_seq"
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
   end
 
   it "should set CHAR/VARCHAR2 column type as string if emulate_booleans_from_strings is false" do
@@ -384,7 +415,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       :boolean, nil, nil, nil).should == "VARCHAR2(1)"
   end
 
-  it "should translate boolean type to NUMBER(1) if emulate_booleans_from_strings is true" do
+  it "should translate boolean type to NUMBER(1) if emulate_booleans_from_strings is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
     ActiveRecord::Base.connection.type_to_sql(
       :boolean, nil, nil, nil).should == "NUMBER(1)"
@@ -406,6 +437,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     
     after(:each) do
       Object.send(:remove_const, "Test3Employee")
+      @conn.clear_types_for_columns
     end
     
     def create_employee3(params={})
@@ -451,9 +483,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
     it "should return boolean value from VARCHAR2 boolean column if column specified in set_boolean_columns" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
-      class ::Test3Employee < ActiveRecord::Base
-        set_boolean_columns :test_boolean
-      end
+      Test3Employee.set_boolean_columns :test_boolean
       create_employee3(:test_boolean => true)
       @employee3.test_boolean.class.should == TrueClass
       @employee3.test_boolean_before_type_cast.should == "Y"
@@ -467,7 +497,14 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       @employee3.test_boolean.class.should == NilClass
       @employee3.test_boolean_before_type_cast.should == nil
     end
-  
+
+    it "should return string value from VARCHAR2 column with boolean column name but is specified in set_string_columns" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+      Test3Employee.set_string_columns :active_flag
+      create_employee3
+      @employee3.active_flag.class.should == String
+    end
+
   end
 
 end

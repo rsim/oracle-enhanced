@@ -78,6 +78,23 @@ module ActiveRecord
       connection.set_type_for_columns(table_name,:boolean,*args)
     end
 
+    # Specify which table columns should be typecasted to integer values.
+    # Might be useful to force NUMBER(1) column to be integer and not boolean, or force NUMBER column without
+    # scale to be retrieved as integer and not decimal. Example:
+    # 
+    #   set_integer_columns :version_number, :object_identifier
+    def self.set_integer_columns(*args)
+      connection.set_type_for_columns(table_name,:integer,*args)
+    end
+
+    # Specify which table columns should be typecasted to string values.
+    # Might be useful to specify that columns should be string even if its name matches boolean column criteria.
+    # 
+    #   set_integer_columns :active_flag
+    def self.set_string_columns(*args)
+      connection.set_type_for_columns(table_name,:string,*args)
+    end
+
     # After setting large objects to empty, select the OCI8::LOB
     # and write back the data.
     after_save :enhanced_write_lobs
@@ -170,23 +187,24 @@ module ActiveRecord
       
       private
       def simplified_type(field_type)
-        return :boolean if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
-        return :boolean if OracleEnhancedAdapter.emulate_booleans_from_strings &&
-                          (forced_column_type == :boolean ||
-                          OracleEnhancedAdapter.is_boolean_column?(name, field_type, table_name))
-        
+        forced_column_type ||
         case field_type
+          when /decimal|numeric|number/i
+            return :boolean if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
+            return :integer if extract_scale(field_type) == 0
+            # if column name is ID or ends with _ID
+            return :integer if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
+            :decimal
+          when /char/i
+            return :boolean if OracleEnhancedAdapter.emulate_booleans_from_strings &&
+                               OracleEnhancedAdapter.is_boolean_column?(name, field_type, table_name)
+            :string
           when /date/i
             forced_column_type ||
             (:date if OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(name, table_name)) ||
             :datetime
           when /timestamp/i then :timestamp
           when /time/i then :datetime
-          when /decimal|numeric|number/i
-            return :integer if extract_scale(field_type) == 0
-            # if column name is ID or ends with _ID
-            return :integer if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
-            :decimal
           else super
         end
       end
