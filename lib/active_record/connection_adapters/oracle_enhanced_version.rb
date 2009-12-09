@@ -1,7 +1,1 @@
-module ActiveRecord #:nodoc:
-  module ConnectionAdapters #:nodoc:
-    module OracleEnhancedVersion #:nodoc:
-      VERSION = '1.2.2'
-    end
-  end
-end
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::VERSION = '1.2.3'

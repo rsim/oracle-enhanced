@@ -1,3 +1,23 @@
+== 1.2.3 2009-12-09
+
+* Enhancements
+  * support fractional seconds in TIMESTAMP values
+  * support for ActiveRecord 2.3.5
+  * use ENV['TZ'] to set database session time zone
+    (as a result DATE and TIMESTAMP values are retrieved with correct time zone)
+  * added cache_columns adapter option
+  * added current_user adapter method
+  * added set_integer_columns and set_string_columns ActiveRecord model class methods
+* Bug fixes:
+  * do not raise exception if ENV['PATH'] is nil
+  * do not add change_table behavior for ActiveRecord 2.0 (to avoid exception during loading)
+  * move foreign key definitions after definition of all tables in schema.rb
+    (to avoid definition of foreign keys before all tables are created)
+  * changed timestamp format mask to use ':' before fractional seconds
+    (workaround to avoid table detection in tables_in_string method in ActiveRecord associations.rb file)
+  * fixed custom create/update/delete methods with ActiveRecord 2.3+ and timestamps
+  * do not call oracle_enhanced specific schema dump methods when using other database adapters
+
 == 1.2.2 2009-09-28
 
 * Enhancements

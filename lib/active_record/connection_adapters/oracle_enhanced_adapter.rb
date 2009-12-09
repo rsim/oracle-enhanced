@@ -281,6 +281,8 @@ module ActiveRecord
     # * <tt>:cursor_sharing</tt> - cursor sharing mode to minimize amount of unique statements, defaults to "force"
     # * <tt>:nls_length_semantics</tt> - semantics of size of VARCHAR2 and CHAR columns, defaults to "CHAR"
     #   (meaning that size specifies number of characters and not bytes)
+    # * <tt>:time_zone</tt> - database session time zone
+    #   (it is recommended to set it using ENV['TZ'] which will be then also used for database session time zone)
     class OracleEnhancedAdapter < AbstractAdapter
 
       ##
@@ -1432,3 +1434,4 @@ require 'active_record/connection_adapters/oracle_enhanced_schema_definitions'
 # Add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
 require 'active_record/connection_adapters/oracle_enhanced_core_ext'
 
+require 'active_record/connection_adapters/oracle_enhanced_version'
