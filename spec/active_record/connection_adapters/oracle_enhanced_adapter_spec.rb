@@ -435,4 +435,14 @@ describe "OracleEnhancedAdapter" do
 
   end
 
+  describe "session information" do
+    it "should get current database name" do
+      @conn.current_database.should == CONNECTION_PARAMS[:database]
+    end
+
+    it "should get current database session user" do
+      @conn.current_user.should == CONNECTION_PARAMS[:username].upcase
+    end
+  end
+
 end

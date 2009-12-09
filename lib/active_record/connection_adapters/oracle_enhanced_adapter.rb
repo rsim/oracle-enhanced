@@ -693,8 +693,14 @@ module ActiveRecord
       #
       # see: abstract/schema_statements.rb
 
-      def current_database #:nodoc:
+      # current database name
+      def current_database
         select_one("select sys_context('userenv','db_name') db from dual")["db"]
+      end
+
+      # current database session user
+      def current_user
+        select_one("select sys_context('userenv','session_user') u from dual")['u']
       end
 
       def tables(name = nil) #:nodoc:
