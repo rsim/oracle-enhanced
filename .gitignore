@@ -1,6 +1,10 @@
+.svn
+.DS_Store
+coverage
 doc
 pkg
 log
 tmp
 sqlnet.log
+activerecord-oracle_enhanced-adapter.gemspec
 
