@@ -156,10 +156,11 @@ module ActiveRecord
           value
         when String
           value
-        when Float
+        when Float, BigDecimal
+          # return Fixnum or Bignum if value is integer (to avoid issues with _before_type_cast values for id attributes)
           value == (v_to_i = value.to_i) ? v_to_i : value
-        # ruby-oci8 2.0 returns OraNumber if Oracle type is NUMBER
         when OraNumber
+          # change OraNumber value (returned in early versions of ruby-oci8 2.0.x) to BigDecimal
           value == (v_to_i = value.to_i) ? v_to_i : BigDecimal.new(value.to_s)
         when OCI8::LOB
           if get_lob_value
@@ -209,6 +210,7 @@ module ActiveRecord
           ::DateTime.civil(year, month, day, hour, min, sec, offset)
         end
       end
+
     end
     
     # The OracleEnhancedOCIFactory factors out the code necessary to connect and

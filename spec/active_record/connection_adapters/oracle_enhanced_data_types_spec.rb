@@ -290,6 +290,12 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       @employee2.job_id.class.should == Fixnum
     end
 
+    it "should return Fixnum value from NUMBER column with integer value using _before_type_cast method" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
+      create_employee2
+      @employee2.job_id_before_type_cast.class.should == Fixnum
+    end
+
     it "should return BigDecimal value from NUMBER column if column name does not contain 'id' and emulate_integers_by_column_name is true" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
       create_employee2
