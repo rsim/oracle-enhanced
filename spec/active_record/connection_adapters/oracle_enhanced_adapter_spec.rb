@@ -445,4 +445,44 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "structure dump" do
+    before(:all) do
+      @conn.create_table :test_posts do |t|
+        t.string      :title
+        t.string      :foo
+      end
+      class ::TestPost < ActiveRecord::Base
+      end
+      TestPost.set_table_name "test_posts"
+    end
+    
+    after(:all) do
+      @conn.drop_table :test_posts 
+      @conn.execute "DROP SEQUENCE test_posts_seq" rescue nil
+    end
+    
+    it "should dump triggers" do
+      @conn.execute <<-SQL
+        create or replace TRIGGER TEST_POST_TRIGGER
+          BEFORE INSERT
+          ON TEST_POSTS
+          FOR EACH ROW
+        BEGIN
+          SELECT 'bar' INTO :new.FOO FROM DUAL;
+        END;
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
+      dump.should =~ /create or replace TRIGGER TEST_POST_TRIGGER/
+      @conn.execute "DROP TRIGGER test_post_trigger"
+    end
+    
+    it "should dump types" do
+      @conn.execute <<-SQL
+        create or replace TYPE TEST_TYPE AS TABLE OF VARCHAR2(10);
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
+      dump.should =~ /create or replace TYPE TEST_TYPE/
+      @conn.execute "DROP TYPE TEST_TYPE"
+    end
+  end
 end

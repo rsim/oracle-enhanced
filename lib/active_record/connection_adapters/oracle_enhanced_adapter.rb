@@ -1160,7 +1160,7 @@ module ActiveRecord
         structure = "\n"
         select_all("select distinct name, type 
                      from all_source 
-                    where type in ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION') 
+                    where type in ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE') 
                       and  owner = sys_context('userenv','session_user')").inject("\n\n") do |structure, source|
             ddl = "create or replace   \n "
             lines = select_all(%Q{
