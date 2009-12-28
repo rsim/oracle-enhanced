@@ -447,9 +447,12 @@ describe "OracleEnhancedAdapter" do
 
   describe "structure dump" do
     before(:all) do
-      @conn.create_table :test_posts do |t|
+      @conn.create_table :test_posts, :force => true do |t|
         t.string      :title
         t.string      :foo
+        t.integer     :foo_id
+      end
+      @conn.create_table :foos do |t|
       end
       class ::TestPost < ActiveRecord::Base
       end
@@ -458,7 +461,30 @@ describe "OracleEnhancedAdapter" do
     
     after(:all) do
       @conn.drop_table :test_posts 
+      @conn.drop_table :foos
       @conn.execute "DROP SEQUENCE test_posts_seq" rescue nil
+    end
+    
+    after(:each) do
+      @conn.execute "ALTER TABLE test_posts drop CONSTRAINT fk_test_post_foo" rescue nil
+      @conn.execute "DROP TRIGGER test_post_trigger" rescue nil
+      @conn.execute "DROP TYPE TEST_TYPE" rescue nil
+    end
+    
+    it "should dump foreign keys" do
+      @conn.execute <<-SQL
+        ALTER TABLE TEST_POSTS 
+        ADD CONSTRAINT fk_test_post_foo FOREIGN KEY (foo_id) REFERENCES foos(id)
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
+      dump.split('\n').length.should == 1
+      dump.should =~ /ALTER TABLE TEST_POSTS ADD CONSTRAINT fk_test_post_foo FOREIGN KEY \(foo_id\) REFERENCES foos\(id\);/
+    end
+    
+    it "should not error when no foreign keys are present" do
+      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
+      dump.split('\n').length.should == 0
+      dump.should == ''
     end
     
     it "should dump triggers" do
@@ -473,7 +499,6 @@ describe "OracleEnhancedAdapter" do
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
       dump.should =~ /create or replace TRIGGER TEST_POST_TRIGGER/
-      @conn.execute "DROP TRIGGER test_post_trigger"
     end
     
     it "should dump types" do
@@ -482,7 +507,6 @@ describe "OracleEnhancedAdapter" do
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
       dump.should =~ /create or replace TYPE TEST_TYPE/
-      @conn.execute "DROP TYPE TEST_TYPE"
     end
   end
 end

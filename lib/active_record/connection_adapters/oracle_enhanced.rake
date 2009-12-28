@@ -17,6 +17,7 @@ namespace :db do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(abcs[RAILS_ENV])
       File.open("db/#{RAILS_ENV}_structure.sql", "w+") { |f| f << ActiveRecord::Base.connection.structure_dump }
+      File.open("db/#{RAILS_ENV}_structure.sql", "a") { |f| f << ActiveRecord::Base.connection.structure_dump_fk_constraints }
       if ActiveRecord::Base.connection.supports_migrations?
         File.open("db/#{RAILS_ENV}_structure.sql", "a") { |f| f << ActiveRecord::Base.connection.dump_schema_information }
       end

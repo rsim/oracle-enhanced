@@ -1155,6 +1155,19 @@ module ActiveRecord
         end
       end
 
+      def structure_dump_fk_constraints
+        select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").map do |table|
+          if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?
+            foreign_keys.map do |fk|
+              column = fk.options[:column] || "#{fk.to_table.to_s.singularize}_id"
+              constraint_name = foreign_key_constraint_name(fk.from_table, column, fk.options)
+              sql = "ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(constraint_name)} "
+              sql << "#{foreign_key_definition(fk.to_table, fk.options)};"
+            end
+          end
+        end.flatten.compact.join("\n")
+      end
+      
       # Extract all stored procedures, packages, synonyms and views.
       def structure_dump_db_stored_code #:nodoc:
         structure = "\n"
