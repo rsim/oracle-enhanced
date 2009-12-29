@@ -1129,6 +1129,7 @@ module ActiveRecord
 
         # changed select from user_tables to all_tables - much faster in large data dictionaries
         select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").inject(s) do |structure, table|
+          virtual_columns = virtual_columns_for(table["table_name"])
           ddl = "create table #{table.to_a.first.last} (\n "
           cols = select_all(%Q{
             select column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
@@ -1136,18 +1137,11 @@ module ActiveRecord
             where table_name = '#{table.to_a.first.last}'
             order by column_id
           }).map do |row|
-            col = "#{row['column_name'].downcase} #{row['data_type'].downcase}"
-            if row['data_type'] =='NUMBER' and !row['data_precision'].nil?
-              col << "(#{row['data_precision'].to_i}"
-              col << ",#{row['data_scale'].to_i}" if !row['data_scale'].nil?
-              col << ')'
-            elsif row['data_type'].include?('CHAR')
-              length = row['char_used'] == 'C' ? row['char_length'].to_i : row['data_length'].to_i
-              col <<  "(#{length})"
+            if(v = virtual_columns.find {|col| col['column_name'] == row['column_name']})
+              structure_dump_virtual_column(row, v['data_default'])
+            else
+              structure_dump_column(row)
             end
-            col << " default #{row['data_default']}" if !row['data_default'].nil?
-            col << ' not null' if row['nullable'] == 'N'
-            col
           end
           ddl << cols.join(",\n ")
           ddl << structure_dump_primary_key(table['table_name'])
@@ -1155,7 +1149,36 @@ module ActiveRecord
           structure << ddl
         end
       end
-
+      
+      def structure_dump_virtual_column(column, data_default)
+        data_default = data_default.gsub(/"/, '')
+        col = "#{column['column_name'].downcase} #{column['data_type'].downcase}"
+        if column['data_type'] =='NUMBER' and !column['data_precision'].nil?
+          col << "(#{column['data_precision'].to_i}"
+          col << ",#{column['data_scale'].to_i}" if !column['data_scale'].nil?
+          col << ')'
+        elsif column['data_type'].include?('CHAR')
+          length = column['char_used'] == 'C' ? column['char_length'].to_i : column['data_length'].to_i
+          col <<  "(#{length})"
+        end
+        col << " GENERATED ALWAYS AS (#{data_default}) VIRTUAL"
+      end
+      
+      def structure_dump_column(column)
+        col = "#{column['column_name'].downcase} #{column['data_type'].downcase}"
+        if column['data_type'] =='NUMBER' and !column['data_precision'].nil?
+          col << "(#{column['data_precision'].to_i}"
+          col << ",#{column['data_scale'].to_i}" if !column['data_scale'].nil?
+          col << ')'
+        elsif column['data_type'].include?('CHAR')
+          length = column['char_used'] == 'C' ? column['char_length'].to_i : column['data_length'].to_i
+          col <<  "(#{length})"
+        end
+        col << " default #{column['data_default']}" if !column['data_default'].nil?
+        col << ' not null' if column['nullable'] == 'N'
+        col  
+      end
+      
       def structure_dump_primary_key(table)
         opts = {:name => '', :cols => []}
         pks = select_all(<<-SQL, "Primary Keys") 
@@ -1193,7 +1216,7 @@ module ActiveRecord
         select_all("select distinct name, type 
                      from all_source 
                     where type in ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE') 
-                      and  owner = sys_context('userenv','session_user')").inject("\n\n") do |structure, source|
+                      and  owner = sys_context('userenv','session_user') order by type").inject("\n\n") do |structure, source|
             ddl = "create or replace   \n "
             lines = select_all(%Q{
                     select text
@@ -1221,7 +1244,7 @@ module ActiveRecord
         # export synonyms 
         select_all("select owner, synonym_name, table_name, table_owner 
                       from all_synonyms  
-                     where table_owner = sys_context('userenv','session_user') ").inject(structure) do |structure, synonym|
+                     where owner = sys_context('userenv','session_user') ").inject(structure) do |structure, synonym|
           ddl = "create or replace #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']} for #{synonym['table_owner']}.#{synonym['table_name']};\n\n"
           structure << ddl;
         end
@@ -1362,6 +1385,23 @@ module ActiveRecord
         string.split($/).map { |line| line.strip }.join(spaced ? ' ' : '')
       end
 
+      # virtual columns are an 11g feature.  This returns [] if feature is not 
+      # present or none are found.
+      # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
+      def virtual_columns_for(table)
+        begin
+          select_all <<-SQL
+            select column_name, data_default 
+              from user_tab_cols 
+             where virtual_column='YES' 
+               and table_name='#{table.upcase}'
+          SQL
+        # feature not supported previous to 11g
+        rescue ActiveRecord::StatementInvalid => e
+          []
+        end
+      end
+      
       public
       # DBMS_OUTPUT =============================================
       #

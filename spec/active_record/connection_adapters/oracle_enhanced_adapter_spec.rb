@@ -469,6 +469,7 @@ describe "OracleEnhancedAdapter" do
       @conn.execute "ALTER TABLE test_posts drop CONSTRAINT fk_test_post_foo" rescue nil
       @conn.execute "DROP TRIGGER test_post_trigger" rescue nil
       @conn.execute "DROP TYPE TEST_TYPE" rescue nil
+      @conn.execute "DROP TABLE bars" rescue nil
     end
     
     it "should dump single primary key" do
@@ -527,6 +528,18 @@ describe "OracleEnhancedAdapter" do
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
       dump.should =~ /create or replace TYPE TEST_TYPE/
+    end
+    
+    it "should dump virtual columns" do
+      @conn.execute <<-SQL
+        CREATE TABLE bars (
+          id          NUMBER(38,0) NOT NULL,
+          id_plus     NUMBER GENERATED ALWAYS AS(id + 2) VIRTUAL,
+          PRIMARY KEY (ID)
+        )
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump
+      dump.should =~ /id_plus number GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
     end
   end
 end
