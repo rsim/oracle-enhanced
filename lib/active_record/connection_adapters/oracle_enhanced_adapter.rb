@@ -1150,11 +1150,30 @@ module ActiveRecord
             col
           end
           ddl << cols.join(",\n ")
+          ddl << structure_dump_primary_key(table['table_name'])
           ddl << ");\n\n"
           structure << ddl
         end
       end
 
+      def structure_dump_primary_key(table)
+        opts = {:name => '', :cols => []}
+        pks = select_all(<<-SQL, "Primary Keys") 
+          select a.constraint_name, a.column_name, a.position 
+            from user_cons_columns a 
+            join user_constraints c  
+              on a.constraint_name = c.constraint_name 
+           where c.table_name = '#{table.upcase}' 
+             and c.constraint_type = 'P' 
+             and c.owner = sys_context('userenv', 'session_user')
+        SQL
+        pks.each do |row|
+          opts[:name] = row['constraint_name']
+          opts[:cols][row['position']-1] = row['column_name']
+        end
+        opts[:cols].length > 0 ? ",\n CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})\n" : ''
+      end
+      
       def structure_dump_fk_constraints
         select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").map do |table|
           if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?

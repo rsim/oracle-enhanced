@@ -471,6 +471,26 @@ describe "OracleEnhancedAdapter" do
       @conn.execute "DROP TYPE TEST_TYPE" rescue nil
     end
     
+    it "should dump single primary key" do
+      dump = ActiveRecord::Base.connection.structure_dump
+      dump.should =~ /CONSTRAINT (.+) PRIMARY KEY \(ID\)/
+    end
+    
+    it "should dump composite primary keys" do
+      pk = @conn.send(:select_one, <<-SQL)
+        select constraint_name from user_constraints where table_name = 'TEST_POSTS' and constraint_type='P'
+      SQL
+      @conn.execute <<-SQL
+        alter table test_posts drop constraint #{pk["constraint_name"]}
+      SQL
+      @conn.execute <<-SQL
+        ALTER TABLE TEST_POSTS
+        add CONSTRAINT pk_id_title PRIMARY KEY (id, title)
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump
+      dump.should =~ /CONSTRAINT (.+) PRIMARY KEY \(ID,TITLE\)/
+    end
+    
     it "should dump foreign keys" do
       @conn.execute <<-SQL
         ALTER TABLE TEST_POSTS 
