@@ -541,5 +541,17 @@ describe "OracleEnhancedAdapter" do
       dump = ActiveRecord::Base.connection.structure_dump
       dump.should =~ /id_plus number GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
     end
+    
+    it "should dump unique keys" do
+      @conn.execute <<-SQL
+        ALTER TABLE test_posts
+          add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump_unique_keys("test_posts")
+      dump.should == ",\n CONSTRAINT UK_FOO_FOO_ID UNIQUE (FOO,FOO_ID)\n"
+      
+      dump = ActiveRecord::Base.connection.structure_dump
+      dump.should =~ /CONSTRAINT UK_FOO_FOO_ID UNIQUE \(FOO,FOO_ID\)/
+    end
   end
 end

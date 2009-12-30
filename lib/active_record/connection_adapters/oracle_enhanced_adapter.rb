@@ -1145,6 +1145,7 @@ module ActiveRecord
           end
           ddl << cols.join(",\n ")
           ddl << structure_dump_primary_key(table['table_name'])
+          ddl << structure_dump_unique_keys(table['table_name'])
           ddl << ");\n\n"
           structure << ddl
         end
@@ -1182,12 +1183,12 @@ module ActiveRecord
       def structure_dump_primary_key(table)
         opts = {:name => '', :cols => []}
         pks = select_all(<<-SQL, "Primary Keys") 
-          select a.constraint_name, a.column_name, a.position 
+          select a.constraint_name, a.column_name, a.position
             from user_cons_columns a 
             join user_constraints c  
               on a.constraint_name = c.constraint_name 
            where c.table_name = '#{table.upcase}' 
-             and c.constraint_type = 'P' 
+             and c.constraint_type = 'P'
              and c.owner = sys_context('userenv', 'session_user')
         SQL
         pks.each do |row|
@@ -1195,6 +1196,28 @@ module ActiveRecord
           opts[:cols][row['position']-1] = row['column_name']
         end
         opts[:cols].length > 0 ? ",\n CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})\n" : ''
+      end
+      
+      def structure_dump_unique_keys(table)
+        keys = {}
+        out = ''
+        uks = select_all(<<-SQL, "Primary Keys") 
+          select a.constraint_name, a.column_name, a.position
+            from user_cons_columns a 
+            join user_constraints c  
+              on a.constraint_name = c.constraint_name 
+           where c.table_name = '#{table.upcase}' 
+             and c.constraint_type = 'U'
+             and c.owner = sys_context('userenv', 'session_user')
+        SQL
+        uks.each do |uk|
+          keys[uk['constraint_name']] ||= []
+          keys[uk['constraint_name']][uk['position']-1] = uk['column_name']
+        end
+        keys.each do |k,v|
+          out << ",\n CONSTRAINT #{k} UNIQUE (#{v.join(',')})\n"
+        end
+        out
       end
       
       def structure_dump_fk_constraints
@@ -1250,7 +1273,7 @@ module ActiveRecord
         end
       end
 
-
+      
       def structure_drop #:nodoc:
         s = select_all("select sequence_name from user_sequences order by 1").inject("") do |drop, seq|
           drop << "drop sequence #{seq.to_a.first.last};\n\n"
