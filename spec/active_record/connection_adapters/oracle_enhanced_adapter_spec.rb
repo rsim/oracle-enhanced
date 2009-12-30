@@ -445,4 +445,21 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "temporary tables" do
+    
+    after(:each) do
+      @conn.drop_table :foos rescue nil
+    end
+    it "should create ok" do
+      @conn.create_table :foos, :temporary => true, :id => false do |t|
+        t.integer :id
+      end
+    end
+    it "should show up as temporary" do
+      @conn.create_table :foos, :temporary => true, :id => false do |t|
+        t.integer :id
+      end
+      @conn.temporary?("foos").should be_true
+    end
+  end
 end

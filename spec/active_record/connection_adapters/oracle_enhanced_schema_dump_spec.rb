@@ -225,32 +225,15 @@ describe "OracleEnhancedAdapter schema dump" do
 
   end
 
-end
-
-describe "OracleEnhancedAdapter structure dump" do
-  before(:all) do
-    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
-  end
-
-  describe "database stucture dump extentions" do
-    before(:all) do
-      @conn.execute <<-SQL
-        CREATE TABLE nvarchartable (
-          unq_nvarchar  NVARCHAR2(255) DEFAULT NULL
-        )
-      SQL
+  describe "temporary tables" do
+    after(:each) do
+      drop_test_posts_table
     end
-
-    after(:all) do
-      @conn.execute "DROP TABLE nvarchartable"
-    end
-
-    it "should return the character size of nvarchar fields" do
-      if /.*unq_nvarchar nvarchar2\((\d+)\).*/ =~ @conn.structure_dump
-         "#$1".should == "255"
-      end
+    
+    it "should include temporary options" do
+      create_test_posts_table(:temporary => true)
+      standard_dump.should =~ /create_table "test_posts", :temporary => true/
     end
   end
-
 end
+

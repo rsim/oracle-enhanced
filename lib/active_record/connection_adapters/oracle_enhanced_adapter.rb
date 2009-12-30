@@ -937,38 +937,52 @@ module ActiveRecord
       #     t.string      :first_name, :comment => “Given name”
       #     t.string      :last_name, :comment => “Surname”
       #   end
+      
       def create_table(name, options = {}, &block)
         create_sequence = options[:id] != false
         column_comments = {}
-        super(name, options) do |t|
-          # store that primary key was defined in create_table block
-          unless create_sequence
-            class <<t
-              attr_accessor :create_sequence
-              def primary_key(*args)
-                self.create_sequence = true
-                super(*args)
-              end
+        
+        table_definition = TableDefinition.new(self)
+        table_definition.primary_key(options[:primary_key] || Base.get_primary_key(name.to_s.singularize)) unless options[:id] == false
+
+        # store that primary key was defined in create_table block
+        unless create_sequence
+          class << table_definition
+            attr_accessor :create_sequence
+            def primary_key(*args)
+              self.create_sequence = true
+              super(*args)
             end
           end
-
-          # store column comments
-          class <<t
-            attr_accessor :column_comments
-            def column(name, type, options = {})
-              if options[:comment]
-                self.column_comments ||= {}
-                self.column_comments[name] = options[:comment]
-              end
-              super(name, type, options)
-            end
-          end
-
-          result = block.call(t) if block
-          create_sequence = create_sequence || t.create_sequence
-          column_comments = t.column_comments if t.column_comments
         end
 
+        # store column comments
+        class << table_definition
+          attr_accessor :column_comments
+          def column(name, type, options = {})
+            if options[:comment]
+              self.column_comments ||= {}
+              self.column_comments[name] = options[:comment]
+            end
+            super(name, type, options)
+          end
+        end
+
+        result = block.call(table_definition) if block
+        create_sequence = create_sequence || table_definition.create_sequence
+        column_comments = table_definition.column_comments if table_definition.column_comments
+
+
+        if options[:force] && table_exists?(name)
+          drop_table(name, options)
+        end
+
+        create_sql = "CREATE#{' GLOBAL TEMPORARY' if options[:temporary]} TABLE "
+        create_sql << "#{quote_table_name(name)} ("
+        create_sql << table_definition.to_sql
+        create_sql << ") #{options[:options]}"
+        execute create_sql
+        
         create_sequence_and_trigger(name, options) if create_sequence
         
         add_table_comment name, options[:comment]
@@ -1129,12 +1143,13 @@ module ActiveRecord
 
         # changed select from user_tables to all_tables - much faster in large data dictionaries
         select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").inject(s) do |structure, table|
-          virtual_columns = virtual_columns_for(table["table_name"])
-          ddl = "create table #{table.to_a.first.last} (\n "
+          table_name = table['table_name']
+          virtual_columns = virtual_columns_for(table_name)
+          ddl = "create#{ ' global temporary' if temporary?(table_name)} table #{table_name} (\n "
           cols = select_all(%Q{
             select column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
             from user_tab_columns
-            where table_name = '#{table.to_a.first.last}'
+            where table_name = '#{table_name}'
             order by column_id
           }).map do |row|
             if(v = virtual_columns.find {|col| col['column_name'] == row['column_name']})
@@ -1144,10 +1159,10 @@ module ActiveRecord
             end
           end
           ddl << cols.join(",\n ")
-          ddl << structure_dump_constraints(table['table_name'])
+          ddl << structure_dump_constraints(table_name)
           ddl << "\n);\n\n"
           structure << ddl
-          structure << structure_dump_indexes(table['table_name'])
+          structure << structure_dump_indexes(table_name)
         end
       end
       
@@ -1349,6 +1364,10 @@ module ActiveRecord
         sql << order_columns * ", "
       end
 
+      def temporary?(table_name)
+        select_value("select temporary from user_tables where table_name = '#{table_name.upcase}'") == 'Y'
+      end
+      
       # ORDER BY clause for the passed order option.
       # 
       # Uses column aliases as defined by #distinct.

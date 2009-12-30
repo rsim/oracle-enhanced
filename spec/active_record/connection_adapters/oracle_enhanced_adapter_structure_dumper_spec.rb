@@ -128,4 +128,36 @@ describe "OracleEnhancedAdapter structure dump" do
       dump.should_not =~ /create unique index uk_test_posts_/i
     end
   end
+  describe "temporary tables" do
+    after(:all) do
+      @conn.drop_table :test_comments rescue nil
+    end
+    it "should dump correctly" do
+      @conn.create_table :test_comments, :temporary => true, :id => false do |t|
+        t.integer :post_id
+      end
+      dump = ActiveRecord::Base.connection.structure_dump
+      dump.should =~ /create global temporary table test_comments/i
+    end
+  end
+
+  describe "database stucture dump extentions" do
+    before(:all) do
+      @conn.execute <<-SQL
+        CREATE TABLE nvarchartable (
+          unq_nvarchar  NVARCHAR2(255) DEFAULT NULL
+        )
+      SQL
+    end
+
+    after(:all) do
+      @conn.execute "DROP TABLE nvarchartable"
+    end
+
+    it "should return the character size of nvarchar fields" do
+      if /.*unq_nvarchar nvarchar2\((\d+)\).*/ =~ @conn.structure_dump
+         "#$1".should == "255"
+      end
+    end
+  end
 end
