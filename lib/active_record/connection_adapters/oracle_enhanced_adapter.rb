@@ -1144,10 +1144,10 @@ module ActiveRecord
             end
           end
           ddl << cols.join(",\n ")
-          ddl << structure_dump_primary_key(table['table_name'])
-          ddl << structure_dump_unique_keys(table['table_name'])
-          ddl << ");\n\n"
+          ddl << structure_dump_constraints(table['table_name'])
+          ddl << "\n);\n\n"
           structure << ddl
+          structure << structure_dump_indexes(table['table_name'])
         end
       end
       
@@ -1180,6 +1180,11 @@ module ActiveRecord
         col  
       end
       
+      def structure_dump_constraints(table)
+        out = [structure_dump_primary_key(table), structure_dump_unique_keys(table)].flatten.compact
+        out.length > 0 ? ",\n#{out.join(",\n")}" : ''
+      end
+      
       def structure_dump_primary_key(table)
         opts = {:name => '', :cols => []}
         pks = select_all(<<-SQL, "Primary Keys") 
@@ -1195,12 +1200,11 @@ module ActiveRecord
           opts[:name] = row['constraint_name']
           opts[:cols][row['position']-1] = row['column_name']
         end
-        opts[:cols].length > 0 ? ",\n CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})\n" : ''
+        opts[:cols].length > 0 ? " CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})" : nil
       end
       
       def structure_dump_unique_keys(table)
         keys = {}
-        out = ''
         uks = select_all(<<-SQL, "Primary Keys") 
           select a.constraint_name, a.column_name, a.position
             from user_cons_columns a 
@@ -1214,10 +1218,9 @@ module ActiveRecord
           keys[uk['constraint_name']] ||= []
           keys[uk['constraint_name']][uk['position']-1] = uk['column_name']
         end
-        keys.each do |k,v|
-          out << ",\n CONSTRAINT #{k} UNIQUE (#{v.join(',')})\n"
+        keys.map do |k,v|
+          " CONSTRAINT #{k} UNIQUE (#{v.join(',')})"
         end
-        out
       end
       
       def structure_dump_fk_constraints
@@ -1273,6 +1276,23 @@ module ActiveRecord
         end
       end
 
+      def structure_dump_indexes(table_name)
+        statements = indexes(table_name).map do |options|
+        #def add_index(table_name, column_name, options = {})
+          column_names = options[:columns]
+          options = {:name => options[:name], :unique => options[:unique]}
+          index_name   = index_name(table_name, :column => column_names)
+          if Hash === options # legacy support, since this param was a string
+            index_type = options[:unique] ? "UNIQUE" : ""
+            index_name = options[:name] || index_name
+          else
+            index_type = options
+          end
+          quoted_column_names = column_names.map { |e| quote_column_name(e) }.join(", ")
+          "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names});"
+        end
+        statements.length > 0 ? "#{statements.join("\n")}\n\n" : ''
+      end
       
       def structure_drop #:nodoc:
         s = select_all("select sequence_name from user_sequences order by 1").inject("") do |drop, seq|
