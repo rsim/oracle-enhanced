@@ -40,7 +40,7 @@ namespace :db do
     redefine_task :purge => :environment do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(:test)
-      ActiveRecord::Base.connection.structure_drop.split("\n\n").each do |ddl|
+      ActiveRecord::Base.connection.full_drop.split("\n\n").each do |ddl|
         ActiveRecord::Base.connection.execute(ddl.chop)
       end
     end

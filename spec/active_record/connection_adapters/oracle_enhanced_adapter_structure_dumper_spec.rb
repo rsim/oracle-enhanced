@@ -160,4 +160,79 @@ describe "OracleEnhancedAdapter structure dump" do
       end
     end
   end
+  
+  
+  describe "full drop" do
+    before(:each) do 
+      @conn.create_table :full_drop_test do |t|
+        t.integer :id
+      end
+      #view
+      @conn.execute <<-SQL
+        create or replace view full_drop_test_view (foo) as select id as "foo" from full_drop_test
+      SQL
+      #package
+      @conn.execute <<-SQL
+        create or replace package full_drop_test_package as
+          function test_func return varchar2;
+        end test_package;
+      SQL
+      @conn.execute <<-SQL
+        create or replace package body full_drop_test_package as 
+          function test_func return varchar2 is
+            begin
+              return ('foo');
+          end test_func;
+        end test_package;
+      SQL
+      #function
+      @conn.execute <<-SQL
+        create or replace function full_drop_test_function
+          return varchar2 
+        is
+          foo varchar2(3);
+        begin 
+          return('foo');
+        end;
+      SQL
+      #procedure
+      @conn.execute <<-SQL
+        create or replace procedure full_drop_test_procedure
+        begin
+          delete from full_drop_test where id=1231231231
+        exception
+        when no_data_found then
+          dbms_output.put_line('foo');
+        end;
+      SQL
+      #synonym
+      @conn.execute <<-SQL
+        create or replace synonym full_drop_test_synonym for full_drop_test
+      SQL
+      #type
+      @conn.execute <<-SQL
+        create or replace type full_drop_test_type as table of number
+      SQL
+    end
+    after(:each) do
+      @conn.drop_table :full_drop_test
+      @conn.execute "DROP VIEW FULL_DROP_TEST_VIEW" rescue nil
+      @conn.execute "DROP SYNONYM FULL_DROP_TEST_SYNONYM" rescue nil
+      @conn.execute "DROP PACKAGE FULL_DROP_TEST_PACKAGE" rescue nil
+      @conn.execute "DROP FUNCTION FULL_DROP_TEST_FUNCTION" rescue nil
+      @conn.execute "DROP PROCEDURE FULL_DROP_TEST_PROCEDURE" rescue nil
+      @conn.execute "DROP TYPE FULL_DROP_TEST_TYPE" rescue nil
+    end
+    it "should contain correct sql" do
+      drop = @conn.full_drop
+      drop.should =~ /drop table full_drop_test cascade constraints/i
+      drop.should =~ /drop sequence full_drop_test_seq/i
+      drop.should =~ /drop view full_drop_test_view/i
+      drop.should =~ /drop package full_drop_test_package/i
+      drop.should =~ /drop function full_drop_test_function/i
+      drop.should =~ /drop procedure full_drop_test_procedure/i
+      drop.should =~ /drop synonym full_drop_test_synonym/i
+      drop.should =~ /drop type full_drop_test_type/i
+    end
+  end
 end

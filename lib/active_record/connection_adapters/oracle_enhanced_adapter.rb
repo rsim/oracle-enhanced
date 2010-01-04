@@ -1320,7 +1320,16 @@ module ActiveRecord
         end
       end
 
-
+      def full_drop
+        s = structure_drop
+        s << drop_sql_for_feature("view")
+        s << "\n\n" << drop_sql_for_feature("synonym")
+        s << "\n\n" << drop_sql_for_feature("type")
+        s << "\n\n" << drop_sql_for_object("package")
+        s << "\n\n" << drop_sql_for_object("function")
+        s << "\n\n" << drop_sql_for_object("procedure")
+      end
+      
       def add_column_options!(sql, options) #:nodoc:
         type = options[:type] || ((column = options[:column]) && column.type)
         type = type && type.to_sym
@@ -1462,6 +1471,14 @@ module ActiveRecord
         rescue ActiveRecord::StatementInvalid => e
           []
         end
+      end
+      
+      def drop_sql_for_feature(type)
+        select_values("select 'DROP #{type.upcase} ' || #{type}_name || ';' from user_#{type.tableize}").join("\n\n")
+      end
+      
+      def drop_sql_for_object(type)
+        select_values("select 'DROP #{type.upcase} ' || object_name || ';' from user_objects where object_type = '#{type.upcase}'").join("\n\n")
       end
       
       public
