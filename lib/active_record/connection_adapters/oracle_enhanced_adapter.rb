@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # oracle_enhanced_adapter.rb -- ActiveRecord adapter for Oracle 8i, 9i, 10g, 11g
 #
 # Authors or original oracle_adapter: Graham Jenkins, Michael Schoen
@@ -214,7 +215,7 @@ module ActiveRecord
           Date.new(value.year, value.month, value.day) : value
       end
       
-      class <<self
+      class << self
         protected
 
         def fallback_string_to_date(string) #:nodoc:
@@ -736,12 +737,12 @@ module ActiveRecord
         (owner, table_name, db_link) = @connection.describe(table_name)
         unless all_schema_indexes
           result = select_all(<<-SQL)
-            SELECT lower(i.table_name) as table_name, lower(i.index_name) as index_name, i.uniqueness, lower(c.column_name) as column_name
-              FROM all_indexes#{db_link} i, all_ind_columns#{db_link} c
+            SELECT lower(i.table_name) as table_name, lower(i.index_name) as index_name, i.uniqueness, lower(i.tablespace_name) as tablespace_name, lower(c.column_name) as column_name, e.column_expression as column_expression
+              FROM all_indexes#{db_link} i
+              JOIN all_ind_columns#{db_link} c on c.index_name = i.index_name and c.index_owner = i.owner
+              LEFT OUTER JOIN all_ind_expressions#{db_link} e on e.index_name = i.index_name and e.index_owner = i.owner and e.column_position = c.column_position
              WHERE i.owner = '#{owner}'
                AND i.table_owner = '#{owner}'
-               AND c.index_name = i.index_name
-               AND c.index_owner = i.owner
                AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
               ORDER BY i.index_name, c.column_position
           SQL
@@ -753,11 +754,10 @@ module ActiveRecord
             # have to keep track of indexes because above query returns dups
             # there is probably a better query we could figure out
             if current_index != row['index_name']
-              self.all_schema_indexes << ::ActiveRecord::ConnectionAdapters::IndexDefinition.new(row['table_name'], row['index_name'], row['uniqueness'] == "UNIQUE", [])
+              self.all_schema_indexes << ::ActiveRecord::ConnectionAdapters::OracleEnhancedIndexDefinition.new(row['table_name'], row['index_name'], row['uniqueness'] == "UNIQUE", row['tablespace_name'], [])
               current_index = row['index_name']
             end
-      
-            self.all_schema_indexes.last.columns << row['column_name']
+            self.all_schema_indexes.last.columns << (row['column_expression'].nil? ? row['column_name'] : row['column_expression'].gsub('"','').downcase)
           end
         end
       
@@ -1006,7 +1006,22 @@ module ActiveRecord
       # clear cached indexes when adding new index
       def add_index(table_name, column_name, options = {}) #:nodoc:
         self.all_schema_indexes = nil
-        super
+        column_names = Array(column_name)
+        index_name   = index_name(table_name, :column => column_names)
+
+        if Hash === options # legacy support, since this param was a string
+          index_type = options[:unique] ? "UNIQUE" : ""
+          index_name = options[:name] || index_name
+          tablespace = if options[:tablespace]
+                         " TABLESPACE #{options[:tablespace]}"
+                       else
+                         ""
+                       end
+        else
+          index_type = options
+        end
+        quoted_column_names = column_names.map { |e| quote_column_name(e) }.join(", ")
+        execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace}"
       end
 
       # clear cached indexes when removing index

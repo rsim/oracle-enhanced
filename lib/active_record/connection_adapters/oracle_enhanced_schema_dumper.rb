@@ -94,6 +94,7 @@ module ActiveRecord #:nodoc:
             statment_parts << index.columns.inspect
             statment_parts << (':name => ' + index.name.inspect)
             statment_parts << ':unique => true' if index.unique
+            statment_parts << ':tablespace => ' + index.tablespace.inspect
 
             '  ' + statment_parts.join(', ')
           end

@@ -6,6 +6,9 @@ module ActiveRecord
     class OracleEnhancedSynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
     end
 
+    class OracleEnhancedIndexDefinition < Struct.new(:table, :name, :unique, :tablespace, :columns)
+    end
+
     module OracleEnhancedSchemaDefinitions #:nodoc:
       def self.included(base)
         base::TableDefinition.class_eval do
