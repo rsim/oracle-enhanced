@@ -1153,7 +1153,7 @@ module ActiveRecord
 
       def structure_dump #:nodoc:
         s = select_all("select sequence_name from user_sequences order by 1").inject("") do |structure, seq|
-          structure << "create sequence #{seq.to_a.first.last};\n\n"
+          structure << "create sequence #{seq.to_a.first.last}#{STATEMENT_TOKEN}"
         end
 
         # changed select from user_tables to all_tables - much faster in large data dictionaries
@@ -1175,7 +1175,7 @@ module ActiveRecord
           end
           ddl << cols.join(",\n ")
           ddl << structure_dump_constraints(table_name)
-          ddl << "\n);\n\n"
+          ddl << "\n)#{STATEMENT_TOKEN}"
           structure << ddl
           structure << structure_dump_indexes(table_name)
         end
@@ -1254,25 +1254,26 @@ module ActiveRecord
       end
       
       def structure_dump_fk_constraints
-        select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").map do |table|
+        fks = select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").map do |table|
           if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?
             foreign_keys.map do |fk|
               column = fk.options[:column] || "#{fk.to_table.to_s.singularize}_id"
               constraint_name = foreign_key_constraint_name(fk.from_table, column, fk.options)
               sql = "ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(constraint_name)} "
-              sql << "#{foreign_key_definition(fk.to_table, fk.options)};"
+              sql << "#{foreign_key_definition(fk.to_table, fk.options)}"
             end
           end
-        end.flatten.compact.join("\n")
+        end.flatten.compact.join(STATEMENT_TOKEN)
+        fks.length > 1 ? "#{fks}#{STATEMENT_TOKEN}" : ''
       end
       
       # Extract all stored procedures, packages, synonyms and views.
       def structure_dump_db_stored_code #:nodoc:
-        structure = "\n"
+        structure = ""
         select_all("select distinct name, type 
                      from all_source 
                     where type in ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE') 
-                      and  owner = sys_context('userenv','session_user') order by type").inject("\n\n") do |structure, source|
+                      and  owner = sys_context('userenv','session_user') order by type").inject("") do |structure, source|
             ddl = "create or replace   \n "
             lines = select_all(%Q{
                     select text
@@ -1284,8 +1285,8 @@ module ActiveRecord
                   }).map do |row|
               ddl << row['text'] if row['text'].size > 1
             end
-            ddl << ";"
-            structure << ddl << "\n"
+            ddl << ";" unless ddl.strip.last == ";"
+            structure << ddl << STATEMENT_TOKEN
         end
 
         # export views 
@@ -1293,16 +1294,15 @@ module ActiveRecord
           ddl = "create or replace view #{view['view_name']} AS\n "
           # any views with empty lines will cause OCI to barf when loading. remove blank lines =/ 
           ddl << view['text'].gsub(/^\n/, '') 
-          ddl << ";\n\n"
-          structure << ddl
+          structure << ddl << STATEMENT_TOKEN
         end
 
         # export synonyms 
         select_all("select owner, synonym_name, table_name, table_owner 
                       from all_synonyms  
                      where owner = sys_context('userenv','session_user') ").inject(structure) do |structure, synonym|
-          ddl = "create or replace #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']} for #{synonym['table_owner']}.#{synonym['table_name']};\n\n"
-          structure << ddl;
+          ddl = "create or replace #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']} for #{synonym['table_owner']}.#{synonym['table_name']}"
+          structure << ddl << STATEMENT_TOKEN
         end
       end
 
@@ -1319,9 +1319,9 @@ module ActiveRecord
             index_type = options
           end
           quoted_column_names = column_names.map { |e| quote_column_name(e) }.join(", ")
-          "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names});"
+          "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
         end
-        statements.length > 0 ? "#{statements.join("\n")}\n\n" : ''
+        statements.length > 0 ? "#{statements.join(STATEMENT_TOKEN)}#{STATEMENT_TOKEN}" : ''
       end
       
       def structure_drop #:nodoc:
@@ -1391,6 +1391,8 @@ module ActiveRecord
       def temporary?(table_name)
         select_value("select temporary from user_tables where table_name = '#{table_name.upcase}'") == 'Y'
       end
+      
+      STATEMENT_TOKEN = "\n\n--@@@--\n\n"
       
       # ORDER BY clause for the passed order option.
       # 

@@ -58,7 +58,7 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       dump.split('\n').length.should == 1
-      dump.should =~ /ALTER TABLE TEST_POSTS ADD CONSTRAINT fk_test_post_foo FOREIGN KEY \(foo_id\) REFERENCES foos\(id\);/
+      dump.should =~ /ALTER TABLE TEST_POSTS ADD CONSTRAINT fk_test_post_foo FOREIGN KEY \(foo_id\) REFERENCES foos\(id\)/
     end
   
     it "should not error when no foreign keys are present" do
