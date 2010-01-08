@@ -161,11 +161,33 @@ describe "OracleEnhancedAdapter structure dump" do
     end
   end
   
+  describe "temp_table_drop" do
+    before(:each) do
+      @conn.create_table :temp_tbl, :temporary => true do |t|
+        t.string :foo
+      end
+      @conn.create_table :not_temp_tbl do |t|
+        t.string :foo
+      end
+    end
+    it "should dump drop sql for just temp tables" do
+      dump = @conn.temp_table_drop
+      dump.should =~ /drop table temp_tbl/i
+      dump.should_not =~ /drop table not_temp_tbl/i
+    end
+    after(:each) do
+      @conn.drop_table :temp_tbl 
+      @conn.drop_table :not_temp_tbl
+    end
+  end
   
   describe "full drop" do
     before(:each) do 
       @conn.create_table :full_drop_test do |t|
         t.integer :id
+      end
+      @conn.create_table :full_drop_test_temp, :temporary => true do |t|
+        t.string :foo
       end
       #view
       @conn.execute <<-SQL
@@ -216,6 +238,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     after(:each) do
       @conn.drop_table :full_drop_test
+      @conn.drop_table :full_drop_test_temp
       @conn.execute "DROP VIEW FULL_DROP_TEST_VIEW" rescue nil
       @conn.execute "DROP SYNONYM FULL_DROP_TEST_SYNONYM" rescue nil
       @conn.execute "DROP PACKAGE FULL_DROP_TEST_PACKAGE" rescue nil
@@ -233,6 +256,11 @@ describe "OracleEnhancedAdapter structure dump" do
       drop.should =~ /drop procedure full_drop_test_procedure/i
       drop.should =~ /drop synonym full_drop_test_synonym/i
       drop.should =~ /drop type full_drop_test_type/i
+    end
+    it "should not drop tables when preserve_tables is true" do
+      drop = @conn.full_drop(true)
+      drop.should =~ /drop table full_drop_test_temp/i
+      drop.should_not =~ /drop table full_drop_test cascade constraints/i
     end
   end
 end

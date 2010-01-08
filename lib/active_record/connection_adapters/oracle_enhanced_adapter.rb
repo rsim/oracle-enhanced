@@ -1334,15 +1334,24 @@ module ActiveRecord
           drop << "drop table #{table.to_a.first.last} cascade constraints;\n\n"
         end
       end
-
-      def full_drop
-        s = structure_drop
+      
+      def temp_table_drop
+        # changed select from user_tables to all_tables - much faster in large data dictionaries
+        select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') and temporary = 'Y' order by 1").inject('') do |drop, table|
+          drop << "drop table #{table.to_a.first.last} cascade constraints;\n\n"
+        end
+      end
+      
+      def full_drop(preserve_tables=false)
+        s = preserve_tables ? [] : [structure_drop]
+        s << temp_table_drop if preserve_tables
         s << drop_sql_for_feature("view")
-        s << "\n\n" << drop_sql_for_feature("synonym")
-        s << "\n\n" << drop_sql_for_feature("type")
-        s << "\n\n" << drop_sql_for_object("package")
-        s << "\n\n" << drop_sql_for_object("function")
-        s << "\n\n" << drop_sql_for_object("procedure")
+        s << drop_sql_for_feature("synonym")
+        s << drop_sql_for_feature("type")
+        s << drop_sql_for_object("package")
+        s << drop_sql_for_object("function")
+        s << drop_sql_for_object("procedure")
+        s.join("\n\n")
       end
       
       def add_column_options!(sql, options) #:nodoc:
