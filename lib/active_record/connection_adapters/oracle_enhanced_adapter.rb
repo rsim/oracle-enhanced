@@ -1500,7 +1500,7 @@ module ActiveRecord
       end
       
       def drop_sql_for_feature(type)
-        select_values("select 'DROP #{type.upcase} ' || #{type}_name || ';' from user_#{type.tableize}").join("\n\n")
+        select_values("select 'DROP #{type.upcase} \"' || #{type}_name || '\";' from user_#{type.tableize}").join("\n\n")
       end
       
       def drop_sql_for_object(type)

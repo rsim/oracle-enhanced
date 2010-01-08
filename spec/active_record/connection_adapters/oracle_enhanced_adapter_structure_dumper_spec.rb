@@ -250,12 +250,12 @@ describe "OracleEnhancedAdapter structure dump" do
       drop = @conn.full_drop
       drop.should =~ /drop table full_drop_test cascade constraints/i
       drop.should =~ /drop sequence full_drop_test_seq/i
-      drop.should =~ /drop view full_drop_test_view/i
+      drop.should =~ /drop view "full_drop_test_view"/i
       drop.should =~ /drop package full_drop_test_package/i
       drop.should =~ /drop function full_drop_test_function/i
       drop.should =~ /drop procedure full_drop_test_procedure/i
-      drop.should =~ /drop synonym full_drop_test_synonym/i
-      drop.should =~ /drop type full_drop_test_type/i
+      drop.should =~ /drop synonym "full_drop_test_synonym"/i
+      drop.should =~ /drop type "full_drop_test_type"/i
     end
     it "should not drop tables when preserve_tables is true" do
       drop = @conn.full_drop(true)
