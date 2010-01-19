@@ -33,7 +33,8 @@ namespace :db do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(:test)
       IO.readlines("db/#{RAILS_ENV}_structure.sql").join.split("\n\n").each do |ddl|
-        ActiveRecord::Base.connection.execute(ddl.chop)
+        ddl.chop! if ddl.last == ";"
+        ActiveRecord::Base.connection.execute(ddl) unless ddl.blank?
       end
     end
 
@@ -41,7 +42,8 @@ namespace :db do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(:test)
       ActiveRecord::Base.connection.full_drop.split("\n\n").each do |ddl|
-        ActiveRecord::Base.connection.execute(ddl.chop)
+        ddl.chop! if ddl.last == ";"
+        ActiveRecord::Base.connection.execute(ddl) unless ddl.blank?
       end
     end
 
