@@ -60,8 +60,15 @@ module ActiveRecord
         if config[:jndi]
           jndi = config[:jndi].to_s
           ctx = javax.naming.InitialContext.new
-          env = ctx.lookup('java:/comp/env')
-          ds = env.lookup(jndi)
+          ds = nil
+          
+          # tomcat needs first lookup method, oc4j (and maybe other application servers) need second method
+          begin
+            env = ctx.lookup('java:/comp/env')
+            ds = env.lookup(jndi)
+          rescue
+            ds = ctx.lookup(jndi)
+          end
   
           # check if datasource supports pooled connections, otherwise use default
           if ds.respond_to?(:pooled_connection)
