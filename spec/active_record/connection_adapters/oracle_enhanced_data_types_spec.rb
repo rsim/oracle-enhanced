@@ -873,19 +873,21 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     TestEmployee.serialized_attributes.delete('comments')
   end
 
-  it "should order by CLOB column" do
-    @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :comments => "comments"
-    )
-    TestEmployee.find(:all, :order => "comments ASC").should_not be_empty
-    TestEmployee.find(:all, :order => " comments ASC ").should_not be_empty
-    TestEmployee.find(:all, :order => "comments").should_not be_empty
-    TestEmployee.find(:all, :order => " comments ").should_not be_empty
-    TestEmployee.find(:all, :order => :comments).should_not be_empty
-    TestEmployee.find(:all, :order => "  first_name DESC,  last_name   ASC   ").should_not be_empty
-  end
+  # Will be removed as there is no real need to order by CLOB columns
+  # 
+  # it "should order by CLOB column" do
+  #   @employee = TestEmployee.create!(
+  #     :first_name => "First",
+  #     :last_name => "Last",
+  #     :comments => "comments"
+  #   )
+  #   TestEmployee.find(:all, :order => "comments ASC").should_not be_empty
+  #   TestEmployee.find(:all, :order => " comments ASC ").should_not be_empty
+  #   TestEmployee.find(:all, :order => "comments").should_not be_empty
+  #   TestEmployee.find(:all, :order => " comments ").should_not be_empty
+  #   TestEmployee.find(:all, :order => :comments).should_not be_empty
+  #   TestEmployee.find(:all, :order => "  first_name DESC,  last_name   ASC   ").should_not be_empty
+  # end
 
   it "should accept Symbol value for CLOB column" do
     @employee = TestEmployee.create!(

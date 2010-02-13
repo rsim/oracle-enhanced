@@ -462,7 +462,8 @@ module ActiveRecord
       def quote_column_name(name) #:nodoc:
         # camelCase column names need to be quoted; not that anyone using Oracle
         # would really do this, but handling this case means we pass the test...
-        @quoted_column_names[name] = name.to_s =~ /[A-Z]/ ? "\"#{name}\"" : quote_oracle_reserved_words(name)
+        name = name.to_s
+        @quoted_column_names[name] ||= name =~ /^[a-z][a-z_0-9\$#]*$/ ? "\"#{name.upcase}\"" : "\"#{name}\""
       end
 
       # unescaped table name should start with letter and
@@ -476,12 +477,8 @@ module ActiveRecord
       end
 
       def quote_table_name(name) #:nodoc:
-        # abstract_adapter calls quote_column_name from quote_table_name, so prevent that
-        @quoted_table_names[name] ||= if self.class.valid_table_name?(name)
-          name
-        else
-          "\"#{name}\""
-        end
+        name = name.to_s
+        @quoted_table_names[name] ||= name.split('.').map{|n| n.split('@').map{|m| quote_column_name(m)}.join('@')}.join('.')
       end
       
       def quote_string(s) #:nodoc:
@@ -653,10 +650,12 @@ module ActiveRecord
       def add_limit_offset!(sql, options) #:nodoc:
         # added to_i for limit and offset to protect from SQL injection
         offset = (options[:offset] || 0).to_i
-
-        if limit = options[:limit]
-          limit = limit.to_i
+        limit = options[:limit]
+        limit = limit.is_a?(String) && limit.blank? ? nil : limit && limit.to_i
+        if limit && offset > 0
           sql.replace "select * from (select raw_sql_.*, rownum raw_rnum_ from (#{sql}) raw_sql_ where rownum <= #{offset+limit}) where raw_rnum_ > #{offset}"
+        elsif limit
+          sql.replace "select raw_sql_.* from (#{sql}) raw_sql_ where rownum <= #{limit}"
         elsif offset > 0
           sql.replace "select * from (select raw_sql_.*, rownum raw_rnum_ from (#{sql}) raw_sql_) where raw_rnum_ > #{offset}"
         end
