@@ -655,7 +655,7 @@ module ActiveRecord
         if limit && offset > 0
           sql.replace "select * from (select raw_sql_.*, rownum raw_rnum_ from (#{sql}) raw_sql_ where rownum <= #{offset+limit}) where raw_rnum_ > #{offset}"
         elsif limit
-          sql.replace "select raw_sql_.* from (#{sql}) raw_sql_ where rownum <= #{limit}"
+          sql.replace "select * from (#{sql}) where rownum <= #{limit}"
         elsif offset > 0
           sql.replace "select * from (select raw_sql_.*, rownum raw_rnum_ from (#{sql}) raw_sql_) where raw_rnum_ > #{offset}"
         end
@@ -882,7 +882,8 @@ module ActiveRecord
 
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
-        if has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
+        if has_primary_key_trigger?(table_name, owner, desc_table_name, db_link) ||
+            primary_key(table_name, owner, desc_table_name, db_link).nil?
           @@do_not_prefetch_primary_key[table_name] = true
         end
 
@@ -1183,15 +1184,15 @@ module ActiveRecord
 
       # Find a table's primary key and sequence. 
       # *Note*: Only primary key is implemented - sequence will be nil.
-      def pk_and_sequence_for(table_name) #:nodoc:
-        (owner, table_name, db_link) = @connection.describe(table_name)
+      def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil, db_link = nil) #:nodoc:
+        (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
-        # changed select from all_constraints to user_constraints - much faster in large data dictionaries
+        # changed back from user_constraints to all_constraints for consistency
         pks = select_values(<<-SQL, 'Primary Key')
           select cc.column_name
-            from user_constraints#{db_link} c, user_cons_columns#{db_link} cc
+            from all_constraints#{db_link} c, all_cons_columns#{db_link} cc
            where c.owner = '#{owner}'
-             and c.table_name = '#{table_name}'
+             and c.table_name = '#{desc_table_name}'
              and c.constraint_type = 'P'
              and cc.owner = c.owner
              and cc.constraint_name = c.constraint_name
@@ -1199,6 +1200,12 @@ module ActiveRecord
 
         # only support single column keys
         pks.size == 1 ? [oracle_downcase(pks.first), nil] : nil
+      end
+
+      # Returns just a table's primary key
+      def primary_key(table_name, owner = nil, desc_table_name = nil, db_link = nil)
+        pk_and_sequence = pk_and_sequence_for(table_name, owner, desc_table_name, db_link)
+        pk_and_sequence && pk_and_sequence.first
       end
 
       def structure_dump #:nodoc:
