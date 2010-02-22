@@ -716,12 +716,16 @@ module ActiveRecord
 
       # current database name
       def current_database
-        select_one("select sys_context('userenv','db_name') db from dual")["db"]
+        select_value("select sys_context('userenv','db_name') from dual")
       end
 
       # current database session user
       def current_user
-        select_one("select sys_context('userenv','session_user') u from dual")['u']
+        select_value("select sys_context('userenv','session_user') from dual")
+      end
+
+      def default_tablespace
+        select_value("select lower(default_tablespace) from user_users where username = sys_context('userenv','session_user')")
       end
 
       def tables(name = nil) #:nodoc:
@@ -736,6 +740,7 @@ module ActiveRecord
       def indexes(table_name, name = nil) #:nodoc:
         (owner, table_name, db_link) = @connection.describe(table_name)
         unless all_schema_indexes
+          default_tablespace_name = default_tablespace
           result = select_all(<<-SQL)
             SELECT lower(i.table_name) as table_name, lower(i.index_name) as index_name, i.uniqueness, lower(i.tablespace_name) as tablespace_name, lower(c.column_name) as column_name, e.column_expression as column_expression
               FROM all_indexes#{db_link} i
@@ -746,26 +751,27 @@ module ActiveRecord
                AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
               ORDER BY i.index_name, c.column_position
           SQL
-      
+
           current_index = nil
           self.all_schema_indexes = []
-      
+
           result.each do |row|
             # have to keep track of indexes because above query returns dups
             # there is probably a better query we could figure out
             if current_index != row['index_name']
-              self.all_schema_indexes << ::ActiveRecord::ConnectionAdapters::OracleEnhancedIndexDefinition.new(row['table_name'], row['index_name'], row['uniqueness'] == "UNIQUE", row['tablespace_name'], [])
+              all_schema_indexes << OracleEnhancedIndexDefinition.new(row['table_name'], row['index_name'], row['uniqueness'] == "UNIQUE",
+                row['tablespace_name'] == default_tablespace_name ? nil : row['tablespace_name'], [])
               current_index = row['index_name']
             end
-            self.all_schema_indexes.last.columns << (row['column_expression'].nil? ? row['column_name'] : row['column_expression'].gsub('"','').downcase)
+            all_schema_indexes.last.columns << (row['column_expression'].nil? ? row['column_name'] : row['column_expression'].gsub('"','').downcase)
           end
         end
-      
+
         # Return the indexes just for the requested table, since AR is structured that way
         table_name = table_name.downcase
         all_schema_indexes.select{|i| i.table == table_name}
       end
-      
+
       @@ignore_table_columns = nil #:nodoc:
 
       # set ignored columns for table

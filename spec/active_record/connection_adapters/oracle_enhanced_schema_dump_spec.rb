@@ -179,5 +179,25 @@ describe "OracleEnhancedAdapter schema dump" do
       standard_dump.should =~ /create_table "test_posts", :temporary => true/
     end
   end
+
+  describe "indexes" do
+    after(:each) do
+      drop_test_posts_table
+    end
+
+    it "should not specify default tablespace in add index" do
+      create_test_posts_table
+      standard_dump.should =~ /add_index \"test_posts\", \[\"title\"\], :name => \"index_test_posts_on_title\"$/
+    end
+
+    it "should not specify default tablespace in add index" do
+      tablespace_name = @conn.default_tablespace
+      @conn.stub!(:default_tablespace).and_return('dummy')
+      create_test_posts_table
+      standard_dump.should =~ /add_index \"test_posts\", \[\"title\"\], :name => \"index_test_posts_on_title\", :tablespace => \"#{tablespace_name}\"$/
+    end
+
+  end
+
 end
 
