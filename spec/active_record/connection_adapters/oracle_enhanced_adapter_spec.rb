@@ -249,10 +249,22 @@ describe "OracleEnhancedAdapter" do
   describe "without composite_primary_keys" do
 
     before(:all) do
+      @conn.execute "DROP TABLE test_employees" rescue nil
+      @conn.execute <<-SQL
+        CREATE TABLE test_employees (
+          employee_id   NUMBER PRIMARY KEY,
+          name          VARCHAR2(50)
+        )
+      SQL
       Object.send(:remove_const, 'CompositePrimaryKeys') if defined?(CompositePrimaryKeys)
-      class ::Employee < ActiveRecord::Base
+      class ::TestEmployee < ActiveRecord::Base
         set_primary_key :employee_id
       end
+    end
+
+    after(:all) do
+      Object.send(:remove_const, "TestEmployee")
+      @conn.execute "DROP TABLE test_employees"
     end
 
     it "should tell ActiveRecord that count distinct is supported" do
@@ -260,7 +272,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should execute correct SQL COUNT DISTINCT statement" do
-      lambda { Employee.count(:employee_id, :distinct => true) }.should_not raise_error
+      lambda { TestEmployee.count(:employee_id, :distinct => true) }.should_not raise_error
     end
 
   end

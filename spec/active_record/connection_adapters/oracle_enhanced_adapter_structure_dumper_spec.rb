@@ -90,6 +90,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
   
     it "should dump virtual columns" do
+      pending "Not supported in this database version" unless @conn.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
       @conn.execute <<-SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
