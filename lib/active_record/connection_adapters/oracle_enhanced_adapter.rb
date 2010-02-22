@@ -1273,24 +1273,24 @@ module ActiveRecord
         select_all("select distinct name, type 
                      from all_source 
                     where type in ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE') 
-                      and  owner = sys_context('userenv','session_user') order by type").inject("") do |structure, source|
-            ddl = "create or replace   \n "
-            lines = select_all(%Q{
-                    select text
-                      from all_source
-                     where name = '#{source['name']}'
-                       and type = '#{source['type']}'
-                       and owner = sys_context('userenv','session_user')
-                     order by line 
-                  }).map do |row|
-              ddl << row['text'] if row['text'].size > 1
-            end
-            ddl << ";" unless ddl.strip.last == ";"
-            structure << ddl << STATEMENT_TOKEN
+                      and  owner = sys_context('userenv','session_user') order by type").each do |source|
+          ddl = "create or replace   \n "
+          lines = select_all(%Q{
+                  select text
+                    from all_source
+                   where name = '#{source['name']}'
+                     and type = '#{source['type']}'
+                     and owner = sys_context('userenv','session_user')
+                   order by line 
+                }).map do |row|
+            ddl << row['text'] if row['text'].size > 1
+          end
+          ddl << ";" unless ddl.strip.last == ";"
+          structure << ddl << STATEMENT_TOKEN
         end
 
         # export views 
-        select_all("select view_name, text from user_views").inject(structure) do |structure, view|
+        select_all("select view_name, text from user_views").each do |view|
           ddl = "create or replace view #{view['view_name']} AS\n "
           # any views with empty lines will cause OCI to barf when loading. remove blank lines =/ 
           ddl << view['text'].gsub(/^\n/, '') 
@@ -1300,10 +1300,13 @@ module ActiveRecord
         # export synonyms 
         select_all("select owner, synonym_name, table_name, table_owner 
                       from all_synonyms  
-                     where owner = sys_context('userenv','session_user') ").inject(structure) do |structure, synonym|
+                     where owner = sys_context('userenv','session_user') ").each do |synonym|
           ddl = "create or replace #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']} for #{synonym['table_owner']}.#{synonym['table_name']}"
           structure << ddl << STATEMENT_TOKEN
+          puts "DEBUG: structure=#{structure.inspect}"
         end
+
+        structure
       end
 
       def structure_dump_indexes(table_name)

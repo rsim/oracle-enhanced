@@ -41,13 +41,8 @@ else
   require 'action_controller/session/active_record_store'
 end
 if !defined?(RUBY_ENGINE)
-  # change version to 1.0.6 to test with old oracle_adapter
   gem 'ruby-oci8', '=2.0.3'
   require 'oci8'
-  if OCI8::VERSION =~ /^1\./
-    gem "activerecord-oracle-adapter"
-    require 'active_record/connection_adapters/oracle_adapter'
-  end
 elsif RUBY_ENGINE == 'ruby'
   gem 'ruby-oci8', '=2.0.3'
   require 'oci8'
@@ -92,14 +87,6 @@ CONNECTION_PARAMS = {
   :adapter => "oracle_enhanced",
   :database => DATABASE_NAME,
   :host => DATABASE_HOST,
-  :username => DATABASE_USER,
-  :password => DATABASE_PASSWORD
-}
-
-JDBC_CONNECTION_PARAMS = {
-  :adapter => "jdbc",
-  :driver => "oracle.jdbc.driver.OracleDriver",
-  :url => "jdbc:oracle:thin:@#{DATABASE_HOST}:#{DATABASE_PORT}:#{DATABASE_NAME}",
   :username => DATABASE_USER,
   :password => DATABASE_PASSWORD
 }
