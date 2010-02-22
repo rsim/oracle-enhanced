@@ -238,7 +238,7 @@ module ActiveRecord
           if OracleEnhancedAdapter.string_to_time_format && dt=Date._strptime(string, OracleEnhancedAdapter.string_to_time_format)
             return Time.mktime(*dt.values_at(:year, :mon, :mday, :hour, :min, :sec, :zone, :wday))
           end
-          DateTime.strptime(string, OracleEnhancedAdapter.string_to_date_format)
+          DateTime.strptime(string, OracleEnhancedAdapter.string_to_date_format).to_date
         end
         
       end
@@ -867,8 +867,7 @@ module ActiveRecord
       self.cache_columns = false
 
       def columns(table_name, name = nil) #:nodoc:
-        # Don't double cache if config.cache_classes is turned on
-        if @@cache_columns && !(defined?(Rails) && Rails.configuration.cache_classes)
+        if @@cache_columns
           @@columns_cache ||= {}
           @@columns_cache[table_name] ||= columns_without_cache(table_name, name)
         else
@@ -877,15 +876,15 @@ module ActiveRecord
       end
 
       def columns_without_cache(table_name, name = nil) #:nodoc:
+        table_name = table_name.to_s
         # get ignored_columns by original table name
         ignored_columns = ignored_table_columns(table_name)
 
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
-        if has_primary_key_trigger?(table_name, owner, desc_table_name, db_link) ||
-            primary_key(table_name, owner, desc_table_name, db_link).nil?
-          @@do_not_prefetch_primary_key[table_name] = true
-        end
+        @@do_not_prefetch_primary_key[table_name] =
+          has_primary_key_trigger?(table_name, owner, desc_table_name, db_link) ||
+          primary_key(table_name, owner, desc_table_name, db_link).nil?
 
         table_cols = <<-SQL
           select column_name as name, data_type as sql_type, data_default, nullable,

@@ -4,7 +4,6 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   include LoggerSpecHelper
 
   before(:all) do
-    @buffer = StringIO.new
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Base.connection.execute <<-SQL
     CREATE or REPLACE
@@ -31,18 +30,21 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   end
 
   before(:each) do
-    @buffer = StringIO.new
-    log_to @buffer
+    set_logger
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
+  end
+
+  after(:each) do
+    clear_logger
   end
 
   it "should NOT log dbms output when dbms output is disabled" do
     @conn.disable_dbms_output
 
     @conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").should == [{'is_it_long'=>1}]
-    
-    @buffer.string.should_not match(/^DBMS_OUTPUT/)
+
+    @logger.output(:debug).should_not match(/^DBMS_OUTPUT/)
   end
 
   it "should log dbms output lines to the rails log" do
@@ -50,9 +52,9 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
 
     @conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").should == [{'is_it_long'=>1}]
     
-    @buffer.string.should match(/^DBMS_OUTPUT: before the if -hi there-$/)
-    @buffer.string.should match(/^DBMS_OUTPUT: it is longer than 5$/)
-    @buffer.string.should match(/^DBMS_OUTPUT: about to return: 1$/)
+    @logger.output(:debug).should match(/^DBMS_OUTPUT: before the if -hi there-$/)
+    @logger.output(:debug).should match(/^DBMS_OUTPUT: it is longer than 5$/)
+    @logger.output(:debug).should match(/^DBMS_OUTPUT: about to return: 1$/)
   end
 
   it "should log dbms output lines to the rails log" do
@@ -60,8 +62,8 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
 
     @conn.select_all("select more_than_five_characters_long('short') is_it_long from dual").should == [{'is_it_long'=>0}]
     
-    @buffer.string.should match(/^DBMS_OUTPUT: before the if -short-$/)
-    @buffer.string.should match(/^DBMS_OUTPUT: it is 5 or shorter$/)
-    @buffer.string.should match(/^DBMS_OUTPUT: about to return: 0$/)
+    @logger.output(:debug).should match(/^DBMS_OUTPUT: before the if -short-$/)
+    @logger.output(:debug).should match(/^DBMS_OUTPUT: it is 5 or shorter$/)
+    @logger.output(:debug).should match(/^DBMS_OUTPUT: about to return: 0$/)
   end
 end

@@ -32,7 +32,7 @@ module ActiveRecord #:nodoc:
   end
 end
 
-if ActiveRecord::Base.instance_methods.include?('changed?')
+if ActiveRecord::Base.method_defined?(:changed?)
   ActiveRecord::Base.class_eval do
     include ActiveRecord::ConnectionAdapters::OracleEnhancedDirty::InstanceMethods
   end

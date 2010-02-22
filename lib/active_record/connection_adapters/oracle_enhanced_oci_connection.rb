@@ -138,7 +138,12 @@ module ActiveRecord
 
       # Return OCIError error code
       def error_code(exception)
-        exception.code
+        case exception
+        when OCIError
+          exception.code
+        else
+          nil
+        end
       end
 
       private

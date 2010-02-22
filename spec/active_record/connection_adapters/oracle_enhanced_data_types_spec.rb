@@ -6,7 +6,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0),
+        employee_id   NUMBER(6,0) PRIMARY KEY,
         first_name    VARCHAR2(20),
         last_name     VARCHAR2(25),
         email         VARCHAR2(25),
@@ -192,7 +192,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test2_employees (
-        id   NUMBER,
+        id            NUMBER PRIMARY KEY,
         first_name    VARCHAR2(20),
         last_name     VARCHAR2(25),
         email         VARCHAR2(25),
@@ -338,7 +338,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test3_employees (
-        id            NUMBER,
+        id            NUMBER PRIMARY KEY,
         first_name    VARCHAR2(20),
         last_name     VARCHAR2(25),
         email         VARCHAR2(25),
@@ -521,7 +521,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0),
+        employee_id   NUMBER(6,0) PRIMARY KEY,
         first_name    VARCHAR2(20),
         last_name     VARCHAR2(25),
         email         VARCHAR2(25),
@@ -604,7 +604,7 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0),
+        employee_id   NUMBER(6,0) PRIMARY KEY,
         first_name    VARCHAR2(20),
         last_name     VARCHAR2(25),
         email         VARCHAR2(25),
@@ -709,7 +709,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0),
+        employee_id   NUMBER(6,0) PRIMARY KEY,
         first_name    VARCHAR2(20),
         last_name     VARCHAR2(25),
         hire_date     DATE,
@@ -750,6 +750,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       :last_name => "Last",
       :hire_date => @today_iso
     )
+    @employee.hire_date.should == @today
     @employee.reload
     @employee.hire_date.should == @today
   end
@@ -761,6 +762,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       :last_name => "Last",
       :hire_date => @today_nls
     )
+    @employee.hire_date.should == @today
     @employee.reload
     @employee.hire_date.should == @today
   end
@@ -771,6 +773,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       :last_name => "Last",
       :hire_date => @now_iso
     )
+    @employee.hire_date.should == @today
     @employee.reload
     @employee.hire_date.should == @today
   end
@@ -783,6 +786,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       :last_name => "Last",
       :hire_date => @now_nls
     )
+    @employee.hire_date.should == @today
     @employee.reload
     @employee.hire_date.should == @today
   end
@@ -793,6 +797,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       :last_name => "Last",
       :last_login_at => @now_iso
     )
+    @employee.last_login_at.should == @now
     @employee.reload
     @employee.last_login_at.should == @now
   end
@@ -805,6 +810,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       :last_name => "Last",
       :last_login_at => @now_nls
     )
+    @employee.last_login_at.should == @now
     @employee.reload
     @employee.last_login_at.should == @now
   end
@@ -815,6 +821,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       :last_name => "Last",
       :last_login_at => @today_iso
     )
+    @employee.last_login_at.should == @today.to_time
     @employee.reload
     @employee.last_login_at.should == @today.to_time
   end
@@ -827,6 +834,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       :last_name => "Last",
       :last_login_at => @today_nls
     )
+    @employee.last_login_at.should == @today.to_time
     @employee.reload
     @employee.last_login_at.should == @today.to_time
   end
@@ -839,7 +847,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0),
+        employee_id   NUMBER(6,0) PRIMARY KEY,
         first_name    VARCHAR2(20),
         last_name     VARCHAR2(25),
         comments      CLOB
@@ -849,20 +857,23 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
-    class ::TestEmployee < ActiveRecord::Base
-      set_primary_key :employee_id
-    end
   end
   
   after(:all) do
-    Object.send(:remove_const, "TestEmployee")
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
   end
 
   before(:each) do
+    class ::TestEmployee < ActiveRecord::Base
+      set_primary_key :employee_id
+    end
   end
-  
+
+  after(:each) do
+    Object.send(:remove_const, "TestEmployee")
+  end
+
   it "should create record without CLOB data when attribute is serialized" do
     TestEmployee.serialize :comments
     @employee = TestEmployee.create!(
@@ -870,24 +881,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       :last_name => "Last"
     )
     @employee.should be_valid
-    TestEmployee.serialized_attributes.delete('comments')
   end
-
-  # Will be removed as there is no real need to order by CLOB columns
-  # 
-  # it "should order by CLOB column" do
-  #   @employee = TestEmployee.create!(
-  #     :first_name => "First",
-  #     :last_name => "Last",
-  #     :comments => "comments"
-  #   )
-  #   TestEmployee.find(:all, :order => "comments ASC").should_not be_empty
-  #   TestEmployee.find(:all, :order => " comments ASC ").should_not be_empty
-  #   TestEmployee.find(:all, :order => "comments").should_not be_empty
-  #   TestEmployee.find(:all, :order => " comments ").should_not be_empty
-  #   TestEmployee.find(:all, :order => :comments).should_not be_empty
-  #   TestEmployee.find(:all, :order => "  first_name DESC,  last_name   ASC   ").should_not be_empty
-  # end
 
   it "should accept Symbol value for CLOB column" do
     @employee = TestEmployee.create!(
@@ -904,7 +898,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0),
+        employee_id   NUMBER(6,0) PRIMARY KEY,
         first_name    VARCHAR2(20),
         last_name     VARCHAR2(25),
         binary_data   BLOB

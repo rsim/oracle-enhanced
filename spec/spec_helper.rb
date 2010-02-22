@@ -24,20 +24,33 @@ elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3.3/
   gem 'actionpack', '=2.3.3'
   gem 'activesupport', '=2.3.3'
   gem 'composite_primary_keys', '=2.3.2'
-else
-  ENV['RAILS_GEM_VERSION'] ||= '2.3.5'
+elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3/
   gem 'activerecord', '=2.3.5'
   gem 'actionpack', '=2.3.5'
   gem 'activesupport', '=2.3.5'
   NO_COMPOSITE_PRIMARY_KEYS = true
+else
+  # uses local copy of Rails 3 gems
+  ['rails/activerecord', 'rails/activemodel', 'rails/activesupport', 'arel', 'rails/actionpack', 'rails/railties'].each do |library|
+    $:.unshift(File.expand_path(File.dirname(__FILE__) + '/../../' + library + '/lib'))
+  end
+  ENV['RAILS_GEM_VERSION'] ||= '3.0'
+  NO_COMPOSITE_PRIMARY_KEYS = true
 end
 
 require 'active_record'
-require 'action_pack'
-if ENV['RAILS_GEM_VERSION'] >= '2.3'
+
+if ENV['RAILS_GEM_VERSION'] >= '3.0'
+  require 'action_dispatch'
+  require "rails/subscriber"
+  require 'active_record/railties/subscriber'
+  require 'logger'
+elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3/
+  require 'action_pack'
   require 'action_controller/session/abstract_store'
   require 'active_record/session_store'
-else
+elsif ENV['RAILS_GEM_VERSION'] <= '2.3'
+  require 'action_pack'
   require 'action_controller/session/active_record_store'
 end
 if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
@@ -52,16 +65,80 @@ require 'active_record/connection_adapters/oracle_enhanced_adapter'
 require 'ruby-plsql'
 
 module LoggerSpecHelper
-  def log_to(stream)
-    ActiveRecord::Base.logger = Logger.new(stream)
-    if ActiveRecord::Base.respond_to?(:connection_pool)
-      ActiveRecord::Base.connection_pool.clear_reloadable_connections!
-    else
-      ActiveRecord::Base.clear_active_connections!
+  def set_logger
+    @logger = MockLogger.new
+
+    if ENV['RAILS_GEM_VERSION'] >= '3.0'
+      queue = ActiveSupport::Notifications::Fanout.new
+      @notifier = ActiveSupport::Notifications::Notifier.new(queue)
+
+      Rails::Subscriber.colorize_logging = false
+      @notifier.subscribe { |*args| Rails::Subscriber.dispatch(args) }
+
+      Rails::Subscriber.add(:active_record, ActiveRecord::Railties::Subscriber.new) \
+        unless Rails::Subscriber.subscribers[:active_record]
+
+      ActiveRecord::Base.logger = @logger
+      ActiveSupport::Notifications.notifier = @notifier
+
+    else # ActiveRecord 2.x
+      if ActiveRecord::Base.respond_to?(:connection_pool)
+        ActiveRecord::Base.connection_pool.clear_reloadable_connections!
+      else
+        ActiveRecord::Base.clear_active_connections!
+      end
+      ActiveRecord::Base.logger = @logger
+      ActiveRecord::Base.colorize_logging = false
+      # ActiveRecord::Base.logger.level = Logger::DEBUG
     end
-    ActiveRecord::Base.colorize_logging = false
-    ActiveRecord::Base.logger.level = Logger::DEBUG
+
   end
+
+  class MockLogger
+    attr_reader :flush_count
+
+    def initialize
+      @flush_count = 0
+      @logged = Hash.new { |h,k| h[k] = [] }
+    end
+
+    # used in AtiveRecord 2.x
+    def debug?
+      true
+    end
+
+    def method_missing(level, message)
+      @logged[level] << message
+    end
+
+    def logged(level)
+      @logged[level].compact.map { |l| l.to_s.strip }
+    end
+
+    def output(level)
+      logged(level).join("\n")
+    end
+
+    def flush
+      @flush_count += 1
+    end
+
+    def clear(level)
+      @logged[level] = []
+    end
+  end
+
+  def clear_logger
+    ActiveRecord::Base.logger = @logger = nil
+    ActiveSupport::Notifications.notifier = @notifier = nil if @notifier
+  end
+
+  # Wait notifications to be published (for Rails 3.0)
+  # should not be currently used with sync queues in tests
+  def wait
+    @notifier.wait if @notifier
+  end
+
 end
 
 module SchemaSpecHelper

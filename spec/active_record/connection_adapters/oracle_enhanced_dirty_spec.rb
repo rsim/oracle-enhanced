@@ -9,7 +9,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
       @conn = ActiveRecord::Base.connection
       @conn.execute <<-SQL
         CREATE TABLE test_employees (
-          id            NUMBER,
+          id            NUMBER PRIMARY KEY,
           first_name    VARCHAR2(20),
           last_name     VARCHAR2(25),
           job_id        NUMBER(6,0) NULL,
