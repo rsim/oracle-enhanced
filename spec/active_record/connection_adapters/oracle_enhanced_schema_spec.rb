@@ -720,4 +720,65 @@ describe "OracleEnhancedAdapter schema definition" do
 
   end
 
+  describe "alter columns with column cache" do
+    include LoggerSpecHelper
+
+    before(:all) do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
+    end
+
+    after(:all) do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
+    end
+
+    before(:each) do
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.string :title, :null => false
+        end
+      end
+      class ::TestPost < ActiveRecord::Base; end
+      TestPost.columns_hash['title'].null.should be_false
+    end
+
+    after(:each) do
+      Object.send(:remove_const, "TestPost")
+      schema_define { drop_table :test_posts }
+    end
+
+    it "should change column to nullable" do
+      schema_define do
+        change_column :test_posts, :title, :string, :null => true
+      end
+      TestPost.reset_column_information
+      TestPost.columns_hash['title'].null.should be_true
+    end
+
+    it "should add column" do
+      schema_define do
+        add_column :test_posts, :body, :string
+      end
+      TestPost.reset_column_information
+      TestPost.columns_hash['body'].should_not be_nil
+    end
+
+    it "should rename column" do
+      schema_define do
+        rename_column :test_posts, :title, :subject
+      end
+      TestPost.reset_column_information
+      TestPost.columns_hash['subject'].should_not be_nil
+      TestPost.columns_hash['title'].should be_nil
+    end
+
+    it "should remove column" do
+      schema_define do
+        remove_column :test_posts, :title
+      end
+      TestPost.reset_column_information
+      TestPost.columns_hash['title'].should be_nil
+    end
+
+  end
+
 end

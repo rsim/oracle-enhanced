@@ -905,6 +905,11 @@ module ActiveRecord
         @@columns_cache = nil
       end
 
+      # used in migrations to clear column cache for specified table
+      def clear_table_columns_cache(table_name)
+        @@columns_cache[table_name.to_s] = nil if @@cache_columns
+      end
+
       ##
       # :singleton-method:
       # Specify default sequence start with value (by default 10000 if not explicitly set), e.g.:
@@ -1007,6 +1012,8 @@ module ActiveRecord
         super(name)
         seq_name = options[:sequence_name] || default_sequence_name(name)
         execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
+      ensure
+        clear_table_columns_cache(name)
       end
 
       # clear cached indexes when adding new index
@@ -1061,10 +1068,14 @@ module ActiveRecord
         options[:type] = type
         add_column_options!(add_column_sql, options)
         execute(add_column_sql)
+      ensure
+        clear_table_columns_cache(table_name)
       end
 
       def change_column_default(table_name, column_name, default) #:nodoc:
         execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
+      ensure
+        clear_table_columns_cache(table_name)
       end
 
       def change_column_null(table_name, column_name, null, default = nil) #:nodoc:
@@ -1090,14 +1101,20 @@ module ActiveRecord
         options[:type] = type
         add_column_options!(change_column_sql, options)
         execute(change_column_sql)
+      ensure
+        clear_table_columns_cache(table_name)
       end
 
       def rename_column(table_name, column_name, new_column_name) #:nodoc:
         execute "ALTER TABLE #{quote_table_name(table_name)} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
+      ensure
+        clear_table_columns_cache(table_name)
       end
 
       def remove_column(table_name, column_name) #:nodoc:
         execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)}"
+      ensure
+        clear_table_columns_cache(table_name)
       end
 
       def add_comment(table_name, column_name, comment) #:nodoc:
@@ -1309,7 +1326,6 @@ module ActiveRecord
                      where owner = sys_context('userenv','session_user') ").each do |synonym|
           ddl = "create or replace #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']} for #{synonym['table_owner']}.#{synonym['table_name']}"
           structure << ddl << STATEMENT_TOKEN
-          puts "DEBUG: structure=#{structure.inspect}"
         end
 
         structure
