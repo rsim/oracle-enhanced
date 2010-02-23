@@ -23,14 +23,7 @@ begin
 
 rescue LoadError, NameError
   # JDBC driver is unavailable.
-  error_message = "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. "+
-                  "Please install ojdbc14.jar library."
-  if defined?(RAILS_DEFAULT_LOGGER)
-    RAILS_DEFAULT_LOGGER.error error_message
-  else
-    STDERR.puts error_message
-  end
-  raise LoadError
+  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install ojdbc14.jar library."
 end
 
 

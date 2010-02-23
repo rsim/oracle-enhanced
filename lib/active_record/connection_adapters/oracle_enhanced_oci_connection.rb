@@ -1,24 +1,17 @@
 require 'delegate'
 
 begin
-  require 'oci8' unless self.class.const_defined? :OCI8
-
-  # added mapping for TIMESTAMP / WITH TIME ZONE / LOCAL TIME ZONE types
-  # latest version of Ruby-OCI8 supports fractional seconds for timestamps
-  # therefore default binding to Time class should be used
-  # OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP] = OCI8::BindType::OraDate
-  # OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_TZ] = OCI8::BindType::OraDate
-  # OCI8::BindType::Mapping[OCI8::SQLT_TIMESTAMP_LTZ] = OCI8::BindType::OraDate
+  require "oci8"
 rescue LoadError
   # OCI8 driver is unavailable.
-  error_message = "ERROR: ActiveRecord oracle_enhanced adapter could not load ruby-oci8 library. "+
-                  "Please install ruby-oci8 library or gem."
-  if defined?(RAILS_DEFAULT_LOGGER)
-    RAILS_DEFAULT_LOGGER.error error_message
-  else
-    STDERR.puts error_message
-  end
-  raise LoadError
+  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load ruby-oci8 library. Please install ruby-oci8 gem."
+end
+
+# check ruby-oci8 version
+required_oci8_version = [2, 0, 3]
+oci8_version_ints = OCI8::VERSION.scan(/\d+/).map{|s| s.to_i}
+if (oci8_version_ints <=> required_oci8_version) < 0
+  raise LoadError, "ERROR: ruby-oci8 version #{OCI8::VERSION} is too old. Please install ruby-oci8 version #{required_oci8_version.join('.')} or later."
 end
 
 module ActiveRecord
