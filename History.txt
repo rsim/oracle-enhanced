@@ -1,3 +1,18 @@
+== 1.2.4 2010-02-23
+
+* Enhancements
+  * added views, synonyms, packages, functions, procedures, indexes, triggers, types, primary, unique and foreign key contraints to structure dump
+  * added :temporary option for create_table to create temporary tables
+  * added :tablespace option for add_index
+  * support function based indexes in schema dump
+  * support JNDI database connections in JRuby
+  * check ruby-oci8 minimum version 2.0.3
+  * added savepoints support (nested ActiveRecord transactions)
+* Bug fixes:
+  * typecast returned BigDecimal integer values to Fixnum or Bignum
+    (to avoid issues with _before_type_cast values for id attributes because _before_type_cast is used in form helpers)
+  * clear table columns cache after columns definition change in migrations
+
 == 1.2.3 2009-12-09
 
 * Enhancements

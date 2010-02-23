@@ -48,12 +48,14 @@ In addition install either ruby-oci8 (for MRI/YARV) or copy Oracle JDBC driver t
 * Anton Jenkins
 * Dave Smylie
 * Alex Rothenberg
+* Billy Reisinger
+* David Blain
 
 == LICENSE:
 
 (The MIT License)
 
-Copyright (c) 2009 Graham Jenkins, Michael Schoen, Raimonds Simanovskis
+Copyright (c) 2008-2010 Graham Jenkins, Michael Schoen, Raimonds Simanovskis
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
