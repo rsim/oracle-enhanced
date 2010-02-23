@@ -405,33 +405,43 @@ module ActiveRecord
         @quoted_column_names, @quoted_table_names = {}, {}
       end
 
+      ADAPTER_NAME = 'OracleEnhanced'.freeze
+      
       def adapter_name #:nodoc:
-        'OracleEnhanced'
+        ADAPTER_NAME
       end
 
       def supports_migrations? #:nodoc:
         true
       end
 
+      def supports_savepoints? #:nodoc:
+        true
+      end
+
+      NATIVE_DATABASE_TYPES = {
+        :primary_key => "NUMBER(38) NOT NULL PRIMARY KEY",
+        :string      => { :name => "VARCHAR2", :limit => 255 },
+        :text        => { :name => "CLOB" },
+        :integer     => { :name => "NUMBER", :limit => 38 },
+        :float       => { :name => "NUMBER" },
+        :decimal     => { :name => "DECIMAL" },
+        :datetime    => { :name => "DATE" },
+        # changed to native TIMESTAMP type
+        # :timestamp   => { :name => "DATE" },
+        :timestamp   => { :name => "TIMESTAMP" },
+        :time        => { :name => "DATE" },
+        :date        => { :name => "DATE" },
+        :binary      => { :name => "BLOB" },
+        :boolean     => { :name => "NUMBER", :limit => 1 }
+      }
+      # if emulate_booleans_from_strings then store booleans in VARCHAR2
+      NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS = NATIVE_DATABASE_TYPES.dup.merge(
+        :boolean     => { :name => "VARCHAR2", :limit => 1 }
+      )
+
       def native_database_types #:nodoc:
-        {
-          :primary_key => "NUMBER(38) NOT NULL PRIMARY KEY",
-          :string      => { :name => "VARCHAR2", :limit => 255 },
-          :text        => { :name => "CLOB" },
-          :integer     => { :name => "NUMBER", :limit => 38 },
-          :float       => { :name => "NUMBER" },
-          :decimal     => { :name => "DECIMAL" },
-          :datetime    => { :name => "DATE" },
-          # changed to native TIMESTAMP type
-          # :timestamp   => { :name => "DATE" },
-          :timestamp   => { :name => "TIMESTAMP" },
-          :time        => { :name => "DATE" },
-          :date        => { :name => "DATE" },
-          :binary      => { :name => "BLOB" },
-          # if emulate_booleans_from_strings then store booleans in VARCHAR2
-          :boolean     => emulate_booleans_from_strings ?
-            { :name => "VARCHAR2", :limit => 1 } : { :name => "NUMBER", :limit => 1 }
-        }
+        emulate_booleans_from_strings ? NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS : NATIVE_DATABASE_TYPES
       end
 
       # maximum length of Oracle identifiers
@@ -621,6 +631,18 @@ module ActiveRecord
         @connection.rollback
       ensure
         @connection.autocommit = true
+      end
+
+      def create_savepoint #:nodoc:
+        execute("SAVEPOINT #{current_savepoint_name}")
+      end
+
+      def rollback_to_savepoint #:nodoc:
+        execute("ROLLBACK TO #{current_savepoint_name}")
+      end
+
+      def release_savepoint #:nodoc:
+        # there is no RELEASE SAVEPOINT statement in Oracle
       end
 
       def add_limit_offset!(sql, options) #:nodoc:
