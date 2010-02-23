@@ -4,7 +4,6 @@ ActiveRecord::Base.class_eval do
   class_inheritable_accessor :custom_create_method, :custom_update_method, :custom_delete_method
 end
 
-require 'ruby_plsql'
 require 'active_support'
 
 module ActiveRecord #:nodoc:

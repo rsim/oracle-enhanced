@@ -52,6 +52,7 @@ elsif RUBY_ENGINE == 'jruby'
 end
 
 require 'active_record/connection_adapters/oracle_enhanced_adapter'
+require 'ruby-plsql'
 
 module LoggerSpecHelper
   def log_to(stream)

@@ -1,7 +1,7 @@
 == 1.2.4 2010-02-23
 
-* Enhancements
-  * added views, synonyms, packages, functions, procedures, indexes, triggers, types, primary, unique and foreign key contraints to structure dump
+* Enhancements:
+  * added views, synonyms, packages, functions, procedures, indexes, triggers, types, primary, unique and foreign key constraints to structure dump
   * added :temporary option for create_table to create temporary tables
   * added :tablespace option for add_index
   * support function based indexes in schema dump

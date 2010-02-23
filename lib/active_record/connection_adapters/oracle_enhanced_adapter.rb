@@ -1621,15 +1621,7 @@ if defined?(CGI::Session::ActiveRecordStore::Session)
 end
 
 # Load custom create, update, delete methods functionality
-# rescue LoadError if ruby-plsql gem cannot be loaded
-begin
-  require 'active_record/connection_adapters/oracle_enhanced_procedures'
-rescue LoadError
-  if defined?(RAILS_DEFAULT_LOGGER)
-    RAILS_DEFAULT_LOGGER.info "INFO: ActiveRecord oracle_enhanced adapter could not load ruby-plsql gem. "+
-                              "Custom create, update and delete methods will not be available."
-  end
-end
+require 'active_record/connection_adapters/oracle_enhanced_procedures'
 
 # Load additional methods for composite_primary_keys support
 require 'active_record/connection_adapters/oracle_enhanced_cpk'
