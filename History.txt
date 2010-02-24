@@ -1,6 +1,8 @@
 == 1.2.4 2010-02-23
 
 * Enhancements:
+  * rake db:test:purge will drop all schema objects from test schema (including views, synonyms, packages, functions, procedures) -
+    they should be always reloaded before tests run if necessary
   * added views, synonyms, packages, functions, procedures, indexes, triggers, types, primary, unique and foreign key constraints to structure dump
   * added :temporary option for create_table to create temporary tables
   * added :tablespace option for add_index

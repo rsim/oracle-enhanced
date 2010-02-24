@@ -52,7 +52,7 @@ module ActiveRecord #:nodoc:
           self.custom_delete_method = block
         end
         
-        def create_method_name_before_custom_methods
+        def create_method_name_before_custom_methods #:nodoc:
           if private_method_defined?(:create_without_timestamps) && defined?(ActiveRecord::VERSION) && ActiveRecord::VERSION::STRING.to_f >= 2.3
             :create_without_timestamps
           elsif private_method_defined?(:create_without_callbacks)
@@ -62,7 +62,7 @@ module ActiveRecord #:nodoc:
           end
         end
         
-        def update_method_name_before_custom_methods
+        def update_method_name_before_custom_methods #:nodoc:
           if private_method_defined?(:update_without_dirty)
             :update_without_dirty
           elsif private_method_defined?(:update_without_timestamps) && defined?(ActiveRecord::VERSION) && ActiveRecord::VERSION::STRING.to_f >= 2.3
@@ -74,7 +74,7 @@ module ActiveRecord #:nodoc:
           end
         end
         
-        def destroy_method_name_before_custom_methods
+        def destroy_method_name_before_custom_methods #:nodoc:
           if public_method_defined?(:destroy_without_callbacks)
             :destroy_without_callbacks
           else

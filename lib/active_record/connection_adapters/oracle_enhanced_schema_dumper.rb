@@ -119,7 +119,7 @@ module ActiveRecord #:nodoc:
           tbl.print "  create_table #{table.inspect}"
           
           # addition to make temporary option work
-          tbl.print ", :temporary => true" if @connection.temporary?(table)
+          tbl.print ", :temporary => true" if @connection.temporary_table?(table)
           
           if columns.detect { |c| c.name == pk }
             if pk != 'id'

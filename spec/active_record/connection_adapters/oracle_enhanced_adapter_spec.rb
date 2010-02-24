@@ -471,7 +471,7 @@ describe "OracleEnhancedAdapter" do
       @conn.create_table :foos, :temporary => true, :id => false do |t|
         t.integer :id
       end
-      @conn.temporary?("foos").should be_true
+      @conn.temporary_table?("foos").should be_true
     end
   end
 end
