@@ -602,7 +602,6 @@ module ActiveRecord
         sql_with_returning = sql.dup << @connection.returning_clause(quote_column_name(pk))
         # hack to pass additional "with_returning" option without changing argument list
         sql_with_returning.instance_variable_set(:@with_returning, true)
-        clear_query_cache
         execute(sql_with_returning, name)
       end
       protected :insert_sql
