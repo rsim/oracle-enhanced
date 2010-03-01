@@ -1341,7 +1341,7 @@ module ActiveRecord
                 }).map do |row|
             ddl << row['text'] if row['text'].size > 1
           end
-          ddl << ";" unless ddl.strip.last == ";"
+          ddl << ";" unless ddl.strip[-1,1] == ";"
           structure << ddl << STATEMENT_TOKEN
         end
 

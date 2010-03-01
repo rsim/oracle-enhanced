@@ -58,7 +58,7 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       dump.split('\n').length.should == 1
-      dump.should =~ /ALTER TABLE TEST_POSTS ADD CONSTRAINT fk_test_post_foo FOREIGN KEY \(foo_id\) REFERENCES foos\(id\)/
+      dump.should =~ /ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOO\"? FOREIGN KEY \(\"?FOO_ID\"?\) REFERENCES \"?FOOS\"?\(\"?ID\"?\)/i
     end
   
     it "should not error when no foreign keys are present" do
@@ -124,9 +124,9 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /create unique index ix_test_posts_foo_id on test_posts \(foo_id\)/i
-      dump.should =~ /create  index ix_test_posts_foo on test_posts \(foo\)/i
-      dump.should_not =~ /create unique index uk_test_posts_/i
+      dump.should =~ /create unique index \"?ix_test_posts_foo_id\"? on \"?test_posts\"? \(\"?foo_id\"?\)/i
+      dump.should =~ /create  index \"?ix_test_posts_foo\"? on \"?test_posts\"? \(\"?foo\"?\)/i
+      dump.should_not =~ /create unique index \"?uk_test_posts_/i
     end
   end
   describe "temporary tables" do
