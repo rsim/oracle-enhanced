@@ -40,14 +40,11 @@ if ENV['RAILS_GEM_VERSION'] >= '2.3'
 else
   require 'action_controller/session/active_record_store'
 end
-if !defined?(RUBY_ENGINE)
-  gem 'ruby-oci8', '=2.0.3'
-  require 'oci8'
-elsif RUBY_ENGINE == 'ruby'
-  gem 'ruby-oci8', '=2.0.3'
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
+  gem 'ruby-oci8', '>=2.0.4'
   require 'oci8'
 elsif RUBY_ENGINE == 'jruby'
-  gem "activerecord-jdbc-adapter"
+  gem 'activerecord-jdbc-adapter'
   require 'active_record/connection_adapters/jdbc_adapter'
 end
 
