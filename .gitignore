@@ -6,5 +6,4 @@ pkg
 log
 tmp
 sqlnet.log
-activerecord-oracle_enhanced-adapter.gemspec
 
