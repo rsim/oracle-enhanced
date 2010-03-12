@@ -933,7 +933,10 @@ module ActiveRecord
 
       # used in migrations to clear column cache for specified table
       def clear_table_columns_cache(table_name)
-        @@columns_cache[table_name.to_s] = nil if @@cache_columns
+        if @@cache_columns
+          @@columns_cache ||= {}
+          @@columns_cache[table_name.to_s] = nil
+        end
       end
 
       ##
