@@ -42,8 +42,9 @@ require 'active_record'
 
 if ENV['RAILS_GEM_VERSION'] >= '3.0'
   require 'action_dispatch'
-  require "rails/subscriber"
-  require 'active_record/railties/subscriber'
+  require 'active_support/core_ext/module/attribute_accessors'
+  require "rails/log_subscriber"
+  require 'active_record/railties/log_subscriber'
   require 'logger'
 elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3/
   require 'action_pack'
@@ -72,14 +73,12 @@ module LoggerSpecHelper
       queue = ActiveSupport::Notifications::Fanout.new
       @notifier = ActiveSupport::Notifications::Notifier.new(queue)
 
-      Rails::Subscriber.colorize_logging = false
-      @notifier.subscribe { |*args| Rails::Subscriber.dispatch(args) }
-
-      Rails::Subscriber.add(:active_record, ActiveRecord::Railties::Subscriber.new) \
-        unless Rails::Subscriber.subscribers[:active_record]
+      Rails::LogSubscriber.colorize_logging = false
 
       ActiveRecord::Base.logger = @logger
       ActiveSupport::Notifications.notifier = @notifier
+
+      Rails::LogSubscriber.add(:active_record, ActiveRecord::Railties::LogSubscriber.new)
 
     else # ActiveRecord 2.x
       if ActiveRecord::Base.respond_to?(:connection_pool)
