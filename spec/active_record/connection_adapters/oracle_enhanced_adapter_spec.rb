@@ -220,8 +220,21 @@ describe "OracleEnhancedAdapter" do
 
       it "should get columns from database at second time" do
         TestEmployee.connection.columns('test_employees')
+        @logger.clear(:debug)
         TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
         @logger.logged(:debug).last.should =~ /select .* from all_tab_columns/im
+      end
+
+      it "should get primary key from database at first time" do
+        TestEmployee.connection.pk_and_sequence_for('test_employees').should == ['id', nil]
+        @logger.logged(:debug).last.should =~ /select .* from all_constraints/im
+      end
+
+      it "should get primary key from database at first time" do
+        TestEmployee.connection.pk_and_sequence_for('test_employees').should == ['id', nil]
+        @logger.clear(:debug)
+        TestEmployee.connection.pk_and_sequence_for('test_employees').should == ['id', nil]
+        @logger.logged(:debug).last.should =~ /select .* from all_constraints/im
       end
 
     end
@@ -241,6 +254,18 @@ describe "OracleEnhancedAdapter" do
         TestEmployee.connection.columns('test_employees')
         @logger.clear(:debug)
         TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
+        @logger.logged(:debug).last.should be_blank
+      end
+
+      it "should get primary key from database at first time" do
+        TestEmployee.connection.pk_and_sequence_for('test_employees').should == ['id', nil]
+        @logger.logged(:debug).last.should =~ /select .* from all_constraints/im
+      end
+
+      it "should get primary key from cache at first time" do
+        TestEmployee.connection.pk_and_sequence_for('test_employees').should == ['id', nil]
+        @logger.clear(:debug)
+        TestEmployee.connection.pk_and_sequence_for('test_employees').should == ['id', nil]
         @logger.logged(:debug).last.should be_blank
       end
 

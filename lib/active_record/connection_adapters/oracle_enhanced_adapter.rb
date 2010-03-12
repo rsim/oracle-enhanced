@@ -852,7 +852,7 @@ module ActiveRecord
             AND table_name = '#{desc_table_name}'
             AND status = 'ENABLED'
         SQL
-        select_value(pkt_sql) ? true : false
+        select_value(pkt_sql, 'Primary Key Trigger') ? true : false
       end
 
       ##
@@ -882,8 +882,8 @@ module ActiveRecord
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
         @@do_not_prefetch_primary_key[table_name] =
-          has_primary_key_trigger?(table_name, owner, desc_table_name, db_link) ||
-          primary_key(table_name, owner, desc_table_name, db_link).nil?
+          !has_primary_key?(table_name, owner, desc_table_name, db_link) ||
+          has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
 
         table_cols = <<-SQL
           select column_name as name, data_type as sql_type, data_default, nullable,
@@ -929,6 +929,7 @@ module ActiveRecord
       # used just in tests to clear column cache
       def clear_columns_cache #:nodoc:
         @@columns_cache = nil
+        @@pk_and_sequence_for_cache = nil
       end
 
       # used in migrations to clear column cache for specified table
@@ -1185,7 +1186,16 @@ module ActiveRecord
 
       # Find a table's primary key and sequence. 
       # *Note*: Only primary key is implemented - sequence will be nil.
-      def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil, db_link = nil) #:nodoc:
+      def pk_and_sequence_for(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
+        if @@cache_columns
+          @@pk_and_sequence_for_cache ||= {}
+          @@pk_and_sequence_for_cache[table_name] ||= pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link)
+        else
+          pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link)
+        end
+      end
+
+      def pk_and_sequence_for_without_cache(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
         # changed back from user_constraints to all_constraints for consistency
@@ -1204,9 +1214,13 @@ module ActiveRecord
       end
 
       # Returns just a table's primary key
-      def primary_key(table_name, owner = nil, desc_table_name = nil, db_link = nil)
-        pk_and_sequence = pk_and_sequence_for(table_name, owner, desc_table_name, db_link)
+      def primary_key(table_name)
+        pk_and_sequence = pk_and_sequence_for(table_name)
         pk_and_sequence && pk_and_sequence.first
+      end
+
+      def has_primary_key?(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
+        !pk_and_sequence_for(table_name, owner, desc_table_name, db_link).nil?
       end
 
       def structure_dump #:nodoc:
