@@ -70,7 +70,7 @@ module ActiveRecord
           CREATE OR REPLACE PROCEDURE #{quote_table_name(procedure_name)}
             (p_rowid IN	      ROWID,
             p_clob	IN OUT NOCOPY CLOB) IS
-            -- create_context_index #{table_name.inspect}, #{(column_names+select_queries).inspect}, #{options.inspect[1..-2]}
+            -- add_context_index #{table_name.inspect}, #{(column_names+select_queries).inspect}#{!options.empty? ? ', ' << options.inspect[1..-2] : ''}
             #{
             selected_columns.map do |cols|
               cols.map do |col|
@@ -123,7 +123,7 @@ module ActiveRecord
           # get primary or foreign keys like :id or :something_id
           keys << (query.scan(/:\w+/).map{|k| k[1..-1].downcase.to_sym})
           select_part = query.scan(/^select\s.*\sfrom/i).first
-          selected_columns << select_part.scan(/\sAS\s+(\w+)/).map{|c| c.first}
+          selected_columns << select_part.scan(/\sas\s+(\w+)/i).map{|c| c.first}
         end
         [keys.flatten.uniq, selected_columns]
       end

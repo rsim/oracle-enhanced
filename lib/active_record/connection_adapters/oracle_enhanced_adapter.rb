@@ -768,14 +768,19 @@ module ActiveRecord
         unless all_schema_indexes
           default_tablespace_name = default_tablespace
           result = select_all(<<-SQL)
-            SELECT lower(i.table_name) as table_name, lower(i.index_name) as index_name, i.uniqueness, lower(i.tablespace_name) as tablespace_name, lower(c.column_name) as column_name, e.column_expression as column_expression
-              FROM all_indexes#{db_link} i
-              JOIN all_ind_columns#{db_link} c on c.index_name = i.index_name and c.index_owner = i.owner
-              LEFT OUTER JOIN all_ind_expressions#{db_link} e on e.index_name = i.index_name and e.index_owner = i.owner and e.column_position = c.column_position
-             WHERE i.owner = '#{owner}'
+            SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
+              i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
+              LOWER(i.tablespace_name) AS tablespace_name,
+              LOWER(c.column_name) AS column_name, e.column_expression
+            FROM all_indexes#{db_link} i
+              JOIN all_ind_columns#{db_link} c ON c.index_name = i.index_name AND c.index_owner = i.owner
+              LEFT OUTER JOIN all_ind_expressions#{db_link} e ON e.index_name = i.index_name AND
+                e.index_owner = i.owner AND e.column_position = c.column_position
+            WHERE i.owner = '#{owner}'
                AND i.table_owner = '#{owner}'
-               AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
-              ORDER BY i.index_name, c.column_position
+               AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
+                WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
+            ORDER BY i.index_name, c.column_position
           SQL
 
           current_index = nil
@@ -785,11 +790,25 @@ module ActiveRecord
             # have to keep track of indexes because above query returns dups
             # there is probably a better query we could figure out
             if current_index != row['index_name']
-              all_schema_indexes << OracleEnhancedIndexDefinition.new(row['table_name'], row['index_name'], row['uniqueness'] == "UNIQUE",
+              statement = nil
+              if row['index_type'] == 'DOMAIN' && row['ityp_owner'] == 'CTXSYS' && row['ityp_name'] == 'CONTEXT'
+                procedure_name = default_datastore_procedure(row['index_name'])
+                statement = select_value <<-SQL
+                  SELECT SUBSTR(text,4)
+                  FROM all_source#{db_link}
+                  WHERE owner = '#{owner}'
+                    AND name = '#{procedure_name.upcase}'
+                    AND text LIKE '-- add_context_index %'
+                SQL
+              end
+              all_schema_indexes << OracleEnhancedIndexDefinition.new(row['table_name'], row['index_name'],
+                row['uniqueness'] == "UNIQUE", row['index_type'] == 'DOMAIN' ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
+                row['parameters'], statement,
                 row['tablespace_name'] == default_tablespace_name ? nil : row['tablespace_name'], [])
               current_index = row['index_name']
             end
-            all_schema_indexes.last.columns << (row['column_expression'].nil? ? row['column_name'] : row['column_expression'].gsub('"','').downcase)
+            all_schema_indexes.last.columns << (row['column_expression'].nil? ? row['column_name'] :
+              row['column_expression'].gsub('"','').downcase)
           end
         end
 

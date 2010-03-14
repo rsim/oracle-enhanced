@@ -174,4 +174,63 @@ describe "OracleEnhancedAdapter context index" do
     end
 
   end
+
+  describe "schema dump" do
+    before(:all) do
+      schema_define do
+        create_table :posts, :force => true do |t|
+          t.string :title
+          t.text :body
+          t.integer :comments_count
+          t.timestamps
+          t.string :all_text, :limit => 1 # will be used for multi-column index
+        end
+        create_table :comments, :force => true do |t|
+          t.integer :post_id
+          t.string :author
+          t.text :body
+          t.timestamps
+        end
+      end
+    end
+
+    after(:all) do
+      schema_define { drop_table :comments; drop_table :posts }
+    end
+
+    def standard_dump
+      stream = StringIO.new
+      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
+      stream.string
+    end
+
+    it "should dump definition of single column index" do
+      @conn.add_context_index :posts, :title
+      standard_dump.should =~ /add_context_index "posts", \["title"\], :name => \"index_posts_on_title\"$/
+      @conn.remove_context_index :posts, :title
+    end
+
+    it "should dump definition of multiple column index" do
+      @conn.add_context_index :posts, [:title, :body]
+      standard_dump.should =~ /add_context_index :posts, \[:title, :body\]$/
+      @conn.remove_context_index :posts, [:title, :body]
+    end
+
+    it "should dump definition of multiple table index with options" do
+      options = {
+        :name => 'post_and_comments_index',
+        :index_column => :all_text, :index_column_trigger_on => :updated_at,
+        :sync => 'ON COMMIT'
+      }
+      @conn.add_context_index :posts,
+        [:title, :body,
+        "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
+        ], options
+      standard_dump.should =~ /add_context_index :posts, \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{options.inspect[1..-2]}$/
+      @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+    end
+
+  end
+
 end

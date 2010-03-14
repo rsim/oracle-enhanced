@@ -89,14 +89,27 @@ module ActiveRecord #:nodoc:
       def indexes_with_oracle_enhanced(table, stream)
         if (indexes = @connection.indexes(table)).any?
           add_index_statements = indexes.map do |index|
-            # use table.inspect as it will remove prefix and suffix
-            statment_parts = [ ('add_index ' + table.inspect) ]
-            statment_parts << index.columns.inspect
-            statment_parts << (':name => ' + index.name.inspect)
-            statment_parts << ':unique => true' if index.unique
-            statment_parts << ':tablespace => ' + index.tablespace.inspect if index.tablespace
-
-            '  ' + statment_parts.join(', ')
+            case index.type
+            when nil
+              # use table.inspect as it will remove prefix and suffix
+              statement_parts = [ ('add_index ' + table.inspect) ]
+              statement_parts << index.columns.inspect
+              statement_parts << (':name => ' + index.name.inspect)
+              statement_parts << ':unique => true' if index.unique
+              statement_parts << ':tablespace => ' + index.tablespace.inspect if index.tablespace
+            when 'CTXSYS.CONTEXT'
+              if index.statement
+                statement_parts = [ index.statement ]
+              else
+                statement_parts = [ ('add_context_index ' + table.inspect) ]
+                statement_parts << index.columns.inspect
+                statement_parts << (':name => ' + index.name.inspect)
+              end
+            else
+              # unrecognized index type
+              statement_parts = ["# unrecognized index #{index.name.inspect} with type #{index.type.inspect}"]
+            end
+            '  ' + statement_parts.join(', ')
           end
 
           stream.puts add_index_statements.sort.join("\n")
