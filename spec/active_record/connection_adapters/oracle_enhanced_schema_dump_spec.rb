@@ -190,7 +190,7 @@ describe "OracleEnhancedAdapter schema dump" do
       standard_dump.should =~ /add_index \"test_posts\", \[\"title\"\], :name => \"index_test_posts_on_title\"$/
     end
 
-    it "should not specify default tablespace in add index" do
+    it "should specify non-default tablespace in add index" do
       tablespace_name = @conn.default_tablespace
       @conn.stub!(:default_tablespace).and_return('dummy')
       create_test_posts_table

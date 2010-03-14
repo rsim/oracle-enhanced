@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new("> 1.3.1") if s.respond_to? :required_rubygems_version=
   s.authors = ["Raimonds Simanovskis"]
-  s.date = %q{2010-03-07}
+  s.date = %q{2010-03-15}
   s.description = %q{Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 }
@@ -25,10 +25,12 @@ This adapter is superset of original ActiveRecord Oracle adapter.
      "README.rdoc",
      "Rakefile",
      "VERSION",
+     "activerecord-oracle_enhanced-adapter.gemspec",
      "lib/active_record/connection_adapters/emulation/oracle_adapter.rb",
      "lib/active_record/connection_adapters/oracle_enhanced.rake",
      "lib/active_record/connection_adapters/oracle_enhanced_adapter.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_connection.rb",
+     "lib/active_record/connection_adapters/oracle_enhanced_context_index.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_core_ext.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_cpk.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_dirty.rb",
@@ -44,6 +46,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
      "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_adapter_structure_dumper_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_connection_spec.rb",
+     "spec/active_record/connection_adapters/oracle_enhanced_context_index_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_core_ext_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_cpk_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_data_types_spec.rb",
@@ -65,6 +68,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_adapter_structure_dumper_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_connection_spec.rb",
+     "spec/active_record/connection_adapters/oracle_enhanced_context_index_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_core_ext_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_cpk_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_data_types_spec.rb",

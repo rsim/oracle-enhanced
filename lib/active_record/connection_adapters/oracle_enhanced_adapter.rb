@@ -756,7 +756,7 @@ module ActiveRecord
 
       def tables(name = nil) #:nodoc:
         # changed select from user_tables to all_tables - much faster in large data dictionaries
-        select_all("select decode(table_name,upper(table_name),lower(table_name),table_name) name from all_tables where owner = sys_context('userenv','session_user')").map {|t| t['name']}
+        select_all("select decode(table_name,upper(table_name),lower(table_name),table_name) name from all_tables where owner = sys_context('userenv','session_user') and secondary='N'").map {|t| t['name']}
       end
 
       cattr_accessor :all_schema_indexes #:nodoc:
@@ -1055,11 +1055,7 @@ module ActiveRecord
         if Hash === options # legacy support, since this param was a string
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name] || index_name
-          tablespace = if options[:tablespace]
-                         " TABLESPACE #{options[:tablespace]}"
-                       else
-                         ""
-                       end
+          tablespace = options[:tablespace] ? " TABLESPACE #{options[:tablespace]}" : ""
         else
           index_type = options
         end
@@ -1076,18 +1072,21 @@ module ActiveRecord
       # returned shortened index name if default is too large
       def index_name(table_name, options) #:nodoc:
         default_name = super(table_name, options)
-        return default_name if default_name.length <= IDENTIFIER_MAX_LENGTH
+        # sometimes options can be String or Array with column names
+        options = {} unless options.is_a?(Hash)
+        identifier_max_length = options[:identifier_max_length] || IDENTIFIER_MAX_LENGTH
+        return default_name if default_name.length <= identifier_max_length
         
         # remove 'index', 'on' and 'and' keywords
         shortened_name = "i_#{table_name}_#{Array(options[:column]) * '_'}"
         
         # leave just first three letters from each word
-        if shortened_name.length > IDENTIFIER_MAX_LENGTH
+        if shortened_name.length > identifier_max_length
           shortened_name = shortened_name.split('_').map{|w| w[0,3]}.join('_')
         end
         # generate unique name using hash function
-        if shortened_name.length > OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH
-          shortened_name = 'i'+Digest::SHA1.hexdigest(default_name)[0,OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH-1]
+        if shortened_name.length > identifier_max_length
+          shortened_name = 'i'+Digest::SHA1.hexdigest(default_name)[0,identifier_max_length-1]
         end
         @logger.warn "#{adapter_name} shortened default index name #{default_name} to #{shortened_name}" if @logger
         shortened_name
@@ -1553,8 +1552,8 @@ module ActiveRecord
         "#{table_name.to_s[0,IDENTIFIER_MAX_LENGTH-4]}_pkt"
       end
 
-      def compress_lines(string, spaced = true)
-        string.split($/).map { |line| line.strip }.join(spaced ? ' ' : '')
+      def compress_lines(string, join_with = "\n")
+        string.split($/).map { |line| line.strip }.join(join_with)
       end
 
       # virtual columns are an 11g feature.  This returns [] if feature is not 
@@ -1677,6 +1676,9 @@ require 'active_record/connection_adapters/oracle_enhanced_schema_statements_ext
 
 # Extensions for schema definition
 require 'active_record/connection_adapters/oracle_enhanced_schema_definitions'
+
+# Extensions for context index definition
+require 'active_record/connection_adapters/oracle_enhanced_context_index'
 
 # Add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
 require 'active_record/connection_adapters/oracle_enhanced_core_ext'
