@@ -1,1 +1,1 @@
-ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::VERSION = '1.2.3'
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::VERSION = File.read(File.dirname(__FILE__)+'/../../../VERSION').chomp

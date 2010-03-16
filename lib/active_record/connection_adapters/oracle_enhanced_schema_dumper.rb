@@ -98,8 +98,9 @@ module ActiveRecord #:nodoc:
               statement_parts << ':unique => true' if index.unique
               statement_parts << ':tablespace => ' + index.tablespace.inspect if index.tablespace
             when 'CTXSYS.CONTEXT'
-              if index.statement
-                statement_parts = [ index.statement ]
+              if index.statement_parameters
+                statement_parts = [ ('add_context_index ' + table.inspect) ]
+                statement_parts << index.statement_parameters
               else
                 statement_parts = [ ('add_context_index ' + table.inspect) ]
                 statement_parts << index.columns.inspect

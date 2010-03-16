@@ -176,7 +176,15 @@ describe "OracleEnhancedAdapter context index" do
   end
 
   describe "schema dump" do
-    before(:all) do
+
+    def standard_dump
+      stream = StringIO.new
+      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
+      stream.string
+    end
+
+    def create_tables
       schema_define do
         create_table :posts, :force => true do |t|
           t.string :title
@@ -194,41 +202,89 @@ describe "OracleEnhancedAdapter context index" do
       end
     end
 
-    after(:all) do
+    def drop_tables
       schema_define { drop_table :comments; drop_table :posts }
     end
 
-    def standard_dump
-      stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = []
-      ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
-      stream.string
+    describe "without table prefixe and suffix" do
+
+      before(:all) do
+        create_tables
+      end
+
+      after(:all) do
+        drop_tables
+      end
+
+      it "should dump definition of single column index" do
+        @conn.add_context_index :posts, :title
+        standard_dump.should =~ /add_context_index "posts", \["title"\], :name => \"index_posts_on_title\"$/
+        @conn.remove_context_index :posts, :title
+      end
+
+      it "should dump definition of multiple column index" do
+        @conn.add_context_index :posts, [:title, :body]
+        standard_dump.should =~ /add_context_index "posts", \[:title, :body\]$/
+        @conn.remove_context_index :posts, [:title, :body]
+      end
+
+      it "should dump definition of multiple table index with options" do
+        options = {
+          :name => 'post_and_comments_index',
+          :index_column => :all_text, :index_column_trigger_on => :updated_at,
+          :sync => 'ON COMMIT'
+        }
+        @conn.add_context_index :posts,
+          [:title, :body,
+          "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
+          ], options
+        standard_dump.should =~ /add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{options.inspect[1..-2]}$/
+        @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+      end
+
     end
 
-    it "should dump definition of single column index" do
-      @conn.add_context_index :posts, :title
-      standard_dump.should =~ /add_context_index "posts", \["title"\], :name => \"index_posts_on_title\"$/
-      @conn.remove_context_index :posts, :title
-    end
+    describe "with table prefix and suffix" do
+      before(:all) do
+        ActiveRecord::Base.table_name_prefix = 'xxx_'
+        ActiveRecord::Base.table_name_suffix = '_xxx'
+        create_tables
+      end
 
-    it "should dump definition of multiple column index" do
-      @conn.add_context_index :posts, [:title, :body]
-      standard_dump.should =~ /add_context_index :posts, \[:title, :body\]$/
-      @conn.remove_context_index :posts, [:title, :body]
-    end
+      after(:all) do
+        drop_tables
+        ActiveRecord::Base.table_name_prefix = ''
+        ActiveRecord::Base.table_name_suffix = ''
+      end
 
-    it "should dump definition of multiple table index with options" do
-      options = {
-        :name => 'post_and_comments_index',
-        :index_column => :all_text, :index_column_trigger_on => :updated_at,
-        :sync => 'ON COMMIT'
-      }
-      @conn.add_context_index :posts,
-        [:title, :body,
-        "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
-        ], options
-      standard_dump.should =~ /add_context_index :posts, \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{options.inspect[1..-2]}$/
-      @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+      it "should dump definition of single column index" do
+        schema_define { add_context_index :posts, :title }
+        standard_dump.should =~ /add_context_index "posts", \["title"\], :name => "i_xxx_posts_xxx_title"$/
+        schema_define { remove_context_index :posts, :title }
+      end
+
+      it "should dump definition of multiple column index" do
+        schema_define { add_context_index :posts, [:title, :body] }
+        standard_dump.should =~ /add_context_index "posts", \[:title, :body\]$/
+        schema_define { remove_context_index :posts, [:title, :body] }
+      end
+
+      it "should dump definition of multiple table index with options" do
+        options = {
+          :name => 'xxx_post_and_comments_i',
+          :index_column => :all_text, :index_column_trigger_on => :updated_at,
+          :sync => 'ON COMMIT'
+        }
+        schema_define do
+          add_context_index :posts,
+            [:title, :body,
+            "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
+            ], options
+        end
+        standard_dump.should =~ /add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{options.inspect[1..-2]}$/
+        schema_define { remove_context_index :posts, :name => 'xxx_post_and_comments_i' }
+      end
+
     end
 
   end

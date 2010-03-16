@@ -70,7 +70,7 @@ module ActiveRecord
           CREATE OR REPLACE PROCEDURE #{quote_table_name(procedure_name)}
             (p_rowid IN	      ROWID,
             p_clob	IN OUT NOCOPY CLOB) IS
-            -- add_context_index #{table_name.inspect}, #{(column_names+select_queries).inspect}#{!options.empty? ? ', ' << options.inspect[1..-2] : ''}
+            -- add_context_index_parameters #{(column_names+select_queries).inspect}#{!options.empty? ? ', ' << options.inspect[1..-2] : ''}
             #{
             selected_columns.map do |cols|
               cols.map do |col|

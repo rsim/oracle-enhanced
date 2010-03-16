@@ -790,20 +790,20 @@ module ActiveRecord
             # have to keep track of indexes because above query returns dups
             # there is probably a better query we could figure out
             if current_index != row['index_name']
-              statement = nil
+              statement_parameters = nil
               if row['index_type'] == 'DOMAIN' && row['ityp_owner'] == 'CTXSYS' && row['ityp_name'] == 'CONTEXT'
                 procedure_name = default_datastore_procedure(row['index_name'])
-                statement = select_value <<-SQL
-                  SELECT SUBSTR(text,4)
+                statement_parameters = select_value(<<-SQL)
+                  SELECT SUBSTR(text,LENGTH('-- add_context_index_parameters ')+1)
                   FROM all_source#{db_link}
                   WHERE owner = '#{owner}'
                     AND name = '#{procedure_name.upcase}'
-                    AND text LIKE '-- add_context_index %'
+                    AND text LIKE '-- add_context_index_parameters %'
                 SQL
               end
               all_schema_indexes << OracleEnhancedIndexDefinition.new(row['table_name'], row['index_name'],
                 row['uniqueness'] == "UNIQUE", row['index_type'] == 'DOMAIN' ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
-                row['parameters'], statement,
+                row['parameters'], statement_parameters,
                 row['tablespace_name'] == default_tablespace_name ? nil : row['tablespace_name'], [])
               current_index = row['index_name']
             end
