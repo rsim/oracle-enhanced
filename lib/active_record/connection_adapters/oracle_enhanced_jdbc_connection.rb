@@ -154,7 +154,7 @@ module ActiveRecord
         @active = true
       rescue NativeException => e
         @active = false
-        if e.message =~ /^java\.sql\.SQLException/
+        if e.message =~ /^java\.sql\.SQL(Recoverable)?Exception/
           raise OracleEnhancedConnectionException, e.message
         else
           raise
@@ -169,7 +169,7 @@ module ActiveRecord
           @active = true
         rescue NativeException => e
           @active = false
-          if e.message =~ /^java\.sql\.SQLException/
+          if e.message =~ /^java\.sql\.SQL(Recoverable)?Exception/
             raise OracleEnhancedConnectionException, e.message
           else
             raise
@@ -183,7 +183,7 @@ module ActiveRecord
         begin
           yield if block_given?
         rescue NativeException => e
-          raise unless e.message =~ /^java\.sql\.SQLException: (Closed Connection|Io exception:|No more data to read from socket)/
+          raise unless e.message =~ /^java\.sql\.SQL(Recoverable)?Exception: (Closed Connection|Io exception:|No more data to read from socket)/
           @active = false
           raise unless should_retry
           should_retry = false
