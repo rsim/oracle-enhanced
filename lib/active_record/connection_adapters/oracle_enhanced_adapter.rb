@@ -1417,27 +1417,29 @@ module ActiveRecord
       end
       
       def structure_drop #:nodoc:
-        s = select_all("select sequence_name from user_sequences order by 1").inject("") do |drop, seq|
-          drop << "drop sequence #{seq.to_a.first.last};\n\n"
-        end
-
-        # changed select from user_tables to all_tables - much faster in large data dictionaries
-        select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").inject(s) do |drop, table|
-          drop << "drop table #{table.to_a.first.last} cascade constraints;\n\n"
-        end
+        ((select_values("select sequence_name from user_sequences order by 1").map do |seq|
+          "DROP SEQUENCE \"#{seq}\";"
+        end) +
+        (select_values("select table_name from all_tables t
+                    where owner = sys_context('userenv','session_user') and secondary='N'
+                      and not exists (select mv.mview_name from all_mviews mv where mv.owner = t.owner and mv.mview_name = t.table_name)
+                    order by 1").map do |table|
+          "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS;"
+        end)).join("\n\n")
       end
       
       def temp_table_drop #:nodoc:
-        # changed select from user_tables to all_tables - much faster in large data dictionaries
-        select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') and temporary = 'Y' order by 1").inject('') do |drop, table|
-          drop << "drop table #{table.to_a.first.last} cascade constraints;\n\n"
-        end
+        select_values("select table_name from all_tables
+                    where owner = sys_context('userenv','session_user') and secondary='N' and temporary = 'Y' order by 1").map do |table|
+          "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS;"
+        end.join("\n\n")
       end
       
       def full_drop(preserve_tables=false) #:nodoc:
         s = preserve_tables ? [] : [structure_drop]
         s << temp_table_drop if preserve_tables
         s << drop_sql_for_feature("view")
+        s << drop_sql_for_feature("materialized view")
         s << drop_sql_for_feature("synonym")
         s << drop_sql_for_feature("type")
         s << drop_sql_for_object("package")
@@ -1593,11 +1595,16 @@ module ActiveRecord
       end
       
       def drop_sql_for_feature(type)
-        select_values("select 'DROP #{type.upcase} \"' || #{type}_name || '\";' from user_#{type.tableize}").join("\n\n")
+        short_type = type == 'materialized view' ? 'mview' : type
+        select_values("select #{short_type}_name from user_#{short_type.tableize}").map do |name|
+          "DROP #{type.upcase} \"#{name}\";"
+        end.join("\n\n")
       end
       
       def drop_sql_for_object(type)
-        select_values("select 'DROP #{type.upcase} ' || object_name || ';' from user_objects where object_type = '#{type.upcase}'").join("\n\n")
+        select_values("select object_name from user_objects where object_type = '#{type.upcase}'").map do |name|
+          "DROP #{type.upcase} \"#{name}\";"
+        end.join("\n\n")
       end
       
       public

@@ -173,8 +173,8 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     it "should dump drop sql for just temp tables" do
       dump = @conn.temp_table_drop
-      dump.should =~ /drop table temp_tbl/i
-      dump.should_not =~ /drop table not_temp_tbl/i
+      dump.should =~ /DROP TABLE "TEMP_TBL"/
+      dump.should_not =~ /drop table "?not_temp_tbl"?/i
     end
     after(:each) do
       @conn.drop_table :temp_tbl 
@@ -193,6 +193,10 @@ describe "OracleEnhancedAdapter structure dump" do
       #view
       @conn.execute <<-SQL
         create or replace view full_drop_test_view (foo) as select id as "foo" from full_drop_test
+      SQL
+      #materialized view
+      @conn.execute <<-SQL
+        create materialized view full_drop_test_mview (foo) as select id as "foo" from full_drop_test
       SQL
       #package
       @conn.execute <<-SQL
@@ -241,6 +245,7 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.drop_table :full_drop_test
       @conn.drop_table :full_drop_test_temp
       @conn.execute "DROP VIEW FULL_DROP_TEST_VIEW" rescue nil
+      @conn.execute "DROP MATERIALIZED VIEW FULL_DROP_TEST_MVIEW" rescue nil
       @conn.execute "DROP SYNONYM FULL_DROP_TEST_SYNONYM" rescue nil
       @conn.execute "DROP PACKAGE FULL_DROP_TEST_PACKAGE" rescue nil
       @conn.execute "DROP FUNCTION FULL_DROP_TEST_FUNCTION" rescue nil
@@ -249,19 +254,21 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     it "should contain correct sql" do
       drop = @conn.full_drop
-      drop.should =~ /drop table full_drop_test cascade constraints/i
-      drop.should =~ /drop sequence full_drop_test_seq/i
-      drop.should =~ /drop view "full_drop_test_view"/i
-      drop.should =~ /drop package full_drop_test_package/i
-      drop.should =~ /drop function full_drop_test_function/i
-      drop.should =~ /drop procedure full_drop_test_procedure/i
-      drop.should =~ /drop synonym "full_drop_test_synonym"/i
-      drop.should =~ /drop type "full_drop_test_type"/i
+      drop.should =~ /DROP TABLE "FULL_DROP_TEST" CASCADE CONSTRAINTS;/
+      drop.should =~ /DROP SEQUENCE "FULL_DROP_TEST_SEQ";/
+      drop.should =~ /DROP VIEW "FULL_DROP_TEST_VIEW";/
+      drop.should_not =~ /drop table "?full_drop_test_mview"?/i
+      drop.should =~ /DROP MATERIALIZED VIEW "FULL_DROP_TEST_MVIEW";/
+      drop.should =~ /DROP PACKAGE "FULL_DROP_TEST_PACKAGE";/
+      drop.should =~ /DROP FUNCTION "FULL_DROP_TEST_FUNCTION";/
+      drop.should =~ /DROP PROCEDURE "FULL_DROP_TEST_PROCEDURE";/
+      drop.should =~ /DROP SYNONYM "FULL_DROP_TEST_SYNONYM";/
+      drop.should =~ /DROP TYPE "FULL_DROP_TEST_TYPE";/
     end
     it "should not drop tables when preserve_tables is true" do
       drop = @conn.full_drop(true)
-      drop.should =~ /drop table full_drop_test_temp/i
-      drop.should_not =~ /drop table full_drop_test cascade constraints/i
+      drop.should =~ /DROP TABLE "FULL_DROP_TEST_TEMP"/
+      drop.should_not =~ /drop table "?full_drop_test"? cascade constraints/i
     end
   end
 end
