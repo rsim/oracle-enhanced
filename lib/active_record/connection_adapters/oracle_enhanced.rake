@@ -17,7 +17,6 @@ namespace :db do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(abcs[RAILS_ENV])
       File.open("db/#{RAILS_ENV}_structure.sql", "w+") { |f| f << ActiveRecord::Base.connection.structure_dump }
-      File.open("db/#{RAILS_ENV}_structure.sql", "a") { |f| f << ActiveRecord::Base.connection.structure_dump_fk_constraints }
       if ActiveRecord::Base.connection.supports_migrations?
         File.open("db/#{RAILS_ENV}_structure.sql", "a") { |f| f << ActiveRecord::Base.connection.dump_schema_information }
       end
@@ -32,7 +31,8 @@ namespace :db do
     redefine_task :clone_structure => [ "db:structure:dump", "db:test:purge" ] do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(:test)
-      IO.readlines("db/#{RAILS_ENV}_structure.sql").join.split("\n\n").each do |ddl|
+      File.read("db/#{RAILS_ENV}_structure.sql").
+            split(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::STATEMENT_TOKEN).each do |ddl|
         ddl.chop! if ddl.last == ";"
         ActiveRecord::Base.connection.execute(ddl) unless ddl.blank?
       end
@@ -41,7 +41,8 @@ namespace :db do
     redefine_task :purge => :environment do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(:test)
-      ActiveRecord::Base.connection.full_drop.split("\n\n").each do |ddl|
+      ActiveRecord::Base.connection.full_drop.
+            split(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::STATEMENT_TOKEN).each do |ddl|
         ddl.chop! if ddl.last == ";"
         ActiveRecord::Base.connection.execute(ddl) unless ddl.blank?
       end

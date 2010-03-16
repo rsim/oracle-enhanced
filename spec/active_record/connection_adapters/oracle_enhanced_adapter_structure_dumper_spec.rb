@@ -78,7 +78,7 @@ describe "OracleEnhancedAdapter structure dump" do
         END;
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
-      dump.should =~ /create or replace TRIGGER TEST_POST_TRIGGER/
+      dump.should =~ /CREATE OR REPLACE TRIGGER TEST_POST_TRIGGER/
     end
   
     it "should dump types" do
@@ -86,7 +86,7 @@ describe "OracleEnhancedAdapter structure dump" do
         create or replace TYPE TEST_TYPE AS TABLE OF VARCHAR2(10);
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
-      dump.should =~ /create or replace TYPE TEST_TYPE/
+      dump.should =~ /CREATE OR REPLACE TYPE TEST_TYPE/
     end
   
     it "should dump virtual columns" do
@@ -99,7 +99,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /id_plus number GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
+      dump.should =~ /ID_PLUS NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
     end
   
     it "should dump unique keys" do
@@ -124,9 +124,9 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /create unique index \"?ix_test_posts_foo_id\"? on \"?test_posts\"? \(\"?foo_id\"?\)/i
-      dump.should =~ /create  index \"?ix_test_posts_foo\"? on \"?test_posts\"? \(\"?foo\"?\)/i
-      dump.should_not =~ /create unique index \"?uk_test_posts_/i
+      dump.should =~ /CREATE UNIQUE INDEX "?IX_TEST_POSTS_FOO_ID"? ON "?TEST_POSTS"? \("?FOO_ID"?\)/i
+      dump.should =~ /CREATE  INDEX "?IX_TEST_POSTS_FOO\"? ON "?TEST_POSTS"? \("?FOO"?\)/i
+      dump.should_not =~ /CREATE UNIQUE INDEX "?UK_TEST_POSTS_/i
     end
   end
   describe "temporary tables" do
@@ -138,7 +138,7 @@ describe "OracleEnhancedAdapter structure dump" do
         t.integer :post_id
       end
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /create global temporary table test_comments/i
+      dump.should =~ /CREATE GLOBAL TEMPORARY TABLE "?TEST_COMMENTS"?/i
     end
   end
 
@@ -174,7 +174,7 @@ describe "OracleEnhancedAdapter structure dump" do
     it "should dump drop sql for just temp tables" do
       dump = @conn.temp_table_drop
       dump.should =~ /DROP TABLE "TEMP_TBL"/
-      dump.should_not =~ /drop table "?not_temp_tbl"?/i
+      dump.should_not =~ /DROP TABLE "?NOT_TEMP_TBL"?/i
     end
     after(:each) do
       @conn.drop_table :temp_tbl 
@@ -254,21 +254,21 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     it "should contain correct sql" do
       drop = @conn.full_drop
-      drop.should =~ /DROP TABLE "FULL_DROP_TEST" CASCADE CONSTRAINTS;/
-      drop.should =~ /DROP SEQUENCE "FULL_DROP_TEST_SEQ";/
-      drop.should =~ /DROP VIEW "FULL_DROP_TEST_VIEW";/
-      drop.should_not =~ /drop table "?full_drop_test_mview"?/i
-      drop.should =~ /DROP MATERIALIZED VIEW "FULL_DROP_TEST_MVIEW";/
-      drop.should =~ /DROP PACKAGE "FULL_DROP_TEST_PACKAGE";/
-      drop.should =~ /DROP FUNCTION "FULL_DROP_TEST_FUNCTION";/
-      drop.should =~ /DROP PROCEDURE "FULL_DROP_TEST_PROCEDURE";/
-      drop.should =~ /DROP SYNONYM "FULL_DROP_TEST_SYNONYM";/
-      drop.should =~ /DROP TYPE "FULL_DROP_TEST_TYPE";/
+      drop.should =~ /DROP TABLE "FULL_DROP_TEST" CASCADE CONSTRAINTS/
+      drop.should =~ /DROP SEQUENCE "FULL_DROP_TEST_SEQ"/
+      drop.should =~ /DROP VIEW "FULL_DROP_TEST_VIEW"/
+      drop.should_not =~ /DROP TABLE "?FULL_DROP_TEST_MVIEW"?/i
+      drop.should =~ /DROP MATERIALIZED VIEW "FULL_DROP_TEST_MVIEW"/
+      drop.should =~ /DROP PACKAGE "FULL_DROP_TEST_PACKAGE"/
+      drop.should =~ /DROP FUNCTION "FULL_DROP_TEST_FUNCTION"/
+      drop.should =~ /DROP PROCEDURE "FULL_DROP_TEST_PROCEDURE"/
+      drop.should =~ /DROP SYNONYM "FULL_DROP_TEST_SYNONYM"/
+      drop.should =~ /DROP TYPE "FULL_DROP_TEST_TYPE"/
     end
     it "should not drop tables when preserve_tables is true" do
       drop = @conn.full_drop(true)
       drop.should =~ /DROP TABLE "FULL_DROP_TEST_TEMP"/
-      drop.should_not =~ /drop table "?full_drop_test"? cascade constraints/i
+      drop.should_not =~ /DROP TABLE "?FULL_DROP_TEST"? CASCADE CONSTRAINTS/i
     end
   end
 end
