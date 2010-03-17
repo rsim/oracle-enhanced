@@ -755,8 +755,13 @@ module ActiveRecord
       end
 
       def tables(name = nil) #:nodoc:
-        # changed select from user_tables to all_tables - much faster in large data dictionaries
-        select_all("select decode(table_name,upper(table_name),lower(table_name),table_name) name from all_tables where owner = sys_context('userenv','session_user') and secondary='N'").map {|t| t['name']}
+        select_values(
+        "select decode(table_name,upper(table_name),lower(table_name),table_name) from all_tables where owner = sys_context('userenv','session_user') and secondary='N'",
+        name)
+      end
+
+      def materialized_views #:nodoc:
+        select_values("select lower(mview_name) from all_mviews where owner = sys_context('userenv','session_user')")
       end
 
       cattr_accessor :all_schema_indexes #:nodoc:

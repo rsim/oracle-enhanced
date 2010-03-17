@@ -13,7 +13,8 @@ module ActiveRecord #:nodoc:
       private
       
       def tables_with_oracle_enhanced(stream)
-        sorted_tables = @connection.tables.sort
+        # do not include materialized views in schema dump - they should be created separately after schema creation
+        sorted_tables = (@connection.tables - @connection.materialized_views).sort
         sorted_tables.each do |tbl|
           # add table prefix or suffix for schema_migrations
           next if [ActiveRecord::Migrator.proper_table_name('schema_migrations'), ignore_tables].flatten.any? do |ignored|

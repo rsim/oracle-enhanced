@@ -199,5 +199,18 @@ describe "OracleEnhancedAdapter schema dump" do
 
   end
 
+  describe "materialized views" do
+    after(:each) do
+      @conn.execute "DROP MATERIALIZED VIEW test_posts_mv" rescue nil
+      drop_test_posts_table
+    end
+
+    it "should not include materialized views in schema dump" do
+      create_test_posts_table
+      @conn.execute "CREATE MATERIALIZED VIEW test_posts_mv AS SELECT * FROM test_posts"
+      standard_dump.should_not =~ /create_table "test_posts_mv"/
+    end
+  end
+
 end
 
