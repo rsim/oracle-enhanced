@@ -976,7 +976,10 @@ module ActiveRecord
           # clean up odd default spacing from Oracle
           if row['data_default']
             row['data_default'].sub!(/^(.*?)\s*$/, '\1')
-            row['data_default'].sub!(/^'(.*)'$/, '\1')
+
+            # If a default contains a newline these cleanup regexes need to 
+            # match newlines.
+            row['data_default'].sub!(/^'(.*)'$/m, '\1')
             row['data_default'] = nil if row['data_default'] =~ /^(null|empty_[bc]lob\(\))$/i
           end
 

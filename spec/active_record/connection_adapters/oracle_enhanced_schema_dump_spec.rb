@@ -51,6 +51,26 @@ describe "OracleEnhancedAdapter schema dump" do
 
   end
 
+  describe "dumping default values" do
+    before :each do
+      schema_define do
+        create_table "test_defaults", :force => true do |t|
+          t.string "regular", :default => "c"
+          t.string "special_c", :default => "\n"
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table "test_defaults"
+      end
+    end
+
+    it "should be able to dump default values using special characters" do
+      standard_dump.should =~ /t.string \"special_c\", :default => "\\n"/
+    end
+  end
   describe "table prefixes and suffixes" do
     after(:each) do
       drop_test_posts_table
