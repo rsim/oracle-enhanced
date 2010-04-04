@@ -2,6 +2,48 @@ require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "OracleEnhancedAdapter context index" do
   include SchemaSpecHelper
+  include LoggerSpecHelper
+
+  def create_table_posts
+    schema_define do
+      create_table :posts, :force => true do |t|
+        t.string :title
+        t.text :body
+        t.integer :comments_count
+        t.timestamps
+        t.string :all_text, :limit => 2 # will be used for multi-column index
+      end
+    end
+  end
+
+  def create_table_comments
+    schema_define do
+      create_table :comments, :force => true do |t|
+        t.integer :post_id
+        t.string :author
+        t.text :body
+        t.timestamps
+      end
+    end
+  end
+
+  def create_tables
+    create_table_posts
+    create_table_comments
+  end
+
+  def drop_table_posts
+    schema_define { drop_table :posts }
+  end
+
+  def drop_table_comments
+    schema_define { drop_table :comments }
+  end
+
+  def drop_tables
+    drop_table_comments
+    drop_table_posts
+  end
 
   before(:all) do
     # database user should have CTXAPP role to be able to set CONTEXT index parameters
@@ -13,15 +55,7 @@ describe "OracleEnhancedAdapter context index" do
     before(:all) do
       @title_words = %w{aaa bbb ccc}
       @body_words = %w{foo bar baz}
-
-      schema_define do
-        create_table :posts, :force => true do |t|
-          t.string :title
-          t.text :body
-          t.timestamps
-          t.string :all_text, :limit => 1 # will be used for multi-column index
-        end
-      end
+      create_table_posts
       class ::Post < ActiveRecord::Base
         has_context_index
       end
@@ -31,7 +65,7 @@ describe "OracleEnhancedAdapter context index" do
     end
 
     after(:all) do
-      schema_define { drop_table :posts }
+      drop_table_posts
       Object.send(:remove_const, "Post")
     end
 
@@ -101,21 +135,7 @@ describe "OracleEnhancedAdapter context index" do
 
   describe "on multiple tables" do
     before(:all) do
-      schema_define do
-        create_table :posts, :force => true do |t|
-          t.string :title
-          t.text :body
-          t.integer :comments_count
-          t.timestamps
-          t.string :all_text, :limit => 1 # will be used for multi-column index
-        end
-        create_table :comments, :force => true do |t|
-          t.integer :post_id
-          t.string :author
-          t.text :body
-          t.timestamps
-        end
-      end
+      create_tables
       class ::Post < ActiveRecord::Base
         has_many :comments, :dependent => :destroy
         has_context_index
@@ -126,7 +146,7 @@ describe "OracleEnhancedAdapter context index" do
     end
 
     after(:all) do
-      schema_define { drop_table :comments; drop_table :posts }
+      drop_tables
       Object.send(:remove_const, "Comment")
       Object.send(:remove_const, "Post")
     end
@@ -175,6 +195,50 @@ describe "OracleEnhancedAdapter context index" do
 
   end
 
+  describe "with specified tablespace" do
+    before(:all) do
+      create_table_posts
+      class ::Post < ActiveRecord::Base
+        has_context_index
+      end
+      @post = Post.create(:title => 'aaa', :body => 'bbb')
+      @tablespace = @conn.default_tablespace
+      set_logger
+      @conn = ActiveRecord::Base.connection
+    end
+
+    after(:all) do
+      drop_table_posts
+      Object.send(:remove_const, "Post")
+    end
+
+    after(:each) do
+      clear_logger
+    end
+
+    def verify_logged_statements
+      ['K_TABLE_CLAUSE', 'R_TABLE_CLAUSE', 'N_TABLE_CLAUSE', 'I_INDEX_CLAUSE', 'P_TABLE_CLAUSE'].each do |clause|
+        @logger.output(:debug).should =~ /CTX_DDL\.SET_ATTRIBUTE\('index_posts_on_title_sto', '#{clause}', '.*TABLESPACE #{@tablespace}'\)/
+      end
+      @logger.output(:debug).should =~ /CREATE INDEX .* PARAMETERS \('STORAGE index_posts_on_title_sto'\)/
+    end
+
+    it "should create index on single column" do
+      @conn.add_context_index :posts, :title, :tablespace => @tablespace
+      verify_logged_statements
+      Post.contains(:title, 'aaa').all.should == [@post]
+      @conn.remove_context_index :posts, :title
+    end
+
+    it "should create index on multiple columns" do
+      @conn.add_context_index :posts, [:title, :body], :name => 'index_posts_text', :tablespace => @conn.default_tablespace
+      verify_logged_statements
+      Post.contains(:title, 'aaa AND bbb').all.should == [@post]
+      @conn.remove_context_index :posts, :name => 'index_posts_text'
+    end
+
+  end
+
   describe "schema dump" do
 
     def standard_dump
@@ -182,28 +246,6 @@ describe "OracleEnhancedAdapter context index" do
       ActiveRecord::SchemaDumper.ignore_tables = []
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
       stream.string
-    end
-
-    def create_tables
-      schema_define do
-        create_table :posts, :force => true do |t|
-          t.string :title
-          t.text :body
-          t.integer :comments_count
-          t.timestamps
-          t.string :all_text, :limit => 1 # will be used for multi-column index
-        end
-        create_table :comments, :force => true do |t|
-          t.integer :post_id
-          t.string :author
-          t.text :body
-          t.timestamps
-        end
-      end
-    end
-
-    def drop_tables
-      schema_define { drop_table :comments; drop_table :posts }
     end
 
     describe "without table prefixe and suffix" do

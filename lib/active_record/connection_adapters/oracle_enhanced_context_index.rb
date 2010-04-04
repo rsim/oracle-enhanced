@@ -143,7 +143,12 @@ module ActiveRecord
         sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{storage_name}', 'BASIC_STORAGE');\n"
         ['I_TABLE_CLAUSE', 'K_TABLE_CLAUSE', 'R_TABLE_CLAUSE',
         'N_TABLE_CLAUSE', 'I_INDEX_CLAUSE', 'P_TABLE_CLAUSE'].each do |clause|
-          sql << "CTX_DDL.SET_ATTRIBUTE('#{storage_name}', '#{clause}', 'TABLESPACE #{tablespace}');\n"
+          default_clause = case clause
+          when 'R_TABLE_CLAUSE'; 'LOB(DATA) STORE AS (CACHE) '
+          when 'I_INDEX_CLAUSE'; 'COMPRESS 2 '
+          else ''
+          end
+          sql << "CTX_DDL.SET_ATTRIBUTE('#{storage_name}', '#{clause}', '#{default_clause}TABLESPACE #{tablespace}');\n"
         end
         sql << "END;\n"
         execute sql
