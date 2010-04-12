@@ -20,6 +20,7 @@ describe "OracleEnhancedAdapter schema dump" do
     schema_define do
       create_table :test_posts, options do |t|
         t.string :title
+        t.timestamps
       end
       add_index :test_posts, :title
     end
@@ -187,14 +188,20 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should not specify default tablespace in add index" do
       create_test_posts_table
-      standard_dump.should =~ /add_index \"test_posts\", \[\"title\"\], :name => \"index_test_posts_on_title\"$/
+      standard_dump.should =~ /add_index "test_posts", \["title"\], :name => "index_test_posts_on_title"$/
     end
 
     it "should specify non-default tablespace in add index" do
       tablespace_name = @conn.default_tablespace
       @conn.stub!(:default_tablespace).and_return('dummy')
       create_test_posts_table
-      standard_dump.should =~ /add_index \"test_posts\", \[\"title\"\], :name => \"index_test_posts_on_title\", :tablespace => \"#{tablespace_name}\"$/
+      standard_dump.should =~ /add_index "test_posts", \["title"\], :name => "index_test_posts_on_title", :tablespace => "#{tablespace_name}"$/
+    end
+
+    it "should create and dump function-based indexes" do
+      create_test_posts_table
+      @conn.add_index :test_posts, "NVL(created_at, updated_at)", :name => "index_test_posts_cr_upd_at"
+      standard_dump.should =~ /add_index "test_posts", \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], :name => "index_test_posts_cr_upd_at"$/
     end
 
   end

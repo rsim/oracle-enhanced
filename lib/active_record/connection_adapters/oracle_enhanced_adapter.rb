@@ -463,7 +463,19 @@ module ActiveRecord
         # camelCase column names need to be quoted; not that anyone using Oracle
         # would really do this, but handling this case means we pass the test...
         name = name.to_s
-        @quoted_column_names[name] ||= name =~ /^[a-z][a-z_0-9\$#]*$/ ? "\"#{name.upcase}\"" : "\"#{name}\""
+        @quoted_column_names[name] ||= begin
+          case name
+          # if only valid column characters in name
+          when /^[a-z][a-z_0-9\$#]*$/
+            "\"#{name.upcase}\""
+          when /^[a-z][a-z_0-9\$#\-]*$/i
+            "\"#{name}\""
+          # if other characters present then assume that it is expression
+          # which should not be quoted
+          else
+            name
+          end
+        end
       end
 
       # unescaped table name should start with letter and
@@ -812,8 +824,7 @@ module ActiveRecord
                 row['tablespace_name'] == default_tablespace_name ? nil : row['tablespace_name'], [])
               current_index = row['index_name']
             end
-            all_schema_indexes.last.columns << (row['column_expression'].nil? ? row['column_name'] :
-              row['column_expression'].gsub('"','').downcase)
+            all_schema_indexes.last.columns << (row['column_expression'] || row['column_name'].downcase)
           end
         end
 
