@@ -500,14 +500,33 @@ module ActiveRecord
         end
       end
 
+      # Names must be from 1 to 30 bytes long with these exceptions:
+      # * Names of databases are limited to 8 bytes.
+      # * Names of database links can be as long as 128 bytes.
+      #  
+      # Nonquoted identifiers cannot be Oracle Database reserved words
+      #  
+      # Nonquoted identifiers must begin with an alphabetic character from
+      # your database character set
+      #  
+      # Nonquoted identifiers can contain only alphanumeric characters from
+      # your database character set and the underscore (_), dollar sign ($),
+      # and pound sign (#). Database links can also contain periods (.) and
+      # "at" signs (@). Oracle strongly discourages you from using $ and # in
+      # nonquoted identifiers.
+      NONQUOTED_OBJECT_NAME   = /[A-Za-z][A-z0-9$#]{0,29}/
+      NONQUOTED_DATABASE_LINK = /[A-Za-z][A-z0-9$#\.@]{0,127}/
+      
+      VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}(?:@#{NONQUOTED_DATABASE_LINK})?\Z/
+      CAMEL_CASE = /[A-Z][a-z]/
+      
       # unescaped table name should start with letter and
       # contain letters, digits, _, $ or #
       # can be prefixed with schema name
       # CamelCase table names should be quoted
       def self.valid_table_name?(name) #:nodoc:
-        name = name.to_s
-        name =~ /\A([A-Za-z_0-9]+\.)?[a-z][a-z_0-9\$#]*(@[A-Za-z_0-9\.]+)?\Z/ ||
-        name =~ /\A([A-Za-z_0-9]+\.)?[A-Z][A-Z_0-9\$#]*(@[A-Za-z_0-9\.]+)?\Z/ ? true : false
+        name = name.to_s 
+        name =~ VALID_TABLE_NAME && name !~ CAMEL_CASE ? true : false
       end
 
       def quote_table_name(name) #:nodoc:

@@ -356,6 +356,14 @@ describe "OracleEnhancedAdapter" do
       @adapter.valid_table_name?("sys.v$session").should be_true
     end
 
+    it "should be valid with upcase schema name" do
+      @adapter.valid_table_name?("ABC_123.DEF_456").should be_true
+    end
+
+    it "should be valid with irregular schema name and database links" do
+      @adapter.valid_table_name?('abc$#_123.abc$#_123@abc$#@._123').should be_true
+    end
+
     it "should not be valid with two dots in name" do
       @adapter.valid_table_name?("abc_123.def_456.ghi_789").should be_false
     end
@@ -364,6 +372,29 @@ describe "OracleEnhancedAdapter" do
       @adapter.valid_table_name?("warehouse-things").should be_false
     end
 
+    it "should not be valid with for camel-case" do
+      @adapter.valid_table_name?("Abc").should be_false
+      @adapter.valid_table_name?("aBc").should be_false
+    end
+    
+    it "should not be valid for names > 30 characters" do
+      @adapter.valid_table_name?("a" * 31).should be_false
+    end
+    
+    it "should not be valid for schema names > 30 characters" do
+      @adapter.valid_table_name?(("a" * 31) + ".validname").should be_false
+    end
+    
+    it "should not be valid for database links > 128 characters" do
+      @adapter.valid_table_name?("name@" + "a" * 129).should be_false
+    end
+    
+    it "should not be valid for names that do not begin with alphabetic characters" do
+      @adapter.valid_table_name?("1abc").should be_false
+      @adapter.valid_table_name?("_abc").should be_false
+      @adapter.valid_table_name?("abc.1xyz").should be_false
+      @adapter.valid_table_name?("abc._xyz").should be_false
+    end
   end
 
   describe "table quoting" do
