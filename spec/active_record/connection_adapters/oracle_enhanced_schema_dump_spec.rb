@@ -8,9 +8,9 @@ describe "OracleEnhancedAdapter schema dump" do
     @conn = ActiveRecord::Base.connection
   end
 
-  def standard_dump
+  def standard_dump(options = {})
     stream = StringIO.new
-    ActiveRecord::SchemaDumper.ignore_tables = []
+    ActiveRecord::SchemaDumper.ignore_tables = options[:ignore_tables]||[]
     ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
     stream.string
   end
@@ -32,6 +32,23 @@ describe "OracleEnhancedAdapter schema dump" do
     end
   rescue
     nil
+  end
+  
+  describe "tables" do
+    after(:each) do
+      drop_test_posts_table
+    end
+
+    it "should not include ignored table names in schema dump" do
+      create_test_posts_table
+      standard_dump(:ignore_tables => %w(test_posts)).should_not =~ /create_table "test_posts"/
+    end
+
+    it "should not include ignored table regexes in schema dump" do
+      create_test_posts_table
+      standard_dump(:ignore_tables => [ /test_posts/i ]).should_not =~ /create_table "test_posts"/
+    end
+
   end
 
   describe "table prefixes and suffixes" do
@@ -145,6 +162,34 @@ describe "OracleEnhancedAdapter schema dump" do
       standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :name => "test_comments_test_post_id_fk", :dependent => :nullify/
     end
 
+    it "should not include foreign keys on ignored table names in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      standard_dump(:ignore_tables => %w(test_comments)).should_not =~ /add_foreign_key "test_comments"/
+    end
+
+    it "should not include foreign keys on ignored table regexes in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      standard_dump(:ignore_tables => [ /test_comments/i ]).should_not =~ /add_foreign_key "test_comments"/
+    end
+
+    it "should include foreign keys referencing ignored table names in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      standard_dump(:ignore_tables => %w(test_posts)).should =~ /add_foreign_key "test_comments"/
+    end
+
+    it "should include foreign keys referencing ignored table regexes in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      standard_dump(:ignore_tables => [ /test_posts/i ]).should =~ /add_foreign_key "test_comments"/
+    end
+
   end
 
   describe "synonyms" do
@@ -166,6 +211,27 @@ describe "OracleEnhancedAdapter schema dump" do
         add_synonym :test_synonym, "table_name@link_name", :force => true
       end
       standard_dump.should =~ /add_synonym "test_synonym", "table_name@link_name", :force => true/
+    end
+
+    it "should not include ignored table names in schema dump" do
+      schema_define do
+        add_synonym :test_synonym, "schema_name.table_name", :force => true
+      end
+      standard_dump(:ignore_tables => %w(test_synonym)).should_not =~ /add_synonym "test_synonym"/
+    end
+
+    it "should not include ignored table regexes in schema dump" do
+      schema_define do
+        add_synonym :test_synonym, "schema_name.table_name", :force => true
+      end
+      standard_dump(:ignore_tables => [ /test_synonym/i ]).should_not =~ /add_synonym "test_synonym"/
+    end
+
+    it "should include synonyms to ignored table regexes in schema dump" do
+      schema_define do
+        add_synonym :test_synonym, "schema_name.table_name", :force => true
+      end
+      standard_dump(:ignore_tables => [ /table_name/i ]).should =~ /add_synonym "test_synonym"/
     end
 
   end

@@ -12,27 +12,29 @@ module ActiveRecord #:nodoc:
 
       private
 
+      def ignore_table?(table)
+        [ActiveRecord::Migrator.proper_table_name('schema_migrations'), ignore_tables].flatten.any? do |ignored|
+          case ignored
+          when String; table == ignored
+          when Regexp; table =~ ignored
+          else
+            raise StandardError, 'ActiveRecord::SchemaDumper.ignore_tables accepts an array of String and / or Regexp values.'
+          end
+        end
+      end
+
       def tables_with_oracle_enhanced(stream)
         return tables_without_oracle_enhanced(stream) unless @connection.respond_to?(:materialized_views)
         # do not include materialized views in schema dump - they should be created separately after schema creation
         sorted_tables = (@connection.tables - @connection.materialized_views).sort
         sorted_tables.each do |tbl|
           # add table prefix or suffix for schema_migrations
-          next if [ActiveRecord::Migrator.proper_table_name('schema_migrations'), ignore_tables].flatten.any? do |ignored|
-            case ignored
-            when String; tbl == ignored
-            when Regexp; tbl =~ ignored
-            else
-              raise StandardError, 'ActiveRecord::SchemaDumper.ignore_tables accepts an array of String and / or Regexp values.'
-            end
-          end
+          next if ignore_table? tbl
           # change table name inspect method
           tbl.extend TableInspect
           oracle_enhanced_table(tbl, stream)
           # add primary key trigger if table has it
           primary_key_trigger(tbl, stream)
-        end
-        sorted_tables.each do |tbl|
           # add foreign keys if table has them
           foreign_keys(tbl, stream)
         end
@@ -78,6 +80,7 @@ module ActiveRecord #:nodoc:
         if @connection.respond_to?(:synonyms)
           syns = @connection.synonyms
           syns.each do |syn|
+		        next if ignore_table? syn.name
             table_name = syn.table_name
             table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
             table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
