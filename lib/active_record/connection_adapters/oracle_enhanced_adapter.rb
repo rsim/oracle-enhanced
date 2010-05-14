@@ -1078,7 +1078,7 @@ module ActiveRecord
         result = block.call(table_definition) if block
         create_sequence = create_sequence || table_definition.create_sequence
         column_comments = table_definition.column_comments if table_definition.column_comments
-
+        tablespace = options[:tablespace] ? " TABLESPACE #{options[:tablespace]}" : ""
 
         if options[:force] && table_exists?(name)
           drop_table(name, options)
@@ -1087,7 +1087,7 @@ module ActiveRecord
         create_sql = "CREATE#{' GLOBAL TEMPORARY' if options[:temporary]} TABLE "
         create_sql << "#{quote_table_name(name)} ("
         create_sql << table_definition.to_sql
-        create_sql << ") #{options[:options]}"
+        create_sql << ")#{tablespace} #{options[:options]}"
         execute create_sql
         
         create_sequence_and_trigger(name, options) if create_sequence
@@ -1135,7 +1135,7 @@ module ActiveRecord
         end
         quoted_column_names = column_names.map { |e| quote_column_name(e) }.join(", ")
 
-        execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace}"
+        execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{options[:options]}"
       ensure
         self.all_schema_indexes = nil
       end

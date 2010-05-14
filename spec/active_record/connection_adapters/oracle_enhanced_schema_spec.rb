@@ -781,4 +781,47 @@ describe "OracleEnhancedAdapter schema definition" do
 
   end
 
+  describe "miscellaneous options" do
+    before(:each) do
+      @conn.instance_variable_set :@would_execute_sql, @would_execute_sql=''
+      @conn.singleton_class.class_eval{ def execute(sql,name=nil) @would_execute_sql << sql << ";\n" end }
+    end
+
+    after(:each) do
+      @conn.singleton_class.class_eval{ remove_method :execute }
+      @conn.instance_eval{ remove_instance_variable :@would_execute_sql }
+    end
+    
+    it "should support the :options option to create_table" do
+      schema_define do
+        create_table :test_posts, :options=>'NOLOGGING', :force => true do |t|
+          t.string :title, :null => false
+        end
+      end
+      @would_execute_sql.should =~ /CREATE +TABLE .* \(.*\) NOLOGGING/
+    end
+    
+    it "should support the :tablespace option to create_table" do
+      schema_define do
+        create_table :test_posts, :tablespace=>'bogus', :force => true do |t|
+          t.string :title, :null => false
+        end
+      end
+      @would_execute_sql.should =~ /CREATE +TABLE .* \(.*\) TABLESPACE bogus/
+    end
+    
+    it "should support the :options option to add_index" do
+      schema_define do
+        add_index :keyboards, :name, :options=>'NOLOGGING'
+      end
+      @would_execute_sql.should =~ /CREATE +INDEX .* ON .* \(.*\) NOLOGGING/
+    end
+    
+    it "should support the :tablespace option to add_index" do
+      schema_define do
+        add_index :keyboards, :name, :tablespace=>'bogus'
+      end
+      @would_execute_sql.should =~ /CREATE +INDEX .* ON .* \(.*\) TABLESPACE bogus/
+    end
+  end
 end
