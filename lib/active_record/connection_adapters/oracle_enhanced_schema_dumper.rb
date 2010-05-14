@@ -11,8 +11,9 @@ module ActiveRecord #:nodoc:
       end
 
       private
-      
+
       def tables_with_oracle_enhanced(stream)
+        return tables_without_oracle_enhanced(stream) unless @connection.respond_to?(:materialized_views)
         # do not include materialized views in schema dump - they should be created separately after schema creation
         sorted_tables = (@connection.tables - @connection.materialized_views).sort
         sorted_tables.each do |tbl|
