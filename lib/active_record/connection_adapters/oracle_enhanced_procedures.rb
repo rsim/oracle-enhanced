@@ -112,7 +112,7 @@ module ActiveRecord #:nodoc:
           # check if class has custom create method
           return create_without_custom_method unless self.class.custom_create_method
           self.class.connection.log_custom_method("custom create method", "#{self.class.name} Create") do
-            self.id = instance_eval &self.class.custom_create_method
+            self.id = instance_eval(&self.class.custom_create_method)
           end
           @new_record = false
           id
@@ -125,7 +125,7 @@ module ActiveRecord #:nodoc:
           return update_without_custom_method unless self.class.custom_update_method
           return 0 if attribute_names.empty?
           self.class.connection.log_custom_method("custom update method with #{self.class.primary_key}=#{self.id}", "#{self.class.name} Update") do
-            instance_eval &self.class.custom_update_method
+            instance_eval(&self.class.custom_update_method)
           end
           1
         end
@@ -138,7 +138,7 @@ module ActiveRecord #:nodoc:
           return destroy_without_custom_method unless self.class.custom_delete_method
           unless new_record?
             self.class.connection.log_custom_method("custom delete method with #{self.class.primary_key}=#{self.id}", "#{self.class.name} Destroy") do
-              instance_eval &self.class.custom_delete_method
+              instance_eval(&self.class.custom_delete_method)
             end
           end
 

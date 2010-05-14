@@ -91,7 +91,7 @@ module ActiveRecord
     # Specify which table columns should be typecasted to string values.
     # Might be useful to specify that columns should be string even if its name matches boolean column criteria.
     # 
-    #   set_integer_columns :active_flag
+    #   set_string_columns :active_flag
     def self.set_string_columns(*args)
       connection.set_type_for_columns(table_name,:string,*args)
     end
@@ -405,6 +405,7 @@ module ActiveRecord
       def initialize(connection, logger = nil) #:nodoc:
         super
         @quoted_column_names, @quoted_table_names = {}, {}
+        @enable_dbms_output = false
       end
 
       ADAPTER_NAME = 'OracleEnhanced'.freeze
@@ -591,7 +592,8 @@ module ActiveRecord
       # Executes a SQL statement
       def execute(sql, name = nil)
         # hack to pass additional "with_returning" option without changing argument list
-        log(sql, name) { sql.instance_variable_get(:@with_returning) ? @connection.exec_with_returning(sql) : @connection.exec(sql) }
+        log(sql, name) { sql.instance_variable_defined?(:@with_returning) && sql.instance_variable_get(:@with_returning) ?
+          @connection.exec_with_returning(sql) : @connection.exec(sql) }
       end
 
       # Returns an array of arrays containing the field values.
