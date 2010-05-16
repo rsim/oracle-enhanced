@@ -776,6 +776,14 @@ module ActiveRecord
         name)
       end
 
+      # Will return true if database object exists (to be able to use also views and synonyms for ActiveRecord models)
+      def table_exists?(table_name)
+        (owner, table_name, db_link) = @connection.describe(table_name)
+        true
+      rescue
+        false
+      end
+
       def materialized_views #:nodoc:
         select_values("select lower(mview_name) from all_mviews where owner = sys_context('userenv','session_user')")
       end
