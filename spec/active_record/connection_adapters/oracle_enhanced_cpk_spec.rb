@@ -3,6 +3,7 @@ require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 unless defined?(NO_COMPOSITE_PRIMARY_KEYS)
 
 describe "OracleEnhancedAdapter composite_primary_keys support" do
+  include SchemaSpecHelper
 
   before(:all) do
     if defined?(::ActiveRecord::ConnectionAdapters::OracleAdapter)
@@ -31,20 +32,29 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
 
   describe "do not use count distinct" do
     before(:all) do
+      schema_define do
+        create_table :job_history, :primary_key => [:employee_id, :start_date], :force => true do |t|
+          t.integer :employee_id
+          t.date    :start_date
+        end
+      end
       class ::JobHistory < ActiveRecord::Base
         set_table_name "job_history"
         set_primary_keys :employee_id, :start_date
       end
     end
-    
+
     after(:all) do
-      Object.send(:remove_const, 'JobHistory') if defined?(JobHistory)      
+      Object.send(:remove_const, 'JobHistory') if defined?(JobHistory)
+      schema_define do
+        drop_table :job_history
+      end
     end
-    
+
     it "should tell ActiveRecord that count distinct is not supported" do
       ActiveRecord::Base.connection.supports_count_distinct?.should be_false
     end
-  
+
     it "should execute correct SQL COUNT DISTINCT statement on table with composite primary keys" do
       lambda { JobHistory.count(:distinct => true) }.should_not raise_error
     end
@@ -52,19 +62,17 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
 
   describe "table with LOB" do
     before(:all) do
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          create_table  :cpk_write_lobs_test, :primary_key => [:type_category, :date_value], :force => true do |t|
-            t.string  :type_category, :limit => 15, :null => false  
-            t.date    :date_value, :null => false
-            t.text    :results, :null => false
-            t.timestamps
-          end
-          create_table :non_cpk_write_lobs_test, :force => true do |t|
-            t.date    :date_value, :null => false
-            t.text    :results, :null => false
-            t.timestamps
-          end
+      schema_define do
+        create_table  :cpk_write_lobs_test, :primary_key => [:type_category, :date_value], :force => true do |t|
+          t.string  :type_category, :limit => 15, :null => false  
+          t.date    :date_value, :null => false
+          t.text    :results, :null => false
+          t.timestamps
+        end
+        create_table :non_cpk_write_lobs_test, :force => true do |t|
+          t.date    :date_value, :null => false
+          t.text    :results, :null => false
+          t.timestamps
         end
       end
       class ::CpkWriteLobsTest < ActiveRecord::Base
@@ -77,11 +85,9 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
     end
     
     after(:all) do
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          drop_table :cpk_write_lobs_test
-          drop_table :non_cpk_write_lobs_test
-        end
+      schema_define do
+        drop_table :cpk_write_lobs_test
+        drop_table :non_cpk_write_lobs_test
       end
       Object.send(:remove_const, "CpkWriteLobsTest")
       Object.send(:remove_const, "NonCpkWriteLobsTest")
