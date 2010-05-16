@@ -29,8 +29,10 @@
 # contribution.
 # portions Copyright 2005 Graham Jenkins
 
-require 'active_record/connection_adapters/abstract_adapter'
+# ActiveRecord 2.2 does not load version file automatically
+require 'active_record/version' unless defined?(ActiveRecord::VERSION)
 
+require 'active_record/connection_adapters/abstract_adapter'
 require 'active_record/connection_adapters/oracle_enhanced_connection'
 
 require 'digest/sha1'

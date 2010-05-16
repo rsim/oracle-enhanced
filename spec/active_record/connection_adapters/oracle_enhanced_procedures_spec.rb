@@ -274,7 +274,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.should be_destroyed
   end
 
-  it "should rollback record when exception is raised in after_desotry callback" do
+  it "should rollback record when exception is raised in after_destroy callback" do
+    set_logger
     TestEmployee.after_destroy :raise_make_transaction_rollback
 
     @employee = TestEmployee.create(
