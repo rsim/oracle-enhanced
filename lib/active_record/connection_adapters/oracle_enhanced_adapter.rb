@@ -1730,7 +1730,7 @@ require 'active_record/connection_adapters/oracle_enhanced_dirty'
 begin
   require 'active_record/connection_adapters/oracle_enhanced_tasks'
 rescue LoadError
-end if defined?(RAILS_ROOT)
+end if defined?(Rails.root) || defined?(RAILS_ROOT)
 
 # Handles quoting of oracle reserved words
 require 'active_record/connection_adapters/oracle_enhanced_reserved_words'
