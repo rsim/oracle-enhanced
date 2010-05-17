@@ -375,6 +375,7 @@ describe "OracleEnhancedAdapter" do
     it "should not be valid with for camel-case" do
       @adapter.valid_table_name?("Abc").should be_false
       @adapter.valid_table_name?("aBc").should be_false
+      @adapter.valid_table_name?("abC").should be_false
     end
     
     it "should not be valid for names > 30 characters" do

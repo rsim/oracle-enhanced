@@ -516,17 +516,15 @@ module ActiveRecord
       # nonquoted identifiers.
       NONQUOTED_OBJECT_NAME   = /[A-Za-z][A-z0-9$#]{0,29}/
       NONQUOTED_DATABASE_LINK = /[A-Za-z][A-z0-9$#\.@]{0,127}/
-      
       VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}(?:@#{NONQUOTED_DATABASE_LINK})?\Z/
-      CAMEL_CASE = /[A-Z][a-z]/
-      
+
       # unescaped table name should start with letter and
       # contain letters, digits, _, $ or #
       # can be prefixed with schema name
       # CamelCase table names should be quoted
       def self.valid_table_name?(name) #:nodoc:
         name = name.to_s 
-        name =~ VALID_TABLE_NAME && name !~ CAMEL_CASE ? true : false
+        name =~ VALID_TABLE_NAME && !(name =~ /[A-Z]/ && name =~ /[a-z]/) ? true : false
       end
 
       def quote_table_name(name) #:nodoc:
