@@ -442,7 +442,7 @@ describe "OracleEnhancedAdapter" do
       @db_link_password = SYSTEM_CONNECTION_PARAMS[:password]
       @db_link_database = SYSTEM_CONNECTION_PARAMS[:database]
       @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
-      @conn.execute "CREATE DATABASE LINK #{@db_link} CONNECT TO #{@db_link_username} IDENTIFIED BY #{@db_link_password} USING '#{@db_link_database}'"
+      @conn.execute "CREATE DATABASE LINK #{@db_link} CONNECT TO #{@db_link_username} IDENTIFIED BY \"#{@db_link_password}\" USING '#{@db_link_database}'"
       @conn.execute "CREATE OR REPLACE SYNONYM test_posts FOR test_posts@#{@db_link}"
       @conn.execute "CREATE OR REPLACE SYNONYM test_posts_seq FOR test_posts_seq@#{@db_link}"
       class ::TestPost < ActiveRecord::Base

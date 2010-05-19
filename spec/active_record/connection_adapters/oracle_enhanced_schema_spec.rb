@@ -667,7 +667,7 @@ describe "OracleEnhancedAdapter schema definition" do
       @db_link_password = CONNECTION_PARAMS[:password]
       @db_link_database = CONNECTION_PARAMS[:database]
       @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
-      @conn.execute "CREATE DATABASE LINK #{@db_link} CONNECT TO #{@db_link_username} IDENTIFIED BY #{@db_link_password} USING '#{@db_link_database}'"
+      @conn.execute "CREATE DATABASE LINK #{@db_link} CONNECT TO #{@db_link_username} IDENTIFIED BY \"#{@db_link_password}\" USING '#{@db_link_database}'"
       schema_define do
         create_table :test_posts, :force => true do |t|
           t.string :title
