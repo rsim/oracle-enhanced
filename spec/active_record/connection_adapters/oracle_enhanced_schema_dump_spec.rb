@@ -210,7 +210,7 @@ describe "OracleEnhancedAdapter schema dump" do
       schema_define do
         add_synonym :test_synonym, "table_name@link_name", :force => true
       end
-      standard_dump.should =~ /add_synonym "test_synonym", "table_name@link_name", :force => true/
+      standard_dump.should =~ /add_synonym "test_synonym", "table_name@link_name(\.[-A-Za-z0-9_]+)*", :force => true/
     end
 
     it "should not include ignored table names in schema dump" do
