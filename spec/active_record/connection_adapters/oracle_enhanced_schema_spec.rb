@@ -784,14 +784,16 @@ describe "OracleEnhancedAdapter schema definition" do
   describe "miscellaneous options" do
     before(:each) do
       @conn.instance_variable_set :@would_execute_sql, @would_execute_sql=''
-      @conn.singleton_class.class_eval do
+      class <<@conn
         def execute(sql,name=nil); @would_execute_sql << sql << ";\n"; end
         def index_exists?(table_name, index_name, default); default; end
       end
     end
 
     after(:each) do
-      @conn.singleton_class.class_eval{ remove_method :execute }
+      class <<@conn
+        remove_method :execute
+      end
       @conn.instance_eval{ remove_instance_variable :@would_execute_sql }
     end
     
