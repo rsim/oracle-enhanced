@@ -35,6 +35,7 @@ elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3/
   gem 'activesupport', '=2.3.8'
   NO_COMPOSITE_PRIMARY_KEYS = true
 else
+  gem 'i18n', '~> 0.3.6'
   # uses local copy of Rails 3 gems
   ['rails/activerecord', 'rails/activemodel', 'rails/activesupport', 'arel', 'rails/actionpack', 'rails/railties'].each do |library|
     $:.unshift(File.expand_path(File.dirname(__FILE__) + '/../../' + library + '/lib'))
