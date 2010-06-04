@@ -24,10 +24,15 @@ elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3.3/
   gem 'actionpack', '=2.3.3'
   gem 'activesupport', '=2.3.3'
   gem 'composite_primary_keys', '=2.3.2'
-elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3/
+elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3.5/
   gem 'activerecord', '=2.3.5'
   gem 'actionpack', '=2.3.5'
   gem 'activesupport', '=2.3.5'
+  NO_COMPOSITE_PRIMARY_KEYS = true
+elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3/
+  gem 'activerecord', '=2.3.8'
+  gem 'actionpack', '=2.3.8'
+  gem 'activesupport', '=2.3.8'
   NO_COMPOSITE_PRIMARY_KEYS = true
 else
   # uses local copy of Rails 3 gems
