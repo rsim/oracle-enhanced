@@ -458,6 +458,21 @@ module ActiveRecord
         IDENTIFIER_MAX_LENGTH
       end
 
+      # the maximum length of a table name
+      def table_name_length
+        IDENTIFIER_MAX_LENGTH
+      end
+
+      # the maximum length of a column name
+      def column_name_length
+        IDENTIFIER_MAX_LENGTH
+      end
+
+      # the maximum length of an index name
+      def index_name_length
+        IDENTIFIER_MAX_LENGTH
+      end
+
       # QUOTING ==================================================
       #
       # see: abstract/quoting.rb
@@ -1095,7 +1110,6 @@ module ActiveRecord
 
       # clear cached indexes when adding new index
       def add_index(table_name, column_name, options = {}) #:nodoc:
-        self.all_schema_indexes = nil
         column_names = Array(column_name)
         index_name   = index_name(table_name, :column => column_names)
 
@@ -1106,16 +1120,40 @@ module ActiveRecord
         else
           index_type = options
         end
+
+        if index_name.to_s.length > index_name_length
+          @logger.warn("Index name '#{index_name}' on table '#{table_name}' is too long; the limit is #{index_name_length} characters. Skipping.") if @logger
+          return
+        end
+        if index_exists?(table_name, index_name, false)
+          @logger.warn("Index name '#{index_name}' on table '#{table_name}' already exists. Skipping.") if @logger
+          return
+        end
         quoted_column_names = column_names.map { |e| quote_column_name(e) }.join(", ")
+
         execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace}"
+      ensure
+        self.all_schema_indexes = nil
+      end
+
+      # Remove the given index from the table.
+      # Gives warning if index does not exist
+      def remove_index(table_name, options = {}) #:nodoc:
+        index_name = index_name(table_name, options)
+        unless index_exists?(table_name, index_name, true)
+          @logger.warn("Index name '#{index_name}' on table '#{table_name}' does not exist. Skipping.") if @logger
+          return
+        end
+        remove_index!(table_name, index_name)
       end
 
       # clear cached indexes when removing index
-      def remove_index(table_name, options = {}) #:nodoc:
+      def remove_index!(table_name, index_name) #:nodoc:
+        execute "DROP INDEX #{quote_column_name(index_name)}"
+      ensure
         self.all_schema_indexes = nil
-        execute "DROP INDEX #{index_name(table_name, options)}"
       end
-      
+
       # returned shortened index name if default is too large
       def index_name(table_name, options) #:nodoc:
         default_name = super(table_name, options)
@@ -1137,6 +1175,19 @@ module ActiveRecord
         end
         @logger.warn "#{adapter_name} shortened default index name #{default_name} to #{shortened_name}" if @logger
         shortened_name
+      end
+
+      # Verify the existence of an index (always query database).
+      def index_exists?(table_name, index_name, default) #:nodoc:
+        (owner, table_name, db_link) = @connection.describe(table_name)
+        result = select_value(<<-SQL)
+          SELECT 1 FROM all_indexes#{db_link} i
+          WHERE i.owner = '#{owner}'
+             AND i.table_owner = '#{owner}'
+             AND i.table_name = '#{table_name}'
+             AND i.index_name = '#{index_name.to_s.upcase}'
+        SQL
+        result == 1 ? true : false
       end
 
       def add_column(table_name, column_name, type, options = {}) #:nodoc:
@@ -1696,7 +1747,7 @@ module ActiveRecord
         while true do
           result = plsql(:dbms_output).sys.dbms_output.get_line(:line => '', :status => 0)
           break unless result[:status] == 0
-          @logger.debug "DBMS_OUTPUT: #{result[:line]}"
+          @logger.debug "DBMS_OUTPUT: #{result[:line]}" if @logger
         end
       end
 
