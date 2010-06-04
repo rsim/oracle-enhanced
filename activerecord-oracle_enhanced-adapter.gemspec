@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new("> 1.3.1") if s.respond_to? :required_rubygems_version=
   s.authors = ["Raimonds Simanovskis"]
-  s.date = %q{2010-06-04}
+  s.date = %q{2010-06-05}
   s.description = %q{Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 }
@@ -38,7 +38,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
      "lib/active_record/connection_adapters/oracle_enhanced_jdbc_connection.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_oci_connection.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_procedures.rb",
-     "lib/active_record/connection_adapters/oracle_enhanced_reserved_words.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_schema_definitions.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_schema_dumper.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_schema_statements_ext.rb",

@@ -1789,9 +1789,6 @@ begin
 rescue LoadError
 end if defined?(Rails.root) || defined?(RAILS_ROOT)
 
-# Handles quoting of oracle reserved words
-require 'active_record/connection_adapters/oracle_enhanced_reserved_words'
-
 # Patches and enhancements for schema dumper
 require 'active_record/connection_adapters/oracle_enhanced_schema_dumper'
 
