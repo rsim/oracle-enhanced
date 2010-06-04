@@ -1801,4 +1801,6 @@ require 'active_record/connection_adapters/oracle_enhanced_context_index'
 # Add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
 require 'active_record/connection_adapters/oracle_enhanced_core_ext'
 
+require 'active_record/connection_adapters/oracle_enhanced_activerecord_patches'
+
 require 'active_record/connection_adapters/oracle_enhanced_version'

@@ -1,5 +1,7 @@
 # ActiveRecord 2.3 patches
 if ActiveRecord::VERSION::MAJOR == 2 && ActiveRecord::VERSION::MINOR == 3
+  require "active_record/associations"
+
   ActiveRecord::Associations::ClassMethods.module_eval do
     private
     def tables_in_string(string)
@@ -34,6 +36,7 @@ if ActiveRecord::VERSION::MAJOR == 2 && ActiveRecord::VERSION::MINOR == 3
 
 # ActiveRecord 3.0 patches
 elsif ActiveRecord::VERSION::MAJOR == 3 && ActiveRecord::VERSION::MINOR == 0
+  require "active_record/associations"
 
   ActiveRecord::Relation.class_eval do
     private
