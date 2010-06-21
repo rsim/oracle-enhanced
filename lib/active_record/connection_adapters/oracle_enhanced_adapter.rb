@@ -108,35 +108,7 @@ module ActiveRecord
       end
     end
     private :enhanced_write_lobs
-    
-    # No such method in ActiveRecord 3.0
-    # and there is no real need to order by LOBs
-    # class << self
-    #   # patch ORDER BY to work with LOBs
-    #   def add_order_with_lobs!(sql, order, scope = :auto)
-    #     if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter)
-    #       order = connection.lob_order_by_expression(self, order) if order
-    #       
-    #       orig_scope = scope
-    #       scope = scope(:find) if :auto == scope
-    #       if scope
-    #         new_scope_order = connection.lob_order_by_expression(self, scope[:order])
-    #         if new_scope_order != scope[:order]
-    #           scope = scope.merge(:order => new_scope_order)
-    #         else
-    #           scope = orig_scope
-    #         end
-    #       end
-    #     end
-    #     add_order_without_lobs!(sql, order, scope = :auto)
-    #   end
-    #   private :add_order_with_lobs!
-    #   #:stopdoc:
-    #   alias_method :add_order_without_lobs!, :add_order!
-    #   alias_method :add_order!, :add_order_with_lobs!
-    #   #:startdoc:
-    # end
-    
+
     # Get table comment from schema definition.
     def self.table_comment
       connection.table_comment(self.table_name)

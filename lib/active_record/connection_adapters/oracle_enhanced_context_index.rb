@@ -2,7 +2,57 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhancedContextIndex
 
-      # Define full text index with CONTEXT index type
+      # Define full text index with Oracle specific CONTEXT index type
+      #
+      # Oracle CONTEXT index by default supports full text indexing of one column.
+      # This method allows full text index creation also on several columns
+      # as well as indexing related table columns by generating stored procedure
+      # that concatenates all columns for indexing as well as generating trigger
+      # that will update main index column to trigger reindexing of record.
+      #
+      # Use +contains+ ActiveRecord model instance method to add CONTAINS where condition
+      # and order by score of matched results.
+      #
+      # ===== Examples
+      #
+      # ====== Creating single column index
+      #  add_context_index :posts, :title
+      # search with
+      #  Post.contains(:title, 'word')
+      #
+      # ====== Creating index on several columns
+      #  add_context_index :posts, [:title, :body]
+      # search with (use first column as argument for contains method but it will search in all index columns)
+      #  Post.contains(:title, 'word')
+      #
+      # ====== Creating index on several columns with dummy index column and commit option
+      #  add_context_index :posts, [:title, :body], :index_column => :all_text, :sync => 'ON COMMIT'
+      # search with
+      #  Post.contains(:all_text, 'word')
+      #
+      # ====== Creating index with trigger option (will reindex when specified columns are updated)
+      #  add_context_index :posts, [:title, :body], :index_column => :all_text, :sync => 'ON COMMIT',
+      #                     :index_column_trigger_on => [:created_at, :updated_at]
+      # search with
+      #  Post.contains(:all_text, 'word')
+      #
+      # ====== Creating index on multiple tables
+      #  add_context_index :posts, [:title, :body], :index_column => :all_text, :sync => 'ON COMMIT',
+      #                     :index_column_trigger_on => [:created_at, :updated_at]
+      #  add_context_index :posts,
+      #   [:title, :body,
+      #   # specify aliases always with AS keyword
+      #   "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
+      #   ],
+      #   :name => 'post_and_comments_index',
+      #   :index_column => :all_text, :index_column_trigger_on => [:updated_at, :comments_count],
+      #   :sync => 'ON COMMIT'
+      # search in any table columns
+      #  Post.contains(:all_text, 'word')
+      # search in specified column
+      #  Post.contains(:all_text, "aaa within title")
+      #  Post.contains(:all_text, "bbb within comment_author")
+      #
       def add_context_index(table_name, column_name, options = {})
         self.all_schema_indexes = nil
         column_names = Array(column_name)
@@ -42,7 +92,7 @@ module ActiveRecord
         execute sql
       end
 
-      # Drop full text index with CONTEXT index type
+      # Drop full text index with Oracle specific CONTEXT index type
       def remove_context_index(table_name, options = {})
         self.all_schema_indexes = nil
         unless Hash === options # if column names passed as argument

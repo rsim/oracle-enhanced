@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new("> 1.3.1") if s.respond_to? :required_rubygems_version=
   s.authors = ["Raimonds Simanovskis"]
-  s.date = %q{2010-06-18}
+  s.date = %q{2010-06-21}
   s.description = %q{Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 }
@@ -21,7 +21,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     ".gitignore",
      "History.txt",
      "License.txt",
-     "Manifest.txt",
      "README.rdoc",
      "Rakefile",
      "VERSION",
@@ -86,15 +85,12 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<activerecord>, [">= 2.0.0"])
-      s.add_development_dependency(%q<rspec>, [">= 1.2.9"])
+      s.add_development_dependency(%q<rspec>, [">= 1.3.0"])
     else
-      s.add_dependency(%q<activerecord>, [">= 2.0.0"])
-      s.add_dependency(%q<rspec>, [">= 1.2.9"])
+      s.add_dependency(%q<rspec>, [">= 1.3.0"])
     end
   else
-    s.add_dependency(%q<activerecord>, [">= 2.0.0"])
-    s.add_dependency(%q<rspec>, [">= 1.2.9"])
+    s.add_dependency(%q<rspec>, [">= 1.3.0"])
   end
 end
 
