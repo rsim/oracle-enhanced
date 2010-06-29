@@ -37,8 +37,6 @@ module ActiveRecord
       #  Post.contains(:all_text, 'word')
       #
       # ====== Creating index on multiple tables
-      #  add_context_index :posts, [:title, :body], :index_column => :all_text, :sync => 'ON COMMIT',
-      #                     :index_column_trigger_on => [:created_at, :updated_at]
       #  add_context_index :posts,
       #   [:title, :body,
       #   # specify aliases always with AS keyword
@@ -138,7 +136,9 @@ module ActiveRecord
               (column_names.map do |col|
                 col = col.to_s
                 "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length+2}, '<#{col}>');\n" <<
+                "IF LENGTH(r1.#{col}) > 0 THEN\n" <<
                 "DBMS_LOB.WRITEAPPEND(p_clob, LENGTH(r1.#{col}), r1.#{col});\n" <<
+                "END IF;\n" <<
                 "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length+3}, '</#{col}>');\n"
               end.join) <<
               (selected_columns.zip(select_queries).map do |cols, query|

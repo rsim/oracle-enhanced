@@ -62,6 +62,8 @@ describe "OracleEnhancedAdapter context index" do
       @post0 = Post.create(:title => "dummy title", :body => "dummy body")
       @post1 = Post.create(:title => @title_words.join(' '), :body => @body_words.join(' '))
       @post2 = Post.create(:title => (@title_words*2).join(' '), :body => (@body_words*2).join(' '))
+      @post_with_null_body = Post.create(:title => "withnull", :body => nil)
+      @post_with_null_title = Post.create(:title => nil, :body => "withnull")
     end
 
     after(:all) do
@@ -100,6 +102,12 @@ describe "OracleEnhancedAdapter context index" do
       (@title_words+@body_words).each do |word|
         Post.contains(:title, word).all.should == [@post2, @post1]
       end
+      @conn.remove_context_index :posts, [:title, :body]
+    end
+
+    it "should index records with null values" do
+      @conn.add_context_index :posts, [:title, :body]
+      Post.contains(:title, "withnull").all.should == [@post_with_null_body, @post_with_null_title]
       @conn.remove_context_index :posts, [:title, :body]
     end
 
