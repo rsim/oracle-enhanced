@@ -150,12 +150,12 @@ describe "OracleEnhancedAdapter context index" do
     end
 
     it "should use base letter conversion with BASIC_LEXER" do
-      Post.create!(:title => "enerģija", :body => "...")
+      @post = Post.create!(:title => "āčē", :body => "dummy")
       @conn.add_context_index :posts, :title,
         :lexer => { :type => "BASIC_LEXER", :base_letter_type => 'GENERIC', :base_letter => true }
-      Post.contains(:title, "enerģija").count.should == 1
-      Post.contains(:title, "energija").count.should == 1
-      Post.contains(:title, "ENERGIJA").count.should == 1
+      Post.contains(:title, "āčē").all.should == [@post]
+      Post.contains(:title, "ace").all.should == [@post]
+      Post.contains(:title, "ACE").all.should == [@post]
       @conn.remove_context_index :posts, :title
     end
   end
