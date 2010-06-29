@@ -51,6 +51,9 @@ module ActiveRecord
       #  Post.contains(:all_text, "aaa within title")
       #  Post.contains(:all_text, "bbb within comment_author")
       #
+      # ====== Creating index using lexer
+      #  add_context_index :posts, :title, :lexer => { :type => 'BASIC_LEXER', :base_letter => true, ... }
+      #
       def add_context_index(table_name, column_name, options = {})
         self.all_schema_indexes = nil
         column_names = Array(column_name)
@@ -83,6 +86,12 @@ module ActiveRecord
         end
         if options[:sync]
           parameters << "SYNC(#{options[:sync]})"
+        end
+        if options[:lexer] && options[:lexer][:type]
+          lexer_name = default_lexer_name(index_name)
+          lexer_type = options[:lexer].delete(:type)
+          create_lexer_preference(lexer_name, lexer_type, options[:lexer])
+          parameters << "LEXER #{lexer_name}"
         end
         unless parameters.empty?
           sql << " PARAMETERS ('#{parameters.join(' ')}')"
@@ -204,6 +213,23 @@ module ActiveRecord
         execute sql
       end
 
+      def create_lexer_preference(lexer_name, lexer_type, options)
+        drop_ctx_preference(lexer_name)
+        sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{lexer_name}', '#{lexer_type}');\n"
+        options.each do |key, value|
+          plsql_value = case value
+          when String; "'#{value}'"
+          when true; "'YES'"
+          when false; "'NO'"
+          when nil; 'NULL'
+          else value
+          end
+          sql << "CTX_DDL.SET_ATTRIBUTE('#{lexer_name}', '#{key}', #{plsql_value});\n"
+        end
+        sql << "END;\n"
+        execute sql
+      end
+
       def drop_ctx_preference(preference_name)
         execute "BEGIN CTX_DDL.DROP_PREFERENCE('#{preference_name}'); END;" rescue nil
       end
@@ -240,6 +266,10 @@ module ActiveRecord
 
       def default_index_column_trigger_name(index_name)
         "#{index_name}_trg"
+      end
+
+      def default_lexer_name(index_name)
+        "#{index_name}_lex"
       end
 
       module BaseClassMethods

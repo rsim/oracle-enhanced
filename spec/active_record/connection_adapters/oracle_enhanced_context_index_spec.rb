@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "OracleEnhancedAdapter context index" do
@@ -139,6 +141,15 @@ describe "OracleEnhancedAdapter context index" do
       @conn.remove_context_index :posts, :index_column => :all_text
     end
 
+    it "should use base letter conversion with BASIC_LEXER" do
+      Post.create!(:title => "enerģija", :body => "...")
+      @conn.add_context_index :posts, :title,
+        :lexer => { :type => "BASIC_LEXER", :base_letter_type => 'GENERIC', :base_letter => true }
+      Post.contains(:title, "enerģija").count.should == 1
+      Post.contains(:title, "energija").count.should == 1
+      Post.contains(:title, "ENERGIJA").count.should == 1
+      @conn.remove_context_index :posts, :title
+    end
   end
 
   describe "on multiple tables" do
