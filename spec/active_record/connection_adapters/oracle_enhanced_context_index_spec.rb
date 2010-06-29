@@ -342,6 +342,7 @@ describe "OracleEnhancedAdapter context index" do
         options = {
           :name => 'xxx_post_and_comments_i',
           :index_column => :all_text, :index_column_trigger_on => :updated_at,
+          :lexer => { :type => "BASIC_LEXER", :base_letter_type => 'GENERIC', :base_letter => true },
           :sync => 'ON COMMIT'
         }
         schema_define do
@@ -350,7 +351,8 @@ describe "OracleEnhancedAdapter context index" do
             "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
             ], options
         end
-        standard_dump.should =~ /add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{options.inspect[1..-2]}$/
+        standard_dump.should =~ /add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{
+          options.inspect[1..-2].gsub(/[{}]/){|s| '\\'<<s }}$/
         schema_define { remove_context_index :posts, :name => 'xxx_post_and_comments_i' }
       end
 

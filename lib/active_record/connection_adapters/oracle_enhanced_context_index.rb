@@ -87,10 +87,10 @@ module ActiveRecord
         if options[:sync]
           parameters << "SYNC(#{options[:sync]})"
         end
-        if options[:lexer] && options[:lexer][:type]
+        if options[:lexer] && (lexer_type = options[:lexer][:type])
           lexer_name = default_lexer_name(index_name)
-          lexer_type = options[:lexer].delete(:type)
-          create_lexer_preference(lexer_name, lexer_type, options[:lexer])
+          (lexer_options = options[:lexer].dup).delete(:type)
+          create_lexer_preference(lexer_name, lexer_type, lexer_options)
           parameters << "LEXER #{lexer_name}"
         end
         unless parameters.empty?
