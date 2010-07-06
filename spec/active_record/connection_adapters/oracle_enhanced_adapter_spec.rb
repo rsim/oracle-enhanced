@@ -35,6 +35,7 @@ end
 
 describe "OracleEnhancedAdapter" do
   include LoggerSpecHelper
+  include SchemaSpecHelper
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -305,35 +306,51 @@ describe "OracleEnhancedAdapter" do
   end
 
 
-  describe "column quoting" do
+  describe "reserved words column quoting" do
 
-    def create_test_reserved_words_table
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          create_table :test_reserved_words do |t|
-            t.string      :varchar2
-            t.integer     :integer
-          end
+    before(:all) do
+      schema_define do
+        create_table :test_reserved_words do |t|
+          t.string      :varchar2
+          t.integer     :integer
+          t.text        :comment
         end
       end
+      class ::TestReservedWord < ActiveRecord::Base; end
     end
 
-    after(:each) do
-      ActiveRecord::Schema.define do
-        suppress_messages do
-          drop_table :test_reserved_words
-        end
+    after(:all) do
+      schema_define do
+        drop_table :test_reserved_words
       end
       Object.send(:remove_const, "TestReservedWord")
       ActiveRecord::Base.table_name_prefix = nil
     end
 
-    it "should allow creation of a table with oracle reserved words as column names" do
-      create_test_reserved_words_table
-      class ::TestReservedWord < ActiveRecord::Base; end
+    before(:each) do
+      set_logger
+    end
 
-      [:varchar2, :integer].each do |attr|
+    after(:each) do
+      clear_logger
+    end
+
+    it "should create table" do
+      [:varchar2, :integer, :comment].each do |attr|
         TestReservedWord.columns_hash[attr.to_s].name.should == attr.to_s
+      end
+    end
+
+    it "should create record" do
+      attrs = {
+        :varchar2 => 'dummy',
+        :integer => 1,
+        :comment => 'dummy'
+      }
+      record = TestReservedWord.create!(attrs)
+      record.reload
+      attrs.each do |k, v|
+        record.send(k).should == v
       end
     end
 

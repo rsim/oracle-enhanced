@@ -730,8 +730,8 @@ module ActiveRecord
           next if value.nil?  || (value == '')
           value = value.to_yaml if col.text? && klass.serialized_attributes[col.name]
           uncached do
-            sql = is_with_cpk ? "SELECT #{col.name} FROM #{table_name} WHERE #{klass.composite_where_clause(id)} FOR UPDATE" :
-              "SELECT #{col.name} FROM #{table_name} WHERE #{klass.primary_key} = #{id} FOR UPDATE"
+            sql = is_with_cpk ? "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{klass.composite_where_clause(id)} FOR UPDATE" :
+              "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE"
             unless lob_record = select_one(sql, 'Writable Large Object')
               raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
             end
