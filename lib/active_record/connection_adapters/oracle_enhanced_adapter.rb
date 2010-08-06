@@ -1330,6 +1330,7 @@ module ActiveRecord
         select_values("select table_name from all_tables t
                     where owner = sys_context('userenv','session_user') and secondary='N'
                       and not exists (select mv.mview_name from all_mviews mv where mv.owner = t.owner and mv.mview_name = t.table_name)
+                      and not exists (select mvl.log_table from all_mview_logs mvl where mvl.log_owner = t.owner and mvl.log_table = t.table_name)
                     order by 1").each do |table_name|
           virtual_columns = virtual_columns_for(table_name)
           ddl = "CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
@@ -1346,10 +1347,11 @@ module ActiveRecord
             end
           end
           ddl << cols.join(",\n ")
-          ddl << structure_dump_constraints(table_name)
+          ddl << structure_dump_primary_key(table_name)
           ddl << "\n)"
           structure << ddl
           structure << structure_dump_indexes(table_name)
+          structure << structure_dump_unique_keys(table_name)
         end
 
         join_with_statement_token(structure) << structure_dump_fk_constraints
@@ -1384,11 +1386,6 @@ module ActiveRecord
         col << " GENERATED ALWAYS AS (#{data_default}) VIRTUAL"
       end
 
-      def structure_dump_constraints(table) #:nodoc:
-        out = [structure_dump_primary_key(table), structure_dump_unique_keys(table)].flatten.compact
-        out.length > 0 ? ",\n#{out.join(",\n")}" : ''
-      end
-
       def structure_dump_primary_key(table) #:nodoc:
         opts = {:name => '', :cols => []}
         pks = select_all(<<-SQL, "Primary Keys") 
@@ -1404,7 +1401,7 @@ module ActiveRecord
           opts[:name] = row['constraint_name']
           opts[:cols][row['position']-1] = row['column_name']
         end
-        opts[:cols].length > 0 ? " CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})" : nil
+        opts[:cols].length > 0 ? ",\n CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})" : ''
       end
 
       def structure_dump_unique_keys(table) #:nodoc:
@@ -1423,7 +1420,7 @@ module ActiveRecord
           keys[uk['constraint_name']][uk['position']-1] = uk['column_name']
         end
         keys.map do |k,v|
-          " CONSTRAINT #{k} UNIQUE (#{v.join(',')})"
+          "ALTER TABLE #{table.upcase} ADD CONSTRAINT #{k} UNIQUE (#{v.join(',')})"
         end
       end
 
@@ -1447,9 +1444,7 @@ module ActiveRecord
         fks = select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").map do |table|
           if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?
             foreign_keys.map do |fk|
-              column = fk.options[:column] || "#{fk.to_table.to_s.singularize}_id"
-              constraint_name = foreign_key_constraint_name(fk.from_table, column, fk.options)
-              sql = "ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(constraint_name)} "
+              sql = "ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} "
               sql << "#{foreign_key_definition(fk.to_table, fk.options)}"
             end
           end
@@ -1508,6 +1503,7 @@ module ActiveRecord
         select_values("select table_name from all_tables t
                     where owner = sys_context('userenv','session_user') and secondary='N'
                       and not exists (select mv.mview_name from all_mviews mv where mv.owner = t.owner and mv.mview_name = t.table_name)
+                      and not exists (select mvl.log_table from all_mview_logs mvl where mvl.log_owner = t.owner and mvl.log_table = t.table_name)
                     order by 1").each do |table|
           statements << "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS"
         end

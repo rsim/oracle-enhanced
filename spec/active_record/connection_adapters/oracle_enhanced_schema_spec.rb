@@ -489,6 +489,49 @@ describe "OracleEnhancedAdapter schema definition" do
       TestPost.delete(p.id)
       TestComment.find_by_id(c.id).test_post_id.should be_nil
     end
+    
+    it "should add a composite foreign key" do
+      schema_define do
+        add_column :test_posts, :baz_id, :integer
+        add_column :test_posts, :fooz_id, :integer
+        
+        execute <<-SQL
+          ALTER TABLE TEST_POSTS 
+          ADD CONSTRAINT UK_FOOZ_BAZ UNIQUE (BAZ_ID,FOOZ_ID)
+        SQL
+        
+        add_column :test_comments, :baz_id, :integer
+        add_column :test_comments, :fooz_id, :integer
+        
+        add_foreign_key :test_comments, :test_posts, :columns => ["baz_id", "fooz_id"]
+      end
+      
+      lambda do
+        TestComment.create(:body => "test", :fooz_id => 1, :baz_id => 1)
+      end.should raise_error() {|e| e.message.should =~ 
+        /ORA-02291.*\.TES_COM_BAZ_ID_FOO_ID_FK/}
+    end
+
+    it "should add a composite foreign key with name" do
+      schema_define do
+        add_column :test_posts, :baz_id, :integer
+        add_column :test_posts, :fooz_id, :integer
+        
+        execute <<-SQL
+          ALTER TABLE TEST_POSTS 
+          ADD CONSTRAINT UK_FOOZ_BAZ UNIQUE (BAZ_ID,FOOZ_ID)
+        SQL
+        
+        add_column :test_comments, :baz_id, :integer
+        add_column :test_comments, :fooz_id, :integer
+        
+        add_foreign_key :test_comments, :test_posts, :columns => ["baz_id", "fooz_id"], :name => 'comments_posts_baz_fooz_fk'
+      end
+      
+      lambda do
+        TestComment.create(:body => "test", :baz_id => 1, :fooz_id => 1)
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.COMMENTS_POSTS_BAZ_FOOZ_FK/}
+    end
 
     it "should remove foreign key by table name" do
       schema_define do

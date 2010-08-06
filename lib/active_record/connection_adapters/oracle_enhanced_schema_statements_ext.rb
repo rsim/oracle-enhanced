@@ -52,31 +52,51 @@ module ActiveRecord
       #     people_best_friend_id_fk FOREIGN KEY (best_friend_id) REFERENCES people (id)
       #     ON DELETE SET NULL
       # 
+      # ==== Creating a composite foreign key
+      #  add_foreign_key(:comments, :posts, :columns => ['post_id', 'author_id'], :name => 'comments_post_fk')
+      # generates
+      #  ALTER TABLE comments ADD CONSTRAINT
+      #     comments_post_fk FOREIGN KEY (post_id, author_id) REFERENCES posts (post_id, author_id)
+      #       
       # === Supported options
       # [:column]
       #   Specify the column name on the from_table that references the to_table. By default this is guessed
       #   to be the singular name of the to_table with "_id" suffixed. So a to_table of :posts will use "post_id"
       #   as the default <tt>:column</tt>.
+      # [:columns]
+      #   An array of column names when defining composite foreign keys. An alias of <tt>:column</tt> provided for improved readability.
       # [:primary_key]
       #   Specify the column name on the to_table that is referenced by this foreign key. By default this is
-      #   assumed to be "id".
+      #   assumed to be "id". Ignored when defining composite foreign keys.
       # [:name]
       #   Specify the name of the foreign key constraint. This defaults to use from_table and foreign key column.
       # [:dependent]
       #   If set to <tt>:delete</tt>, the associated records in from_table are deleted when records in to_table table are deleted.
       #   If set to <tt>:nullify</tt>, the foreign key column is set to +NULL+.
       def add_foreign_key(from_table, to_table, options = {})
-        column = options[:column] || "#{to_table.to_s.singularize}_id"
-        constraint_name = foreign_key_constraint_name(from_table, column, options)
+        columns = options[:column] || options[:columns] || "#{to_table.to_s.singularize}_id"
+        constraint_name = foreign_key_constraint_name(from_table, columns, options)
         sql = "ALTER TABLE #{quote_table_name(from_table)} ADD CONSTRAINT #{quote_column_name(constraint_name)} "
         sql << foreign_key_definition(to_table, options)
         execute sql
       end
 
       def foreign_key_definition(to_table, options = {}) #:nodoc:
-        column = options[:column] || "#{to_table.to_s.singularize}_id"
-        primary_key = options[:primary_key] || "id"
-        sql = "FOREIGN KEY (#{quote_column_name(column)}) REFERENCES #{quote_table_name(to_table)}(#{primary_key})"
+        columns = (options[:column] || options[:columns]).to_a
+        
+        if columns.size > 1
+          # composite foreign key
+          columns_sql = columns.map {|c| quote_column_name(c)}.join(',')
+          references = options[:references] || columns
+          references_sql = references.map {|c| quote_column_name(c)}.join(',')
+        else
+          columns_sql = quote_column_name(columns.first || "#{to_table.to_s.singularize}_id")
+          references = options[:references] ? options[:references].first : nil
+          references_sql = quote_column_name(options[:primary_key] || references || "id")
+        end
+        
+        sql = "FOREIGN KEY (#{columns_sql}) REFERENCES #{quote_table_name(to_table)}(#{references_sql})"
+        
         case options[:dependent]
         when :nullify
           sql << " ON DELETE SET NULL"
@@ -106,9 +126,12 @@ module ActiveRecord
 
       private
 
-      def foreign_key_constraint_name(table_name, column, options = {})
-        constraint_name = original_name = options[:name] || "#{table_name}_#{column}_fk"
+      def foreign_key_constraint_name(table_name, columns, options = {})
+        columns = columns.to_a
+        constraint_name = original_name = options[:name] || "#{table_name}_#{columns.join('_')}_fk"
+        
         return constraint_name if constraint_name.length <= OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH
+        
         # leave just first three letters from each word
         constraint_name = constraint_name.split('_').map{|w| w[0,3]}.join('_')
         # generate unique name using hash function
@@ -128,7 +151,7 @@ module ActiveRecord
 
         fk_info = select_all(<<-SQL, 'Foreign Keys')
           SELECT r.table_name to_table
-                ,rc.column_name primary_key
+                ,rc.column_name references_column
                 ,cc.column_name
                 ,c.constraint_name name
                 ,c.delete_rule
@@ -144,18 +167,27 @@ module ActiveRecord
              AND rc.owner = r.owner
              AND rc.constraint_name = r.constraint_name
              AND rc.position = cc.position
+          ORDER BY name, to_table, column_name, references_column
         SQL
 
+        fks = {}
+
         fk_info.map do |row|
-          options = {:column => oracle_downcase(row['column_name']), :name => oracle_downcase(row['name']),
-            :primary_key => oracle_downcase(row['primary_key'])}
+          name = oracle_downcase(row['name'])
+          fks[name] ||= { :columns => [], :to_table => oracle_downcase(row['to_table']), :references => [] }
+          fks[name][:columns] << oracle_downcase(row['column_name'])
+          fks[name][:references] << oracle_downcase(row['references_column'])
           case row['delete_rule']
           when 'CASCADE'
-            options[:dependent] = :delete
+            fks[name][:dependent] = :delete
           when 'SET NULL'
-            options[:dependent] = :nullify
+            fks[name][:dependent] = :nullify
           end
-          OracleEnhancedForeignKeyDefinition.new(table_name, oracle_downcase(row['to_table']), options)
+        end
+        
+        fks.map do |k, v|
+          options = {:name => k, :columns => v[:columns], :references => v[:references], :dependent => v[:dependent]}
+          OracleEnhancedForeignKeyDefinition.new(table_name, v[:to_table], options)
         end
       end
 

@@ -29,6 +29,12 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute "DROP TRIGGER test_post_trigger" rescue nil
       @conn.execute "DROP TYPE TEST_TYPE" rescue nil
       @conn.execute "DROP TABLE bars" rescue nil
+      @conn.execute "ALTER TABLE foos drop CONSTRAINT UK_BAZ" rescue nil
+      @conn.execute "ALTER TABLE foos drop CONSTRAINT UK_FOOZ_BAZ" rescue nil
+      @conn.execute "ALTER TABLE foos drop column fooz_id" rescue nil
+      @conn.execute "ALTER TABLE foos drop column baz_id" rescue nil
+      @conn.execute "ALTER TABLE test_posts drop column fooz_id" rescue nil
+      @conn.execute "ALTER TABLE test_posts drop column baz_id" rescue nil
     end
   
     it "should dump single primary key" do
@@ -59,6 +65,48 @@ describe "OracleEnhancedAdapter structure dump" do
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       dump.split('\n').length.should == 1
       dump.should =~ /ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOO\"? FOREIGN KEY \(\"?FOO_ID\"?\) REFERENCES \"?FOOS\"?\(\"?ID\"?\)/i
+    end
+    
+    it "should dump foreign keys when reference column name is not 'id'" do
+      @conn.add_column :foos, :baz_id, :integer
+      
+      @conn.execute <<-SQL
+        ALTER TABLE FOOS 
+        ADD CONSTRAINT UK_BAZ UNIQUE (BAZ_ID)
+      SQL
+      
+      @conn.add_column :test_posts, :baz_id, :integer
+      
+      @conn.execute <<-SQL
+        ALTER TABLE TEST_POSTS 
+        ADD CONSTRAINT fk_test_post_baz FOREIGN KEY (baz_id) REFERENCES foos(baz_id)
+      SQL
+      
+      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
+      dump.split('\n').length.should == 1
+      dump.should =~ /ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\)/i
+    end
+    
+    it "should dump composite foreign keys" do
+      @conn.add_column :foos, :fooz_id, :integer
+      @conn.add_column :foos, :baz_id, :integer
+      
+      @conn.execute <<-SQL
+        ALTER TABLE FOOS 
+        ADD CONSTRAINT UK_FOOZ_BAZ UNIQUE (BAZ_ID,FOOZ_ID)
+      SQL
+      
+      @conn.add_column :test_posts, :fooz_id, :integer
+      @conn.add_column :test_posts, :baz_id, :integer
+            
+      @conn.execute <<-SQL
+        ALTER TABLE TEST_POSTS
+        ADD CONSTRAINT fk_test_post_fooz_baz FOREIGN KEY (baz_id,fooz_id) REFERENCES foos(baz_id,fooz_id)
+      SQL
+      
+      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
+      dump.split('\n').length.should == 1
+      dump.should =~ /ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOOZ_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\,\"?FOOZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\,\"?FOOZ_ID\"?\)/i
     end
   
     it "should not error when no foreign keys are present" do
@@ -108,7 +156,7 @@ describe "OracleEnhancedAdapter structure dump" do
           add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_unique_keys("test_posts")
-      dump.should == [" CONSTRAINT UK_FOO_FOO_ID UNIQUE (FOO,FOO_ID)"]
+      dump.should == ["ALTER TABLE TEST_POSTS ADD CONSTRAINT UK_FOO_FOO_ID UNIQUE (FOO,FOO_ID)"]
     
       dump = ActiveRecord::Base.connection.structure_dump
       dump.should =~ /CONSTRAINT UK_FOO_FOO_ID UNIQUE \(FOO,FOO_ID\)/

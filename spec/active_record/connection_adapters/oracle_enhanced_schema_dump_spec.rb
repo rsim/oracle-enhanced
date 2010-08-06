@@ -151,7 +151,8 @@ describe "OracleEnhancedAdapter schema dump" do
     
     after(:each) do
       schema_define do
-        remove_foreign_key :test_comments, :test_posts
+        remove_foreign_key :test_comments, :test_posts rescue nil
+        remove_foreign_key :test_comments, :name => 'comments_posts_baz_fooz_fk' rescue nil
       end
     end
     after(:all) do
@@ -210,6 +211,23 @@ describe "OracleEnhancedAdapter schema dump" do
       standard_dump(:ignore_tables => [ /test_posts/i ]).should =~ /add_foreign_key "test_comments"/
     end
 
+    it "should include composite foreign keys" do
+      schema_define do
+        add_column :test_posts, :baz_id, :integer
+        add_column :test_posts, :fooz_id, :integer
+      
+        execute <<-SQL
+          ALTER TABLE TEST_POSTS 
+          ADD CONSTRAINT UK_FOOZ_BAZ UNIQUE (BAZ_ID,FOOZ_ID)
+        SQL
+      
+        add_column :test_comments, :baz_id, :integer
+        add_column :test_comments, :fooz_id, :integer
+      
+        add_foreign_key :test_comments, :test_posts, :columns => ["baz_id", "fooz_id"], :name => 'comments_posts_baz_fooz_fk'
+      end
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :columns => \["baz_id", "fooz_id"\], :name => "comments_posts_baz_fooz_fk"/
+    end
   end
 
   describe "synonyms" do
