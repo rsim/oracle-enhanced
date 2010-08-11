@@ -959,7 +959,7 @@ module ActiveRecord
         end.map do |row|
           limit, scale = row['limit'], row['scale']
           if limit || scale
-            row['sql_type'] << "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
+            row['sql_type'] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
           end
 
           # clean up odd default spacing from Oracle

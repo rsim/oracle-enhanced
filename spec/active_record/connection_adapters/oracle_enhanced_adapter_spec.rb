@@ -188,12 +188,18 @@ describe "OracleEnhancedAdapter" do
         )
       SQL
       @column_names = ['id', 'first_name', 'last_name', 'hire_date']
+      @column_sql_types = ["NUMBER", "VARCHAR2(20)", "VARCHAR2(25)", "DATE"]
       class ::TestEmployee < ActiveRecord::Base
+      end
+      # Another class using the same table
+      class ::TestEmployee2 < ActiveRecord::Base
+        set_table_name "test_employees"
       end
     end
 
     after(:all) do
       Object.send(:remove_const, "TestEmployee")
+      Object.send(:remove_const, "TestEmployee2")
       @conn.execute "DROP TABLE test_employees"
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
     end
@@ -236,6 +242,13 @@ describe "OracleEnhancedAdapter" do
         @logger.clear(:debug)
         TestEmployee.connection.pk_and_sequence_for('test_employees').should == ['id', nil]
         @logger.logged(:debug).last.should =~ /select .* from all_constraints/im
+      end
+
+      it "should have correct sql types when 2 models are using the same table and AR query cache is enabled" do
+        @conn.cache do
+          TestEmployee.columns.map(&:sql_type).should == @column_sql_types
+          TestEmployee2.columns.map(&:sql_type).should == @column_sql_types
+        end
       end
 
     end
