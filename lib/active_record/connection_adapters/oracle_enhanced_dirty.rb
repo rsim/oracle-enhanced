@@ -14,9 +14,9 @@ module ActiveRecord #:nodoc:
               # If an old value of 0 is set to '' we want this to get changed to nil as otherwise it'll
               # be typecast back to 0 (''.to_i => 0)
               value = nil
-            # Oracle stores empty string '' or empty text (CLOB) as NULL
+            # Oracle stores empty string '' as NULL
             # therefore need to convert empty string value to nil if old value is nil
-            elsif (column.type == :string || column.type == :text) && column.null && old.nil?
+            elsif column.type == :string && column.null && old.nil?
               value = nil if value == ''
             else
               value = column.type_cast(value)

@@ -162,7 +162,7 @@ module ActiveRecord
           value == (v_to_i = value.to_i) ? v_to_i : BigDecimal.new(value.to_s)
         when OCI8::LOB
           if get_lob_value
-            data = value.read
+            data = value.read || ""     # if value.read returns nil, then we have an empty_clob() i.e. an empty string
             # In Ruby 1.9.1 always change encoding to ASCII-8BIT for binaries
             data.force_encoding('ASCII-8BIT') if data.respond_to?(:force_encoding) && value.is_a?(OCI8::BLOB)
             data

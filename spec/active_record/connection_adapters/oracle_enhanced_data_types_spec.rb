@@ -871,6 +871,8 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
+    @char_data = (0..127).to_a.pack("C*") * 800
+    @char_data2 = ((1..127).to_a.pack("C*") + "\0") * 800
   end
   
   after(:all) do
@@ -904,6 +906,93 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @employee.should be_valid
   end
 
+  it "should create record with CLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :comments => @char_data
+    )
+    @employee.reload
+    @employee.comments.should == @char_data
+  end
+
+  it "should update record with CLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last"
+    )
+    @employee.reload
+    @employee.comments.should be_nil
+    @employee.comments = @char_data
+    @employee.save!
+    @employee.reload
+    @employee.comments.should == @char_data
+  end
+
+  it "should update record with zero-length CLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last"
+    )
+    @employee.reload
+    @employee.comments.should be_nil
+    @employee.comments = ''
+    @employee.save!
+    @employee.reload
+    @employee.comments.should == ''
+  end
+
+  it "should update record that has existing CLOB data with different CLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :comments => @char_data
+    )
+    @employee.reload
+    @employee.comments = @char_data2
+    @employee.save!
+    @employee.reload
+    @employee.comments.should == @char_data2
+  end
+
+  it "should update record that has existing CLOB data with nil" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :comments => @char_data
+    )
+    @employee.reload
+    @employee.comments = nil
+    @employee.save!
+    @employee.reload
+    @employee.comments.should be_nil
+  end
+
+  it "should update record that has existing CLOB data with zero-length CLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :comments => @char_data
+    )
+    @employee.reload
+    @employee.comments = ''
+    @employee.save!
+    @employee.reload
+    @employee.comments.should == ''
+  end
+
+  it "should update record that has zero-length CLOB data with non-empty CLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :comments => ''
+    )
+    @employee.reload
+    @employee.comments = @char_data
+    @employee.save!
+    @employee.reload
+    @employee.comments.should == @char_data
+  end
 end
 
 describe "OracleEnhancedAdapter handling of BLOB columns" do
@@ -964,6 +1053,19 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     @employee.binary_data.should == @binary_data
   end
 
+  it "should update record with zero-length BLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last"
+    )
+    @employee.reload
+    @employee.binary_data.should be_nil
+    @employee.binary_data = ''
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should == ''
+  end
+
   it "should update record that has existing BLOB data with different BLOB data" do
     @employee = TestEmployee.create!(
       :first_name => "First",
@@ -989,6 +1091,31 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     @employee.reload
     @employee.binary_data.should be_nil
   end
-  
+
+  it "should update record that has existing BLOB data with zero-length BLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => @binary_data
+    )
+    @employee.reload
+    @employee.binary_data = ''
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should == ''
+  end
+
+  it "should update record that has zero-length BLOB data with non-empty BLOB data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => ''
+    )
+    @employee.reload
+    @employee.binary_data = @binary_data
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should == @binary_data
+  end
 end
 

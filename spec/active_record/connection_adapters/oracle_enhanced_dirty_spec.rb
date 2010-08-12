@@ -33,7 +33,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
     end  
 
     it "should not mark empty string (stored as NULL) as changed when reassigning it" do
-      @employee = TestEmployee.create!(:first_name => '')
+      @employee = TestEmployee.create!(:first_name => nil)
       @employee.first_name = ''
       @employee.should_not be_changed
       @employee.reload
@@ -42,7 +42,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
     end
 
     it "should not mark empty integer (stored as NULL) as changed when reassigning it" do
-      @employee = TestEmployee.create!(:job_id => '')
+      @employee = TestEmployee.create!(:job_id => nil)
       @employee.job_id = ''
       @employee.should_not be_changed
       @employee.reload
@@ -51,7 +51,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
     end
 
     it "should not mark empty decimal (stored as NULL) as changed when reassigning it" do
-      @employee = TestEmployee.create!(:salary => '')
+      @employee = TestEmployee.create!(:salary => nil)
       @employee.salary = ''
       @employee.should_not be_changed
       @employee.reload
@@ -60,6 +60,15 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
     end
 
     it "should not mark empty text (stored as NULL) as changed when reassigning it" do
+      @employee = TestEmployee.create!(:comments => nil)
+      @employee.comments = nil
+      @employee.should_not be_changed
+      @employee.reload
+      @employee.comments = nil
+      @employee.should_not be_changed
+    end
+
+    it "should not mark empty text (stored as empty_clob()) as changed when reassigning it" do
       @employee = TestEmployee.create!(:comments => '')
       @employee.comments = ''
       @employee.should_not be_changed
@@ -68,8 +77,26 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
       @employee.should_not be_changed
     end
 
+    it "should mark empty text (stored as empty_clob()) as changed when assigning nil to it" do
+      @employee = TestEmployee.create!(:comments => '')
+      @employee.comments = nil
+      @employee.should be_changed
+      @employee.reload
+      @employee.comments = nil
+      @employee.should be_changed
+    end
+
+    it "should mark empty text (stored as NULL) as changed when assigning '' to it" do
+      @employee = TestEmployee.create!(:comments => nil)
+      @employee.comments = ''
+      @employee.should be_changed
+      @employee.reload
+      @employee.comments = ''
+      @employee.should be_changed
+    end
+
     it "should not mark empty date (stored as NULL) as changed when reassigning it" do
-      @employee = TestEmployee.create!(:hire_date => '')
+      @employee = TestEmployee.create!(:hire_date => nil)
       @employee.hire_date = ''
       @employee.should_not be_changed
       @employee.reload
