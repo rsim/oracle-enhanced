@@ -225,6 +225,16 @@ module ActiveRecord
         # get session time_zone from configuration or from TZ environment variable
         time_zone = config[:time_zone] || ENV['TZ']
 
+        host = config[:host] || 'localhost'
+        port = config[:port] || 1521
+        unless database =~ %r{/} || (host == "localhost" && port.to_s == "1521")
+          if host =~ /:/  # IPv6
+            database = "//[#{host}]:#{port}/#{database}"
+          else
+            database = "//#{host}:#{port}/#{database}"
+          end
+        end
+
         conn = OCI8.new username, password, database, privilege
         conn.exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
         conn.exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS:FF6'} rescue nil

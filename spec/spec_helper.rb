@@ -170,6 +170,7 @@ CONNECTION_PARAMS = {
   :adapter => "oracle_enhanced",
   :database => DATABASE_NAME,
   :host => DATABASE_HOST,
+  :port => DATABASE_PORT,
   :username => DATABASE_USER,
   :password => DATABASE_PASSWORD
 }
@@ -178,6 +179,7 @@ SYS_CONNECTION_PARAMS = {
   :adapter => "oracle_enhanced",
   :database => DATABASE_NAME,
   :host => DATABASE_HOST,
+  :port => DATABASE_PORT,
   :username => "sys",
   :password => DATABASE_SYS_PASSWORD,
   :privilege => "SYSDBA"
@@ -187,6 +189,7 @@ SYSTEM_CONNECTION_PARAMS = {
   :adapter => "oracle_enhanced",
   :database => DATABASE_NAME,
   :host => DATABASE_HOST,
+  :port => DATABASE_PORT,
   :username => "system",
   :password => DATABASE_SYS_PASSWORD
 }
