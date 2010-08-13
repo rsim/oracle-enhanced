@@ -29,6 +29,21 @@ Blog posts about oracle-enahnced can be found at http://blog.rayapps.com/categor
 
 In addition install either ruby-oci8 (for MRI/YARV) or copy Oracle JDBC driver to $JRUBY_HOME/lib (for JRuby).
 
+== RUNNING TESTS:
+
+It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different Ruby implementations.
+
+* Create Oracle database schema for test purposes. Review spec/spec_helper.rb to see default schema/user names and database names (use environment variables to override defaults)
+* If you use RVM then switch to corresponding Ruby (1.8.7, 1.9.2 or JRuby) and it is recommended to create isolated gemset for test purposes (e.g. rvm create gemset oracle_enhanced)
+* Install bundler with
+    gem install bundler
+* Set RAILS_GEM_VERSION to Rails version that you would like to use in oracle_enhanced tests, e.g.
+    export RAILS_GEM_VERSION=2.3.8
+* Install necessary gems with
+    bundle install
+* Run tests with
+    rake spec
+
 == LINKS
 
 * Source code: http://github.com/rsim/oracle-enhanced

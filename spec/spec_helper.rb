@@ -1,55 +1,48 @@
 require 'rubygems'
-gem 'rspec'
-require 'spec'
+
+# Set up gems listed in the Gemfile.
+gemfile = File.expand_path('../../Gemfile', __FILE__)
+begin
+  ENV['BUNDLE_GEMFILE'] = gemfile
+  require 'bundler'
+  Bundler.setup
+rescue Bundler::GemNotFound => e
+  STDERR.puts e.message
+  STDERR.puts "Try running `bundle install`."
+  exit!
+end if File.exist?(gemfile)
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 
-if ENV['RAILS_GEM_VERSION'] =~ /^2.0/
-  gem 'activerecord', '=2.0.2'
-  gem 'actionpack', '=2.0.2'
-  gem 'activesupport', '=2.0.2'
-  gem 'composite_primary_keys', '=0.9.93'
-elsif ENV['RAILS_GEM_VERSION'] =~ /^2.1/
-  gem 'activerecord', '=2.1.2'
-  gem 'actionpack', '=2.1.2'
-  gem 'activesupport', '=2.1.2'
-  gem 'composite_primary_keys', '=1.0.8'
-elsif ENV['RAILS_GEM_VERSION'] =~ /^2.2/
-  gem 'activerecord', '=2.2.2'
-  gem 'actionpack', '=2.2.2'
-  gem 'activesupport', '=2.2.2'
-  gem 'composite_primary_keys', '=2.2.2'
-elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3.3/
-  gem 'activerecord', '=2.3.3'
-  gem 'actionpack', '=2.3.3'
-  gem 'activesupport', '=2.3.3'
-  gem 'composite_primary_keys', '=2.3.2'
-elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3.5/
-  gem 'activerecord', '=2.3.5'
-  gem 'actionpack', '=2.3.5'
-  gem 'activesupport', '=2.3.5'
-  NO_COMPOSITE_PRIMARY_KEYS = true
-elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3/
-  gem 'activerecord', '=2.3.8'
-  gem 'actionpack', '=2.3.8'
-  gem 'activesupport', '=2.3.8'
-  NO_COMPOSITE_PRIMARY_KEYS = true
-else
-  # uses local copy of Rails 3 gems
-  ['rails/activerecord', 'rails/activemodel', 'rails/activesupport', 'arel', 'rails/actionpack', 'rails/railties'].each do |library|
-    $:.unshift(File.expand_path(File.dirname(__FILE__) + '/../../' + library + '/lib'))
-  end
-  ENV['RAILS_GEM_VERSION'] ||= '3.0'
-  NO_COMPOSITE_PRIMARY_KEYS = true
+require 'spec'
+
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
+  puts "==> Running specs with MRI version #{RUBY_VERSION}"
+  require 'oci8'
+elsif RUBY_ENGINE == 'jruby'
+  puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
+  require 'active_record/connection_adapters/jdbc_adapter'
 end
+
+ENV['RAILS_GEM_VERSION'] ||= '3.0.0'
+NO_COMPOSITE_PRIMARY_KEYS = true if ENV['RAILS_GEM_VERSION'] >= '2.3.5'
+
+puts "==> Running specs with Rails version #{ENV['RAILS_GEM_VERSION']}"
 
 require 'active_record'
 
 if ENV['RAILS_GEM_VERSION'] >= '3.0'
   require 'action_dispatch'
   require 'active_support/core_ext/module/attribute_accessors'
-  require "rails/log_subscriber"
-  require 'active_record/railties/log_subscriber'
+
+  if ENV['RAILS_GEM_VERSION'] =~ /^3.0.0.beta/
+    require "rails/log_subscriber"
+    require 'active_record/railties/log_subscriber'
+  else
+    require "active_support/log_subscriber"
+    require 'active_record/log_subscriber'
+  end
+
   require 'logger'
 elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3/
   require 'action_pack'
@@ -59,13 +52,6 @@ elsif ENV['RAILS_GEM_VERSION'] <= '2.3'
   require 'action_pack'
   require 'action_controller/session/active_record_store'
 end
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
-  gem 'ruby-oci8', '>=2.0.4'
-  require 'oci8'
-elsif RUBY_ENGINE == 'jruby'
-  gem 'activerecord-jdbc-adapter'
-  require 'active_record/connection_adapters/jdbc_adapter'
-end
 
 require 'active_record/connection_adapters/oracle_enhanced_adapter'
 require 'ruby-plsql'
@@ -73,17 +59,30 @@ require 'ruby-plsql'
 module LoggerSpecHelper
   def set_logger
     @logger = MockLogger.new
+    @old_logger = ActiveRecord::Base.logger
 
-    if ENV['RAILS_GEM_VERSION'] >= '3.0'
+    if ENV['RAILS_GEM_VERSION'] =~ /^3.0.0.beta/
       queue = ActiveSupport::Notifications::Fanout.new
       @notifier = ActiveSupport::Notifications::Notifier.new(queue)
 
       Rails::LogSubscriber.colorize_logging = false
 
       ActiveRecord::Base.logger = @logger
+      @old_notifier = ActiveSupport::Notifications.notifier
       ActiveSupport::Notifications.notifier = @notifier
 
       Rails::LogSubscriber.add(:active_record, ActiveRecord::Railties::LogSubscriber.new)
+
+    elsif ENV['RAILS_GEM_VERSION'] >= '3.0'
+      @notifier = ActiveSupport::Notifications::Fanout.new
+
+      ActiveSupport::LogSubscriber.colorize_logging = false
+
+      ActiveRecord::Base.logger = @logger
+      @old_notifier = ActiveSupport::Notifications.notifier
+      ActiveSupport::Notifications.notifier = @notifier
+
+      ActiveRecord::LogSubscriber.attach_to(:active_record)
 
     else # ActiveRecord 2.x
       if ActiveRecord::Base.respond_to?(:connection_pool)
@@ -133,8 +132,14 @@ module LoggerSpecHelper
   end
 
   def clear_logger
-    ActiveRecord::Base.logger = @logger = nil
-    ActiveSupport::Notifications.notifier = @notifier = nil if @notifier
+    ActiveRecord::Base.logger = @old_logger
+    @logger = nil
+
+    if ENV['RAILS_GEM_VERSION'] >= '3.0'
+      ActiveSupport::Notifications.notifier = @old_notifier
+      @notifier = nil
+    end
+
   end
 
   # Wait notifications to be published (for Rails 3.0)
