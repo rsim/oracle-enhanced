@@ -21,7 +21,6 @@ if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
   require 'oci8'
 elsif RUBY_ENGINE == 'jruby'
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
-  require 'active_record/connection_adapters/jdbc_adapter'
 end
 
 ENV['RAILS_GEM_VERSION'] ||= '3.0.0'

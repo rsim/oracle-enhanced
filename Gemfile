@@ -32,8 +32,6 @@ end
 
 if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
   gem 'ruby-oci8', '>=2.0.4'
-elsif RUBY_ENGINE == 'jruby'
-  gem 'activerecord-jdbc-adapter'
 end
 
 gem 'ruby-plsql', '>=0.4.3'
