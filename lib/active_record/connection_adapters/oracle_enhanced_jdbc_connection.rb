@@ -207,6 +207,9 @@ module ActiveRecord
         # as it does not allow creation of triggers with :NEW in their definition
         when /\A\s*(CREATE|DROP)/i
           s = @raw_connection.createStatement()
+          # this disables SQL92 syntax processing of {...} which can result in statement execution errors
+          # if sql contains {...} in strings or comments
+          s.setEscapeProcessing(false)
           s.execute(sql)
           true
         else
