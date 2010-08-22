@@ -210,7 +210,7 @@ module ActiveRecord
 
         def string_to_date_or_time_using_format(string) #:nodoc:
           if OracleEnhancedAdapter.string_to_time_format && dt=Date._strptime(string, OracleEnhancedAdapter.string_to_time_format)
-            return Time.mktime(*dt.values_at(:year, :mon, :mday, :hour, :min, :sec, :zone, :wday))
+            return Time.parse("#{dt[:year]}-#{dt[:mon]}-#{dt[:mday]} #{dt[:hour]}:#{dt[:min]}:#{dt[:sec]}#{dt[:zone]}")
           end
           DateTime.strptime(string, OracleEnhancedAdapter.string_to_date_format).to_date
         end

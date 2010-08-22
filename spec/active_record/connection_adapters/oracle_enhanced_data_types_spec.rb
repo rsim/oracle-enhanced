@@ -724,6 +724,17 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     class ::TestEmployee < ActiveRecord::Base
       set_primary_key :employee_id
     end
+    @today = Date.new(2008,6,28)
+    @today_iso = "2008-06-28"
+    @today_nls = "28.06.2008"
+    @nls_date_format = "%d.%m.%Y"
+    @now = Time.local(2008,6,28,13,34,33)
+    @now_iso = "2008-06-28 13:34:33"
+    @now_nls = "28.06.2008 13:34:33"
+    @nls_time_format = "%d.%m.%Y %H:%M:%S"
+    @now_nls_with_tz = "28.06.2008 13:34:33+05:00"
+    @nls_with_tz_time_format = "%d.%m.%Y %H:%M:%S%Z"
+    @now_with_tz = Time.parse @now_nls_with_tz
   end
   
   after(:all) do
@@ -733,14 +744,6 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   before(:each) do
-    @today = Date.new(2008,6,28)
-    @today_iso = "2008-06-28"
-    @today_nls = "28.06.2008"
-    @nls_date_format = "%d.%m.%Y"
-    @now = Time.local(2008,6,28,13,34,33)
-    @now_iso = "2008-06-28 13:34:33"
-    @now_nls = "28.06.2008 13:34:33"
-    @nls_time_format = "%d.%m.%Y %H:%M:%S"
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
   end
   
@@ -803,7 +806,6 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   it "should assign NLS time string to datetime column" do
-    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = @nls_date_format
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = @nls_time_format
     @employee = TestEmployee.create(
       :first_name => "First",
@@ -814,7 +816,19 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     @employee.reload
     @employee.last_login_at.should == @now
   end
-  
+
+  it "should assign NLS time string with time zone to datetime column" do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = @nls_with_tz_time_format
+    @employee = TestEmployee.create(
+      :first_name => "First",
+      :last_name => "Last",
+      :last_login_at => @now_nls_with_tz
+    )
+    @employee.last_login_at.should == @now_with_tz
+    @employee.reload
+    @employee.last_login_at.should == @now_with_tz
+  end
+
   it "should assign ISO date string to datetime column" do
     @employee = TestEmployee.create(
       :first_name => "First",
