@@ -1120,7 +1120,7 @@ module ActiveRecord
           @logger.warn("Index name '#{index_name}' on table '#{table_name}' is too long; the limit is #{index_name_length} characters. Skipping.") if @logger
           return
         end
-        if index_exists?(table_name, index_name, false)
+        if index_name_exists?(table_name, index_name, false)
           @logger.warn("Index name '#{index_name}' on table '#{table_name}' already exists. Skipping.") if @logger
           return
         end
@@ -1135,7 +1135,7 @@ module ActiveRecord
       # Gives warning if index does not exist
       def remove_index(table_name, options = {}) #:nodoc:
         index_name = index_name(table_name, options)
-        unless index_exists?(table_name, index_name, true)
+        unless index_name_exists?(table_name, index_name, true)
           @logger.warn("Index name '#{index_name}' on table '#{table_name}' does not exist. Skipping.") if @logger
           return
         end
@@ -1172,8 +1172,13 @@ module ActiveRecord
         shortened_name
       end
 
-      # Verify the existence of an index (always query database).
-      def index_exists?(table_name, index_name, default) #:nodoc:
+      # Verify the existence of an index with a given name.
+      #
+      # The default argument is returned if the underlying implementation does not define the indexes method,
+      # as there's no way to determine the correct answer in that case.
+      #
+      # Will always query database and not index cache.
+      def index_name_exists?(table_name, index_name, default)
         (owner, table_name, db_link) = @connection.describe(table_name)
         result = select_value(<<-SQL)
           SELECT 1 FROM all_indexes#{db_link} i
