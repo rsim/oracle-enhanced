@@ -538,7 +538,9 @@ describe "OracleEnhancedAdapter" do
 
   describe "session information" do
     it "should get current database name" do
-      @conn.current_database.upcase.should == CONNECTION_PARAMS[:database].upcase
+      # get database name if using //host:port/database connection string
+      database_name = CONNECTION_PARAMS[:database].split('/').last
+      @conn.current_database.upcase.should == database_name.upcase
     end
 
     it "should get current database session user" do
