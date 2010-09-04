@@ -33,7 +33,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
     end  
 
     it "should not mark empty string (stored as NULL) as changed when reassigning it" do
-      @employee = TestEmployee.create!(:first_name => nil)
+      @employee = TestEmployee.create!(:first_name => '')
       @employee.first_name = ''
       @employee.should_not be_changed
       @employee.reload
@@ -42,7 +42,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
     end
 
     it "should not mark empty integer (stored as NULL) as changed when reassigning it" do
-      @employee = TestEmployee.create!(:job_id => nil)
+      @employee = TestEmployee.create!(:job_id => '')
       @employee.job_id = ''
       @employee.should_not be_changed
       @employee.reload
@@ -51,7 +51,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
     end
 
     it "should not mark empty decimal (stored as NULL) as changed when reassigning it" do
-      @employee = TestEmployee.create!(:salary => nil)
+      @employee = TestEmployee.create!(:salary => '')
       @employee.salary = ''
       @employee.should_not be_changed
       @employee.reload
@@ -96,7 +96,7 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
     end
 
     it "should not mark empty date (stored as NULL) as changed when reassigning it" do
-      @employee = TestEmployee.create!(:hire_date => nil)
+      @employee = TestEmployee.create!(:hire_date => '')
       @employee.hire_date = ''
       @employee.should_not be_changed
       @employee.reload
