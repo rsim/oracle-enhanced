@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Raimonds Simanovskis"]
-  s.date = %q{2010-06-21}
+  s.date = %q{2010-09-04}
   s.description = %q{Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 }
@@ -19,9 +19,11 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   ]
   s.files = [
     ".gitignore",
+     "Gemfile",
      "History.txt",
      "License.txt",
      "README.rdoc",
+     "RUNNING_TESTS.rdoc",
      "Rakefile",
      "VERSION",
      "activerecord-oracle_enhanced-adapter.gemspec",
@@ -29,6 +31,8 @@ This adapter is superset of original ActiveRecord Oracle adapter.
      "lib/active_record/connection_adapters/oracle_enhanced.rake",
      "lib/active_record/connection_adapters/oracle_enhanced_activerecord_patches.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_adapter.rb",
+     "lib/active_record/connection_adapters/oracle_enhanced_base_ext.rb",
+     "lib/active_record/connection_adapters/oracle_enhanced_column.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_connection.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_context_index.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_core_ext.rb",
@@ -39,11 +43,12 @@ This adapter is superset of original ActiveRecord Oracle adapter.
      "lib/active_record/connection_adapters/oracle_enhanced_procedures.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_schema_definitions.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_schema_dumper.rb",
+     "lib/active_record/connection_adapters/oracle_enhanced_schema_statements.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_schema_statements_ext.rb",
+     "lib/active_record/connection_adapters/oracle_enhanced_structure_dump.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_tasks.rb",
      "lib/active_record/connection_adapters/oracle_enhanced_version.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
-     "spec/active_record/connection_adapters/oracle_enhanced_adapter_structure_dumper_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_connection_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_context_index_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_core_ext_spec.rb",
@@ -54,7 +59,8 @@ This adapter is superset of original ActiveRecord Oracle adapter.
      "spec/active_record/connection_adapters/oracle_enhanced_emulate_oracle_adapter_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_procedures_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_schema_dump_spec.rb",
-     "spec/active_record/connection_adapters/oracle_enhanced_schema_spec.rb",
+     "spec/active_record/connection_adapters/oracle_enhanced_schema_statements_spec.rb",
+     "spec/active_record/connection_adapters/oracle_enhanced_structure_dump_spec.rb",
      "spec/spec.opts",
      "spec/spec_helper.rb"
   ]
@@ -65,7 +71,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   s.summary = %q{Oracle enhanced adapter for ActiveRecord}
   s.test_files = [
     "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
-     "spec/active_record/connection_adapters/oracle_enhanced_adapter_structure_dumper_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_connection_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_context_index_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_core_ext_spec.rb",
@@ -76,7 +81,8 @@ This adapter is superset of original ActiveRecord Oracle adapter.
      "spec/active_record/connection_adapters/oracle_enhanced_emulate_oracle_adapter_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_procedures_spec.rb",
      "spec/active_record/connection_adapters/oracle_enhanced_schema_dump_spec.rb",
-     "spec/active_record/connection_adapters/oracle_enhanced_schema_spec.rb",
+     "spec/active_record/connection_adapters/oracle_enhanced_schema_statements_spec.rb",
+     "spec/active_record/connection_adapters/oracle_enhanced_structure_dump_spec.rb",
      "spec/spec_helper.rb"
   ]
 

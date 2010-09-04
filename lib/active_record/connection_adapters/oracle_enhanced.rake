@@ -33,21 +33,13 @@ namespace :db do
       abcs = ActiveRecord::Base.configurations
       rails_env = defined?(Rails.env) ? Rails.env : RAILS_ENV
       ActiveRecord::Base.establish_connection(:test)
-      File.read("db/#{rails_env}_structure.sql").
-            split(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::STATEMENT_TOKEN).each do |ddl|
-        ddl.chop! if ddl.last == ";"
-        ActiveRecord::Base.connection.execute(ddl) unless ddl.blank?
-      end
+      ActiveRecord::Base.connection.execute_structure_dump(File.read("db/#{rails_env}_structure.sql"))
     end
 
     redefine_task :purge => :environment do
       abcs = ActiveRecord::Base.configurations
       ActiveRecord::Base.establish_connection(:test)
-      ActiveRecord::Base.connection.full_drop.
-            split(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::STATEMENT_TOKEN).each do |ddl|
-        ddl.chop! if ddl.last == ";"
-        ActiveRecord::Base.connection.execute(ddl) unless ddl.blank?
-      end
+      ActiveRecord::Base.connection.execute_structure_dump(ActiveRecord::Base.connection.full_drop)
     end
 
   end
