@@ -215,7 +215,8 @@ module ActiveRecord
     # configure an Oracle/OCI connection.
     class OracleEnhancedOCIFactory #:nodoc:
       def self.new_connection(config)
-        username, password, database = config[:username].to_s, config[:password].to_s, config[:database].to_s
+        username, password, database = config[:username], config[:password], config[:database]
+        host, port = config[:host], config[:port]
         privilege = config[:privilege] && config[:privilege].to_sym
         async = config[:allow_concurrency]
         prefetch_rows = config[:prefetch_rows] || 100
@@ -225,17 +226,22 @@ module ActiveRecord
         # get session time_zone from configuration or from TZ environment variable
         time_zone = config[:time_zone] || ENV['TZ']
 
-        host = config[:host] || 'localhost'
-        port = config[:port] || 1521
-        unless database =~ %r{/} || (host == "localhost" && port.to_s == "1521")
-          if host =~ /:/  # IPv6
-            database = "//[#{host}]:#{port}/#{database}"
-          else
-            database = "//#{host}:#{port}/#{database}"
-          end
+
+        # connection using TNS alias
+        connection_string = if database && !host && ENV['TNS_ADMIN']
+          database
+        # database parameter includes host or TNS connection string
+        elsif database =~ %r{[/(]}
+          database
+        # connection using host, port and database name
+        else
+          host ||= 'localhost'
+          host = "[#{host}]" if host =~ /^[^\[].*:/  # IPv6
+          port ||= 1521
+          "//#{host}:#{port}/#{database}"
         end
 
-        conn = OCI8.new username, password, database, privilege
+        conn = OCI8.new username, password, connection_string, privilege
         conn.exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
         conn.exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS:FF6'} rescue nil
         conn.autocommit = true

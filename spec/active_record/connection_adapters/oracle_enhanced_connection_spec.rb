@@ -47,7 +47,7 @@ if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
     it "should create new connection using :url" do
       params = CONNECTION_PARAMS.dup
-      params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST}:#{DATABASE_PORT}:#{DATABASE_NAME}"
+      params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST && "#{DATABASE_HOST}:"}#{DATABASE_PORT && "#{DATABASE_PORT}:"}#{DATABASE_NAME}"
       params[:host] = nil
       params[:database] = nil
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)

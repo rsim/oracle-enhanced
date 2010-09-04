@@ -73,8 +73,7 @@ module ActiveRecord
           config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
           username = @raw_connection.meta_data.user_name
         else
-          username = config[:username].to_s
-          password, database = config[:password].to_s, config[:database].to_s
+          username, password, database = config[:username], config[:password], config[:database]
           privilege = config[:privilege] && config[:privilege].to_s
           host, port = config[:host], config[:port]
   
