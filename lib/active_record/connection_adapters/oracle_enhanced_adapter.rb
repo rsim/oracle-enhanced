@@ -741,23 +741,6 @@ module ActiveRecord
         end
       end
 
-      # change LOB column for ORDER BY clause
-      # just first 100 characters are taken for ordering
-      def lob_order_by_expression(klass, order) #:nodoc:
-        return order if order.nil?
-        changed = false
-        new_order = order.to_s.strip.split(/, */).map do |order_by_col|
-          column_name, asc_desc = order_by_col.split(/ +/)
-          if column = klass.columns.detect { |col| col.name == column_name && col.sql_type =~ /LOB$/i}
-            changed = true
-            "DBMS_LOB.SUBSTR(#{column_name},100,1) #{asc_desc}"
-          else
-            order_by_col
-          end
-        end.join(', ')
-        changed ? new_order : order
-      end
-
       # SCHEMA STATEMENTS ========================================
       #
       # see: abstract/schema_statements.rb
