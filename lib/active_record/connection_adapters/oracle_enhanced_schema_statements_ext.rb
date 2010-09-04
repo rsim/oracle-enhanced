@@ -82,7 +82,7 @@ module ActiveRecord
       end
 
       def foreign_key_definition(to_table, options = {}) #:nodoc:
-        columns = (options[:column] || options[:columns]).to_a
+        columns = Array(options[:column] || options[:columns])
         
         if columns.size > 1
           # composite foreign key
@@ -127,7 +127,7 @@ module ActiveRecord
       private
 
       def foreign_key_constraint_name(table_name, columns, options = {})
-        columns = columns.to_a
+        columns = Array(columns)
         constraint_name = original_name = options[:name] || "#{table_name}_#{columns.join('_')}_fk"
         
         return constraint_name if constraint_name.length <= OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH
