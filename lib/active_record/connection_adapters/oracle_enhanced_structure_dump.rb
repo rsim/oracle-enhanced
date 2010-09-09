@@ -146,6 +146,7 @@ module ActiveRecord #:nodoc:
         select_all("select distinct name, type
                      from all_source
                     where type in ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
+                      and name not like 'BIN$%'
                       and  owner = sys_context('userenv','session_user') order by type").each do |source|
           ddl = "CREATE OR REPLACE   \n"
           lines = select_all(%Q{
