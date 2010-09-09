@@ -11,16 +11,15 @@ See http://wiki.github.com/rsim/oracle-enhanced for usage information.
 
 For questions and feature discussion please use http://groups.google.com/group/oracle-enhanced
 
-Blog posts about oracle-enahnced can be found at http://blog.rayapps.com/category/oracle-enhanced
+Blog posts about oracle_enhanced can be found at http://blog.rayapps.com/category/oracle_enhanced
 
 == REQUIREMENTS:
 
 * Latest version works (has been tested) with ActiveRecord version 2.3 and 3.0 (these are the same as Rails versions)
 * Can be used on the following Ruby platforms:
   * MRI - requires ruby-oci8 2.0 gem to connect to Oracle (2.0.4 or later recommended)
-  * Ruby/YARV 1.9.1 or 1.9.2 - requires ruby-oci8 2.0 library to connect to Oracle
-    unicode_utils gem is recommended for Unicode aware string upcase and downcase
-  * JRuby - uses JDBC driver ojdbc14.jar to connect to Oracle (should be in JRUBY_HOME/lib or in Java class path)
+  * Ruby/YARV 1.9.2 - requires ruby-oci8 2.0 library to connect to Oracle
+  * JRuby 1.5 - uses JDBC driver ojdbc14.jar to connect to Oracle (should be in JRUBY_HOME/lib or in Java class path)
 * Requires ruby-plsql gem to support custom create, update and delete methods (but can be used without ruby-plsql if this functionality is not needed)
 
 == INSTALL:
@@ -58,6 +57,8 @@ See RUNNING_TESTS.rdoc
 * Edvard Majakari
 * Beau Fabry
 * Simon Chiang
+* Peter Nyberg
+* Dwayne Litzenberger
 
 == LICENSE:
 

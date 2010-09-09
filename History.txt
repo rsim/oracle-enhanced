@@ -1,3 +1,20 @@
+== 1.3.1 2010-09-09
+
+* Enhancements:
+  * Tested with Rails 3.0.0 release
+  * Lexer options for context index creation
+  * Added Bundler for running adapter specs, added RUNNING_TESTS.rdoc with description how to run specs
+  * Connection to database using :host, :port and :database options
+  * Improved loading of adapter in Rails 3 using railtie
+* Bug fixes:
+  * Fix for custom context index procedure when indexing records with null values
+  * Quote table and column names in write_lobs callback
+  * Fix for incorrect column SQL types when two models use the same table and AR query cache is enabled
+  * Fixes for schema and scructure dump tasks
+  * Fix for handling of zero-length strings in BLOB and CLOB columns
+  * removed String.mb_chars upcase and downcase methods for Ruby 1.9 as Rails 3.0.0 already includes Unicode aware upcase and downcase methods for Ruby 1.9
+  * Fixes for latest ActiveRecord unit tests
+
 == 1.3.0 2010-06-21
 
 * Enhancements:
