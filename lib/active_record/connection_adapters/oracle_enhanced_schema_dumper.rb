@@ -35,9 +35,14 @@ module ActiveRecord #:nodoc:
           oracle_enhanced_table(tbl, stream)
           # add primary key trigger if table has it
           primary_key_trigger(tbl, stream)
-          # add foreign keys if table has them
+        end
+        # following table definitions
+        # add foreign keys if table has them
+        sorted_tables.each do |tbl|
+          next if ignore_table? tbl
           foreign_keys(tbl, stream)
         end
+
         # add synonyms in local schema
         synonyms(stream)
       end

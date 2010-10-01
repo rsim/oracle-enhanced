@@ -228,6 +228,15 @@ describe "OracleEnhancedAdapter schema dump" do
       end
       standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :columns => \["baz_id", "fooz_id"\], :name => "comments_posts_baz_fooz_fk"/
     end
+    it "should include foreign keys following all tables" do
+      # if foreign keys preceed declaration of all tables
+      # it can cause problems when using db:test rake tasks
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      dump = standard_dump
+      dump.rindex("create_table").should < dump.index("add_foreign_key")
+    end
   end
 
   describe "synonyms" do
