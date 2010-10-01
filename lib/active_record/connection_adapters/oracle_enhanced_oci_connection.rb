@@ -228,7 +228,8 @@ module ActiveRecord
 
 
         # connection using TNS alias
-        connection_string = if database && !host && ENV['TNS_ADMIN']
+        # if TNS_ADMIN is not specified then $ORACLE_HOME/network/admin/ is used as default by Oracle client
+        connection_string = if database && !host && (ENV['TNS_ADMIN'] || ENV['ORACLE_HOME'])
           database
         # database parameter includes host or TNS connection string
         elsif database =~ %r{[/(]}
