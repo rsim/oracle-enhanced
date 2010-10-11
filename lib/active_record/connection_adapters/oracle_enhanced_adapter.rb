@@ -345,7 +345,9 @@ module ActiveRecord
             quote_date_with_to_date(value)
           when :string
             # NCHAR and NVARCHAR2 literals should be quoted with N'...'
-            column.nchar ? 'N' << super : super
+            # read directly instance variable as otherwise migrations with table column default values are failing
+            # with pass ColumnDefinition object to this method
+            column.instance_variable_get('@nchar') ? 'N' << super : super
           else
             super
           end
