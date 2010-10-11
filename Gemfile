@@ -28,6 +28,8 @@ else
 
   ENV['AREL_GEM_PATH'] ||= '../arel'
   gem 'arel', :path => ENV['AREL_GEM_PATH']
+
+  gem 'rack', :git => 'git://github.com/rack/rack.git'
 end
 
 if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
