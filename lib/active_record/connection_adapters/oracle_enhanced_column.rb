@@ -46,26 +46,39 @@ module ActiveRecord
       end
       
       private
+
       def simplified_type(field_type)
         forced_column_type ||
         case field_type
-          when /decimal|numeric|number/i
-            return :boolean if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
-            return :integer if extract_scale(field_type) == 0
-            # if column name is ID or ends with _ID
-            return :integer if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
+        when /decimal|numeric|number/i
+          if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
+            :boolean
+          elsif extract_scale(field_type) == 0 ||
+                # if column name is ID or ends with _ID
+                OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
+            :integer
+          else
             :decimal
-          when /char/i
-            return :boolean if OracleEnhancedAdapter.emulate_booleans_from_strings &&
-                               OracleEnhancedAdapter.is_boolean_column?(name, field_type, table_name)
+          end
+        when /char/i
+          if OracleEnhancedAdapter.emulate_booleans_from_strings &&
+             OracleEnhancedAdapter.is_boolean_column?(name, field_type, table_name)
+            :boolean
+          else
             :string
-          when /date/i
-            forced_column_type ||
-            (:date if OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(name, table_name)) ||
+          end
+        when /date/i
+          if OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(name, table_name)
+            :date
+          else
             :datetime
-          when /timestamp/i then :timestamp
-          when /time/i then :datetime
-          else super
+          end
+        when /timestamp/i
+          :timestamp
+        when /time/i
+          :datetime
+        else
+          super
         end
       end
 
