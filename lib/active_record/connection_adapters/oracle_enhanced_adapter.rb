@@ -343,6 +343,9 @@ module ActiveRecord
           # NLS_DATE_FORMAT independent DATE support
           when :date, :time, :datetime
             quote_date_with_to_date(value)
+          when :string
+            # NCHAR and NVARCHAR2 literals should be quoted with N'...'
+            column.nchar ? 'N' << super : super
           else
             super
           end

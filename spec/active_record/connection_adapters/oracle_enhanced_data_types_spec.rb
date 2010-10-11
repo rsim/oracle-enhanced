@@ -1119,3 +1119,62 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
   end
 end
 
+describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE test_items (
+        id                  NUMBER(6,0) PRIMARY KEY,
+        nchar_column        NCHAR(20),
+        nvarchar2_column    NVARCHAR2(20),
+        char_column         CHAR(20),
+        varchar2_column     VARCHAR2(20)
+      )
+    SQL
+    @conn.execute "CREATE SEQUENCE test_items_seq"
+  end
+
+  after(:all) do
+    @conn.execute "DROP TABLE test_items"
+    @conn.execute "DROP SEQUENCE test_items_seq"
+  end
+
+  before(:each) do
+    class ::TestItem < ActiveRecord::Base
+    end
+  end
+
+  after(:each) do
+    Object.send(:remove_const, "TestItem")
+  end
+
+  it "should set nchar instance variable" do
+    columns = @conn.columns('test_items')
+    %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
+      column = columns.detect{|c| c.name == col}
+      column.type.should == :string
+      column.nchar.should == (col[0,1] == 'n')
+    end
+  end
+
+  it "should quote with N prefix" do
+    columns = @conn.columns('test_items')
+    %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
+      column = columns.detect{|c| c.name == col}
+      @conn.quote('abc', column).should == (column.nchar ? "N'abc'" : "'abc'")
+      @conn.quote(nil, column).should == 'NULL'
+    end
+  end
+
+  it "should create record" do
+    nchar_data = 'āčē'
+    item = TestItem.create(
+      :nchar_column => nchar_data,
+      :nvarchar2_column => nchar_data
+    ).reload
+    item.nchar_column.should == nchar_data + ' '*17
+    item.nvarchar2_column.should == nchar_data
+  end
+
+end

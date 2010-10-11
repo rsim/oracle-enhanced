@@ -2,12 +2,14 @@ module ActiveRecord
   module ConnectionAdapters #:nodoc:
     class OracleEnhancedColumn < Column
 
-      attr_reader :table_name, :forced_column_type #:nodoc:
+      attr_reader :table_name, :forced_column_type, :nchar #:nodoc:
       
       def initialize(name, default, sql_type = nil, null = true, table_name = nil, forced_column_type = nil) #:nodoc:
         @table_name = table_name
         @forced_column_type = forced_column_type
         super(name, default, sql_type, null)
+        # is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)
+        @nchar = (@type == :string && sql_type[0,1] == 'N')
       end
 
       def type_cast(value) #:nodoc:
