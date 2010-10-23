@@ -430,9 +430,7 @@ module ActiveRecord
 
       # Executes a SQL statement
       def execute(sql, name = nil)
-        # hack to pass additional "with_returning" option without changing argument list
-        log(sql, name) { sql.instance_variable_defined?(:@with_returning) && sql.instance_variable_get(:@with_returning) ?
-          @connection.exec_with_returning(sql) : @connection.exec(sql) }
+        log(sql, name) { @connection.exec(sql) }
       end
 
       # Returns an array of arrays containing the field values.
@@ -452,10 +450,10 @@ module ActiveRecord
           return id_value
         end
 
-        sql_with_returning = sql.dup << @connection.returning_clause(quote_column_name(pk))
-        # hack to pass additional "with_returning" option without changing argument list
-        sql_with_returning.instance_variable_set(:@with_returning, true)
-        execute(sql_with_returning, name)
+        sql_with_returning = sql + @connection.returning_clause(quote_column_name(pk))
+        log(sql, name) do
+          exec_with_returning(sql_with_returning)
+        end
       end
       protected :insert_sql
 
