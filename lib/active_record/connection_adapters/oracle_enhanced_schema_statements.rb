@@ -186,7 +186,7 @@ module ActiveRecord
              AND i.table_name = '#{table_name}'
              AND i.index_name = '#{index_name.to_s.upcase}'
         SQL
-        result == 1 ? true : false
+        result == 1
       end
 
       def add_column(table_name, column_name, type, options = {}) #:nodoc:
