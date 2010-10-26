@@ -437,7 +437,10 @@ module ActiveRecord
       # Order is the same as that returned by #columns.
       def select_rows(sql, name = nil)
         # last parameter indicates to return also column list
-        result, columns = select(sql, name, true)
+        result = columns = nil
+        log(sql, name) do
+          result, columns = @connection.select(sql, name, true)
+        end
         result.map{ |v| columns.map{|c| v[c]} }
       end
 
@@ -905,9 +908,9 @@ module ActiveRecord
 
       private
 
-      def select(sql, name = nil, return_column_names = false)
+      def select(sql, name = nil)
         log(sql, name) do
-          @connection.select(sql, name, return_column_names)
+          @connection.select(sql, name, false)
         end
       end
 
