@@ -455,7 +455,7 @@ module ActiveRecord
 
         sql_with_returning = sql + @connection.returning_clause(quote_column_name(pk))
         log(sql, name) do
-          exec_with_returning(sql_with_returning)
+          @connection.exec_with_returning(sql_with_returning)
         end
       end
       protected :insert_sql
