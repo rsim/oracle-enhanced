@@ -344,10 +344,11 @@ module ActiveRecord
           when :date, :time, :datetime
             quote_date_with_to_date(value)
           when :string
-            # NCHAR and NVARCHAR2 literals should be quoted with N'...'
-            # read directly instance variable as otherwise migrations with table column default values are failing
-            # with pass ColumnDefinition object to this method
-            column.instance_variable_get('@nchar') ? 'N' << super : super
+            # NCHAR and NVARCHAR2 literals should be quoted with N'...'.
+            # Read directly instance variable as otherwise migrations with table column default values are failing
+            # as migrations pass ColumnDefinition object to this method.
+            # Check if instance variable is defined to avoid warnings about accessing undefined instance variable.
+            column.instance_variable_defined?('@nchar') && column.instance_variable_get('@nchar') ? 'N' << super : super
           else
             super
           end

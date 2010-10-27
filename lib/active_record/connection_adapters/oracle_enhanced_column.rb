@@ -8,8 +8,9 @@ module ActiveRecord
         @table_name = table_name
         @forced_column_type = forced_column_type
         super(name, default, sql_type, null)
-        # is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)
-        @nchar = (@type == :string && sql_type[0,1] == 'N')
+        # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
+        # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
+        @nchar = true if @type == :string && sql_type[0,1] == 'N'
       end
 
       def type_cast(value) #:nodoc:

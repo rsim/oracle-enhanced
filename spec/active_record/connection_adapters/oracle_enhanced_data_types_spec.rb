@@ -1156,7 +1156,7 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
     %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
       column = columns.detect{|c| c.name == col}
       column.type.should == :string
-      column.nchar.should == (col[0,1] == 'n')
+      column.nchar.should == (col[0,1] == 'n' ? true : nil)
     end
   end
 
