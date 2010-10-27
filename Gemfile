@@ -21,12 +21,12 @@ if ENV['RAILS_GEM_VERSION']
   end
 else
   # uses local copy of Rails 3 and Arel gems
-  ENV['RAILS_GEM_PATH'] ||= '../rails'
+  ENV['RAILS_GEM_PATH'] ||= File.expand_path('../../rails', __FILE__)
   %w(activerecord activemodel activesupport actionpack railties).each do |gem_name|
     gem gem_name, :path => File.join(ENV['RAILS_GEM_PATH'], gem_name)
   end
 
-  ENV['AREL_GEM_PATH'] ||= '../arel'
+  ENV['AREL_GEM_PATH'] ||= File.expand_path('../../arel', __FILE__)
   gem 'arel', :path => ENV['AREL_GEM_PATH']
 
   gem 'rack', :git => 'git://github.com/rack/rack.git'
