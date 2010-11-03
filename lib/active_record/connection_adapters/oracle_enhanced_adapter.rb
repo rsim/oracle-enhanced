@@ -203,6 +203,7 @@ module ActiveRecord
       def initialize(connection, logger = nil) #:nodoc:
         super
         @quoted_column_names, @quoted_table_names = {}, {}
+        @statements = {}
         @enable_dbms_output = false
       end
 
@@ -432,6 +433,50 @@ module ActiveRecord
       # Executes a SQL statement
       def execute(sql, name = nil)
         log(sql, name) { @connection.exec(sql) }
+      end
+
+      def substitute_for(column, current_values)
+        Arel.sql(":a#{current_values.length + 1}")
+      end
+
+      def exec(sql, name = 'SQL', binds = [])
+        log(sql, name) do
+          cursor = nil
+          if binds.empty?
+            cursor = @connection.exec(sql)
+          else
+            #unless @statements.key? sql
+            #  cursor = @statements[sql] = @connection.prepare(sql)
+            #end
+
+            #cursor = @connection.prepare(sql)
+            binds = binds.map { |col, val|
+              col ? col.type_cast(val) : val
+            }
+            #binds.each_with_index { |val, i| cursor.bind_param(i + 1, val) }
+            cursor = @connection.exec(sql, *binds)
+          end
+
+          cursor.exec
+          columns = cursor.get_col_names.map do |col_name|
+            @connection.oracle_downcase(col_name)
+          end
+          rows = []
+          get_lob_value = name != 'Writable Large Object'
+
+          while row = cursor.fetch
+            rows << row.map { |col|
+              @connection.typecast_result_value(col, get_lob_value)
+            }
+          end
+          res = ActiveRecord::Result.new(columns, rows)
+          cursor.close
+          res
+        end
+      end
+
+      def supports_statement_cache?
+        true
       end
 
       # Returns an array of arrays containing the field values.
@@ -909,10 +954,8 @@ module ActiveRecord
 
       private
 
-      def select(sql, name = nil)
-        log(sql, name) do
-          @connection.select(sql, name, false)
-        end
+      def select(sql, name = nil, binds = [])
+        exec(sql, name, binds).to_a
       end
 
       def oracle_downcase(column_name)

@@ -77,7 +77,7 @@ module ActiveRecord
       def exec(sql, *bindvars, &block)
         @raw_connection.exec(sql, *bindvars, &block)
       end
-      
+
       def returning_clause(quoted_pk)
         " RETURNING #{quoted_pk} INTO :insert_id"
       end
@@ -91,6 +91,10 @@ module ActiveRecord
         cursor[':insert_id']
       ensure
         cursor.close rescue nil
+      end
+
+      def prepare(sql)
+        @raw_connection.parse(sql)
       end
 
       def select(sql, name = nil, return_column_names = false)
@@ -146,8 +150,6 @@ module ActiveRecord
         end
       end
 
-      private
-
       def typecast_result_value(value, get_lob_value)
         case value
         when Fixnum, Bignum
@@ -181,7 +183,9 @@ module ActiveRecord
           value
         end
       end
-      
+
+      private
+
       def date_without_time?(value)
         case value
         when OraDate
