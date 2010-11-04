@@ -77,8 +77,6 @@ module ActiveRecord
         end
       end
 
-      private
-      
       # Returns a record hash with the column names as keys and column values
       # as values.
       def select_one(sql)
