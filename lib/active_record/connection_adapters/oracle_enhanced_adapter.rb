@@ -416,13 +416,20 @@ module ActiveRecord
 
       # Reconnects to the database.
       def reconnect! #:nodoc:
+        clear_cache!
         @connection.reset!
       rescue OracleEnhancedConnectionException => e
         @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
       end
 
+      def reset!
+        clear_cache!
+        super
+      end
+
       # Disconnects from the database.
       def disconnect! #:nodoc:
+        clear_cache!
         @connection.logoff rescue nil
       end
 
@@ -439,22 +446,31 @@ module ActiveRecord
         Arel.sql(":a#{current_values.length + 1}")
       end
 
+      def clear_cache!
+        @statements.each_value do |cursor|
+          cursor.close
+        end
+        @statements.clear
+      end
+
       def exec(sql, name = 'SQL', binds = [])
         log(sql, name) do
           cursor = nil
+          cached = false
           if binds.empty?
             cursor = @connection.exec(sql)
           else
-            #unless @statements.key? sql
-            #  cursor = @statements[sql] = @connection.prepare(sql)
-            #end
+            unless @statements.key? sql
+              @statements[sql] = @connection.prepare(sql)
+            end
 
-            #cursor = @connection.prepare(sql)
+            cursor = @statements[sql]
+
             binds = binds.map { |col, val|
               col ? col.type_cast(val) : val
             }
-            #binds.each_with_index { |val, i| cursor.bind_param(i + 1, val) }
-            cursor = @connection.exec(sql, *binds)
+            binds.each_with_index { |val, i| cursor.bind_param(i + 1, val) }
+            cached = true
           end
 
           cursor.exec
@@ -470,7 +486,7 @@ module ActiveRecord
             }
           end
           res = ActiveRecord::Result.new(columns, rows)
-          cursor.close
+          cursor.close unless cached
           res
         end
       end
