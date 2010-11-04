@@ -971,7 +971,13 @@ module ActiveRecord
       private
 
       def select(sql, name = nil, binds = [])
-        exec(sql, name, binds).to_a
+        if ActiveRecord.const_defined?(:Result)
+          exec(sql, name, binds).to_a
+        else
+          log(sql, name) do
+            @connection.select(sql, name, false)
+          end
+        end
       end
 
       def oracle_downcase(column_name)
