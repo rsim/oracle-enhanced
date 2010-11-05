@@ -453,7 +453,7 @@ module ActiveRecord
         @statements.clear
       end
 
-      def exec(sql, name = 'SQL', binds = [])
+      def exec_query(sql, name = 'SQL', binds = [])
         log(sql, name) do
           cursor = nil
           cached = false
@@ -970,7 +970,7 @@ module ActiveRecord
 
       def select(sql, name = nil, binds = [])
         if ActiveRecord.const_defined?(:Result)
-          exec(sql, name, binds).to_a
+          exec_query(sql, name, binds).to_a
         else
           log(sql, name) do
             @connection.select(sql, name, false)
