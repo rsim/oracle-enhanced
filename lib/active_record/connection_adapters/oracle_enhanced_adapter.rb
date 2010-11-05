@@ -458,7 +458,7 @@ module ActiveRecord
           cursor = nil
           cached = false
           if binds.empty?
-            cursor = @connection.exec(sql)
+            cursor = @connection.prepare(sql)
           else
             unless @statements.key? sql
               @statements[sql] = @connection.prepare(sql)
@@ -466,9 +466,9 @@ module ActiveRecord
 
             cursor = @statements[sql]
 
-            binds = binds.map { |col, val|
+            binds = binds.map do |col, val|
               col ? col.type_cast(val) : val
-            }
+            end
             binds.each_with_index { |val, i| cursor.bind_param(i + 1, val) }
             cached = true
           end
@@ -478,12 +478,9 @@ module ActiveRecord
             @connection.oracle_downcase(col_name)
           end
           rows = []
-          get_lob_value = name != 'Writable Large Object'
-
-          while row = cursor.fetch
-            rows << row.map { |col|
-              @connection.typecast_result_value(col, get_lob_value)
-            }
+          fetch_options = {:get_lob_value => (name != 'Writable Large Object')}
+          while row = cursor.fetch(fetch_options)
+            rows << row
           end
           res = ActiveRecord::Result.new(columns, rows)
           cursor.close unless cached

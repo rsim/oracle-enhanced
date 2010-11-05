@@ -94,7 +94,39 @@ module ActiveRecord
       end
 
       def prepare(sql)
-        @raw_connection.parse(sql)
+        Cursor.new(self, @raw_connection.parse(sql))
+      end
+
+      class Cursor
+        def initialize(connection, raw_cursor)
+          @connection = connection
+          @raw_cursor = raw_cursor
+        end
+
+        def bind_param(position, value)
+          @raw_cursor.bind_param(position, value)
+        end
+
+        def exec
+          @raw_cursor.exec
+        end
+
+        def get_col_names
+          @raw_cursor.get_col_names
+        end
+
+        def fetch(options={})
+          if row = @raw_cursor.fetch
+            get_lob_value = options[:get_lob_value]
+            row.map do |col|
+              @connection.typecast_result_value(col, get_lob_value)
+            end
+          end
+        end
+
+        def close
+          @raw_cursor.close
+        end
       end
 
       def select(sql, name = nil, return_column_names = false)

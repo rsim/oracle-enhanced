@@ -261,10 +261,100 @@ module ActiveRecord
         end
       end
 
+      def prepare(sql)
+        Cursor.new(self, @raw_connection.prepareStatement(sql))
+      end
+
+      class Cursor
+        def initialize(connection, raw_statement)
+          @connection = connection
+          @raw_statement = raw_statement
+        end
+
+        def bind_param(position, value)
+          java_value = ruby_to_java_value(value)
+          case value
+          when Integer
+            @raw_statement.setInt(position, java_value)
+          when Float
+            @raw_statement.setFloat(position, java_value)
+          when BigDecimal
+            @raw_statement.setBigDecimal(position, java_value)
+          when String
+            @raw_statement.setString(position, java_value)
+          when Date, DateTime
+            @raw_statement.setDATE(position, java_value)
+          when Time
+            @raw_statement.setTimestamp(position, java_value)
+          when NilClass
+            # TODO: currently nil is always bound as NULL with VARCHAR type.
+            # When nils will actually be used by ActiveRecord as bound parameters
+            # then need to pass actual column type.
+            @raw_statement.setNull(position, java.sql.Types::VARCHAR)
+          else
+            raise ArgumentError, "Don't know how to bind variable with type #{value.class}"
+          end
+        end
+
+        def exec
+          @raw_result_set = @raw_statement.executeQuery
+          get_metadata
+          true
+        end
+
+        def get_metadata
+          metadata = @raw_result_set.getMetaData
+          column_count = metadata.getColumnCount
+          @column_names = (1..column_count).map{|i| metadata.getColumnName(i)}
+          @column_types = (1..column_count).map{|i| metadata.getColumnTypeName(i).to_sym}
+        end
+
+        def get_col_names
+          @column_names
+        end
+
+        def fetch(options={})
+          if @raw_result_set.next
+            get_lob_value = options[:get_lob_value]
+            row_values = []
+            @column_types.each_with_index do |column_type, i|
+              row_values <<
+                @connection.get_ruby_value_from_result_set(@raw_result_set, i+1, column_type, get_lob_value)
+            end
+            row_values
+          else
+            @raw_result_set.close
+            nil
+          end
+        end
+
+        def close
+          @raw_statement.close
+        end
+
+        private
+
+        def ruby_to_java_value(value)
+          case value
+          when Fixnum, String, Float
+            value
+          when BigDecimal
+            java.math.BigDecimal.new(value.to_s)
+          when Date, DateTime
+            Java::oracle.sql.DATE.new(value.strftime("%Y-%m-%d %H:%M:%S"))
+          when Time
+            Java::java.sql.Timestamp.new(value.year-1900, value.month-1, value.day, value.hour, value.min, value.sec, value.usec * 1000)
+          else
+            value
+          end
+        end
+
+      end
+
       def select(sql, name = nil, return_column_names = false)
         with_retry do
           select_no_retry(sql, name, return_column_names)
-        end        
+        end
       end
 
       def select_no_retry(sql, name = nil, return_column_names = false)
@@ -287,7 +377,7 @@ module ActiveRecord
 
         rows = []
         get_lob_value = !(name == 'Writable Large Object')
-        
+
         while rset.next
           hash = column_hash.dup
           cols_types_index.each do |col, column_type, i|
@@ -312,31 +402,17 @@ module ActiveRecord
 
       # Return NativeException / java.sql.SQLException error code
       def error_code(exception)
-        exception.cause.getErrorCode
+        case exception
+        when NativeException
+          exception.cause.getErrorCode
+        else
+          nil
+        end
       end
-
-      private
-
-      # def prepare_statement(sql)
-      #   @raw_connection.prepareStatement(sql)
-      # end
-
-      # def prepare_call(sql, *bindvars)
-      #   @raw_connection.prepareCall(sql)
-      # end
 
       def get_ruby_value_from_result_set(rset, i, type_name, get_lob_value = true)
         case type_name
         when :NUMBER
-          # d = rset.getBigDecimal(i)
-          # if d.nil?
-          #   nil
-          # elsif d.scale == 0
-          #   d.toBigInteger+0
-          # else
-          #   # Is there better way how to convert Java BigDecimal to Ruby BigDecimal?
-          #   d.toString.to_d
-          # end
           d = rset.getNUMBER(i)
           if d.nil?
             nil
@@ -372,6 +448,8 @@ module ActiveRecord
         end
       end
       
+      private
+
       def lob_to_ruby_value(val)
         case val
         when ::Java::OracleSql::CLOB
