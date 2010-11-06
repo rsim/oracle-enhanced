@@ -928,9 +928,15 @@ module ActiveRecord
 
         # construct a valid DISTINCT clause, ie. one that includes the ORDER BY columns, using
         # FIRST_VALUE such that the inclusion of these columns doesn't invalidate the DISTINCT
-        order_columns = order_by.split(',').map { |s| s.strip }.reject(&:blank?)
+        order_columns = if order_by.is_a?(String)
+          order_by.split(',').map { |s| s.strip }.reject(&:blank?)
+        else # in latest ActiveRecord versions order_by is already Array
+          order_by
+        end
         order_columns = order_columns.zip((0...order_columns.size).to_a).map do |c, i|
-          "FIRST_VALUE(#{c.split.first}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__"
+          # remove any ASC/DESC modifiers
+          value = c =~ /^(.+)\s+(ASC|DESC)\s*$/i ? $1 : c
+          "FIRST_VALUE(#{value}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__"
         end
         sql = "DISTINCT #{columns}, "
         sql << order_columns * ", "
@@ -939,10 +945,12 @@ module ActiveRecord
       def temporary_table?(table_name) #:nodoc:
         select_value("select temporary from user_tables where table_name = '#{table_name.upcase}'") == 'Y'
       end
-      
+
       # ORDER BY clause for the passed order option.
-      # 
+      #
       # Uses column aliases as defined by #distinct.
+      #
+      # In Rails 3.x this method is moved to Arel
       def add_order_by_for_association_limiting!(sql, options) #:nodoc:
         return sql if options[:order].blank?
 
