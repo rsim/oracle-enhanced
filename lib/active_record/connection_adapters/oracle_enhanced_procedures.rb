@@ -1,7 +1,11 @@
 # define accessors before requiring ruby-plsql as these accessors are used in clob writing callback and should be
 # available also if ruby-plsql could not be loaded
 ActiveRecord::Base.class_eval do
-  class_inheritable_accessor :custom_create_method, :custom_update_method, :custom_delete_method
+  if respond_to? :class_inheritable_accessor
+    class_inheritable_accessor :custom_create_method, :custom_update_method, :custom_delete_method
+  elsif respond_to? :class_attribute
+    class_attribute :custom_create_method, :custom_update_method, :custom_delete_method
+  end
 end
 
 require 'active_support'
@@ -153,6 +157,8 @@ module ActiveRecord #:nodoc:
             self.id = instance_eval(&self.class.custom_create_method)
           end
           @new_record = false
+          # Starting from ActiveRecord 3.0.3 @persisted is used instead of @new_record
+          @persisted = true
           id
         end
 
