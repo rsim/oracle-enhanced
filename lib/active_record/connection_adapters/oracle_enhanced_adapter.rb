@@ -587,6 +587,12 @@ module ActiveRecord
         @@do_not_prefetch_primary_key = {}
       end
 
+      # To avoid ORA-01795: maximum number of expressions in a list is 1000
+      # tell ActiveRecord to limit us to 1000 ids at a time
+      def ids_in_list_limit
+        1000
+      end
+
       # Returns default sequence name for table.
       # Will take all or first 26 characters of table name and append _seq suffix
       def default_sequence_name(table_name, primary_key = nil)
