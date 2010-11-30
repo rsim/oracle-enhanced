@@ -69,6 +69,11 @@ module ActiveRecord
           else
             @raw_connection = ds.connection
           end
+          
+          if @raw_connection.respond_to?(:getInnermostDelegate)
+            @pooled_connection = @raw_connection
+            @raw_connection = @raw_connection.innermost_delegate
+          end
   
           config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
           username = @raw_connection.meta_data.user_name
@@ -123,7 +128,11 @@ module ActiveRecord
       
       def logoff
         @active = false
-        @raw_connection.close
+        if defined?(@pooled_connection)
+          @pooled_connection.close
+        else
+          @raw_connection.close
+        end
         true
       rescue
         false
