@@ -71,9 +71,43 @@ describe "OracleEnhancedConnection" do
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
         @conn.should be_active
       end
+      
+      it "should create a new connection using jndi" do
+    
+        import 'oracle.jdbc.driver.OracleDriver'
+        import 'org.apache.commons.pool.impl.GenericObjectPool'
+        import 'org.apache.commons.dbcp.PoolingDataSource'
+        import 'org.apache.commons.dbcp.PoolableConnectionFactory'
+        import 'org.apache.commons.dbcp.DriverManagerConnectionFactory'
 
+        class InitialContextMock
+          def initialize
+            connection_pool = GenericObjectPool.new(nil)
+            uri = "jdbc:oracle:thin:@#{DATABASE_HOST && "#{DATABASE_HOST}:"}#{DATABASE_PORT && "#{DATABASE_PORT}:"}#{DATABASE_NAME}"
+            connection_factory = DriverManagerConnectionFactory.new(uri, DATABASE_USER, DATABASE_PASSWORD)
+            poolable_connection_factory = PoolableConnectionFactory.new(connection_factory,connection_pool,nil,nil,false,true)
+            @data_source = PoolingDataSource.new(connection_pool)
+            @data_source.access_to_underlying_connection_allowed = true
+          end
+          def lookup(path)
+            if (path == 'java:/comp/env')
+              return self
+            else
+              return @data_source
+            end
+          end
+        end
+
+        javax.naming.InitialContext.stub!(:new).and_return(InitialContextMock.new)
+        
+        params = {}
+        params[:jndi] = 'java:comp/env/jdbc/test'
+        @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+        @conn.should be_active
+      end
+      
     end
-
+    
   end
 
   describe "SQL execution" do
