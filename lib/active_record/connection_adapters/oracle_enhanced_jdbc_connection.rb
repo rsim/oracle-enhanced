@@ -49,12 +49,12 @@ module ActiveRecord
       # modified method to support JNDI connections
       def new_connection(config)
         username = nil
-  
+
         if config[:jndi]
           jndi = config[:jndi].to_s
           ctx = javax.naming.InitialContext.new
           ds = nil
-          
+
           # tomcat needs first lookup method, oc4j (and maybe other application servers) need second method
           begin
             env = ctx.lookup('java:/comp/env')
@@ -62,48 +62,49 @@ module ActiveRecord
           rescue
             ds = ctx.lookup(jndi)
           end
-  
+
           # check if datasource supports pooled connections, otherwise use default
           if ds.respond_to?(:pooled_connection)
             @raw_connection = ds.pooled_connection
           else
             @raw_connection = ds.connection
           end
-          
+
+          # get Oracle JDBC connection when using DBCP in Tomcat
           if @raw_connection.respond_to?(:getInnermostDelegate)
             @pooled_connection = @raw_connection
             @raw_connection = @raw_connection.innermost_delegate
           end
-  
+
           config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
           username = @raw_connection.meta_data.user_name
         else
           username, password, database = config[:username], config[:password], config[:database]
           privilege = config[:privilege] && config[:privilege].to_s
           host, port = config[:host], config[:port]
-  
+
           # connection using TNS alias
           if database && !host && !config[:url] && ENV['TNS_ADMIN']
             url = "jdbc:oracle:thin:@#{database || 'XE'}"
           else
             url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}:#{database || 'XE'}"
           end
-  
+
           prefetch_rows = config[:prefetch_rows] || 100
           # get session time_zone from configuration or from TZ environment variable
           time_zone = config[:time_zone] || ENV['TZ'] || java.util.TimeZone.default.getID
-  
+
           properties = java.util.Properties.new
           properties.put("user", username)
           properties.put("password", password)
           properties.put("defaultRowPrefetch", "#{prefetch_rows}") if prefetch_rows
           properties.put("internal_logon", privilege) if privilege
-      
+
           @raw_connection = java.sql.DriverManager.getConnection(url, properties)
-  
+
           # Set session time zone to current time zone
           @raw_connection.setSessionTimeZone(time_zone)
-  
+
           # Set default number of rows to prefetch
           # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
         end
@@ -111,21 +112,20 @@ module ActiveRecord
         # by default VARCHAR2 column size will be interpreted as max number of characters (and not bytes)
         nls_length_semantics = config[:nls_length_semantics] || 'CHAR'
         cursor_sharing = config[:cursor_sharing] || 'force'
-  
+
         # from here it remaings common for both connections types
         exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
         exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS:FF6'}
         exec "alter session set cursor_sharing = #{cursor_sharing}"
         exec "alter session set nls_length_semantics = '#{nls_length_semantics}'"
         self.autocommit = true
-  
+
         # default schema owner
         @owner = username.upcase unless username.nil?
-        
+
         @raw_connection
       end
 
-      
       def logoff
         @active = false
         if defined?(@pooled_connection)
@@ -137,7 +137,7 @@ module ActiveRecord
       rescue
         false
       end
-      
+
       def commit
         @raw_connection.commit
       end
@@ -168,7 +168,7 @@ module ActiveRecord
           raise
         end
       end
-      
+
       # Resets connection, by logging off and creating a new connection.
       def reset!
         logoff rescue nil
@@ -183,7 +183,7 @@ module ActiveRecord
             raise
           end
         end
-      end      
+      end
 
       # mark connection as dead if connection lost
       def with_retry(&block)
@@ -375,7 +375,7 @@ module ActiveRecord
 
         metadata = rset.getMetaData
         column_count = metadata.getColumnCount
-        
+
         cols_types_index = (1..column_count).map do |i|
           col_name = oracle_downcase(metadata.getColumnName(i))
           next if col_name == 'raw_rnum_'
@@ -456,7 +456,7 @@ module ActiveRecord
           nil
         end
       end
-      
+
       private
 
       def lob_to_ruby_value(val)
@@ -477,6 +477,6 @@ module ActiveRecord
       end
 
     end
-    
+
   end
 end

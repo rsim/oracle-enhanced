@@ -71,14 +71,18 @@ describe "OracleEnhancedConnection" do
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
         @conn.should be_active
       end
-      
-      it "should create a new connection using jndi" do
-    
-        import 'oracle.jdbc.driver.OracleDriver'
-        import 'org.apache.commons.pool.impl.GenericObjectPool'
-        import 'org.apache.commons.dbcp.PoolingDataSource'
-        import 'org.apache.commons.dbcp.PoolableConnectionFactory'
-        import 'org.apache.commons.dbcp.DriverManagerConnectionFactory'
+
+      it "should create a new connection using JNDI" do
+
+        begin
+          import 'oracle.jdbc.driver.OracleDriver'
+          import 'org.apache.commons.pool.impl.GenericObjectPool'
+          import 'org.apache.commons.dbcp.PoolingDataSource'
+          import 'org.apache.commons.dbcp.PoolableConnectionFactory'
+          import 'org.apache.commons.dbcp.DriverManagerConnectionFactory'
+        rescue NameError => e
+          return pending e.message
+        end
 
         class InitialContextMock
           def initialize
@@ -99,15 +103,15 @@ describe "OracleEnhancedConnection" do
         end
 
         javax.naming.InitialContext.stub!(:new).and_return(InitialContextMock.new)
-        
+
         params = {}
         params[:jndi] = 'java:comp/env/jdbc/test'
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
         @conn.should be_active
       end
-      
+
     end
-    
+
   end
 
   describe "SQL execution" do
