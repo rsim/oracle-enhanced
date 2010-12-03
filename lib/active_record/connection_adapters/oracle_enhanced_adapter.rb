@@ -274,6 +274,12 @@ module ActiveRecord
         IDENTIFIER_MAX_LENGTH
       end
 
+      # To avoid ORA-01795: maximum number of expressions in a list is 1000
+      # tell ActiveRecord to limit us to 1000 ids at a time
+      def in_clause_length
+        1000
+      end
+
       # QUOTING ==================================================
       #
       # see: abstract/quoting.rb
@@ -585,12 +591,6 @@ module ActiveRecord
       # used just in tests to clear prefetch primary key flag for all tables
       def clear_prefetch_primary_key #:nodoc:
         @@do_not_prefetch_primary_key = {}
-      end
-
-      # To avoid ORA-01795: maximum number of expressions in a list is 1000
-      # tell ActiveRecord to limit us to 1000 ids at a time
-      def ids_in_list_limit
-        1000
       end
 
       # Returns default sequence name for table.

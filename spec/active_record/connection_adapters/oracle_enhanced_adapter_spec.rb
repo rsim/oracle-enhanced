@@ -565,4 +565,48 @@ describe "OracleEnhancedAdapter" do
       @conn.temporary_table?("foos").should be_true
     end
   end
+
+  describe "eager loading" do
+    before(:all) do
+      schema_define do
+        create_table :test_posts do |t|
+          t.string      :title
+        end
+        create_table :test_comments do |t|
+          t.integer     :test_post_id
+          t.string      :description
+        end
+        add_index :test_comments, :test_post_id
+      end
+      class ::TestPost < ActiveRecord::Base
+        has_many :test_comments
+      end
+      class ::TestComment < ActiveRecord::Base
+        belongs_to :test_post
+      end
+      @ids = (1..1010).to_a
+      TestPost.transaction do
+        @ids.each do |id|
+          TestPost.create!(:id => id, :title => "Title #{id}")
+          TestComment.create!(:test_post_id => id, :description => "Description #{id}")
+        end
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_comments
+        drop_table :test_posts
+      end
+      Object.send(:remove_const, "TestPost")
+      Object.send(:remove_const, "TestComment")
+    end
+
+    it "should load included association with more than 1000 records" do
+      posts = TestPost.includes(:test_comments).all
+      posts.size.should == @ids.size
+    end
+
+  end if ENV['RAILS_GEM_VERSION'] >= '3.1'
+
 end
