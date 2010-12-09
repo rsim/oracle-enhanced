@@ -6,9 +6,13 @@ if ActiveRecord::VERSION::MAJOR == 2 && ActiveRecord::VERSION::MINOR == 3
     private
     def tables_in_string(string)
       return [] if string.blank?
-      # always convert table names to downcase as in Oracle quoted table names are in uppercase
-      # ignore raw_sql_ that is used by Oracle adapter as alias for limit/offset subqueries
-      string.scan(/([a-zA-Z_][\.\w]+).?\./).flatten.map(&:downcase).uniq - ['raw_sql_']
+      if self.connection.adapter_name == "OracleEnhanced"
+        # always convert table names to downcase as in Oracle quoted table names are in uppercase
+        # ignore raw_sql_ that is used by Oracle adapter as alias for limit/offset subqueries
+        string.scan(/([a-zA-Z_][\.\w]+).?\./).flatten.map(&:downcase).uniq - ['raw_sql_']
+      else
+        string.scan(/([\.a-zA-Z_]+).?\./).flatten
+      end
     end
   end
 
