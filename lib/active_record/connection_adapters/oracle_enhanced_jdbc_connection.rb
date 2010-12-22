@@ -70,10 +70,13 @@ module ActiveRecord
             @raw_connection = ds.connection
           end
 
-          # get Oracle JDBC connection when using DBCP in Tomcat
+          # get Oracle JDBC connection when using DBCP in Tomcat or jBoss
           if @raw_connection.respond_to?(:getInnermostDelegate)
             @pooled_connection = @raw_connection
             @raw_connection = @raw_connection.innermost_delegate
+          elsif @raw_connection.respond_to?(:getUnderlyingConnection)
+            @pooled_connection = @raw_connection
+            @raw_connection = @raw_connection.underlying_connection            
           end
 
           config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
