@@ -80,10 +80,32 @@ module ActiveRecord
     # * <tt>:allow_concurrency</tt> - set to "true" if non-blocking mode should be enabled (just for OCI client)
     # * <tt>:prefetch_rows</tt> - how many rows should be fetched at one time to increase performance, defaults to 100
     # * <tt>:cursor_sharing</tt> - cursor sharing mode to minimize amount of unique statements, defaults to "force"
-    # * <tt>:nls_length_semantics</tt> - semantics of size of VARCHAR2 and CHAR columns, defaults to "CHAR"
-    #   (meaning that size specifies number of characters and not bytes)
     # * <tt>:time_zone</tt> - database session time zone
     #   (it is recommended to set it using ENV['TZ'] which will be then also used for database session time zone)
+    # 
+    # Optionals NLS parameters:
+    # 
+    # * <tt>:nls_calendar</tt>
+    # * <tt>:nls_characterset</tt>
+    # * <tt>:nls_comp</tt>
+    # * <tt>:nls_currency</tt>
+    # * <tt>:nls_date_format</tt> - format for :date columns, defaults to <tt>YYYY-MM-DD HH24:MI:SS</tt>
+    # * <tt>:nls_date_language</tt>
+    # * <tt>:nls_dual_currency</tt>
+    # * <tt>:nls_iso_currency</tt>
+    # * <tt>:nls_language</tt>
+    # * <tt>:nls_length_semantics</tt> - semantics of size of VARCHAR2 and CHAR columns, defaults to <tt>CHAR</tt>
+    #   (meaning that size specifies number of characters and not bytes)
+    # * <tt>:nls_nchar_characterset</tt>
+    # * <tt>:nls_nchar_conv_excp</tt>
+    # * <tt>:nls_numeric_characters</tt>
+    # * <tt>:nls_sort</tt>
+    # * <tt>:nls_territory</tt>
+    # * <tt>:nls_timestamp_format</tt> - format for :timestamp columns, defaults to <tt>YYYY-MM-DD HH24:MI:SS:FF6</tt>
+    # * <tt>:nls_timestamp_tz_format</tt>
+    # * <tt>:nls_time_format</tt>
+    # * <tt>:nls_time_tz_format</tt>
+    # 
     class OracleEnhancedAdapter < AbstractAdapter
 
       ##
@@ -224,6 +246,29 @@ module ActiveRecord
       def supports_savepoints? #:nodoc:
         true
       end
+
+      #:stopdoc:
+      DEFAULT_NLS_PARAMETERS = {
+        :nls_calendar            => nil,
+        :nls_characterset        => nil,
+        :nls_comp                => nil,
+        :nls_currency            => nil,
+        :nls_date_format         => 'YYYY-MM-DD HH24:MI:SS',
+        :nls_date_language       => nil,
+        :nls_dual_currency       => nil,
+        :nls_iso_currency        => nil,
+        :nls_language            => nil,
+        :nls_length_semantics    => 'CHAR',
+        :nls_nchar_characterset  => nil,
+        :nls_nchar_conv_excp     => nil,
+        :nls_numeric_characters  => nil,
+        :nls_sort                => nil,
+        :nls_territory           => nil,
+        :nls_timestamp_format    => 'YYYY-MM-DD HH24:MI:SS:FF6',
+        :nls_timestamp_tz_format => nil,
+        :nls_time_format         => nil,
+        :nls_time_tz_format      => nil
+      }
 
       #:stopdoc:
       NATIVE_DATABASE_TYPES = {

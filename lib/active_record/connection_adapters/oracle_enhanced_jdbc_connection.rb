@@ -112,15 +112,17 @@ module ActiveRecord
           # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
         end
 
-        # by default VARCHAR2 column size will be interpreted as max number of characters (and not bytes)
-        nls_length_semantics = config[:nls_length_semantics] || 'CHAR'
         cursor_sharing = config[:cursor_sharing] || 'force'
-
-        # from here it remaings common for both connections types
-        exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
-        exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS:FF6'}
         exec "alter session set cursor_sharing = #{cursor_sharing}"
-        exec "alter session set nls_length_semantics = '#{nls_length_semantics}'"
+
+        # Initialize NLS parameters
+        OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS.each do |key, default_value|
+          value = config[key] || ENV[key.to_s.upcase] || default_value
+          if value
+            exec "alter session set #{key} = '#{value}'"
+          end
+        end
+
         self.autocommit = true
 
         # default schema owner

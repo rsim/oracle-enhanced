@@ -40,6 +40,35 @@ describe "OracleEnhancedConnection" do
 
   end
 
+  describe "create connection with NLS parameters" do
+    before do
+      @conn.logoff if @conn.active?
+    end
+
+    after do
+      ENV['NLS_DATE_FORMAT'] = nil
+    end
+
+    it "should use NLS_DATE_FORMAT environment variable" do
+      ENV['NLS_DATE_FORMAT'] = 'YYYY-MM-DD'
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn.select("SELECT value FROM v$nls_parameters WHERE parameter = 'NLS_DATE_FORMAT'").should == [{'value' => 'YYYY-MM-DD'}]
+    end
+
+    it "should use configuration value and ignore NLS_DATE_FORMAT environment variable" do
+      ENV['NLS_DATE_FORMAT'] = 'YYYY-MM-DD'
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS.merge(:nls_date_format => 'YYYY-MM-DD HH24:MI'))
+      @conn.select("SELECT value FROM v$nls_parameters WHERE parameter = 'NLS_DATE_FORMAT'").should == [{'value' => 'YYYY-MM-DD HH24:MI'}]
+    end
+
+    it "should use default value when NLS_DATE_FORMAT environment variable is not set" do
+      ENV['NLS_DATE_FORMAT'] = nil
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      default = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS[:nls_date_format]
+      @conn.select("SELECT value FROM v$nls_parameters WHERE parameter = 'NLS_DATE_FORMAT'").should == [{'value' => default}]
+    end
+  end
+
   if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
     describe "OracleEnhancedConnection create JDBC connection" do

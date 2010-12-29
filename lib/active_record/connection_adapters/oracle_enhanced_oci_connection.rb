@@ -257,8 +257,6 @@ module ActiveRecord
         async = config[:allow_concurrency]
         prefetch_rows = config[:prefetch_rows] || 100
         cursor_sharing = config[:cursor_sharing] || 'force'
-        # by default VARCHAR2 column size will be interpreted as max number of characters (and not bytes)
-        nls_length_semantics = config[:nls_length_semantics] || 'CHAR'
         # get session time_zone from configuration or from TZ environment variable
         time_zone = config[:time_zone] || ENV['TZ']
 
@@ -279,14 +277,19 @@ module ActiveRecord
         end
 
         conn = OCI8.new username, password, connection_string, privilege
-        conn.exec %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
-        conn.exec %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS:FF6'} rescue nil
         conn.autocommit = true
         conn.non_blocking = true if async
         conn.prefetch_rows = prefetch_rows
         conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil
-        conn.exec "alter session set nls_length_semantics = '#{nls_length_semantics}'"
         conn.exec "alter session set time_zone = '#{time_zone}'" unless time_zone.blank?
+
+        # Initialize NLS parameters
+        OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS.each do |key, default_value|
+          value = config[key] || ENV[key.to_s.upcase] || default_value
+          if value
+            conn.exec "alter session set #{key} = '#{value}'"
+          end
+        end
         conn
       end
     end
