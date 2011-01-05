@@ -251,7 +251,10 @@ module ActiveRecord
     # configure an Oracle/OCI connection.
     class OracleEnhancedOCIFactory #:nodoc:
       def self.new_connection(config)
-        username, password, database = config[:username], config[:password], config[:database]
+        # to_s needed if username, password or database is specified as number in database.yml file
+        username = config[:username] && config[:username].to_s
+        password = config[:password] && config[:password].to_s
+        database = config[:database] && config[:database].to_s
         host, port = config[:host], config[:port]
         privilege = config[:privilege] && config[:privilege].to_sym
         async = config[:allow_concurrency]
@@ -259,7 +262,6 @@ module ActiveRecord
         cursor_sharing = config[:cursor_sharing] || 'force'
         # get session time_zone from configuration or from TZ environment variable
         time_zone = config[:time_zone] || ENV['TZ']
-
 
         # connection using TNS alias
         # if TNS_ADMIN is not specified then $ORACLE_HOME/network/admin/ is used as default by Oracle client

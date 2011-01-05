@@ -60,9 +60,23 @@ describe "OracleEnhancedConnection" do
     end
   end
 
+  describe "with non-string parameters" do
+    before(:all) do
+      params = CONNECTION_PARAMS.dup
+      params[:username] = params[:username].to_sym
+      params[:password] = params[:password].to_sym
+      params[:database] = params[:database].to_sym
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+    end
+
+    it "should create new connection" do
+      @conn.should be_active
+    end
+  end
+
   if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
-    describe "OracleEnhancedConnection create JDBC connection" do
+    describe "create JDBC connection" do
 
       it "should create new connection using :url" do
         params = CONNECTION_PARAMS.dup

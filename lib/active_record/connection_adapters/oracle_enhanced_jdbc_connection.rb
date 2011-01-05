@@ -82,9 +82,12 @@ module ActiveRecord
           config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
           username = @raw_connection.meta_data.user_name
         else
-          username, password, database = config[:username], config[:password], config[:database]
-          privilege = config[:privilege] && config[:privilege].to_s
+          # to_s needed if username, password or database is specified as number in database.yml file
+          username = config[:username] && config[:username].to_s
+          password = config[:password] && config[:password].to_s
+          database = config[:database] && config[:database].to_s
           host, port = config[:host], config[:port]
+          privilege = config[:privilege] && config[:privilege].to_s
 
           # connection using TNS alias
           if database && !host && !config[:url] && ENV['TNS_ADMIN']
