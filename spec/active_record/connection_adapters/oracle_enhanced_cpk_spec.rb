@@ -1,4 +1,4 @@
-require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
+require 'spec_helper'
 
 unless defined?(NO_COMPOSITE_PRIMARY_KEYS)
 

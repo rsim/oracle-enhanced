@@ -2,7 +2,7 @@ source 'http://rubygems.org'
 
 group :development do
   gem 'jeweler', '~> 1.5.1'
-  gem 'rspec', '~> 1.3.0'
+  gem 'rspec', '~> 2.4'
 
   if ENV['RAILS_GEM_VERSION']
     gem 'activerecord', "=#{ENV['RAILS_GEM_VERSION']}"
@@ -33,10 +33,10 @@ group :development do
     gem 'rack', :git => 'git://github.com/rack/rack.git'
   end
 
-  if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
-    gem 'ruby-oci8', '>=2.0.4'
-  end
-
   gem 'ruby-plsql', '>=0.4.4'
 
+end
+
+platforms :ruby do
+  gem 'ruby-oci8', '~> 2.0.4'
 end

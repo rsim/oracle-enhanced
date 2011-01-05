@@ -1,20 +1,10 @@
 require 'rubygems'
+require "bundler"
+Bundler.setup(:default, :development)
 
-# Set up gems listed in the Gemfile.
-gemfile = File.expand_path('../../Gemfile', __FILE__)
-begin
-  ENV['BUNDLE_GEMFILE'] = gemfile
-  require 'bundler'
-  Bundler.setup
-rescue Bundler::GemNotFound => e
-  STDERR.puts e.message
-  STDERR.puts "Try running `bundle install`."
-  exit!
-end if File.exist?(gemfile)
+$:.unshift(File.expand_path('../../lib', __FILE__))
 
-$:.unshift(File.dirname(__FILE__) + '/../lib')
-
-require 'spec'
+require 'rspec'
 
 if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
   puts "==> Running specs with MRI version #{RUBY_VERSION}"
@@ -194,8 +184,8 @@ SYSTEM_CONNECTION_PARAMS = {
   :password => DATABASE_SYS_PASSWORD
 }
 
-# For JRuby Set default $KCODE to UTF8
-$KCODE = "UTF8" if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+# Set default $KCODE to UTF8
+$KCODE = "UTF8"
 
 # set default time zone in TZ environment variable
 # which will be used to set session time zone

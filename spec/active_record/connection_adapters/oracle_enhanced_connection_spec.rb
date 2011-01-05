@@ -1,19 +1,14 @@
-require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
+require 'spec_helper'
 
 describe "OracleEnhancedConnection" do
 
-  before(:all) do
-    @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
-  end
-
   describe "create connection" do
-  
-    before(:each) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS) unless @conn.active?
+    before(:all) do
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
     end
 
-    after(:all) do
-      @conn.logoff if @conn.active?
+    before(:each) do
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS) unless @conn.active?
     end
 
     it "should create new connection" do
@@ -41,10 +36,6 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "create connection with NLS parameters" do
-    before do
-      @conn.logoff if @conn.active?
-    end
-
     after do
       ENV['NLS_DATE_FORMAT'] = nil
     end
@@ -72,9 +63,6 @@ describe "OracleEnhancedConnection" do
   if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
     describe "OracleEnhancedConnection create JDBC connection" do
-      after(:each) do
-        @conn.logoff if @conn.active?
-      end
 
       it "should create new connection using :url" do
         params = CONNECTION_PARAMS.dup
@@ -144,6 +132,9 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "SQL execution" do
+    before(:all) do
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+    end
 
     it "should execute SQL statement" do
       @conn.exec("SELECT * FROM dual").should_not be_nil
@@ -160,6 +151,9 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "SQL with bind parameters" do
+    before(:all) do
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+    end
 
     it "should execute SQL statement with bind parameter" do
       cursor = @conn.prepare("SELECT * FROM dual WHERE :1 = 1")
@@ -184,7 +178,6 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "auto reconnection" do
-
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       @conn = ActiveRecord::Base.connection.instance_variable_get("@connection")
@@ -193,10 +186,6 @@ describe "OracleEnhancedConnection" do
 
     before(:each) do
       ActiveRecord::Base.connection.reconnect! unless @conn.active?
-    end
-
-    after(:all) do
-      ActiveRecord::Base.connection.disconnect! if @conn.active?
     end
 
     def kill_current_session
@@ -238,13 +227,9 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "describe table" do
-
     before(:all) do
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
       @owner = CONNECTION_PARAMS[:username].upcase
-    end
-  
-    after(:all) do
-      @conn.logoff if @conn.active?
     end
 
     it "should describe existing table" do
