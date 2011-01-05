@@ -1,3 +1,17 @@
+== 1.3.2 2011-01-05
+
+* Enhancements:
+  * If no :host or :port is provided then connect with :database name (do not default :host to localhost)
+  * Database connection pool support for JRuby on Tomcat and JBoss application servers
+  * NLS connection parameters support via environment variables or database.yml
+  * Support for Arel 2.0 and latest Rails master branch
+  * Support for Rails 3.1 prepared statements (implemented in not yet released Rails master branch version)
+  * Eager loading of included association with more than 1000 records (implemented in not yet released Rails master branch version)
+* Bug fixes:
+  * Foreign keys are added after table definitions in schema dump to ensure correct order of schema statements
+  * Quote NCHAR and NVARCHAR2 type values with N'...'
+  * Numeric username and/or password in database.yml will be automatically converted to string
+
 == 1.3.1 2010-09-09
 
 * Enhancements:
