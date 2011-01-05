@@ -39,11 +39,11 @@ describe "OracleEnhancedAdapter" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
   end
   
   describe "database session store" do
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       @conn.execute <<-SQL
         CREATE TABLE sessions (
           id          NUMBER(38,0) NOT NULL,
@@ -111,6 +111,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "ignore specified table columns" do
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       @conn.execute <<-SQL
         CREATE TABLE test_employees (
           id            NUMBER PRIMARY KEY,
@@ -178,6 +179,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "cache table columns" do
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       @conn.execute "DROP TABLE test_employees" rescue nil
       @conn.execute <<-SQL
         CREATE TABLE test_employees (
@@ -198,6 +200,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     after(:all) do
+      @conn = ActiveRecord::Base.connection
       Object.send(:remove_const, "TestEmployee")
       Object.send(:remove_const, "TestEmployee2")
       @conn.execute "DROP TABLE test_employees"
@@ -290,6 +293,7 @@ describe "OracleEnhancedAdapter" do
   describe "without composite_primary_keys" do
 
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       @conn.execute "DROP TABLE test_employees" rescue nil
       @conn.execute <<-SQL
         CREATE TABLE test_employees (
@@ -452,6 +456,10 @@ describe "OracleEnhancedAdapter" do
       end
     end
 
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+
     after(:each) do
       ActiveRecord::Schema.define do
         suppress_messages do
@@ -491,6 +499,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "access table over database link" do
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       @db_link = "db_link"
       @sys_conn = ActiveRecord::Base.oracle_enhanced_connection(SYSTEM_CONNECTION_PARAMS)
       @sys_conn.drop_table :test_posts rescue nil
@@ -537,6 +546,10 @@ describe "OracleEnhancedAdapter" do
   end
 
   describe "session information" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+
     it "should get current database name" do
       # get database name if using //host:port/database connection string
       database_name = CONNECTION_PARAMS[:database].split('/').last
@@ -549,7 +562,10 @@ describe "OracleEnhancedAdapter" do
   end
 
   describe "temporary tables" do
-    
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+
     after(:each) do
       @conn.drop_table :foos rescue nil
     end

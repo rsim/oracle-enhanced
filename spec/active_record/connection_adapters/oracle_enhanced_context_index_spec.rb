@@ -57,11 +57,11 @@ describe "OracleEnhancedAdapter context index" do
   before(:all) do
     grant_ctxapp
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
   end
 
   describe "on single table" do
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       @title_words = %w{aaa bbb ccc}
       @body_words = %w{foo bar baz}
       create_table_posts
@@ -161,6 +161,7 @@ describe "OracleEnhancedAdapter context index" do
 
   describe "on multiple tables" do
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       create_tables
       class ::Post < ActiveRecord::Base
         has_many :comments, :dependent => :destroy
@@ -223,6 +224,7 @@ describe "OracleEnhancedAdapter context index" do
 
   describe "with specified tablespace" do
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       create_table_posts
       class ::Post < ActiveRecord::Base
         has_context_index
@@ -277,6 +279,7 @@ describe "OracleEnhancedAdapter context index" do
     describe "without table prefixe and suffix" do
 
       before(:all) do
+        @conn = ActiveRecord::Base.connection
         create_tables
       end
 
