@@ -263,19 +263,16 @@ module ActiveRecord
         # get session time_zone from configuration or from TZ environment variable
         time_zone = config[:time_zone] || ENV['TZ']
 
-        # connection using TNS alias
-        # if TNS_ADMIN is not specified then $ORACLE_HOME/network/admin/ is used as default by Oracle client
-        connection_string = if database && !host && (ENV['TNS_ADMIN'] || ENV['ORACLE_HOME'])
-          database
-        # database parameter includes host or TNS connection string
-        elsif database =~ %r{[/(]}
-          database
         # connection using host, port and database name
-        else
+        connection_string = if host || port
           host ||= 'localhost'
           host = "[#{host}]" if host =~ /^[^\[].*:/  # IPv6
           port ||= 1521
           "//#{host}:#{port}/#{database}"
+        # if no host is specified then assume that
+        # database parameter is TNS alias or TNS connection string
+        else
+          database
         end
 
         conn = OCI8.new username, password, connection_string, privilege
