@@ -5,12 +5,12 @@ describe "OracleEnhancedAdapter schema definition" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
   end
 
   describe "table and sequence creation with non-default primary key" do
 
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       schema_define do
         create_table :keyboards, :force => true, :id  => false do |t|
           t.primary_key :key_number
@@ -64,9 +64,14 @@ describe "OracleEnhancedAdapter schema definition" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = @saved_sequence_start_value
     end
 
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+
     before(:each) do
       save_default_sequence_start_value
     end
+
     after(:each) do
       restore_default_sequence_start_value
       schema_define do
@@ -137,8 +142,8 @@ describe "OracleEnhancedAdapter schema definition" do
       end
     end
 
-    def drop_table_with_trigger
-      seq_name = @sequence_name
+    def drop_table_with_trigger(options = {})
+      seq_name = options[:sequence_name]
       schema_define do
         drop_table :test_employees, (seq_name ? {:sequence_name => seq_name} : {})
       end
@@ -148,6 +153,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
     describe "with default primary key" do
       before(:all) do
+        @conn = ActiveRecord::Base.connection
         create_table_with_trigger
         class ::TestEmployee < ActiveRecord::Base
         end
@@ -176,6 +182,8 @@ describe "OracleEnhancedAdapter schema definition" do
 
     describe "with separate creation of primary key trigger" do
       before(:all) do
+        ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+        @conn = ActiveRecord::Base.connection
         create_table_and_separately_trigger
         class ::TestEmployee < ActiveRecord::Base
         end
@@ -204,6 +212,8 @@ describe "OracleEnhancedAdapter schema definition" do
 
     describe "with non-default primary key and non-default sequence name" do
       before(:all) do
+        ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+        @conn = ActiveRecord::Base.connection
         @primary_key = "employee_id"
         @sequence_name = "test_employees_s"
         create_table_with_trigger(:primary_key => @primary_key, :sequence_name => @sequence_name)
@@ -213,7 +223,7 @@ describe "OracleEnhancedAdapter schema definition" do
       end
 
       after(:all) do
-        drop_table_with_trigger
+        drop_table_with_trigger(:sequence_name => @sequence_name)
       end
 
       it "should populate primary key using trigger" do
@@ -235,6 +245,8 @@ describe "OracleEnhancedAdapter schema definition" do
 
     describe "with non-default sequence name and non-default trigger name" do
       before(:all) do
+        ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+        @conn = ActiveRecord::Base.connection
         @sequence_name = "test_employees_s"
         create_table_with_trigger(:sequence_name => @sequence_name, :trigger_name => "test_employees_t1")
         class ::TestEmployee < ActiveRecord::Base
@@ -243,7 +255,7 @@ describe "OracleEnhancedAdapter schema definition" do
       end
 
       after(:all) do
-        drop_table_with_trigger
+        drop_table_with_trigger(:sequence_name => @sequence_name)
       end
 
       it "should populate primary key using trigger" do
@@ -274,6 +286,10 @@ describe "OracleEnhancedAdapter schema definition" do
           t.string      :last_name, :comment => column_comments[:last_name]
         end
       end
+    end
+
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
     end
 
     after(:each) do
@@ -328,6 +344,7 @@ describe "OracleEnhancedAdapter schema definition" do
   describe "create triggers" do
 
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       schema_define do
         create_table  :test_employees do |t|
           t.string    :first_name
@@ -362,6 +379,9 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "add index" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
 
     it "should return default index name if it is not larger than 30 characters" do
       @conn.index_name("employees", :column => "first_name").should == "index_employees_on_first_name"
@@ -683,6 +703,10 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "disable referential integrity" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+
     before(:each) do
       schema_define do
         create_table :test_posts, :force => true do |t|
@@ -721,6 +745,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "synonyms" do
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       @db_link = "db_link"
       @username = @db_link_username = CONNECTION_PARAMS[:username]
       @db_link_password = CONNECTION_PARAMS[:password]
@@ -841,6 +866,10 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "miscellaneous options" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+
     before(:each) do
       @conn.instance_variable_set :@would_execute_sql, @would_execute_sql=''
       class <<@conn
