@@ -53,6 +53,7 @@ namespace :db do
       if abcs['test']['adapter'] == 'oracle_enhanced'
         ActiveRecord::Base.establish_connection(:test)
         ActiveRecord::Base.connection.execute_structure_dump(ActiveRecord::Base.connection.full_drop)
+        ActiveRecord::Base.connection.execute("PURGE RECYCLEBIN") rescue nil
       else
         Array(existing_actions).each{|action| action.call}
       end
