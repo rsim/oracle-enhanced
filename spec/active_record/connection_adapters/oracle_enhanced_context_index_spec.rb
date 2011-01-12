@@ -157,6 +157,17 @@ describe "OracleEnhancedAdapter context index" do
       Post.contains(:title, "ACE").all.should == [@post]
       @conn.remove_context_index :posts, :title
     end
+
+    it "should create transactional index and sync index within transaction on inserts and updates" do
+      @conn.add_context_index :posts, :title, :transactional => true
+      Post.transaction do
+        @post = Post.create(:title => "abc")
+        Post.contains(:title, "abc").all.should == [@post]
+        @post.update_attributes!(:title => "ghi")
+        Post.contains(:title, "ghi").all.should == [@post]
+      end
+      @conn.remove_context_index :posts, :title
+    end
   end
 
   describe "on multiple tables" do
@@ -303,6 +314,7 @@ describe "OracleEnhancedAdapter context index" do
         options = {
           :name => 'post_and_comments_index',
           :index_column => :all_text, :index_column_trigger_on => :updated_at,
+          :transactional => true,
           :sync => 'ON COMMIT'
         }
         @conn.add_context_index :posts,
