@@ -135,8 +135,8 @@ module ActiveRecord
 
       def create_datastore_procedure(table_name, procedure_name, column_names, options)
         quoted_table_name = quote_table_name(table_name)
-        select_queries = column_names.select{|c| c.to_s =~ /^SELECT /i}
-        column_names = column_names - select_queries
+        select_queries, column_names = column_names.partition { |c| c.to_s =~ /^\s*SELECT\s+/i }
+        select_queries = select_queries.map { |s| s.strip.gsub(/\s+/, ' ') }
         keys, selected_columns = parse_select_queries(select_queries)
         quoted_column_names = (column_names+keys).map{|col| quote_column_name(col)}
         execute compress_lines(<<-SQL)

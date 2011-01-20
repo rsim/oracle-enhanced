@@ -211,6 +211,28 @@ describe "OracleEnhancedAdapter context index" do
       @conn.remove_context_index :posts, :name => 'post_and_comments_index'
     end
 
+    it "should create multiple table index with specified main index column (when subquery has newlines)" do
+      @conn.add_context_index :posts,
+        [:title, :body,
+         # specify aliases always with AS keyword
+         %{ SELECT
+             comments.author AS comment_author,
+             comments.body AS comment_body
+            FROM comments
+            WHERE comments.post_id = :id }
+        ],
+        :name => 'post_and_comments_index',
+        :index_column => :all_text, :index_column_trigger_on => [:updated_at, :comments_count],
+        :sync => 'ON COMMIT'
+      @post = Post.create!(:title => "aaa", :body => "bbb")
+      @post.comments.create!(:author => "ccc", :body => "ddd")
+      @post.comments.create!(:author => "eee", :body => "fff")
+      ["aaa", "bbb", "ccc", "ddd", "eee", "fff"].each do |word|
+        Post.contains(:all_text, word).all.should == [@post]
+      end
+      @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+    end
+
     it "should find by search term within specified field" do
       @post = Post.create!(:title => "aaa", :body => "bbb")
       @post.comments.create!(:author => "ccc", :body => "ddd")
@@ -330,9 +352,22 @@ describe "OracleEnhancedAdapter context index" do
           :transactional => true,
           :sync => 'ON COMMIT'
         }
-        sub_query = "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id #{('AND 1=1 ' * 500)}"
+        sub_query = "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id#{' AND 1=1' * 500}"
         @conn.add_context_index :posts, [:title, :body, sub_query], options
         standard_dump.should =~ /add_context_index "posts", \[:title, :body, "#{sub_query}"\], #{options.inspect[1..-2]}$/
+        @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+      end
+
+      it "should dump definition of multiple table index with options (when subquery has newlines)" do
+        options = {
+          :name => 'post_and_comments_index',
+          :index_column => :all_text, :index_column_trigger_on => :updated_at,
+          :transactional => true,
+          :sync => 'ON COMMIT'
+        }
+        sub_query = "SELECT comments.author AS comment_author, comments.body AS comment_body\nFROM comments\nWHERE comments.post_id = :id"
+        @conn.add_context_index :posts, [:title, :body, sub_query], options
+        standard_dump.should =~ /add_context_index "posts", \[:title, :body, "#{sub_query.gsub(/\n/, ' ')}"\], #{options.inspect[1..-2]}$/
         @conn.remove_context_index :posts, :name => 'post_and_comments_index'
       end
 
