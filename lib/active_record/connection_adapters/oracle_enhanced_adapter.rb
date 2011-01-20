@@ -749,13 +749,16 @@ module ActiveRecord
               statement_parameters = nil
               if row['index_type'] == 'DOMAIN' && row['ityp_owner'] == 'CTXSYS' && row['ityp_name'] == 'CONTEXT'
                 procedure_name = default_datastore_procedure(row['index_name'])
-                statement_parameters = select_value(<<-SQL)
-                  SELECT SUBSTR(text,LENGTH('-- add_context_index_parameters ')+1)
+                source = select_values(<<-SQL).join
+                  SELECT text
                   FROM all_source#{db_link}
                   WHERE owner = '#{owner}'
                     AND name = '#{procedure_name.upcase}'
-                    AND text LIKE '-- add_context_index_parameters %'
+                  ORDER BY line
                 SQL
+                if source =~ /-- add_context_index_parameters (.+)\n/
+                  statement_parameters = $1
+                end
               end
               all_schema_indexes << OracleEnhancedIndexDefinition.new(row['table_name'], row['index_name'],
                 row['uniqueness'] == "UNIQUE", row['index_type'] == 'DOMAIN' ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
