@@ -324,6 +324,7 @@ module ActiveRecord
       def in_clause_length
         1000
       end
+      alias ids_in_list_limit in_clause_length
 
       # QUOTING ==================================================
       #
