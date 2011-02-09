@@ -868,7 +868,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0) PRIMARY KEY,
+        id            NUMBER(6,0) PRIMARY KEY,
         first_name    VARCHAR2(20),
         last_name     VARCHAR2(25),
         comments      CLOB
@@ -878,29 +878,39 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
+    @conn.execute <<-SQL
+      CREATE TABLE test2_employees (
+        id            NUMBER(6,0) PRIMARY KEY,
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        comments      CLOB
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test2_employees_seq  MINVALUE 1
+        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
+    SQL
     @char_data = (0..127).to_a.pack("C*") * 800
     @char_data2 = ((1..127).to_a.pack("C*") + "\0") * 800
-  end
-  
-  after(:all) do
-    @conn.execute "DROP TABLE test_employees"
-    @conn.execute "DROP SEQUENCE test_employees_seq"
-  end
 
-  before(:each) do
-    class ::TestEmployee < ActiveRecord::Base
-      set_primary_key :employee_id
+    class ::TestEmployee < ActiveRecord::Base; end
+    class ::Test2Employee < ActiveRecord::Base
+      serialize :comments
     end
   end
 
-  after(:each) do
+  after(:all) do
+    @conn.execute "DROP TABLE test_employees"
+    @conn.execute "DROP SEQUENCE test_employees_seq"
+    @conn.execute "DROP TABLE test2_employees"
+    @conn.execute "DROP SEQUENCE test2_employees_seq"
     Object.send(:remove_const, "TestEmployee")
+    Object.send(:remove_const, "Test2Employee")
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
 
   it "should create record without CLOB data when attribute is serialized" do
-    TestEmployee.serialize :comments
-    @employee = TestEmployee.create!(
+    @employee = Test2Employee.create!(
       :first_name => "First",
       :last_name => "Last"
     )
