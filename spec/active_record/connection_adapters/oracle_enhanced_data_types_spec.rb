@@ -107,6 +107,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       # @employee.destroy if @employee
       Object.send(:remove_const, "TestEmployee")
       @conn.clear_types_for_columns
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
@@ -266,6 +267,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       Object.send(:remove_const, "Test2Employee")
       @conn.clear_types_for_columns
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
     
     def create_employee2
@@ -445,6 +447,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     after(:each) do
       Object.send(:remove_const, "Test3Employee")
       @conn.clear_types_for_columns
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
     
     def create_employee3(params={})
@@ -564,6 +567,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
 
     after(:all) do
       Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should return Time value from TIMESTAMP columns" do
@@ -647,6 +651,7 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
 
   after(:each) do
     Object.send(:remove_const, "TestEmployee")    
+    ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
   
   def create_test_employee
@@ -742,6 +747,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     Object.send(:remove_const, "TestEmployee")
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
+    ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
 
   before(:each) do
@@ -889,6 +895,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   after(:each) do
     Object.send(:remove_const, "TestEmployee")
+    ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
 
   it "should create record without CLOB data when attribute is serialized" do
@@ -1029,6 +1036,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
   
   after(:each) do
     Object.send(:remove_const, "TestEmployee")
+    ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
   
   it "should create record with BLOB data" do
@@ -1148,6 +1156,7 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
 
   after(:each) do
     Object.send(:remove_const, "TestItem")
+    ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
 
   it "should set nchar instance variable" do

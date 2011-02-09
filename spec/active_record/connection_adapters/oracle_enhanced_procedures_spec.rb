@@ -155,6 +155,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
 
   after(:each) do
     Object.send(:remove_const, "TestEmployee")
+    ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
 
   it "should create record" do

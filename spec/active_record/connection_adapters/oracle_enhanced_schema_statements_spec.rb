@@ -34,6 +34,7 @@ describe "OracleEnhancedAdapter schema definition" do
       end
       Object.send(:remove_const, "Keyboard")
       Object.send(:remove_const, "IdKeyboard")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should create sequence for non-default primary key" do
@@ -78,6 +79,7 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :test_employees
       end
       Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should use default sequence start value 10000" do
@@ -149,6 +151,7 @@ describe "OracleEnhancedAdapter schema definition" do
       end
       Object.send(:remove_const, "TestEmployee")
       @conn.clear_prefetch_primary_key
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     describe "with default primary key" do
@@ -298,6 +301,7 @@ describe "OracleEnhancedAdapter schema definition" do
       end
       Object.send(:remove_const, "TestEmployee")
       ActiveRecord::Base.table_name_prefix = nil
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should create table with table comment" do
@@ -359,6 +363,7 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :test_employees
       end
       Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should create table trigger with :new reference" do
@@ -458,6 +463,7 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :test_comments rescue nil
         drop_table :test_posts rescue nil
       end
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should add foreign key" do
@@ -623,6 +629,7 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :test_comments rescue nil
         drop_table :test_posts rescue nil
       end
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should add foreign key in create_table" do
@@ -778,6 +785,7 @@ describe "OracleEnhancedAdapter schema definition" do
         remove_synonym :synonym_to_posts
         remove_synonym :synonym_to_posts_seq
       end
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should create synonym to table and sequence" do
@@ -828,6 +836,7 @@ describe "OracleEnhancedAdapter schema definition" do
     after(:each) do
       Object.send(:remove_const, "TestPost")
       schema_define { drop_table :test_posts }
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should change column to nullable" do

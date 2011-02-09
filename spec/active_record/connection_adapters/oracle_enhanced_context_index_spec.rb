@@ -78,6 +78,7 @@ describe "OracleEnhancedAdapter context index" do
     after(:all) do
       drop_table_posts
       Object.send(:remove_const, "Post")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     after(:each) do
@@ -187,6 +188,7 @@ describe "OracleEnhancedAdapter context index" do
       drop_tables
       Object.send(:remove_const, "Comment")
       Object.send(:remove_const, "Post")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     after(:each) do
@@ -271,6 +273,7 @@ describe "OracleEnhancedAdapter context index" do
     after(:all) do
       drop_table_posts
       Object.send(:remove_const, "Post")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     after(:each) do

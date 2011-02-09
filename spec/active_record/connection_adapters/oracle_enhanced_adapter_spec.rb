@@ -142,6 +142,7 @@ describe "OracleEnhancedAdapter" do
     after(:each) do
       Object.send(:remove_const, "TestEmployee")
       ActiveRecord::Base.connection.clear_ignored_table_columns
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should ignore specified table columns" do
@@ -205,6 +206,7 @@ describe "OracleEnhancedAdapter" do
       Object.send(:remove_const, "TestEmployee2")
       @conn.execute "DROP TABLE test_employees"
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     before(:each) do
@@ -310,6 +312,7 @@ describe "OracleEnhancedAdapter" do
     after(:all) do
       Object.send(:remove_const, "TestEmployee")
       @conn.execute "DROP TABLE test_employees"
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should tell ActiveRecord that count distinct is supported" do
@@ -342,6 +345,7 @@ describe "OracleEnhancedAdapter" do
       end
       Object.send(:remove_const, "TestReservedWord")
       ActiveRecord::Base.table_name_prefix = nil
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     before(:each) do
@@ -527,6 +531,7 @@ describe "OracleEnhancedAdapter" do
       @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
       @sys_conn.drop_table :test_posts rescue nil
       Object.send(:remove_const, "TestPost") rescue nil
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should verify database link" do
@@ -616,6 +621,7 @@ describe "OracleEnhancedAdapter" do
       end
       Object.send(:remove_const, "TestPost")
       Object.send(:remove_const, "TestComment")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should load included association with more than 1000 records" do
