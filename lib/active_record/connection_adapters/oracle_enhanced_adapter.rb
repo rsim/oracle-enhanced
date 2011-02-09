@@ -630,7 +630,16 @@ module ActiveRecord
       # Returns true for Oracle adapter (since Oracle requires primary key
       # values to be pre-fetched before insert). See also #next_sequence_value.
       def prefetch_primary_key?(table_name = nil)
-        ! @@do_not_prefetch_primary_key[table_name.to_s]
+        return true if table_name.nil?
+        table_name = table_name.to_s
+        do_not_prefetch = @@do_not_prefetch_primary_key[table_name]
+        if do_not_prefetch.nil?
+          owner, desc_table_name, db_link = @connection.describe(table_name)
+          @@do_not_prefetch_primary_key[table_name] = do_not_prefetch =
+            !has_primary_key?(table_name, owner, desc_table_name, db_link) ||
+            has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
+        end
+        !do_not_prefetch
       end
 
       # used just in tests to clear prefetch primary key flag for all tables
@@ -858,9 +867,8 @@ module ActiveRecord
 
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
-        @@do_not_prefetch_primary_key[table_name] =
-          !has_primary_key?(table_name, owner, desc_table_name, db_link) ||
-          has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
+        # reset do_not_prefetch_primary_key cache for this table
+        @@do_not_prefetch_primary_key[table_name] = nil
 
         table_cols = <<-SQL
           select column_name as name, data_type as sql_type, data_default, nullable,
