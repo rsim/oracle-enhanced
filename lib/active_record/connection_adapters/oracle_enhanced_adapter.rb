@@ -660,7 +660,13 @@ module ActiveRecord
       def insert_fixture(fixture, table_name) #:nodoc:
         super
 
-        klass = fixture.class_name.constantize rescue nil
+        if ActiveRecord::Base.pluralize_table_names
+          klass = table_name.singularize.camelize
+        else
+          klass = table_name.camelize
+        end
+
+        klass = klass.constantize rescue nil
         if klass.respond_to?(:ancestors) && klass.ancestors.include?(ActiveRecord::Base)
           write_lobs(table_name, klass, fixture)
         end
