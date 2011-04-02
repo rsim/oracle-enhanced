@@ -63,6 +63,8 @@ module ActiveRecord
           else
             :decimal
           end
+        when /raw/i
+          :raw
         when /char/i
           if OracleEnhancedAdapter.emulate_booleans_from_strings &&
              OracleEnhancedAdapter.is_boolean_column?(name, field_type, table_name)
