@@ -31,6 +31,10 @@ module ActiveRecord
         alias to_s :to_sql
       end
 
+      def raw(name, options={})
+        column(name, :raw, options)
+      end
+
       def self.included(base) #:nodoc:
         base.class_eval do
           alias_method_chain :references, :foreign_keys
