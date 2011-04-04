@@ -1138,6 +1138,132 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
   end
 end
 
+describe "OracleEnhancedAdapter handling of RAW columns" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+    @conn.execute <<-SQL
+      CREATE TABLE test_employees (
+        employee_id   NUMBER(6,0) PRIMARY KEY,
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        binary_data   RAW(1024)
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test_employees_seq  MINVALUE 1
+        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
+    SQL
+    @binary_data = "\0\1\2\3\4\5\6\7\8\9"*100
+    @binary_data2 = "\1\2\3\4\5\6\7\8\9\0"*100
+  end
+  
+  after(:all) do
+    @conn.execute "DROP TABLE test_employees"
+    @conn.execute "DROP SEQUENCE test_employees_seq"
+  end
+
+  before(:each) do
+    class ::TestEmployee < ActiveRecord::Base
+      set_primary_key :employee_id
+    end
+  end
+  
+  after(:each) do
+    Object.send(:remove_const, "TestEmployee")
+    ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+  end
+  
+  it "should create record with RAW data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => @binary_data
+    )
+    @employee.reload
+    @employee.binary_data.should == @binary_data
+  end
+  
+  it "should update record with RAW data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last"
+    )
+    @employee.reload
+    @employee.binary_data.should be_nil
+    @employee.binary_data = @binary_data
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should == @binary_data
+  end
+
+  it "should update record with zero-length RAW data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last"
+    )
+    @employee.reload
+    @employee.binary_data.should be_nil
+    @employee.binary_data = ''
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should.nil?
+  end
+
+  it "should update record that has existing RAW data with different RAW data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => @binary_data
+    )
+    @employee.reload
+    @employee.binary_data = @binary_data2
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should == @binary_data2
+  end
+
+  it "should update record that has existing RAW data with nil" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => @binary_data
+    )
+    @employee.reload
+    @employee.binary_data = nil
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should be_nil
+  end
+
+  it "should update record that has existing RAW data with zero-length RAW data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => @binary_data
+    )
+    @employee.reload
+    @employee.binary_data = ''
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should.nil?
+  end
+
+  it "should update record that has zero-length BLOB data with non-empty RAW data" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :binary_data => ''
+    )
+    @employee.reload
+    @employee.binary_data = @binary_data
+    @employee.save!
+    @employee.reload
+    @employee.binary_data.should == @binary_data
+  end
+end
+
+
 describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
