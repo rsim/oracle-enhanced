@@ -286,7 +286,7 @@ module ActiveRecord
         :date        => { :name => "DATE" },
         :binary      => { :name => "BLOB" },
         :boolean     => { :name => "NUMBER", :limit => 1 },
-        :raw         => { :name => "RAW", :limit => 1 }
+        :raw         => { :name => "RAW", :limit => 2000 }
       }
       # if emulate_booleans_from_strings then store booleans in VARCHAR2
       NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS = NATIVE_DATABASE_TYPES.dup.merge(
@@ -397,6 +397,8 @@ module ActiveRecord
           # NLS_DATE_FORMAT independent DATE support
           when :date, :time, :datetime
             quote_date_with_to_date(value)
+          when :raw
+            quote_raw(value)
           when :string
             # NCHAR and NVARCHAR2 literals should be quoted with N'...'.
             # Read directly instance variable as otherwise migrations with table column default values are failing
@@ -429,6 +431,17 @@ module ActiveRecord
         # should support that composite_primary_keys gem will pass date as string
         value = quoted_date(value) if value.acts_like?(:date) || value.acts_like?(:time)
         "TO_DATE('#{value}','YYYY-MM-DD HH24:MI:SS')"
+      end
+
+      # "Quote" meaning "encode" the value. If given a string, convert to a byte array.
+      # Otherwise treat the input as an array of bytes.
+      def quote_raw(value) #:nodoc:
+
+        # When given a string, convert to a byte array.
+        value = value.unpack('C*') if value.is_a?(String)
+
+        "'%s'" % value.map { |x| "%02x" % x }.join
+
       end
 
       def quote_timestamp_with_to_timestamp(value) #:nodoc:
