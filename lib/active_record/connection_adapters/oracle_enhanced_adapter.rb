@@ -981,6 +981,7 @@ module ActiveRecord
                  decode(data_type, 'NUMBER', data_precision,
                                    'FLOAT', data_precision,
                                    'VARCHAR2', decode(char_used, 'C', char_length, data_length),
+                                   'RAW', decode(char_used, 'C', char_length, data_length),
                                    'CHAR', decode(char_used, 'C', char_length, data_length),
                                     null) as limit,
                  decode(data_type, 'NUMBER', data_scale, null) as scale
