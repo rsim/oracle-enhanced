@@ -440,7 +440,7 @@ module ActiveRecord
         # When given a string, convert to a byte array.
         value = value.unpack('C*') if value.is_a?(String)
 
-        "'%s'" % value.map { |x| "%02x" % x }.join
+        "'%s'" % value.map { |x| "%02x" % x }.join.upcase
 
       end
 
