@@ -494,8 +494,8 @@ module ActiveRecord
         log(sql, name) { @connection.exec(sql) }
       end
 
-      def substitute_for(column, current_values)
-        Arel.sql(":a#{current_values.length + 1}")
+      def substitute_at(column, index)
+        Arel.sql(":a#{index + 1}")
       end
 
       def clear_cache!
