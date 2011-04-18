@@ -4,7 +4,7 @@ begin
 
   # ojdbc14.jar file should be in JRUBY_HOME/lib or should be in ENV['PATH'] or load path
 
-  ojdbc_jar = "ojdbc14.jar"
+  ojdbc_jar = "ojdbc6.jar"
 
   unless ENV_JAVA['java.class.path'] =~ Regexp.new(ojdbc_jar)
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
@@ -199,7 +199,7 @@ module ActiveRecord
         begin
           yield if block_given?
         rescue NativeException => e
-          raise unless e.message =~ /^java\.sql\.SQL(Recoverable)?Exception: (Closed Connection|Io exception:|No more data to read from socket)/
+          raise unless e.message =~ /^java\.sql\.SQL(Recoverable)?Exception: (Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
           @active = false
           raise unless should_retry
           should_retry = false
@@ -438,7 +438,7 @@ module ActiveRecord
           else
             BigDecimal.new(d.stringValue)
           end
-        when :VARCHAR2, :CHAR, :LONG
+        when :VARCHAR2, :CHAR, :LONG, :NVARCHAR2, :NCHAR
           rset.getString(i)
         when :DATE
           if dt = rset.getDATE(i)
@@ -452,7 +452,7 @@ module ActiveRecord
           else
             nil
           end
-        when :TIMESTAMP, :TIMESTAMPTZ, :TIMESTAMPLTZ
+        when :TIMESTAMP, :TIMESTAMPTZ, :TIMESTAMPLTZ, :"TIMESTAMP WITH TIME ZONE", :"TIMESTAMP WITH LOCAL TIME ZONE"
           ts = rset.getTimestamp(i)
           ts && Time.send(Base.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
             ts.nanos / 1000)
