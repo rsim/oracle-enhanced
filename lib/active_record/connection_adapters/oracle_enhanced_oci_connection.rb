@@ -26,6 +26,16 @@ module ActiveRecord
         @owner = config[:username].to_s.upcase
       end
 
+      def raw_oci_connection
+        if @raw_connection.is_a? OCI8
+          @raw_connection
+        # ActiveRecord Oracle enhanced adapter puts OCI8EnhancedAutoRecover wrapper around OCI8
+        # in this case we need to pass original OCI8 connection
+        else
+          @raw_connection.instance_variable_get(:@connection)
+        end
+      end
+
       def auto_retry
         @raw_connection.auto_retry if @raw_connection
       end
@@ -103,11 +113,33 @@ module ActiveRecord
           @raw_cursor = raw_cursor
         end
 
-        def bind_param(position, value)
-          @raw_cursor.bind_param(position, value)
+        def bind_param(position, value, col_type = nil)
+          if value.nil?
+            @raw_cursor.bind_param(position, nil, String)
+          else
+            case col_type
+            when :text, :binary
+              # ruby-oci8 cannot create CLOB/BLOB from ''
+              lob_value = value == '' ? ' ' : value
+              bind_type = col_type == :text ? OCI8::CLOB : OCI8::BLOB
+              ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
+              ora_value.size = 0 if value == ''
+              @raw_cursor.bind_param(position, ora_value)
+            else
+              @raw_cursor.bind_param(position, value)
+            end
+          end
+        end
+
+        def bind_returning_param(position, bind_type)
+          @raw_cursor.bind_param(position, nil, bind_type)
         end
 
         def exec
+          @raw_cursor.exec
+        end
+
+        def exec_insert
           @raw_cursor.exec
         end
 
@@ -124,9 +156,14 @@ module ActiveRecord
           end
         end
 
+        def get_returning_param(position, type)
+          @raw_cursor[position]
+        end
+
         def close
           @raw_cursor.close
         end
+
       end
 
       def select(sql, name = nil, return_column_names = false)

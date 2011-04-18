@@ -288,17 +288,24 @@ module ActiveRecord
           @raw_statement = raw_statement
         end
 
-        def bind_param(position, value)
-          java_value = ruby_to_java_value(value)
+        def bind_param(position, value, col_type = nil)
+          java_value = ruby_to_java_value(value, col_type)
           case value
           when Integer
-            @raw_statement.setInt(position, java_value)
+            @raw_statement.setLong(position, java_value)
           when Float
             @raw_statement.setFloat(position, java_value)
           when BigDecimal
             @raw_statement.setBigDecimal(position, java_value)
           when String
-            @raw_statement.setString(position, java_value)
+            case col_type
+            when :text
+              @raw_statement.setClob(position, java_value)
+            when :binary
+              @raw_statement.setBlob(position, java_value)
+            else
+              @raw_statement.setString(position, java_value)
+            end
           when Date, DateTime
             @raw_statement.setDATE(position, java_value)
           when Time
@@ -313,10 +320,22 @@ module ActiveRecord
           end
         end
 
+        def bind_returning_param(position, bind_type)
+          @returning_positions ||= []
+          @returning_positions << position
+          if bind_type == Integer
+            @raw_statement.registerReturnParameter(position, java.sql.Types::BIGINT)
+          end
+        end
+
         def exec
           @raw_result_set = @raw_statement.executeQuery
           get_metadata
           true
+        end
+
+        def exec_insert
+          @raw_statement.executeUpdate
         end
 
         def get_metadata
@@ -345,16 +364,41 @@ module ActiveRecord
           end
         end
 
+        def get_returning_param(position, type)
+          rs_position = @returning_positions.index(position) + 1
+          rs = @raw_statement.getReturnResultSet
+          if rs.next
+            # Assuming that primary key will not be larger as long max value
+            returning_id = rs.getLong(rs_position)
+            rs.wasNull ? nil : returning_id
+          else
+            nil
+          end
+        end
+
         def close
           @raw_statement.close
         end
 
         private
 
-        def ruby_to_java_value(value)
+        def ruby_to_java_value(value, col_type = nil)
           case value
-          when Fixnum, String, Float
+          when Fixnum, Float
             value
+          when String
+            case col_type
+            when :text
+              clob = Java::OracleSql::CLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::CLOB::DURATION_SESSION)
+              clob.setString(1, value)
+              clob
+            when :binary
+              blob = Java::OracleSql::BLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::BLOB::DURATION_SESSION)
+              blob.setBytes(1, value.to_java_bytes)
+              blob
+            else
+              value
+            end
           when BigDecimal
             java.math.BigDecimal.new(value.to_s)
           when Date, DateTime

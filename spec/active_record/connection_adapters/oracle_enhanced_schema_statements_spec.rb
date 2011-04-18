@@ -176,7 +176,7 @@ describe "OracleEnhancedAdapter schema definition" do
         insert_id = @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Raimonds')", nil, "id")
         @conn.select_value("SELECT test_employees_seq.currval FROM dual").should == insert_id
       end
-      
+
       it "should create new record for model" do
         e = TestEmployee.create!(:first_name => 'Raimonds')
         @conn.select_value("SELECT test_employees_seq.currval FROM dual").should == e.id

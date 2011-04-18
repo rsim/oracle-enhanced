@@ -1006,6 +1006,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       :comments => ''
     )
     @employee.reload
+    @employee.comments.should == ''
     @employee.comments = @char_data
     @employee.save!
     @employee.reload
@@ -1131,6 +1132,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
       :binary_data => ''
     )
     @employee.reload
+    @employee.binary_data.should == ''
     @employee.binary_data = @binary_data
     @employee.save!
     @employee.reload
