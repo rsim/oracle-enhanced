@@ -2,11 +2,18 @@ begin
   require "java"
   require "jruby"
 
-  # ojdbc14.jar file should be in JRUBY_HOME/lib or should be in ENV['PATH'] or load path
+  # ojdbc6.jar or ojdbc5.jar file should be in JRUBY_HOME/lib or should be in ENV['PATH'] or load path
 
-  ojdbc_jar = "ojdbc6.jar"
+  java_version = java.lang.System.getProperty("java.version")
+  ojdbc_jar = if java_version =~ /^1.5/
+    "ojdbc5.jar"
+  elsif java_version >= '1.6'
+    "ojdbc6.jar"
+  else
+    nil
+  end
 
-  unless ENV_JAVA['java.class.path'] =~ Regexp.new(ojdbc_jar)
+  unless ojdbc_jar.nil? || ENV_JAVA['java.class.path'] =~ Regexp.new(ojdbc_jar)
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
     env_path = ENV["PATH"] || ENV["Path"] || ''
     if ojdbc_jar_path = env_path.split(/[:;]/).concat($LOAD_PATH).find{|d| File.exists?(File.join(d,ojdbc_jar))}
@@ -14,7 +21,7 @@ begin
     end
   end
 
-  java.sql.DriverManager.registerDriver Java::oracle.jdbc.driver.OracleDriver.new
+  java.sql.DriverManager.registerDriver Java::oracle.jdbc.OracleDriver.new
 
   # set tns_admin property from TNS_ADMIN environment variable
   if !java.lang.System.get_property("oracle.net.tns_admin") && ENV["TNS_ADMIN"]
@@ -23,7 +30,7 @@ begin
 
 rescue LoadError, NameError
   # JDBC driver is unavailable.
-  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install ojdbc14.jar library."
+  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jar || "Oracle JDBC"} library."
 end
 
 
