@@ -143,6 +143,10 @@ module ActiveRecord
           @raw_cursor.exec
         end
 
+        def exec_delete
+          @raw_cursor.exec
+        end
+
         def get_col_names
           @raw_cursor.get_col_names
         end

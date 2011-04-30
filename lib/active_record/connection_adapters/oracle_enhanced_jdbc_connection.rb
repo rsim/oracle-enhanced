@@ -345,6 +345,10 @@ module ActiveRecord
           @raw_statement.executeUpdate
         end
 
+        def exec_delete
+          @raw_statement.executeUpdate
+        end
+
         def get_metadata
           metadata = @raw_result_set.getMetaData
           column_count = metadata.getColumnCount
