@@ -341,11 +341,7 @@ module ActiveRecord
           true
         end
 
-        def exec_insert
-          @raw_statement.executeUpdate
-        end
-
-        def exec_delete
+        def exec_update
           @raw_statement.executeUpdate
         end
 

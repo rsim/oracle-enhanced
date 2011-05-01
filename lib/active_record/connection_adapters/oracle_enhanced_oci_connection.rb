@@ -139,11 +139,7 @@ module ActiveRecord
           @raw_cursor.exec
         end
 
-        def exec_insert
-          @raw_cursor.exec
-        end
-
-        def exec_delete
+        def exec_update
           @raw_cursor.exec
         end
 
