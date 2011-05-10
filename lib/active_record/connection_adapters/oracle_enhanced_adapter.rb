@@ -285,7 +285,8 @@ module ActiveRecord
         :time        => { :name => "DATE" },
         :date        => { :name => "DATE" },
         :binary      => { :name => "BLOB" },
-        :boolean     => { :name => "NUMBER", :limit => 1 }
+        :boolean     => { :name => "NUMBER", :limit => 1 },
+        :raw         => { :name => "RAW", :limit => 2000 }
       }
       # if emulate_booleans_from_strings then store booleans in VARCHAR2
       NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS = NATIVE_DATABASE_TYPES.dup.merge(
@@ -396,6 +397,8 @@ module ActiveRecord
           # NLS_DATE_FORMAT independent DATE support
           when :date, :time, :datetime
             quote_date_with_to_date(value)
+          when :raw
+            quote_raw(value)
           when :string
             # NCHAR and NVARCHAR2 literals should be quoted with N'...'.
             # Read directly instance variable as otherwise migrations with table column default values are failing
@@ -428,6 +431,17 @@ module ActiveRecord
         # should support that composite_primary_keys gem will pass date as string
         value = quoted_date(value) if value.acts_like?(:date) || value.acts_like?(:time)
         "TO_DATE('#{value}','YYYY-MM-DD HH24:MI:SS')"
+      end
+
+      # "Quote" meaning "encode" the value. If given a string, convert to a byte array.
+      # Otherwise treat the input as an array of bytes.
+      def quote_raw(value) #:nodoc:
+
+        # When given a string, convert to a byte array.
+        value = value.unpack('C*') if value.is_a?(String)
+
+        "'%s'" % value.map { |x| "%02x" % x }.join.upcase
+
       end
 
       def quote_timestamp_with_to_timestamp(value) #:nodoc:
@@ -967,6 +981,7 @@ module ActiveRecord
                  decode(data_type, 'NUMBER', data_precision,
                                    'FLOAT', data_precision,
                                    'VARCHAR2', decode(char_used, 'C', char_length, data_length),
+                                   'RAW', decode(char_used, 'C', char_length, data_length),
                                    'CHAR', decode(char_used, 'C', char_length, data_length),
                                     null) as limit,
                  decode(data_type, 'NUMBER', data_scale, null) as scale

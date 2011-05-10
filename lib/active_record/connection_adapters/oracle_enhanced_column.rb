@@ -14,6 +14,7 @@ module ActiveRecord
       end
 
       def type_cast(value) #:nodoc:
+        return OracleEnhancedColumn::string_to_raw(value) if type == :raw
         return guess_date_or_time(value) if type == :datetime && OracleEnhancedAdapter.emulate_dates
         super
       end
@@ -42,6 +43,11 @@ module ActiveRecord
         super
       end
 
+      # convert RAW column values back to byte strings.
+      def self.string_to_raw(string) #:nodoc:
+        string
+      end
+
       # Get column comment from schema definition.
       # Will work only if using default ActiveRecord connection.
       def comment
@@ -63,6 +69,8 @@ module ActiveRecord
           else
             :decimal
           end
+        when /raw/i
+          :raw
         when /char/i
           if OracleEnhancedAdapter.emulate_booleans_from_strings &&
              OracleEnhancedAdapter.is_boolean_column?(name, field_type, table_name)
