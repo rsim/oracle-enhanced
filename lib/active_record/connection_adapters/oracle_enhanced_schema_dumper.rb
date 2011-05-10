@@ -105,6 +105,9 @@ module ActiveRecord #:nodoc:
       end
 
       def indexes_with_oracle_enhanced(table, stream)
+        abcs = ActiveRecord::Base.configurations
+        rails_env = defined?(Rails.env) ? Rails.env : RAILS_ENV
+        return indexes_without_oracle_enhanced(table, stream) unless abcs[rails_env]['adapter'] == 'oracle_enhanced'
         if (indexes = @connection.indexes(table)).any?
           add_index_statements = indexes.map do |index|
             case index.type
