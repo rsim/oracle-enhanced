@@ -43,6 +43,8 @@ describe "OracleEnhancedAdapter" do
   
   describe "database session store" do
     before(:all) do
+      @conn.execute "DROP TABLE sessions" rescue nil
+      @conn.execute "DROP SEQUENCE sessions_seq" rescue nil
       @conn = ActiveRecord::Base.connection
       @conn.execute <<-SQL
         CREATE TABLE sessions (
