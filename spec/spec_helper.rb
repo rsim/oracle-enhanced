@@ -14,7 +14,7 @@ elsif RUBY_ENGINE == 'jruby'
 end
 
 ENV['RAILS_GEM_VERSION'] ||= '3.1-master'
-NO_COMPOSITE_PRIMARY_KEYS = true if ENV['RAILS_GEM_VERSION'] >= '2.3.5'
+NO_COMPOSITE_PRIMARY_KEYS = true if ENV['RAILS_GEM_VERSION'] >= '2.3.5' || ENV['RAILS_GEM_VERSION'] =~ /^2\.3\.1\d$/
 
 puts "==> Running specs with Rails version #{ENV['RAILS_GEM_VERSION']}"
 
