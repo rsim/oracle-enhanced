@@ -61,7 +61,11 @@ module ActiveRecord
 
     # After setting large objects to empty, select the OCI8::LOB
     # and write back the data.
-    after_save :enhanced_write_lobs
+    if ActiveRecord::VERSION::MAJOR == 3 && ActiveRecord::VERSION::MINOR >= 1
+      after_update :enhanced_write_lobs
+    else
+      after_save :enhanced_write_lobs
+    end
     def enhanced_write_lobs #:nodoc:
       if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
           !(self.class.custom_create_method || self.class.custom_update_method)
