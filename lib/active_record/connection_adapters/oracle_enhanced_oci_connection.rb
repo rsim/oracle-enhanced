@@ -125,6 +125,8 @@ module ActiveRecord
               ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
               ora_value.size = 0 if value == ''
               @raw_cursor.bind_param(position, ora_value)
+            when :raw
+              @raw_cursor.bind_param(position, OracleEnhancedAdapter.encode_raw(value))
             else
               @raw_cursor.bind_param(position, value)
             end

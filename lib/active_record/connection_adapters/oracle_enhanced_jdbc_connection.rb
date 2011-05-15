@@ -310,6 +310,8 @@ module ActiveRecord
               @raw_statement.setClob(position, java_value)
             when :binary
               @raw_statement.setBlob(position, java_value)
+            when :raw
+              @raw_statement.setString(position, OracleEnhancedAdapter.encode_raw(java_value))
             else
               @raw_statement.setString(position, java_value)
             end

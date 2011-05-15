@@ -1159,7 +1159,7 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
     @binary_data = "\0\1\2\3\4\5\6\7\8\9"*100
     @binary_data2 = "\1\2\3\4\5\6\7\8\9\0"*100
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
@@ -1170,12 +1170,12 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
       set_primary_key :employee_id
     end
   end
-  
+
   after(:each) do
     Object.send(:remove_const, "TestEmployee")
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
-  
+
   it "should create record with RAW data" do
     @employee = TestEmployee.create!(
       :first_name => "First",
@@ -1185,7 +1185,7 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
     @employee.reload
     @employee.binary_data.should == @binary_data
   end
-  
+
   it "should update record with RAW data" do
     @employee = TestEmployee.create!(
       :first_name => "First",
