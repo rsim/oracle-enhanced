@@ -513,6 +513,9 @@ module ActiveRecord
           get_lob_value ? lob_to_ruby_value(rset.getClob(i)) : rset.getClob(i)
         when :BLOB
           get_lob_value ? lob_to_ruby_value(rset.getBlob(i)) : rset.getBlob(i)
+        when :RAW
+          raw_value = rset.getRAW(i)
+          raw_value && raw_value.getBytes.to_a.pack('C*')
         else
           nil
         end
