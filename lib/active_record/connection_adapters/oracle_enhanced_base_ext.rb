@@ -78,6 +78,14 @@ module ActiveRecord
     def self.table_comment
       connection.table_comment(self.table_name)
     end
+
+    def attributes_with_quotes_with_virtual_columns(include_primary_key = true, include_readonly_attributes = true, attribute_names = @attributes.keys)
+      quoted = attributes_with_quotes_without_virtual_columns(include_primary_key, include_readonly_attributes, attribute_names)
+      self.class.columns.select(& :virtual?).each { |c| quoted.delete(c.name) }
+      quoted
+    end
+
+    alias_method_chain :attributes_with_quotes, :virtual_columns
   end
 
 end

@@ -978,7 +978,7 @@ module ActiveRecord
         @@do_not_prefetch_primary_key[table_name] = nil
 
         table_cols = <<-SQL.strip.gsub(/\s+/, ' ')
-          SELECT column_name AS name, data_type AS sql_type, data_default, nullable,
+          SELECT column_name AS name, data_type AS sql_type, data_default, nullable, virtual_column, hidden_column,
                  DECODE(data_type, 'NUMBER', data_precision,
                                    'FLOAT', data_precision,
                                    'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
@@ -986,9 +986,10 @@ module ActiveRecord
                                    'CHAR', DECODE(char_used, 'C', char_length, data_length),
                                     NULL) AS limit,
                  DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale
-            FROM all_tab_columns#{db_link}
+            FROM all_tab_cols#{db_link}
            WHERE owner      = '#{owner}'
              AND table_name = '#{desc_table_name}'
+             AND hidden_column = 'NO'
            ORDER BY column_id
         SQL
 
@@ -1018,7 +1019,7 @@ module ActiveRecord
                            # pass table name for table specific column definitions
                            table_name,
                            # pass column type if specified in class definition
-                           get_type_for_column(table_name, oracle_downcase(row['name'])))
+                           get_type_for_column(table_name, oracle_downcase(row['name'])), row['virtual_column']=='YES')
         end
       end
 

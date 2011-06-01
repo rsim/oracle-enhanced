@@ -175,12 +175,13 @@ module ActiveRecord #:nodoc:
             next if column.name == pk
             spec = {}
             spec[:name]      = column.name.inspect
-            spec[:type]      = column.type.to_s
+            spec[:type]      = column.virtual? ? 'virtual' : column.type.to_s
             spec[:limit]     = column.limit.inspect if column.limit != @types[column.type][:limit] && column.type != :decimal
             spec[:precision] = column.precision.inspect if !column.precision.nil?
             spec[:scale]     = column.scale.inspect if !column.scale.nil?
             spec[:null]      = 'false' if !column.null
-            spec[:default]   = default_string(column.default) if column.has_default?
+            spec[:default]   = column.default.inspect if column.virtual?
+            spec[:default] ||= default_string(column.default) if column.has_default?
             (spec.keys - [:name, :type]).each{ |k| spec[k].insert(0, "#{k.inspect} => ")}
             spec
           end.compact

@@ -10,10 +10,31 @@ module ActiveRecord
       :tablespace, :columns) #:nodoc:
     end
 
+    module OracleEnhancedColumnDefinition
+       def self.included(base) #:nodoc:
+        base.class_eval do
+          alias_method_chain :to_sql, :virtual_columns
+          alias to_s :to_sql
+        end
+       end
+
+      def to_sql_with_virtual_columns
+        if type==:virtual
+          "#{base.quote_column_name(name)} AS (#{default})"
+        else
+          to_sql_without_virtual_columns
+        end
+      end
+    end
+
     module OracleEnhancedSchemaDefinitions #:nodoc:
       def self.included(base)
         base::TableDefinition.class_eval do
           include OracleEnhancedTableDefinition
+        end
+
+        base::ColumnDefinition.class_eval do
+          include OracleEnhancedColumnDefinition
         end
         
         # Available starting from ActiveRecord 2.1
@@ -39,6 +60,13 @@ module ActiveRecord
         base.class_eval do
           alias_method_chain :references, :foreign_keys
           alias_method_chain :to_sql, :foreign_keys
+
+          def virtual(* args)
+            options = args.extract_options!
+            column_names = args
+            column_names.each { |name| column(name, :virtual, options) }
+          end
+
         end
       end
     
