@@ -189,11 +189,12 @@ describe "OracleEnhancedAdapter" do
           id            NUMBER PRIMARY KEY,
           first_name    VARCHAR2(20),
           last_name     VARCHAR2(25),
+          full_name AS (first_name || ' ' || last_name),
           hire_date     DATE
         )
       SQL
-      @column_names = ['id', 'first_name', 'last_name', 'hire_date']
-      @column_sql_types = ["NUMBER", "VARCHAR2(20)", "VARCHAR2(25)", "DATE"]
+      @column_names = ['id', 'first_name', 'last_name', 'full_name', 'hire_date']
+      @column_sql_types = ["NUMBER", "VARCHAR2(20)", "VARCHAR2(25)", "VARCHAR2(46)", "DATE"]
       class ::TestEmployee < ActiveRecord::Base
       end
       # Another class using the same table
@@ -227,16 +228,21 @@ describe "OracleEnhancedAdapter" do
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = false
       end
 
+      it 'should identify virtual columns as such' do
+        te = TestEmployee.connection.columns('test_employees').detect(&:virtual?)
+        te.name.should == 'full_name'
+      end
+
       it "should get columns from database at first time" do
         TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
-        @logger.logged(:debug).last.should =~ /select .* from all_tab_columns/im
+        @logger.logged(:debug).last.should =~ /select .* from all_tab_cols/im
       end
 
       it "should get columns from database at second time" do
         TestEmployee.connection.columns('test_employees')
         @logger.clear(:debug)
         TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
-        @logger.logged(:debug).last.should =~ /select .* from all_tab_columns/im
+        @logger.logged(:debug).last.should =~ /select .* from all_tab_cols/im
       end
 
       it "should get primary key from database at first time" do
@@ -268,7 +274,7 @@ describe "OracleEnhancedAdapter" do
 
       it "should get columns from database at first time" do
         TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
-        @logger.logged(:debug).last.should =~ /select .* from all_tab_columns/im
+        @logger.logged(:debug).last.should =~ /select .* from all_tab_cols/im
       end
 
       it "should get columns from cache at second time" do

@@ -874,6 +874,42 @@ describe "OracleEnhancedAdapter schema definition" do
 
   end
 
+  describe 'virtual columns' do
+    before(:all) do
+      schema_define do
+        @expr = "( numerator/NULLIF(denominator,0) )*100"
+        create_table :test_fractions, :force => true do |t|
+          t.integer :numerator, :default=>0
+          t.integer :denominator, :default=>0
+          t.virtual :percent, :default=>@expr
+        end
+      end
+    end
+    before(:each) do
+      class ::TestFraction < ActiveRecord::Base
+        set_table_name "test_fractions"
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_fractions
+      end
+    end
+
+    it 'should include virtual columns and not try to update them' do
+      tf = TestFraction.columns.detect { |c| c.virtual? }
+      tf.should_not be nil
+      tf.name.should == "percent"
+      tf.virtual?.should be true
+      lambda do
+        tf = TestFraction.create!(:numerator=>20, :denominator=>100)
+        tf.reload
+      end.should_not raise_error
+      tf.percent.to_i.should == 20
+    end
+  end
+
   describe "miscellaneous options" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
