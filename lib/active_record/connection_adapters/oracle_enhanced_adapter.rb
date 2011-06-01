@@ -814,8 +814,9 @@ module ActiveRecord
       end
 
       def tables(name = nil) #:nodoc:
+        queue_tables_sql = "select queue_table from all_queue_tables where owner = sys_context('userenv', 'session_user')"
         select_values(
-        "select decode(table_name,upper(table_name),lower(table_name),table_name) from all_tables where owner = sys_context('userenv','session_user') and secondary='N'",
+        "select decode(table_name,upper(table_name),lower(table_name),table_name) from all_tables where owner = sys_context('userenv','session_user') and secondary='N' and table_name not in (#{queue_tables_sql})",
         name)
       end
 

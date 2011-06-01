@@ -595,6 +595,54 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "tables method" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+    before(:each) do
+      @conn.drop_table :ones rescue nil
+      ActiveRecord::Schema.define do
+        suppress_messages do
+          create_table :ones
+        end
+      end
+      @conn.execute <<-SQL
+        begin
+          dbms_aqadm.create_queue_table
+             ( queue_table        => 'MY_QUEUE_TABLE',
+               queue_payload_type => 'SYS.AQ$_JMS_MAP_MESSAGE'
+             );
+        end;
+      SQL
+      @conn.execute <<-SQL
+        begin
+          dbms_aqadm.create_queue
+             ( queue_name  => 'MY_QUEUE',
+               queue_table => 'MY_QUEUE_TABLE',
+               queue_type  =>  dbms_aqadm.normal_queue
+             );
+        end;
+      SQL
+    end
+    after(:each) do
+      begin
+        @conn.drop_table :ones
+        @conn.execute <<-SQL
+          BEGIN
+            dbms_aqadm.stop_queue(queue_name =>'MY_QUEUE');
+            DBMS_AQADM.DROP_QUEUE(queue_name => 'MY_QUEUE');
+            DBMS_AQADM.DROP_QUEUE_TABLE(queue_table => 'MY_QUEUE_TABLE', force => true);
+          END;
+        SQL
+      rescue
+        nil
+      end
+    end
+    it "should not include queue tables" do
+      @conn.tables.grep(/my_queue_table/).should be_empty
+    end
+  end
+
   describe "eager loading" do
     before(:all) do
       schema_define do
