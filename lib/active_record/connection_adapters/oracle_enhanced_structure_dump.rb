@@ -232,7 +232,6 @@ module ActiveRecord #:nodoc:
         elsif options[:null] == true
           sql << " NULL" unless type == :primary_key
         end
-        sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table], options[:column])
       end
 
       def execute_structure_dump(string)
