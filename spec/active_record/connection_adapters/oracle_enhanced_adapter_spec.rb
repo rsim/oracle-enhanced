@@ -580,7 +580,12 @@ describe "OracleEnhancedAdapter" do
 
   describe "temporary tables" do
     before(:all) do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:table] = 'UNUSED'
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = 'UNUSED'
       @conn = ActiveRecord::Base.connection
+    end
+    after(:all) do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces={}
     end
 
     after(:each) do
@@ -589,6 +594,7 @@ describe "OracleEnhancedAdapter" do
     it "should create ok" do
       @conn.create_table :foos, :temporary => true, :id => false do |t|
         t.integer :id
+        t.text :bar
       end
     end
     it "should show up as temporary" do

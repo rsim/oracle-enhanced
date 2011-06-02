@@ -78,10 +78,12 @@ module ActiveRecord
         end
 
         create_sql = "CREATE#{' GLOBAL TEMPORARY' if options[:temporary]} TABLE "
-        create_sql << "#{quote_table_name(name)} ("
-        create_sql << table_definition.to_sql
-        create_sql << ")#{tablespace}"
-        table_definition.lob_columns.each{|cd| create_sql << tablespace_for(cd.sql_type.downcase.to_sym, nil, name, cd.name)}
+        create_sql << quote_table_name(name)
+        create_sql << " (#{table_definition.to_sql})"
+        unless options[:temporary]
+          create_sql << tablespace
+          table_definition.lob_columns.each{|cd| create_sql << tablespace_for(cd.sql_type.downcase.to_sym, nil, name, cd.name)}
+        end
         create_sql << " #{options[:options]}"
         execute create_sql
         
@@ -193,7 +195,8 @@ module ActiveRecord
 
       def add_column(table_name, column_name, type, options = {}) #:nodoc:
         add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
-        add_column_options!(add_column_sql, options.merge(:type=>type, :column=>column_name, :table=>table_name))
+        add_column_options!(add_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
+        add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name])
         execute(add_column_sql)
       ensure
         clear_table_columns_cache(table_name)
@@ -225,7 +228,8 @@ module ActiveRecord
         end
 
         change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
-        add_column_options!(change_column_sql, options.merge(:type=>type, :column=>column_name, :table=>table_name))
+        add_column_options!(change_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
+        add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name])
         execute(change_column_sql)
       ensure
         clear_table_columns_cache(table_name)
@@ -298,7 +302,6 @@ module ActiveRecord
           else
            " TABLESPACE #{tablespace}"
           end
-
         end
         tablespace_sql
       end
