@@ -25,6 +25,10 @@ module ActiveRecord
           to_sql_without_virtual_columns
         end
       end
+
+      def lob?
+        ['CLOB', 'BLOB'].include?(sql_type)
+      end
     end
 
     module OracleEnhancedSchemaDefinitions #:nodoc:
@@ -119,6 +123,10 @@ module ActiveRecord
         sql = to_sql_without_foreign_keys
         sql << ', ' << (foreign_keys * ', ') unless foreign_keys.blank?
         sql
+      end
+
+      def lob_columns
+        columns.select(&:lob?)
       end
     
       private

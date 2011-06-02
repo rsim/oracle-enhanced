@@ -71,7 +71,7 @@ module ActiveRecord
         result = block.call(table_definition) if block
         create_sequence = create_sequence || table_definition.create_sequence
         column_comments = table_definition.column_comments if table_definition.column_comments
-        tablespace = options[:tablespace] ? " TABLESPACE #{options[:tablespace]}" : ""
+        tablespace = tablespace_for(:table, options[:tablespace])
 
         if options[:force] && table_exists?(name)
           drop_table(name, options)
@@ -80,7 +80,9 @@ module ActiveRecord
         create_sql = "CREATE#{' GLOBAL TEMPORARY' if options[:temporary]} TABLE "
         create_sql << "#{quote_table_name(name)} ("
         create_sql << table_definition.to_sql
-        create_sql << ")#{tablespace} #{options[:options]}"
+        create_sql << ")#{tablespace}"
+        table_definition.lob_columns.each{|cd| create_sql << tablespace_for(cd.sql_type.downcase.to_sym, nil, name, cd.name)}
+        create_sql << " #{options[:options]}"
         execute create_sql
         
         create_sequence_and_trigger(name, options) if create_sequence
@@ -113,7 +115,7 @@ module ActiveRecord
         if Hash === options # legacy support, since this param was a string
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name].to_s if options.key?(:name)
-          tablespace = options[:tablespace] ? " TABLESPACE #{options[:tablespace]}" : ""
+          tablespace = tablespace_for(:index, options[:tablespace])
         else
           index_type = options
         end
@@ -191,8 +193,7 @@ module ActiveRecord
 
       def add_column(table_name, column_name, type, options = {}) #:nodoc:
         add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
-        options[:type] = type
-        add_column_options!(add_column_sql, options)
+        add_column_options!(add_column_sql, options.merge(:type=>type, :column=>column_name, :table=>table_name))
         execute(add_column_sql)
       ensure
         clear_table_columns_cache(table_name)
@@ -224,8 +225,7 @@ module ActiveRecord
         end
 
         change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
-        options[:type] = type
-        add_column_options!(change_column_sql, options)
+        add_column_options!(change_column_sql, options.merge(:type=>type, :column=>column_name, :table=>table_name))
         execute(change_column_sql)
       ensure
         clear_table_columns_cache(table_name)
@@ -280,7 +280,33 @@ module ActiveRecord
         super
       end
 
+      def tablespace(table_name)
+        select_value <<-SQL
+          SELECT tablespace_name
+          FROM user_tables
+          WHERE table_name='#{table_name.to_s.upcase}'
+        SQL
+      end
+
       private
+
+      def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
+        tablespace_sql = ''
+        if tablespace = (tablespace_option || default_tablespace_for(obj_type))
+          tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
+           " LOB (#{column_name}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
+          else
+           " TABLESPACE #{tablespace}"
+          end
+
+        end
+        tablespace_sql
+      end
+
+      def default_tablespace_for(type)
+        (default_tablespaces[type] || default_tablespaces[native_database_types[type][:name]]) rescue nil
+      end
+
 
       def column_for(table_name, column_name)
         unless column = columns(table_name).find { |c| c.name == column_name.to_s }
@@ -324,5 +350,7 @@ module ActiveRecord
 end
 
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.class_eval do
+  cattr_accessor :default_tablespaces
+  self.default_tablespaces={}
   include ActiveRecord::ConnectionAdapters::OracleEnhancedSchemaStatements
 end
