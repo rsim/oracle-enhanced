@@ -10,6 +10,27 @@ module ActiveRecord
       :tablespace, :columns) #:nodoc:
     end
 
+    module OracleEnhancedColumnDefinition
+       def self.included(base) #:nodoc:
+        base.class_eval do
+          alias_method_chain :to_sql, :virtual_columns
+          alias to_s :to_sql
+        end
+       end
+
+      def to_sql_with_virtual_columns
+        if type==:virtual
+          "#{base.quote_column_name(name)} AS (#{default})"
+        else
+          to_sql_without_virtual_columns
+        end
+      end
+
+      def lob?
+        ['CLOB', 'BLOB'].include?(sql_type)
+      end
+    end
+
     module OracleEnhancedSchemaDefinitions #:nodoc:
       def self.included(base)
         base::TableDefinition.class_eval do
@@ -91,6 +112,10 @@ module ActiveRecord
         sql = to_sql_without_foreign_keys
         sql << ', ' << (foreign_keys * ', ') unless foreign_keys.blank?
         sql
+      end
+
+      def lob_columns
+        columns.select(&:lob?)
       end
     
       private

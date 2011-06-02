@@ -855,6 +855,24 @@ describe "OracleEnhancedAdapter schema definition" do
       TestPost.columns_hash['body'].should_not be_nil
     end
 
+    it "should add lob column with non_default tablespace" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:clob)
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
+      schema_define do
+        add_column :test_posts, :body, :text
+      end
+      TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'BODY'").should == DATABASE_NON_DEFAULT_TABLESPACE
+    end
+
+    it "should add blob column with non_default tablespace" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:blob)
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:blob] = DATABASE_NON_DEFAULT_TABLESPACE
+      schema_define do
+        add_column :test_posts, :attachment, :binary
+      end
+      TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'ATTACHMENT'").should == DATABASE_NON_DEFAULT_TABLESPACE
+    end
+
     it "should rename column" do
       schema_define do
         rename_column :test_posts, :title, :subject
@@ -911,6 +929,20 @@ describe "OracleEnhancedAdapter schema definition" do
       end
       @would_execute_sql.should =~ /CREATE +TABLE .* \(.*\) TABLESPACE bogus/
     end
+
+    describe "creating a table with a tablespace defaults set" do
+      after(:each) do
+        @conn.drop_table :tablespace_tests rescue nil
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:table)
+      end
+      it "should use correct tablespace" do
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:table] = DATABASE_NON_DEFAULT_TABLESPACE
+        @conn.create_table :tablespace_tests do |t|
+          t.integer :id
+        end
+        @conn.tablespace(:tablespace_tests).should == DATABASE_NON_DEFAULT_TABLESPACE
+      end
+    end
     
     it "should support the :options option to add_index" do
       schema_define do
@@ -924,6 +956,15 @@ describe "OracleEnhancedAdapter schema definition" do
         add_index :keyboards, :name, :tablespace=>'bogus'
       end
       @would_execute_sql.should =~ /CREATE +INDEX .* ON .* \(.*\) TABLESPACE bogus/
+    end
+
+    it "should use default_tablespaces in add_index" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:index] = DATABASE_NON_DEFAULT_TABLESPACE
+      schema_define do
+        add_index :keyboards, :name
+      end
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:index)
+      @would_execute_sql.should =~ /CREATE +INDEX .* ON .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/
     end
   end
 end
