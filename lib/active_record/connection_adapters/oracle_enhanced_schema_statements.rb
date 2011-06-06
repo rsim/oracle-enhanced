@@ -196,7 +196,7 @@ module ActiveRecord
       def add_column(table_name, column_name, type, options = {}) #:nodoc:
         add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
         add_column_options!(add_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
-        add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name])
+        add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name)
         execute(add_column_sql)
       ensure
         clear_table_columns_cache(table_name)
@@ -229,7 +229,7 @@ module ActiveRecord
 
         change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
         add_column_options!(change_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
-        add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name])
+        change_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name])
         execute(change_column_sql)
       ensure
         clear_table_columns_cache(table_name)
