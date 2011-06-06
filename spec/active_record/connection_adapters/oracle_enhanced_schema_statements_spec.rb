@@ -903,7 +903,9 @@ describe "OracleEnhancedAdapter schema definition" do
       tf.name.should == "percent"
       tf.virtual?.should be true
       lambda do
-        tf = TestFraction.create!(:numerator=>20, :denominator=>100)
+        tf = TestFraction.new(:numerator=>20, :denominator=>100)
+        tf.percent.should==0 # not whatever is in DATA_DEFAULT column
+        tf.save!
         tf.reload
       end.should_not raise_error
       tf.percent.to_i.should == 20
