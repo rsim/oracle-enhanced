@@ -180,7 +180,7 @@ module ActiveRecord #:nodoc:
             spec[:precision] = column.precision.inspect if !column.precision.nil?
             spec[:scale]     = column.scale.inspect if !column.scale.nil?
             spec[:null]      = 'false' if !column.null
-            spec[:default]   = column.default.inspect if column.virtual?
+            spec[:default]   = column.virtual_column_data_default if column.virtual?
             spec[:default] ||= default_string(column.default) if column.has_default?
             (spec.keys - [:name, :type]).each{ |k| spec[k].insert(0, "#{k.inspect} => ")}
             spec
