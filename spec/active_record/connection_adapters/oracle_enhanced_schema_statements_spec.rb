@@ -983,6 +983,19 @@ describe "OracleEnhancedAdapter schema definition" do
         @would_execute_sql.should =~ /CREATE +TABLE .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/
       end
     end
+
+    describe "creating an index-organized table" do
+      after(:each) do
+        @conn.drop_table :tablespace_tests rescue nil
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:table)
+      end
+      it "should use correct tablespace" do
+        @conn.create_table :tablespace_tests, :id=>false, :organization=>'INDEX INITRANS 4 COMPRESS 1', :tablespace=>'bogus' do |t|
+          t.integer :id
+        end
+        @would_execute_sql.should =~ /CREATE +TABLE .*\(.*\)\s+ORGANIZATION INDEX INITRANS 4 COMPRESS 1 TABLESPACE bogus/
+      end
+    end
     
     it "should support the :options option to add_index" do
       schema_define do
