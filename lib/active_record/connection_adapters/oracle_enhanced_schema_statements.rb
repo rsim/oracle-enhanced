@@ -81,6 +81,7 @@ module ActiveRecord
         create_sql << quote_table_name(name)
         create_sql << " (#{table_definition.to_sql})"
         unless options[:temporary]
+          create_sql << " ORGANIZATION #{options[:organization]}" if options[:organization]
           create_sql << tablespace
           table_definition.lob_columns.each{|cd| create_sql << tablespace_for(cd.sql_type.downcase.to_sym, nil, name, cd.name)}
         end
