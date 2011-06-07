@@ -940,7 +940,7 @@ describe "OracleEnhancedAdapter schema definition" do
         @conn.create_table :tablespace_tests do |t|
           t.integer :id
         end
-        @conn.tablespace(:tablespace_tests).should == DATABASE_NON_DEFAULT_TABLESPACE
+        @would_execute_sql.should =~ /CREATE +TABLE .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/
       end
     end
     

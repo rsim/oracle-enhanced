@@ -36,6 +36,10 @@ module ActiveRecord
         base::TableDefinition.class_eval do
           include OracleEnhancedTableDefinition
         end
+
+        base::ColumnDefinition.class_eval do
+          include OracleEnhancedColumnDefinition
+        end
         
         # Available starting from ActiveRecord 2.1
         base::Table.class_eval do
