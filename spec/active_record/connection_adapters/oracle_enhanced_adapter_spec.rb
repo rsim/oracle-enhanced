@@ -189,11 +189,12 @@ describe "OracleEnhancedAdapter" do
           id            NUMBER PRIMARY KEY,
           first_name    VARCHAR2(20),
           last_name     VARCHAR2(25),
+          full_name AS (first_name || ' ' || last_name),
           hire_date     DATE
         )
       SQL
-      @column_names = ['id', 'first_name', 'last_name', 'hire_date']
-      @column_sql_types = ["NUMBER", "VARCHAR2(20)", "VARCHAR2(25)", "DATE"]
+      @column_names = ['id', 'first_name', 'last_name', 'full_name', 'hire_date']
+      @column_sql_types = ["NUMBER", "VARCHAR2(20)", "VARCHAR2(25)", "VARCHAR2(46)", "DATE"]
       class ::TestEmployee < ActiveRecord::Base
       end
       # Another class using the same table
@@ -227,16 +228,21 @@ describe "OracleEnhancedAdapter" do
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = false
       end
 
+      it 'should identify virtual columns as such' do
+        te = TestEmployee.connection.columns('test_employees').detect(&:virtual?)
+        te.name.should == 'full_name'
+      end
+
       it "should get columns from database at first time" do
         TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
-        @logger.logged(:debug).last.should =~ /select .* from all_tab_columns/im
+        @logger.logged(:debug).last.should =~ /select .* from all_tab_cols/im
       end
 
       it "should get columns from database at second time" do
         TestEmployee.connection.columns('test_employees')
         @logger.clear(:debug)
         TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
-        @logger.logged(:debug).last.should =~ /select .* from all_tab_columns/im
+        @logger.logged(:debug).last.should =~ /select .* from all_tab_cols/im
       end
 
       it "should get primary key from database at first time" do
@@ -268,7 +274,7 @@ describe "OracleEnhancedAdapter" do
 
       it "should get columns from database at first time" do
         TestEmployee.connection.columns('test_employees').map(&:name).should == @column_names
-        @logger.logged(:debug).last.should =~ /select .* from all_tab_columns/im
+        @logger.logged(:debug).last.should =~ /select .* from all_tab_cols/im
       end
 
       it "should get columns from cache at second time" do
@@ -586,6 +592,54 @@ describe "OracleEnhancedAdapter" do
         t.integer :id
       end
       @conn.temporary_table?("foos").should be_true
+    end
+  end
+
+  describe "tables method" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+    before(:each) do
+      @conn.drop_table :ones rescue nil
+      ActiveRecord::Schema.define do
+        suppress_messages do
+          create_table :ones
+        end
+      end
+      @conn.execute <<-SQL
+        begin
+          dbms_aqadm.create_queue_table
+             ( queue_table        => 'MY_QUEUE_TABLE',
+               queue_payload_type => 'SYS.AQ$_JMS_MAP_MESSAGE'
+             );
+        end;
+      SQL
+      @conn.execute <<-SQL
+        begin
+          dbms_aqadm.create_queue
+             ( queue_name  => 'MY_QUEUE',
+               queue_table => 'MY_QUEUE_TABLE',
+               queue_type  =>  dbms_aqadm.normal_queue
+             );
+        end;
+      SQL
+    end
+    after(:each) do
+      begin
+        @conn.drop_table :ones
+        @conn.execute <<-SQL
+          BEGIN
+            dbms_aqadm.stop_queue(queue_name =>'MY_QUEUE');
+            DBMS_AQADM.DROP_QUEUE(queue_name => 'MY_QUEUE');
+            DBMS_AQADM.DROP_QUEUE_TABLE(queue_table => 'MY_QUEUE_TABLE', force => true);
+          END;
+        SQL
+      rescue
+        nil
+      end
+    end
+    it "should not include queue tables" do
+      @conn.tables.grep(/my_queue_table/).should be_empty
     end
   end
 
