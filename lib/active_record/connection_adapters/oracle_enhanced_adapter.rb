@@ -718,11 +718,11 @@ module ActiveRecord
         limit = options[:limit]
         limit = limit.is_a?(String) && limit.blank? ? nil : limit && limit.to_i
         if limit && offset > 0
-          sql.replace "select * from (select raw_sql_.*, rownum raw_rnum_ from (#{sql}) raw_sql_ where rownum <= #{offset+limit}) where raw_rnum_ > #{offset}"
+          sql.replace "SELECT * FROM (SELECT raw_sql_.*, ROWNUM raw_rnum_ FROM (#{sql}) raw_sql_ WHERE ROWNUM <= #{offset+limit}) WHERE raw_rnum_ > #{offset}"
         elsif limit
-          sql.replace "select * from (#{sql}) where rownum <= #{limit}"
+          sql.replace "SELECT * FROM (#{sql}) WHERE ROWNUM <= #{limit}"
         elsif offset > 0
-          sql.replace "select * from (select raw_sql_.*, rownum raw_rnum_ from (#{sql}) raw_sql_) where raw_rnum_ > #{offset}"
+          sql.replace "SELECT * FROM (SELECT raw_sql_.*, ROWNUM raw_rnum_ FROM (#{sql}) raw_sql_) WHERE raw_rnum_ > #{offset}"
         end
       end
 
@@ -800,22 +800,22 @@ module ActiveRecord
 
       # Current database name
       def current_database
-        select_value("select sys_context('userenv','db_name') from dual")
+        select_value("SELECT SYS_CONTEXT('userenv', 'db_name') FROM dual")
       end
 
       # Current database session user
       def current_user
-        select_value("select sys_context('userenv','session_user') from dual")
+        select_value("SELECT SYS_CONTEXT('userenv', 'session_user') FROM dual")
       end
 
       # Default tablespace name of current user
       def default_tablespace
-        select_value("select lower(default_tablespace) from user_users where username = sys_context('userenv','session_user')")
+        select_value("SELECT LOWER(default_tablespace) FROM user_users WHERE username = SYS_CONTEXT('userenv', 'session_user')")
       end
 
       def tables(name = nil) #:nodoc:
         select_values(
-        "select decode(table_name,upper(table_name),lower(table_name),table_name) from all_tables where owner = sys_context('userenv','session_user') and secondary='N'",
+        "SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name) FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'session_user') AND secondary = 'N'",
         name)
       end
 
@@ -828,7 +828,7 @@ module ActiveRecord
       end
 
       def materialized_views #:nodoc:
-        select_values("select lower(mview_name) from all_mviews where owner = sys_context('userenv','session_user')")
+        select_values("SELECT LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'session_user')")
       end
 
       cattr_accessor :all_schema_indexes #:nodoc:
@@ -839,7 +839,7 @@ module ActiveRecord
         (owner, table_name, db_link) = @connection.describe(table_name)
         unless all_schema_indexes
           default_tablespace_name = default_tablespace
-          result = select_all(<<-SQL)
+          result = select_all(<<-SQL.strip.gsub(/\s+/, ' '))
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
@@ -977,19 +977,19 @@ module ActiveRecord
         # reset do_not_prefetch_primary_key cache for this table
         @@do_not_prefetch_primary_key[table_name] = nil
 
-        table_cols = <<-SQL
-          select column_name as name, data_type as sql_type, data_default, nullable,
-                 decode(data_type, 'NUMBER', data_precision,
+        table_cols = <<-SQL.strip.gsub(/\s+/, ' ')
+          SELECT column_name AS name, data_type AS sql_type, data_default, nullable,
+                 DECODE(data_type, 'NUMBER', data_precision,
                                    'FLOAT', data_precision,
-                                   'VARCHAR2', decode(char_used, 'C', char_length, data_length),
-                                   'RAW', decode(char_used, 'C', char_length, data_length),
-                                   'CHAR', decode(char_used, 'C', char_length, data_length),
-                                    null) as limit,
-                 decode(data_type, 'NUMBER', data_scale, null) as scale
-            from all_tab_columns#{db_link}
-           where owner      = '#{owner}'
-             and table_name = '#{desc_table_name}'
-           order by column_id
+                                   'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
+                                   'RAW', DECODE(char_used, 'C', char_length, data_length),
+                                   'CHAR', DECODE(char_used, 'C', char_length, data_length),
+                                    NULL) AS limit,
+                 DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale
+            FROM all_tab_columns#{db_link}
+           WHERE owner      = '#{owner}'
+             AND table_name = '#{desc_table_name}'
+           ORDER BY column_id
         SQL
 
         # added deletion of ignored columns
@@ -1059,14 +1059,14 @@ module ActiveRecord
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
         # changed back from user_constraints to all_constraints for consistency
-        pks = select_values(<<-SQL, 'Primary Key')
-          select cc.column_name
-            from all_constraints#{db_link} c, all_cons_columns#{db_link} cc
-           where c.owner = '#{owner}'
-             and c.table_name = '#{desc_table_name}'
-             and c.constraint_type = 'P'
-             and cc.owner = c.owner
-             and cc.constraint_name = c.constraint_name
+        pks = select_values(<<-SQL.strip.gsub(/\s+/, ' '), 'Primary Key')
+          SELECT cc.column_name
+            FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
+           WHERE c.owner = '#{owner}'
+             AND c.table_name = '#{desc_table_name}'
+             AND c.constraint_type = 'P'
+             AND cc.owner = c.owner
+             AND cc.constraint_name = c.constraint_name
         SQL
 
         # only support single column keys
@@ -1113,7 +1113,7 @@ module ActiveRecord
       end
 
       def temporary_table?(table_name) #:nodoc:
-        select_value("select temporary from user_tables where table_name = '#{table_name.upcase}'") == 'Y'
+        select_value("SELECT temporary FROM user_tables WHERE table_name = '#{table_name.upcase}'") == 'Y'
       end
 
       # ORDER BY clause for the passed order option.

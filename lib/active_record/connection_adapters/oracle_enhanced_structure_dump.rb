@@ -6,21 +6,21 @@ module ActiveRecord #:nodoc:
       STATEMENT_TOKEN = "\n\n/\n\n"
 
       def structure_dump #:nodoc:
-        structure = select_values("select sequence_name from user_sequences order by 1").map do |seq|
+        structure = select_values("SELECT sequence_name FROM user_sequences ORDER BY 1").map do |seq|
           "CREATE SEQUENCE \"#{seq}\""
         end
-        select_values("select table_name from all_tables t
-                    where owner = sys_context('userenv','session_user') and secondary='N'
-                      and not exists (select mv.mview_name from all_mviews mv where mv.owner = t.owner and mv.mview_name = t.table_name)
-                      and not exists (select mvl.log_table from all_mview_logs mvl where mvl.log_owner = t.owner and mvl.log_table = t.table_name)
-                    order by 1").each do |table_name|
+        select_values("SELECT table_name FROM all_tables t
+                    WHERE owner = SYS_CONTEXT('userenv', 'session_user') AND secondary = 'N'
+                      AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
+                      AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
+                    ORDER BY 1").each do |table_name|
           virtual_columns = virtual_columns_for(table_name)
           ddl = "CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
           cols = select_all(%Q{
-            select column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
-            from user_tab_columns
-            where table_name = '#{table_name}'
-            order by column_id
+            SELECT column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
+            FROM user_tab_columns
+            WHERE table_name = '#{table_name}'
+            ORDER BY column_id
           }).map do |row|
             if(v = virtual_columns.find {|col| col['column_name'] == row['column_name']})
               structure_dump_virtual_column(row, v['data_default'])
@@ -71,13 +71,13 @@ module ActiveRecord #:nodoc:
       def structure_dump_primary_key(table) #:nodoc:
         opts = {:name => '', :cols => []}
         pks = select_all(<<-SQL, "Primary Keys") 
-          select a.constraint_name, a.column_name, a.position
-            from user_cons_columns a 
-            join user_constraints c  
-              on a.constraint_name = c.constraint_name 
-           where c.table_name = '#{table.upcase}' 
-             and c.constraint_type = 'P'
-             and c.owner = sys_context('userenv', 'session_user')
+          SELECT a.constraint_name, a.column_name, a.position
+            FROM user_cons_columns a
+            JOIN user_constraints c
+              ON a.constraint_name = c.constraint_name
+           WHERE c.table_name = '#{table.upcase}'
+             AND c.constraint_type = 'P'
+             AND c.owner = SYS_CONTEXT('userenv', 'session_user')
         SQL
         pks.each do |row|
           opts[:name] = row['constraint_name']
@@ -89,13 +89,13 @@ module ActiveRecord #:nodoc:
       def structure_dump_unique_keys(table) #:nodoc:
         keys = {}
         uks = select_all(<<-SQL, "Primary Keys") 
-          select a.constraint_name, a.column_name, a.position
-            from user_cons_columns a 
-            join user_constraints c  
-              on a.constraint_name = c.constraint_name 
-           where c.table_name = '#{table.upcase}' 
-             and c.constraint_type = 'U'
-             and c.owner = sys_context('userenv', 'session_user')
+          SELECT a.constraint_name, a.column_name, a.position
+            FROM user_cons_columns a
+            JOIN user_constraints c
+              ON a.constraint_name = c.constraint_name
+           WHERE c.table_name = '#{table.upcase}'
+             AND c.constraint_type = 'U'
+             AND c.owner = SYS_CONTEXT('userenv', 'session_user')
         SQL
         uks.each do |uk|
           keys[uk['constraint_name']] ||= []
@@ -123,7 +123,7 @@ module ActiveRecord #:nodoc:
       end
 
       def structure_dump_fk_constraints #:nodoc:
-        fks = select_all("select table_name from all_tables where owner = sys_context('userenv','session_user') order by 1").map do |table|
+        fks = select_all("SELECT table_name FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |table|
           if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?
             foreign_keys.map do |fk|
               sql = "ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} "
@@ -143,19 +143,19 @@ module ActiveRecord #:nodoc:
       # Extract all stored procedures, packages, synonyms and views.
       def structure_dump_db_stored_code #:nodoc:
         structure = []
-        select_all("select distinct name, type
-                     from all_source
-                    where type in ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
-                      and name not like 'BIN$%'
-                      and  owner = sys_context('userenv','session_user') order by type").each do |source|
+        select_all("SELECT DISTINCT name, type
+                     FROM all_source
+                    WHERE type IN ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
+                      AND name NOT LIKE 'BIN$%'
+                      AND owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY type").each do |source|
           ddl = "CREATE OR REPLACE   \n"
           lines = select_all(%Q{
-                  select text
-                    from all_source
-                   where name = '#{source['name']}'
-                     and type = '#{source['type']}'
-                     and owner = sys_context('userenv','session_user')
-                   order by line 
+                  SELECT text
+                    FROM all_source
+                   WHERE name = '#{source['name']}'
+                     AND type = '#{source['type']}'
+                     AND owner = SYS_CONTEXT('userenv', 'session_user')
+                   ORDER BY line
                 }).map do |row|
             ddl << row['text']
           end
@@ -164,14 +164,14 @@ module ActiveRecord #:nodoc:
         end
 
         # export views 
-        select_all("select view_name, text from user_views").each do |view|
+        select_all("SELECT view_name, text FROM user_views").each do |view|
           structure << "CREATE OR REPLACE VIEW #{view['view_name']} AS\n #{view['text']}"
         end
 
         # export synonyms
-        select_all("select owner, synonym_name, table_name, table_owner 
-                      from all_synonyms  
-                     where owner = sys_context('userenv','session_user') ").each do |synonym|
+        select_all("SELECT owner, synonym_name, table_name, table_owner
+                      FROM all_synonyms
+                     WHERE owner = SYS_CONTEXT('userenv', 'session_user') ").each do |synonym|
           structure << "CREATE OR REPLACE #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']}"
           structure << " FOR #{synonym['table_owner']}.#{synonym['table_name']}"
         end
@@ -180,14 +180,14 @@ module ActiveRecord #:nodoc:
       end
 
       def structure_drop #:nodoc:
-        statements = select_values("select sequence_name from user_sequences order by 1").map do |seq|
+        statements = select_values("SELECT sequence_name FROM user_sequences ORDER BY 1").map do |seq|
           "DROP SEQUENCE \"#{seq}\""
         end
-        select_values("select table_name from all_tables t
-                    where owner = sys_context('userenv','session_user') and secondary='N'
-                      and not exists (select mv.mview_name from all_mviews mv where mv.owner = t.owner and mv.mview_name = t.table_name)
-                      and not exists (select mvl.log_table from all_mview_logs mvl where mvl.log_owner = t.owner and mvl.log_table = t.table_name)
-                    order by 1").each do |table|
+        select_values("SELECT table_name from all_tables t
+                    WHERE owner = SYS_CONTEXT('userenv', 'session_user') AND secondary = 'N'
+                      AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
+                      AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
+                    ORDER BY 1").each do |table|
           statements << "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS"
         end
         join_with_statement_token(statements)
@@ -195,8 +195,8 @@ module ActiveRecord #:nodoc:
 
       def temp_table_drop #:nodoc:
         join_with_statement_token(select_values(
-                  "select table_name from all_tables
-                    where owner = sys_context('userenv','session_user') and secondary='N' and temporary = 'Y' order by 1").map do |table|
+                  "SELECT table_name FROM all_tables
+                    WHERE owner = SYS_CONTEXT('userenv', 'session_user') AND secondary = 'N' AND temporary = 'Y' ORDER BY 1").map do |table|
           "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS"
         end)
       end
@@ -249,10 +249,10 @@ module ActiveRecord #:nodoc:
       def virtual_columns_for(table)
         begin
           select_all <<-SQL
-            select column_name, data_default 
-              from user_tab_cols 
-             where virtual_column='YES' 
-               and table_name='#{table.upcase}'
+            SELECT column_name, data_default
+              FROM user_tab_cols
+             WHERE virtual_column = 'YES'
+               AND table_name = '#{table.upcase}'
           SQL
         # feature not supported previous to 11g
         rescue ActiveRecord::StatementInvalid => e
@@ -263,14 +263,14 @@ module ActiveRecord #:nodoc:
       def drop_sql_for_feature(type)
         short_type = type == 'materialized view' ? 'mview' : type
         join_with_statement_token(
-        select_values("select #{short_type}_name from user_#{short_type.tableize}").map do |name|
+        select_values("SELECT #{short_type}_name FROM user_#{short_type.tableize}").map do |name|
           "DROP #{type.upcase} \"#{name}\""
         end)
       end
 
       def drop_sql_for_object(type)
         join_with_statement_token(
-        select_values("select object_name from user_objects where object_type = '#{type.upcase}'").map do |name|
+        select_values("SELECT object_name FROM user_objects WHERE object_type = '#{type.upcase}'").map do |name|
           "DROP #{type.upcase} \"#{name}\""
         end)
       end
