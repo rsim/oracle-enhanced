@@ -354,7 +354,5 @@ module ActiveRecord
 end
 
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.class_eval do
-  cattr_accessor :default_tablespaces
-  self.default_tablespaces={}
   include ActiveRecord::ConnectionAdapters::OracleEnhancedSchemaStatements
 end

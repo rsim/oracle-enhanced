@@ -131,6 +131,10 @@ module ActiveRecord
       # that Date columns are explicily defined with +set_date_columns+ method.
       cattr_accessor :emulate_dates
       self.emulate_dates = false
+      
+      # TODO explain this
+      cattr_accessor :default_tablespaces
+      self.default_tablespaces={}
 
       ##
       # :singleton-method:
