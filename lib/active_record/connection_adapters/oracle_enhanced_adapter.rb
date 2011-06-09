@@ -132,7 +132,16 @@ module ActiveRecord
       cattr_accessor :emulate_dates
       self.emulate_dates = false
       
-      # TODO explain this
+       ##
+        # :singleton-method:
+        # OracleEnhancedAdapter will use the default tablespace, but if you want specific types of
+        # objects to go into specific tablespaces, specify them like this in an initializer:
+        #
+        #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces =
+        #  {:clob => 'TS_LOB', :blob => 'TS_LOB', :index => 'TS_INDEX', :table => 'TS_DATA'}
+        # 
+        # Using the :tablespace option where available (e.g create_table) will take precedence
+        # over these settings.
       cattr_accessor :default_tablespaces
       self.default_tablespaces={}
 
