@@ -189,6 +189,15 @@ module ActiveRecord
         result == 1
       end
 
+      def rename_index(table_name, index_name, new_index_name) #:nodoc:
+        unless index_name_exists?(table_name, index_name, true)
+          raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' does not exist"
+        end
+        execute "ALTER INDEX #{quote_column_name(index_name)} rename to #{quote_column_name(new_index_name)}"
+      ensure
+        self.all_schema_indexes = nil
+      end
+
       def add_column(table_name, column_name, type, options = {}) #:nodoc:
         add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
         options[:type] = type
