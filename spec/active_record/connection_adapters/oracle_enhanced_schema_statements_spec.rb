@@ -407,6 +407,52 @@ describe "OracleEnhancedAdapter schema definition" do
 
   end
 
+  describe "rename index" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+        schema_define do
+          create_table  :test_employees do |t|
+            t.string    :first_name
+            t.string    :last_name
+        end
+        add_index :test_employees, :first_name
+        end
+        class ::TestEmployee < ActiveRecord::Base; end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_employees
+      end
+      Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+  end
+
+    it "should raise error if old index name and new index name are identical" do
+      lambda do
+        @conn.rename_index("test_employees","i_test_employees_first_name","i_test_employees_first_name")
+      end.should raise_error
+    end
+
+    it "should raise error if old index name is not correct" do
+      lambda do
+        @conn.rename_index("test_employees","nonexist_index_name","new_index_name")
+      end.should raise_error
+    end
+
+    it "should raise error if new index name length is too long" do
+      lambda do
+        @conn.rename_index("test_employees","i_test_employees_first_name","a"*31)
+      end.should raise_error
+    end
+
+    it "should rename index name with new one" do
+      lambda do
+        @conn.rename_index("test_employees","i_test_employees_first_name","new_index_name")
+      end.should_not raise_error
+    end
+  end
+
   describe "ignore options for LOB columns" do
     after(:each) do
       schema_define do
