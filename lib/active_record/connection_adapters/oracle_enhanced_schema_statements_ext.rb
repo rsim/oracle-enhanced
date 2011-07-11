@@ -21,7 +21,7 @@ module ActiveRecord
       #     # ...
       #   end
       #
-      def add_primary_key_trigger(table_name, options)
+      def add_primary_key_trigger(table_name, options={})
         # call the same private method that is used for create_table :primary_key_trigger => true
         create_primary_key_trigger(table_name, options)
       end
