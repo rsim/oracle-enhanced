@@ -29,8 +29,6 @@ group :development do
 
     ENV['AREL_GEM_PATH'] ||= File.expand_path('../../arel', __FILE__)
     gem 'arel', :path => ENV['AREL_GEM_PATH']
-
-    gem 'rack', :git => 'git://github.com/rack/rack.git'
   end
 
   gem 'ruby-plsql', '>=0.4.4'
