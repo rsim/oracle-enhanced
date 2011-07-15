@@ -192,6 +192,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
+    @conn.execute "DROP TABLE test2_employees" rescue nil
     @conn.execute <<-SQL
       CREATE TABLE test2_employees (
         id            NUMBER PRIMARY KEY,
@@ -209,6 +210,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
         created_at    DATE
       )
     SQL
+    @conn.execute "DROP SEQUENCE test2_employees_seq" rescue nil
     @conn.execute <<-SQL
       CREATE SEQUENCE test2_employees_seq  MINVALUE 1
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE

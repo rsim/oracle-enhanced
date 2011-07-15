@@ -114,6 +114,7 @@ describe "OracleEnhancedAdapter" do
   describe "ignore specified table columns" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
+      @conn.execute "DROP TABLE test_employees" rescue nil
       @conn.execute <<-SQL
         CREATE TABLE test_employees (
           id            NUMBER PRIMARY KEY,
@@ -130,6 +131,7 @@ describe "OracleEnhancedAdapter" do
           created_at    DATE
         )
       SQL
+      @conn.execute "DROP SEQUENCE test_employees_seq" rescue nil
       @conn.execute <<-SQL
         CREATE SEQUENCE test_employees_seq  MINVALUE 1
           INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER NOCYCLE
