@@ -6,6 +6,7 @@ describe "OracleEnhancedAdapter schema dump" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
+    @oracle11g = !! @conn.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
   end
 
   def standard_dump(options = {})
@@ -338,7 +339,7 @@ describe "OracleEnhancedAdapter schema dump" do
         create_table :test_names, :force => true do |t|
           t.string :first_name
           t.string :last_name
-          t.virtual :full_name, :default=>"first_name || ', ' || last_name"
+          t.virtual :full_name, :default=>"first_name || ', ' || last_name" if @oracle11g
         end
       end
     end
@@ -355,6 +356,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it 'should dump correctly' do
+      pending "Not supported in this database version" unless @oracle11g
       standard_dump.should =~ /t.virtual "full_name",(\s*):limit => 512,(\s*):default => "/
     end
 

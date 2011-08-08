@@ -5,6 +5,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @oracle11g = !! ActiveRecord::Base.connection.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
   end
 
   describe "table and sequence creation with non-default primary key" do
@@ -881,7 +882,7 @@ describe "OracleEnhancedAdapter schema definition" do
         create_table :test_fractions, :force => true do |t|
           t.integer :numerator, :default=>0
           t.integer :denominator, :default=>0
-          t.virtual :percent, :default=>@expr
+          t.virtual :percent, :default=>@expr if @oracle11g
         end
       end
     end
@@ -898,6 +899,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it 'should include virtual columns and not try to update them' do
+      pending "Not supported in this database version" unless @oracle11g
       tf = TestFraction.columns.detect { |c| c.virtual? }
       tf.should_not be nil
       tf.name.should == "percent"

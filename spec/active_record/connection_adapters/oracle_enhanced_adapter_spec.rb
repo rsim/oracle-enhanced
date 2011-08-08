@@ -186,12 +186,13 @@ describe "OracleEnhancedAdapter" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
       @conn.execute "DROP TABLE test_employees" rescue nil
+      @oracle11g = !! @conn.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
       @conn.execute <<-SQL
         CREATE TABLE test_employees (
           id            NUMBER PRIMARY KEY,
           first_name    VARCHAR2(20),
           last_name     VARCHAR2(25),
-          full_name AS (first_name || ' ' || last_name),
+          #{ @oracle11g ? "full_name AS (first_name || ' ' || last_name)," : "full_name VARCHAR2(46),"}
           hire_date     DATE
         )
       SQL
@@ -231,6 +232,7 @@ describe "OracleEnhancedAdapter" do
       end
 
       it 'should identify virtual columns as such' do
+        pending "Not supported in this database version" unless @oracle11g
         te = TestEmployee.connection.columns('test_employees').detect(&:virtual?)
         te.name.should == 'full_name'
       end
