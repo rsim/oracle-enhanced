@@ -148,7 +148,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /ID_PLUS NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
+      dump.should =~ /"ID_PLUS\" NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
     end
   
     it "should dump unique keys" do
