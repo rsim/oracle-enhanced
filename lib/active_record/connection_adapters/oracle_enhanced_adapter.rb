@@ -1098,8 +1098,12 @@ module ActiveRecord
              AND cc.constraint_name = c.constraint_name
         SQL
 
-        # only support single column keys
-        pks.size == 1 ? [oracle_downcase(pks.first), nil] : nil
+        # only support single column keys unless cpk gem is available
+        unless defined?(CompositePrimaryKeys)
+          pks.size == 1 ? [oracle_downcase(pks.first), nil] : nil
+        else
+          pks.collect {|i| oracle_downcase(i) }
+        end
       end
 
       # Returns just a table's primary key

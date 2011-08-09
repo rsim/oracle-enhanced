@@ -149,7 +149,13 @@ module ActiveRecord #:nodoc:
 
           # first dump primary key column
           if @connection.respond_to?(:pk_and_sequence_for)
-            pk, pk_seq = @connection.pk_and_sequence_for(table)
+            #if cpk is available, then generate it in the schema dump if a cpk exists in this table
+            unless defined?(CompositePrimaryKeys) 
+              pk, pk_seq = @connection.pk_and_sequence_for(table)
+            else
+              pk = @connection.pk_and_sequence_for(table)
+              pk = pk[0] if pk.size == 1 
+            end
           elsif @connection.respond_to?(:primary_key)
             pk = @connection.primary_key(table)
           end
@@ -214,6 +220,17 @@ module ActiveRecord #:nodoc:
           tbl.puts
           
           indexes(table, tbl)
+
+          #generate statements for a composite primary key
+          if pk.class == Array
+            tbl.print 		"  execute 'ALTER TABLE   #{table} ADD CONSTRAINT #{table.upcase}_ID_PK PRIMARY KEY ("
+            pk.each do |pk_name|
+	      tbl.print  pk_name
+	      tbl.print ', ' unless pk_name == pk.last
+	    end
+            tbl.puts ")'"
+            tbl.puts
+          end
 
           tbl.rewind
           stream.print tbl.read
