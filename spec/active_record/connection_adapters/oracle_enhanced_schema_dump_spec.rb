@@ -86,8 +86,20 @@ describe "OracleEnhancedAdapter schema dump" do
       standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
     end
 
+    it "should remove table prefix with $ sign in schema dump" do
+      ActiveRecord::Base.table_name_prefix = 'xxx$'
+      create_test_posts_table
+      standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
+    end
+
     it "should remove table suffix in schema dump" do
       ActiveRecord::Base.table_name_suffix = '_xxx'
+      create_test_posts_table
+      standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
+    end
+
+    it "should remove table suffix with $ sign in schema dump" do
+      ActiveRecord::Base.table_name_suffix = '$xxx'
       create_test_posts_table
       standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
     end

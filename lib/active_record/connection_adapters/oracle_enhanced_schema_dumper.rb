@@ -235,7 +235,7 @@ module ActiveRecord #:nodoc:
         
         private
         def remove_prefix_and_suffix(table_name)
-          if table_name =~ /\A#{ActiveRecord::Base.table_name_prefix}(.*)#{ActiveRecord::Base.table_name_suffix}\Z/
+          if table_name =~ /\A#{ActiveRecord::Base.table_name_prefix.to_s.gsub('$','\$')}(.*)#{ActiveRecord::Base.table_name_suffix.to_s.gsub('$','\$')}\Z/
             "\"#{$1}\""
           else
             "\"#{table_name}\""
