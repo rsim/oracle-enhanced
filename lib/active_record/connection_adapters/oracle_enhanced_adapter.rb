@@ -345,21 +345,32 @@ module ActiveRecord
       # see: abstract/quoting.rb
 
       def quote_column_name(name) #:nodoc:
-        # camelCase column names need to be quoted; not that anyone using Oracle
-        # would really do this, but handling this case means we pass the test...
         name = name.to_s
         @quoted_column_names[name] ||= begin
-          case name
-          # if only valid column characters in name
-          when /^[a-z][a-z_0-9\$#]*$/
+          # if only valid lowercase column characters in name
+          if name =~ /\A[a-z][a-z_0-9\$#]*\Z/
             "\"#{name.upcase}\""
-          when /^[a-z][a-z_0-9\$#\-]*$/i
-            "\"#{name}\""
-          # if other characters present then assume that it is expression
-          # which should not be quoted
           else
-            name
+            # remove double quotes which cannot be used inside quoted identifier
+            "\"#{name.gsub('"', '')}\""
           end
+        end
+      end
+
+      # This method is used in add_index to identify either column name (which is quoted)
+      # or function based index (in which case function expression is not quoted)
+      def quote_column_name_or_expression(name) #:nodoc:
+        name = name.to_s
+        case name
+        # if only valid lowercase column characters in name
+        when /^[a-z][a-z_0-9\$#]*$/
+          "\"#{name.upcase}\""
+        when /^[a-z][a-z_0-9\$#\-]*$/i
+          "\"#{name}\""
+        # if other characters present then assume that it is expression
+        # which should not be quoted
+        else
+          name
         end
       end
 

@@ -387,6 +387,10 @@ describe "OracleEnhancedAdapter" do
       end
     end
 
+    it "should remove double quotes in column quoting" do
+      ActiveRecord::Base.connection.quote_column_name('aaa "bbb" ccc').should == '"aaa bbb ccc"'
+    end
+
   end
 
   describe "valid table names" do
