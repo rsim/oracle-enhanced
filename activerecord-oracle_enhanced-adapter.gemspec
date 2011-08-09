@@ -5,25 +5,25 @@
 
 Gem::Specification.new do |s|
   s.name = %q{activerecord-oracle_enhanced-adapter}
-  s.version = "1.3.2"
+  s.version = "1.4.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Raimonds Simanovskis"]
-  s.date = %q{2011-01-05}
+  s.date = %q{2011-08-09}
   s.description = %q{Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 }
   s.email = %q{raimonds.simanovskis@gmail.com}
   s.extra_rdoc_files = [
-    "README.rdoc"
+    "README.md"
   ]
   s.files = [
     ".rspec",
     "Gemfile",
     "History.txt",
     "License.txt",
-    "README.rdoc",
-    "RUNNING_TESTS.rdoc",
+    "README.md",
+    "RUNNING_TESTS.md",
     "Rakefile",
     "VERSION",
     "activerecord-oracle_enhanced-adapter.gemspec",
@@ -66,7 +66,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   ]
   s.homepage = %q{http://github.com/rsim/oracle-enhanced}
   s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.4.1}
+  s.rubygems_version = %q{1.6.2}
   s.summary = %q{Oracle enhanced adapter for ActiveRecord}
   s.test_files = [
     "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
@@ -97,7 +97,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
       s.add_development_dependency(%q<actionpack>, [">= 0"])
       s.add_development_dependency(%q<railties>, [">= 0"])
       s.add_development_dependency(%q<arel>, [">= 0"])
-      s.add_development_dependency(%q<rack>, [">= 0"])
       s.add_development_dependency(%q<ruby-plsql>, [">= 0.4.4"])
       s.add_development_dependency(%q<ruby-oci8>, ["~> 2.0.4"])
     else
@@ -109,7 +108,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
       s.add_dependency(%q<actionpack>, [">= 0"])
       s.add_dependency(%q<railties>, [">= 0"])
       s.add_dependency(%q<arel>, [">= 0"])
-      s.add_dependency(%q<rack>, [">= 0"])
       s.add_dependency(%q<ruby-plsql>, [">= 0.4.4"])
       s.add_dependency(%q<ruby-oci8>, ["~> 2.0.4"])
     end
@@ -122,7 +120,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     s.add_dependency(%q<actionpack>, [">= 0"])
     s.add_dependency(%q<railties>, [">= 0"])
     s.add_dependency(%q<arel>, [">= 0"])
-    s.add_dependency(%q<rack>, [">= 0"])
     s.add_dependency(%q<ruby-plsql>, [">= 0.4.4"])
     s.add_dependency(%q<ruby-oci8>, ["~> 2.0.4"])
   end
