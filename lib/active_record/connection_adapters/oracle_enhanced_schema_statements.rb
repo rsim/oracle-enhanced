@@ -286,6 +286,19 @@ module ActiveRecord
         SQL
       end
 
+      def reset_sequence!(table_name, column_name, sequence_name = nil)
+        table_name.downcase!
+        if "#{quote_column_name(column_name)}" == "#{quote_column_name(table_name.classify.constantize.primary_key)}"
+          # Increase by default_sequence_start_value.
+          new_start_value = table_name.classify.constantize.maximum(column_name).to_i + default_sequence_start_value
+          sequence_name ||="#{quote_table_name("#{table_name}_seq")}"
+          execute ("DROP SEQUENCE #{quote_table_name(sequence_name)}")
+          execute ("CREATE SEQUENCE #{quote_table_name(sequence_name)} START WITH #{new_start_value}")
+        else
+          raise ArgumentError, "#{quote_column_name(column_name)} is not of the primary key"
+        end
+      end
+
       # Maps logical Rails types to Oracle-specific data types.
       def type_to_sql(type, limit = nil, precision = nil, scale = nil) #:nodoc:
         # Ignore options for :text and :binary columns
