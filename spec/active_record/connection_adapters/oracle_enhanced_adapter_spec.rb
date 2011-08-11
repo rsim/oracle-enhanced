@@ -196,6 +196,13 @@ describe "OracleEnhancedAdapter" do
           hire_date     DATE
         )
       SQL
+      @conn.execute <<-SQL
+        CREATE TABLE test_employees_without_pk (
+          first_name    VARCHAR2(20),
+          last_name     VARCHAR2(25),
+          hire_date     DATE
+        )
+      SQL
       @column_names = ['id', 'first_name', 'last_name', 'full_name', 'hire_date']
       @column_sql_types = ["NUMBER", "VARCHAR2(20)", "VARCHAR2(25)", "VARCHAR2(46)", "DATE"]
       class ::TestEmployee < ActiveRecord::Base
@@ -211,6 +218,7 @@ describe "OracleEnhancedAdapter" do
       Object.send(:remove_const, "TestEmployee")
       Object.send(:remove_const, "TestEmployee2")
       @conn.execute "DROP TABLE test_employees"
+      @conn.execute "DROP TABLE test_employees_without_pk"
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
@@ -297,6 +305,13 @@ describe "OracleEnhancedAdapter" do
         TestEmployee.connection.pk_and_sequence_for('test_employees').should == ['id', nil]
         @logger.clear(:debug)
         TestEmployee.connection.pk_and_sequence_for('test_employees').should == ['id', nil]
+        @logger.logged(:debug).last.should be_blank
+      end
+
+      it "should store primary key as nil in cache at first time for table without primary key" do
+        TestEmployee.connection.pk_and_sequence_for('test_employees_without_pk').should == nil
+        @logger.clear(:debug)
+        TestEmployee.connection.pk_and_sequence_for('test_employees_without_pk').should == nil
         @logger.logged(:debug).last.should be_blank
       end
 

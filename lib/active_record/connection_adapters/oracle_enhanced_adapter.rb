@@ -1078,7 +1078,11 @@ module ActiveRecord
       def pk_and_sequence_for(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
         if @@cache_columns
           @@pk_and_sequence_for_cache ||= {}
-          @@pk_and_sequence_for_cache[table_name] ||= pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link)
+          if @@pk_and_sequence_for_cache.key?(table_name)
+            @@pk_and_sequence_for_cache[table_name]
+          else
+            @@pk_and_sequence_for_cache[table_name] = pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link)
+          end
         else
           pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link)
         end
