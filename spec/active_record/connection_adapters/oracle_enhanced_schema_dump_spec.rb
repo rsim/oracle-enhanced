@@ -351,7 +351,7 @@ describe "OracleEnhancedAdapter schema dump" do
         create_table :test_names, :force => true do |t|
           t.string :first_name
           t.string :last_name
-          t.virtual :full_name, :default=>"first_name || ', ' || last_name" if @oracle11g
+          t.virtual :full_name, :default=>"first_name || ', ' || last_name" if @oracle11g = true
         end
       end
     end
