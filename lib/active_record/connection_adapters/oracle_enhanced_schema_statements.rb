@@ -308,7 +308,7 @@ module ActiveRecord
         tablespace_sql = ''
         if tablespace = (tablespace_option || default_tablespace_for(obj_type))
           tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
-           " LOB (#{column_name}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
+           " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
           else
            " TABLESPACE #{tablespace}"
           end
