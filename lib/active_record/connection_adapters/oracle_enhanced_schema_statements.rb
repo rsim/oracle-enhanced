@@ -208,6 +208,69 @@ module ActiveRecord
         self.all_schema_indexes = nil
       end
 
+      def constraint_name_exists?(table_name, constraint_name)
+        result = select_value(<<-SQL)
+          SELECT 1 FROM all_constraints
+          WHERE owner = SYS_CONTEXT('userenv', 'session_user')
+             AND table_name = '#{table_name.to_s.upcase}'
+             AND constraint_name = '#{constraint_name.to_s.upcase}'
+        SQL
+        result == 1
+      end
+
+      def rename_constraint(table_name, constraint_name, new_constraint_name) #:nodoc:
+        unless constraint_name_exists?(table_name, constraint_name)
+          raise ArgumentError, "Constraint name #{constraint_name} does not exist on #{table_name}"
+        end
+        execute "ALTER TABLE #{quote_table_name(table_name)} RENAME CONSTRAINT #{quote_column_name(constraint_name)} TO #{quote_column_name(new_constraint_name)}"
+      end
+
+      def rename_default_primary_key(table_name)
+        table_name.upcase!
+        unless table_exists?(table_name)
+          raise ArgumentError, "Table name '#{table_name} does not exist"
+        end
+        record = select_one("SELECT constraint_name,index_name from all_constraints 
+                             WHERE owner = SYS_CONTEXT('userenv', 'session_user') 
+                             and table_name = '#{table_name}' and constraint_type = 'P' 
+                             and constraint_name like 'SYS_C%'
+                             and index_name = constraint_name")
+        constraint_name = record["constraint_name"]
+        index_name = record["index_name"]
+        if constraint_name == nil
+          raise "No default primary key constraint found on #{table_name}"
+        end
+        new_constraint_name ||="#{quote_table_name("#{table_name}_PK")}"
+        new_index_name ||= new_constraint_name
+        rename_constraint(table_name, constraint_name, new_constraint_name)
+        rename_index(table_name, index_name, new_index_name)
+      end
+
+      def rename_default_foreign_key(table_name)
+        table_name.upcase!
+        unless table_exists?(table_name)
+          raise ArgumentError, "Table name '#{table_name} does not exist"
+        end
+        records = select_all("SELECT c.table_name as c_table_name,
+                              c.constraint_name,p.table_name as p_table_name
+                              from all_constraints p, all_constraints c
+                              WHERE p.owner = SYS_CONTEXT('userenv', 'session_user')
+                              and p.owner = c.owner
+                              and c.table_name = '#{table_name}'
+                              and p.constraint_name = c.r_constraint_name
+                              and c.constraint_type = 'R'
+                              and p.constraint_type = 'P'
+                              and c.constraint_name like 'SYS_C%'")
+        if records.size == 0
+          raise "No default foreign key constraint found on #{table_name}"
+        end
+        records.each do |record|
+          new_constraint_name ||="#{quote_table_name("#{record["c_table_name"]}_#{record["p_table_name"]}_FK")}"
+          rename_constraint(table_name, record["constraint_name"], new_constraint_name)
+        end
+      end
+
+
       def add_column(table_name, column_name, type, options = {}) #:nodoc:
         add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
         add_column_options!(add_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
