@@ -300,6 +300,14 @@ describe "OracleEnhancedAdapter" do
         @logger.logged(:debug).last.should be_blank
       end
 
+      it "should cache that a table does not have a primary key" do
+        TestEmployee.connection.pk_and_sequence_for('no_such_table').should == nil
+        @logger.logged(:debug).last.should =~ /select .* from all_constraints/im
+        @logger.clear(:debug)
+        TestEmployee.connection.pk_and_sequence_for('no_such_table').should == nil
+        @logger.logged(:debug).last.should be_blank
+      end
+
     end
 
   end
