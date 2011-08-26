@@ -347,15 +347,16 @@ describe "OracleEnhancedAdapter schema dump" do
 
   describe 'virtual columns' do
     before(:all) do
-      oracle11g = @oracle11g
+      pending "Not supported in this database version" unless @oracle11g
       schema_define do
         create_table :test_names, :force => true do |t|
           t.string :first_name
           t.string :last_name
-          t.virtual :full_name, :default=>"first_name || ', ' || last_name" if oracle11g
+          t.virtual :full_name, :default=>"first_name || ', ' || last_name"
         end
       end
     end
+
     before(:each) do
       class ::TestName < ActiveRecord::Base
         if self.respond_to?(:table_name=)
@@ -373,12 +374,9 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it 'should dump correctly' do
-      pending "Not supported in this database version" unless @oracle11g
       standard_dump.should =~ /t.virtual "full_name",(\s*):limit => 512,(\s*):default => "/
     end
-
   end
 
 
 end
-
