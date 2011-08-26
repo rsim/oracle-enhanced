@@ -941,12 +941,13 @@ end
 
   describe 'virtual columns' do
     before(:all) do
+      pending "Not supported in this database version" unless @oracle11g
+      expr = "( numerator/NULLIF(denominator,0) )*100"
       schema_define do
-        @expr = "( numerator/NULLIF(denominator,0) )*100"
         create_table :test_fractions, :force => true do |t|
           t.integer :numerator, :default=>0
           t.integer :denominator, :default=>0
-          t.virtual :percent, :default=>@expr if @oracle11g
+          t.virtual :percent, :default=>expr
         end
       end
     end
@@ -963,7 +964,6 @@ end
     end
 
     it 'should include virtual columns and not try to update them' do
-      pending "Not supported in this database version" unless @oracle11g
       tf = TestFraction.columns.detect { |c| c.virtual? }
       tf.should_not be nil
       tf.name.should == "percent"
