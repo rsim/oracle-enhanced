@@ -373,10 +373,10 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it 'should dump correctly' do
-      standard_dump.should =~ /t.virtual "full_name",(\s*):limit => 512,(\s*):as => "/
-      standard_dump.should =~ /t.virtual "short_name",(\s*):limit => 300,(\s*):as => "/
-      standard_dump.should =~ /t.virtual "full_name_length",(\s*):precision => 38,(\s*):scale => 0,(\s*):as => "/
-      standard_dump.should =~ /t.virtual "abbrev_name",(\s*):limit => 100,(\s*):as => "/
+      standard_dump.should =~ /t.virtual "full_name",(\s*):limit => 512,(\s*):as =>(.*),(\s*):type => :string/
+      standard_dump.should =~ /t.virtual "short_name",(\s*):limit => 300,(\s*):as =>(.*),(\s*):type => :string/
+      standard_dump.should =~ /t.virtual "full_name_length",(\s*):precision => 38,(\s*):scale => 0,(\s*):as =>(.*),(\s*):type => :integer/
+      standard_dump.should =~ /t.virtual "abbrev_name",(\s*):limit => 100,(\s*):as =>(.*),(\s*):type => :string/
     end
   end
 
