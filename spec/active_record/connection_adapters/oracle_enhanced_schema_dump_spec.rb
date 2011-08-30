@@ -350,9 +350,12 @@ describe "OracleEnhancedAdapter schema dump" do
       pending "Not supported in this database version" unless @oracle11g
       schema_define do
         create_table :test_names, :force => true do |t|
-          t.string :first_name
-          t.string :last_name
-          t.virtual :full_name, :default=>"first_name || ', ' || last_name"
+          t.string  :first_name
+          t.string  :last_name
+          t.virtual :full_name,        :as => "first_name || ', ' || last_name"
+          t.virtual :short_name,       :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
+          t.virtual :abbrev_name,      :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
+          t.column  :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
         end
       end
     end
@@ -370,10 +373,12 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it 'should dump correctly' do
-      standard_dump.should =~ /t.virtual "full_name",(\s*):limit => 512,(\s*):default => "/
+      standard_dump.should =~ /t.virtual "full_name",(\s*):limit => 512,(\s*):as => "/
+      standard_dump.should =~ /t.virtual "short_name",(\s*):limit => 300,(\s*):as => "/
+      standard_dump.should =~ /t.virtual "full_name_length",(\s*):precision => 38,(\s*):scale => 0,(\s*):as => "/
+      standard_dump.should =~ /t.virtual "abbrev_name",(\s*):limit => 100,(\s*):as => "/
     end
   end
-
 
 end
 

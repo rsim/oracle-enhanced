@@ -19,8 +19,9 @@ module ActiveRecord
        end
 
       def to_sql_with_virtual_columns
-        if type==:virtual
-          "#{base.quote_column_name(name)} AS (#{default})"
+        if type == :virtual
+          sql_type = base.type_to_sql(default[:type], limit, precision, scale) if default[:type]
+          "#{base.quote_column_name(name)} #{sql_type} AS (#{default[:as]})"
         else
           to_sql_without_virtual_columns
         end
@@ -56,22 +57,34 @@ module ActiveRecord
         alias to_s :to_sql
       end
 
-      def raw(name, options={})
-        column(name, :raw, options)
-      end
-
       def self.included(base) #:nodoc:
         base.class_eval do
           alias_method_chain :references, :foreign_keys
           alias_method_chain :to_sql, :foreign_keys
 
-          def virtual(* args)
-            options = args.extract_options!
-            column_names = args
-            column_names.each { |name| column(name, :virtual, options) }
-          end
-
+          alias_method_chain :column, :virtual_columns
         end
+      end
+
+      def raw(name, options={})
+        column(name, :raw, options)
+      end
+
+      def virtual(* args)
+        options = args.extract_options!
+        column_names = args
+        column_names.each { |name| column(name, :virtual, options) }
+      end
+
+      def column_with_virtual_columns(name, type, options = {})
+        if type == :virtual
+          default = {
+            :as => options[:as],
+            :type => options[:type]
+          }
+          options[:default] = default
+        end
+        column_without_virtual_columns(name, type, options)
       end
     
       # Adds a :foreign_key option to TableDefinition.references.
