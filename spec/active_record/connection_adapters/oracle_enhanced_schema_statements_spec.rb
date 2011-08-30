@@ -1009,6 +1009,7 @@ end
         end
       end
     end
+
     before(:each) do
       class ::TestFraction < ActiveRecord::Base
         if self.respond_to?(:table_name=)
@@ -1032,12 +1033,49 @@ end
       tf.virtual?.should be true
       lambda do
         tf = TestFraction.new(:numerator=>20, :denominator=>100)
-        tf.percent.should==0 # not whatever is in DATA_DEFAULT column
+        tf.percent.should be nil # not whatever is in DATA_DEFAULT column
         tf.save!
         tf.reload
       end.should_not raise_error
       tf.percent.to_i.should == 20
     end
+
+    it 'should add virtual column' do
+      schema_define do
+        add_column :test_fractions, :rem, :virtual, :as => 'remainder(numerator, NULLIF(denominator,0))'
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'rem' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      lambda do
+        tf = TestFraction.new(:numerator=>7, :denominator=>5)
+        tf.rem.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.rem.to_i.should == 2
+    end
+
+    it 'should add virtual column with explicit type' do
+      schema_define do
+        add_column :test_fractions, :expression, :virtual, :as => "TO_CHAR(numerator) || '/' || TO_CHAR(denominator)", :type => :string, :limit => 100
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'expression' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      tf.type.should be :string
+      tf.limit.should be 100
+      lambda do
+        tf = TestFraction.new(:numerator=>7, :denominator=>5)
+        tf.expression.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.expression.should == '7/5'
+    end
+
   end
 
   describe "miscellaneous options" do
