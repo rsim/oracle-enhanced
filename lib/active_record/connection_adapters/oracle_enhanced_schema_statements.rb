@@ -204,9 +204,16 @@ module ActiveRecord
       end
 
       def add_column(table_name, column_name, type, options = {}) #:nodoc:
-        add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
+        if type.to_sym == :virtual
+          type = options[:type]
+        end
+        add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} "
+        add_column_sql << type_to_sql(type, options[:limit], options[:precision], options[:scale]) if type
+
         add_column_options!(add_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
-        add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name)
+
+        add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name) if type
+
         execute(add_column_sql)
       ensure
         clear_table_columns_cache(table_name)
