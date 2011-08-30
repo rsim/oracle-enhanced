@@ -176,18 +176,23 @@ module ActiveRecord #:nodoc:
             spec = {}
             spec[:name]      = column.name.inspect
             spec[:type]      = column.virtual? ? 'virtual' : column.type.to_s
+            spec[:type]      = column.virtual? ? 'virtual' : column.type.to_s
+            spec[:virtual_type] = column.type.to_s if column.virtual?
             spec[:limit]     = column.limit.inspect if column.limit != @types[column.type][:limit] && column.type != :decimal
             spec[:precision] = column.precision.inspect if !column.precision.nil?
             spec[:scale]     = column.scale.inspect if !column.scale.nil?
             spec[:null]      = 'false' if !column.null
-            spec[:default]   = column.virtual_column_data_default if column.virtual?
-            spec[:default] ||= default_string(column.default) if column.has_default?
-            (spec.keys - [:name, :type]).each{ |k| spec[k].insert(0, "#{k.inspect} => ")}
+            spec[:as]        = column.virtual_column_data_default if column.virtual?
+            spec[:default]   = default_string(column.default) if column.has_default? && !column.virtual?
+            (spec.keys - [:name, :type]).each do |k|
+              key_s = (k == :virtual_type ? ":type => " : "#{k.inspect} => ")
+              spec[k].insert(0, key_s)
+            end
             spec
           end.compact
 
           # find all migration keys used in this table
-          keys = [:name, :limit, :precision, :scale, :default, :null] & column_specs.map(&:keys).flatten
+          keys = [:name, :limit, :precision, :scale, :default, :null, :as, :virtual_type] & column_specs.map(&:keys).flatten
 
           # figure out the lengths for each column based on above keys
           lengths = keys.map{ |key| column_specs.map{ |spec| spec[key] ? spec[key].length + 2 : 0 }.max }

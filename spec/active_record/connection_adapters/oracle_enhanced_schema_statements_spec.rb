@@ -1005,7 +1005,7 @@ end
         create_table :test_fractions, :force => true do |t|
           t.integer :numerator, :default=>0
           t.integer :denominator, :default=>0
-          t.virtual :percent, :default=>expr
+          t.virtual :percent, :as => expr
         end
       end
     end
