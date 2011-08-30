@@ -249,10 +249,16 @@ module ActiveRecord
         if options.has_key?(:null) && options[:null] == column.null
           options[:null] = nil
         end
+        if type.to_sym == :virtual
+          type = options[:type]
+        end
+        change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} "
+        change_column_sql << "#{type_to_sql(type, options[:limit], options[:precision], options[:scale])}" if type
 
-        change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
         add_column_options!(change_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
-        change_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name])
+
+        change_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name]) if type
+
         execute(change_column_sql)
       ensure
         clear_table_columns_cache(table_name)
@@ -348,7 +354,7 @@ module ActiveRecord
 
         create_primary_key_trigger(table_name, options) if options[:primary_key_trigger]
       end
-      
+
       def create_primary_key_trigger(table_name, options)
         seq_name = options[:sequence_name] || default_sequence_name(table_name)
         trigger_name = options[:trigger_name] || default_trigger_name(table_name)
