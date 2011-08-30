@@ -1014,6 +1014,27 @@ end
       tf.expression.should == '7/5'
     end
 
+    it 'should change virtual columns' do
+      schema_define do
+        change_column :test_fractions, :percent, :virtual,
+          :as => "ROUND((numerator/NULLIF(denominator,0))*100, 2)", :type => :decimal, :precision => 15, :scale => 2
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'percent' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      tf.type.should be :decimal
+      tf.precision.should be 15
+      tf.scale.should be 2
+      lambda do
+        tf = TestFraction.new(:numerator=>11, :denominator=>17)
+        tf.percent.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.percent.should == 64.71
+    end
+
   end
 
   describe "miscellaneous options" do
