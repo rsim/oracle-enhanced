@@ -939,6 +939,52 @@ end
 
   end
 
+  describe 'virtual columns in create_table' do
+    before(:all) do
+      pending "Not supported in this database version" unless @oracle11g
+    end
+
+    it 'should create virtual column with old syntax' do
+      schema_define do
+        create_table :test_fractions, :force => true do |t|
+          t.integer :field1
+          t.virtual :field2, :default => 'field1 + 1'
+        end
+      end
+      class ::TestFraction < ActiveRecord::Base
+        set_table_name "test_fractions"
+      end
+
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.virtual? }
+      tf.should_not be nil
+      tf.name.should == "field2"
+      tf.virtual?.should be true
+      lambda do
+        tf = TestFraction.new(:field1=>10)
+        tf.field2.should be nil # not whatever is in DATA_DEFAULT column
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.field2.to_i.should == 11
+
+      schema_define do
+        drop_table :test_fractions
+      end
+    end
+
+    it 'should raise error if column expression is not provided' do
+      lambda {
+        schema_define do
+          create_table :test_fractions do |t|
+            t.integer :field1
+            t.virtual :field2
+          end
+        end
+      }.should raise_error
+    end
+  end
+
   describe 'virtual columns' do
     before(:all) do
       pending "Not supported in this database version" unless @oracle11g
@@ -956,6 +1002,7 @@ end
       class ::TestFraction < ActiveRecord::Base
         set_table_name "test_fractions"
       end
+      TestFraction.reset_column_information
     end
 
     after(:each) do
