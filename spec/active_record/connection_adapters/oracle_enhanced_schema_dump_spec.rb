@@ -378,6 +378,27 @@ describe "OracleEnhancedAdapter schema dump" do
       standard_dump.should =~ /t.virtual "full_name_length",(\s*):precision => 38,(\s*):scale => 0,(\s*):as =>(.*),(\s*):type => :integer/
       standard_dump.should =~ /t.virtual "abbrev_name",(\s*):limit => 100,(\s*):as =>(.*),(\s*):type => :string/
     end
+
+    context 'with column cache' do
+      before(:all) do
+        @old_cache = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
+      end
+      after(:all) do
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = @old_cache
+      end
+      it 'should not change column defaults after several dumps' do
+        col = TestName.columns.detect{|c| c.name == 'full_name'}
+        col.should_not be_nil
+        col.virtual_column_data_default.should_not =~ /:as/
+
+        standard_dump
+        col.virtual_column_data_default.should_not =~ /:as/
+
+        standard_dump
+        col.virtual_column_data_default.should_not =~ /:as/
+      end
+    end
   end
 
 end
