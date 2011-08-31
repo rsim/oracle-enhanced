@@ -347,14 +347,19 @@ describe "OracleEnhancedAdapter schema dump" do
 
   describe 'virtual columns' do
     before(:all) do
+      pending "Not supported in this database version" unless @oracle11g
       schema_define do
         create_table :test_names, :force => true do |t|
-          t.string :first_name
-          t.string :last_name
-          t.virtual :full_name, :default=>"first_name || ', ' || last_name" if @oracle11g
+          t.string  :first_name
+          t.string  :last_name
+          t.virtual :full_name,        :as => "first_name || ', ' || last_name"
+          t.virtual :short_name,       :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
+          t.virtual :abbrev_name,      :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
+          t.column  :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
         end
       end
     end
+
     before(:each) do
       class ::TestName < ActiveRecord::Base
         set_table_name "test_names"
@@ -368,12 +373,33 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it 'should dump correctly' do
-      pending "Not supported in this database version" unless @oracle11g
-      standard_dump.should =~ /t.virtual "full_name",(\s*):limit => 512,(\s*):default => "/
+      standard_dump.should =~ /t.virtual "full_name",(\s*):limit => 512,(\s*):as =>(.*),(\s*):type => :string/
+      standard_dump.should =~ /t.virtual "short_name",(\s*):limit => 300,(\s*):as =>(.*),(\s*):type => :string/
+      standard_dump.should =~ /t.virtual "full_name_length",(\s*):precision => 38,(\s*):scale => 0,(\s*):as =>(.*),(\s*):type => :integer/
+      standard_dump.should =~ /t.virtual "abbrev_name",(\s*):limit => 100,(\s*):as =>(.*),(\s*):type => :string/
     end
 
-  end
+    context 'with column cache' do
+      before(:all) do
+        @old_cache = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
+      end
+      after(:all) do
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = @old_cache
+      end
+      it 'should not change column defaults after several dumps' do
+        col = TestName.columns.detect{|c| c.name == 'full_name'}
+        col.should_not be_nil
+        col.virtual_column_data_default.should_not =~ /:as/
 
+        standard_dump
+        col.virtual_column_data_default.should_not =~ /:as/
+
+        standard_dump
+        col.virtual_column_data_default.should_not =~ /:as/
+      end
+    end
+  end
 
 end
 

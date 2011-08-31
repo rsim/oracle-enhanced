@@ -939,42 +939,167 @@ end
 
   end
 
-  describe 'virtual columns' do
+  describe 'virtual columns in create_table' do
     before(:all) do
+      pending "Not supported in this database version" unless @oracle11g
+    end
+
+    it 'should create virtual column with old syntax' do
       schema_define do
-        @expr = "( numerator/NULLIF(denominator,0) )*100"
         create_table :test_fractions, :force => true do |t|
-          t.integer :numerator, :default=>0
-          t.integer :denominator, :default=>0
-          t.virtual :percent, :default=>@expr if @oracle11g
+          t.integer :field1
+          t.virtual :field2, :default => 'field1 + 1'
         end
       end
-    end
-    before(:each) do
       class ::TestFraction < ActiveRecord::Base
         set_table_name "test_fractions"
       end
+
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.virtual? }
+      tf.should_not be nil
+      tf.name.should == "field2"
+      tf.virtual?.should be true
+      lambda do
+        tf = TestFraction.new(:field1=>10)
+        tf.field2.should be nil # not whatever is in DATA_DEFAULT column
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.field2.to_i.should == 11
+
+      schema_define do
+        drop_table :test_fractions
+      end
     end
 
-    after(:all) do
+    it 'should raise error if column expression is not provided' do
+      lambda {
+        schema_define do
+          create_table :test_fractions do |t|
+            t.integer :field1
+            t.virtual :field2
+          end
+        end
+      }.should raise_error
+    end
+  end
+
+  describe 'virtual columns' do
+    before(:all) do
+      pending "Not supported in this database version" unless @oracle11g
+    end
+
+    before(:each) do
+      expr = "( numerator/NULLIF(denominator,0) )*100"
+      schema_define do
+        create_table :test_fractions, :force => true do |t|
+          t.integer :numerator, :default=>0
+          t.integer :denominator, :default=>0
+          t.virtual :percent, :as => expr
+        end
+      end
+      class ::TestFraction < ActiveRecord::Base
+        set_table_name "test_fractions"
+      end
+      TestFraction.reset_column_information
+    end
+
+    after(:each) do
       schema_define do
         drop_table :test_fractions
       end
     end
 
     it 'should include virtual columns and not try to update them' do
-      pending "Not supported in this database version" unless @oracle11g
       tf = TestFraction.columns.detect { |c| c.virtual? }
       tf.should_not be nil
       tf.name.should == "percent"
       tf.virtual?.should be true
       lambda do
         tf = TestFraction.new(:numerator=>20, :denominator=>100)
-        tf.percent.should==0 # not whatever is in DATA_DEFAULT column
+        tf.percent.should be nil # not whatever is in DATA_DEFAULT column
         tf.save!
         tf.reload
       end.should_not raise_error
       tf.percent.to_i.should == 20
+    end
+
+    it 'should add virtual column' do
+      schema_define do
+        add_column :test_fractions, :rem, :virtual, :as => 'remainder(numerator, NULLIF(denominator,0))'
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'rem' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      lambda do
+        tf = TestFraction.new(:numerator=>7, :denominator=>5)
+        tf.rem.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.rem.to_i.should == 2
+    end
+
+    it 'should add virtual column with explicit type' do
+      schema_define do
+        add_column :test_fractions, :expression, :virtual, :as => "TO_CHAR(numerator) || '/' || TO_CHAR(denominator)", :type => :string, :limit => 100
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'expression' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      tf.type.should be :string
+      tf.limit.should be 100
+      lambda do
+        tf = TestFraction.new(:numerator=>7, :denominator=>5)
+        tf.expression.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.expression.should == '7/5'
+    end
+
+    it 'should change virtual column definition' do
+      schema_define do
+        change_column :test_fractions, :percent, :virtual,
+          :as => "ROUND((numerator/NULLIF(denominator,0))*100, 2)", :type => :decimal, :precision => 15, :scale => 2
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'percent' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      tf.type.should be :decimal
+      tf.precision.should be 15
+      tf.scale.should be 2
+      lambda do
+        tf = TestFraction.new(:numerator=>11, :denominator=>17)
+        tf.percent.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.percent.should == 64.71
+    end
+
+    it 'should change virtual column type' do
+      schema_define do
+        change_column :test_fractions, :percent, :virtual, :type => :decimal, :precision => 12, :scale => 5
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'percent' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      tf.type.should be :decimal
+      tf.precision.should be 12
+      tf.scale.should be 5
+      lambda do
+        tf = TestFraction.new(:numerator=>11, :denominator=>17)
+        tf.percent.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.percent.should == 64.70588
     end
   end
 
