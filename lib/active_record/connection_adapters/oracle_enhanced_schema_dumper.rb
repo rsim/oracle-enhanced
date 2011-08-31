@@ -186,7 +186,7 @@ module ActiveRecord #:nodoc:
             spec[:default]   = default_string(column.default) if column.has_default? && !column.virtual?
             (spec.keys - [:name, :type]).each do |k|
               key_s = (k == :virtual_type ? ":type => " : "#{k.inspect} => ")
-              spec[k].insert(0, key_s)
+              spec[k] = key_s + spec[k]
             end
             spec
           end.compact
