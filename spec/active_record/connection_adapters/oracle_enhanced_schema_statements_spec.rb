@@ -943,6 +943,7 @@ end
     before(:all) do
       schema_define do
         @expr = "( numerator/NULLIF(denominator,0) )*100"
+        @oracle11g = !! ActiveRecord::Base.connection.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
         create_table :test_fractions, :force => true do |t|
           t.integer :numerator, :default=>0
           t.integer :denominator, :default=>0

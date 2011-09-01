@@ -348,6 +348,7 @@ describe "OracleEnhancedAdapter schema dump" do
   describe 'virtual columns' do
     before(:all) do
       schema_define do
+        @oracle11g = !! ActiveRecord::Base.connection.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
         create_table :test_names, :force => true do |t|
           t.string :first_name
           t.string :last_name
