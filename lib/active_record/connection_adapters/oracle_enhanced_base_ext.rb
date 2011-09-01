@@ -78,18 +78,24 @@ module ActiveRecord
     def self.table_comment
       connection.table_comment(self.table_name)
     end
-    
+
+    def self.virtual_columns
+      columns.select do |column|
+        column.respond_to?(:virtual?) && column.virtual?
+      end
+    end
+
     if ActiveRecord::VERSION::MAJOR < 3
       def attributes_with_quotes_with_virtual_columns(include_primary_key = true, include_readonly_attributes = true, attribute_names = @attributes.keys)
-        virtual_columns = self.class.columns.select(& :virtual?).map(&:name)
-        attributes_with_quotes_without_virtual_columns(include_primary_key, include_readonly_attributes, attribute_names - virtual_columns)
+        virtual_column_names = self.class.virtual_columns.map(&:name)
+        attributes_with_quotes_without_virtual_columns(include_primary_key, include_readonly_attributes, attribute_names - virtual_column_names)
       end
 
       alias_method_chain :attributes_with_quotes, :virtual_columns
     else
       def arel_attributes_values_with_virtual_columns(include_primary_key = true, include_readonly_attributes = true, attribute_names = @attributes.keys)
-        virtual_columns = self.class.columns.select(& :virtual?).map(&:name)
-        arel_attributes_values_without_virtual_columns(include_primary_key, include_readonly_attributes, attribute_names - virtual_columns)
+        virtual_column_names = self.class.virtual_columns.map(&:name)
+        arel_attributes_values_without_virtual_columns(include_primary_key, include_readonly_attributes, attribute_names - virtual_column_names)
       end
 
       alias_method_chain :arel_attributes_values, :virtual_columns
