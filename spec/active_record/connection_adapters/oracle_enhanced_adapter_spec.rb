@@ -668,4 +668,40 @@ describe "OracleEnhancedAdapter" do
 
   end if ENV['RAILS_GEM_VERSION'] >= '3.1'
 
+  describe "with prepared statements" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        drop_table :test_posts rescue nil
+        create_table :test_posts
+      end
+      class ::TestPost < ActiveRecord::Base
+      end
+      @statements = @conn.instance_variable_get(:@statements)
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_posts
+      end
+      Object.send(:remove_const, "TestPost")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should cache UPDATE statements with bind variables" do
+      lambda {
+        pk = TestPost.columns.find { |c| c.primary }
+        sub = @conn.substitute_at(pk, 0)
+        binds = [[@pk, 1]]
+        @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
+      }.should change(@statements, :size).by(+1)
+    end
+
+    it "should not cache UPDATE statements without bind variables" do
+      lambda {
+        binds = []
+        @conn.exec_update("UPDATE test_posts SET id = 1", "SQL", binds)
+      }.should_not change(@statements, :size)
+    end
+  end if ENV['RAILS_GEM_VERSION'] >= '3.1'
 end

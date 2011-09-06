@@ -682,18 +682,26 @@ module ActiveRecord
       # New method in ActiveRecord 3.1
       def exec_update(sql, name, binds)
         log(sql, name, binds) do
-          cursor = if @statements.key?(sql)
-            @statements[sql]
+          cached = false
+          if binds.empty?
+            cursor = @connection.prepare(sql)
           else
-            @statements[sql] = @connection.prepare(sql)
+            cursor = if @statements.key?(sql)
+              @statements[sql]
+            else
+              @statements[sql] = @connection.prepare(sql)
+            end
+
+            binds.each_with_index do |bind, i|
+              col, val = bind
+              cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
+            end
+            cached = true
           end
 
-          binds.each_with_index do |bind, i|
-            col, val = bind
-            cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
-          end
-
-          cursor.exec_update
+          res = cursor.exec_update
+          cursor.close unless cached
+          res
         end
       end
 
