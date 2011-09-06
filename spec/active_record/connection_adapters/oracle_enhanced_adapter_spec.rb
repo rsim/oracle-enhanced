@@ -692,7 +692,7 @@ describe "OracleEnhancedAdapter" do
       lambda {
         pk = TestPost.columns.find { |c| c.primary }
         sub = @conn.substitute_at(pk, 0)
-        binds = [[@pk, 1]]
+        binds = [[pk, 1]]
         @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
       }.should change(@statements, :size).by(+1)
     end
