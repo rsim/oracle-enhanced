@@ -263,6 +263,21 @@ There are several additional schema statements and data types available that you
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces =
           {:clob => 'TS_LOB', :blob => 'TS_LOB', :index => 'TS_INDEX', :table => 'TS_DATA'}
 
+### db:create and db:drop Rake Tasks
+
+You can use the `db:create` and `db:drop` rake tasks to prepare and destroy your schemas, respectively. If you have access to the SYSTEM account, these tasks will prompt you for its password. If not, add a `dbauser` entry to your database config file to specify the account to use for creating the new user and granting its initial permissions. For example:
+
+    development:
+      adapter: oracle_enhanced
+      database: xe
+      username: user
+      password: secret
+      dbauser: anotheruser
+
+Note that `db:create` first attempts to drop an existing user, so this is a convenient way to start your schema fresh.
+
+In many cases, in addition to creating your application user you will need to perform additional schema setup with elevated permissions as part of `db:create`. For example, you might need to create a DB Link or a set of public synonyms, but you don't want your app id to have access to create these objects. To accomodate this as part of the `db:create` process, any `*.sql` file found in the `db/` folder will be executed. These files expect one SQL command per line and will be run under the SYSTEM/dbauser account. Files will be processed in alphanumeric order.
+
 TROUBLESHOOTING
 ---------------
 
