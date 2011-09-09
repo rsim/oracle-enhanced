@@ -235,10 +235,46 @@ module ActiveRecord
       cattr_accessor :string_to_time_format
       self.string_to_time_format = nil
 
-      def initialize(connection, logger = nil) #:nodoc:
-        super
+      class StatementPool
+        include Enumerable
+
+        def initialize(connection, max = 300)
+          @connection = connection
+          @max        = max
+          @cache      = Hash.new { |h,pid| h[pid] = {} }
+        end
+
+        def each(&block); cache.each(&block); end
+        def key?(key);    cache.key?(key); end
+        def [](key);      cache[key]; end
+        def length;       cache.length; end
+        def delete(key);  cache.delete(key); end
+
+        def []=(sql, key)
+          while @max <= cache.size
+            cache.shift.last.close
+          end
+          cache[sql] = key
+        end
+
+        def clear
+          cache.values.each do |cursor|
+            cursor.close
+          end
+          cache.clear
+        end
+
+        private
+        def cache
+          @cache[$$]
+        end
+      end
+
+      def initialize(connection, logger, config) #:nodoc:
+        super(connection, logger)
         @quoted_column_names, @quoted_table_names = {}, {}
-        @statements = {}
+        @config = config
+        @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 300 })
         @enable_dbms_output = false
       end
 
@@ -563,9 +599,6 @@ module ActiveRecord
       end
 
       def clear_cache!
-        @statements.each_value do |cursor|
-          cursor.close
-        end
         @statements.clear
       end
 

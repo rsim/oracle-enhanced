@@ -668,7 +668,7 @@ describe "OracleEnhancedAdapter" do
 
   end if ENV['RAILS_GEM_VERSION'] >= '3.1'
 
-  describe "with prepared statements" do
+  describe "with statements pool" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
       schema_define do
@@ -688,20 +688,36 @@ describe "OracleEnhancedAdapter" do
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
+    it "should cache per pid" do
+      pending 'must support fork' unless Process.respond_to?(:fork)
+
+      cache = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::StatementPool.new nil, 10
+      cache['foo'] = 'bar'
+      cache['foo'].should == 'bar'
+
+      pid = fork {
+        lookup = cache['foo'];
+        exit!(!lookup)
+      }
+
+      Process.waitpid pid
+      $?.should be_success
+    end
+
     it "should cache UPDATE statements with bind variables" do
       lambda {
         pk = TestPost.columns.find { |c| c.primary }
         sub = @conn.substitute_at(pk, 0)
         binds = [[pk, 1]]
         @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
-      }.should change(@statements, :size).by(+1)
+      }.should change(@statements, :length).by(+1)
     end
 
     it "should not cache UPDATE statements without bind variables" do
       lambda {
         binds = []
         @conn.exec_update("UPDATE test_posts SET id = 1", "SQL", binds)
-      }.should_not change(@statements, :size)
+      }.should_not change(@statements, :length)
     end
   end if ENV['RAILS_GEM_VERSION'] >= '3.1'
 end

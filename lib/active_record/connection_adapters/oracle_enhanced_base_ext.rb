@@ -7,10 +7,10 @@ module ActiveRecord
         # conditionals in the rails activerecord test suite
         require 'active_record/connection_adapters/emulation/oracle_adapter'
         ConnectionAdapters::OracleAdapter.new(
-          ConnectionAdapters::OracleEnhancedConnection.create(config), logger)
+          ConnectionAdapters::OracleEnhancedConnection.create(config), logger, config)
       else
         ConnectionAdapters::OracleEnhancedAdapter.new(
-          ConnectionAdapters::OracleEnhancedConnection.create(config), logger)
+          ConnectionAdapters::OracleEnhancedConnection.create(config), logger, config)
       end
     end
 
