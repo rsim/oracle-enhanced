@@ -222,15 +222,13 @@ module ActiveRecord
 
       def rename_default_primary_key(table_name)
         table_name.upcase!
-        constraint_name = select_value("SELECT constraint_name from all_constraints 
-                                       WHERE owner = SYS_CONTEXT('userenv', 'session_user') 
-                                       and table_name = '#{table_name}' and constraint_type = 'P' 
-                                       and constraint_name like 'SYS_C%'",constraint_name)
-        index_name ||=select_value("SELECT index_name from all_constraints 
-                                   WHERE owner = SYS_CONTEXT('userenv', 'session_user') 
-                                   and table_name = '#{table_name}' and constraint_type = 'P' 
-                                   and constraint_name like 'SYS_C%' 
-                                   and index_name = constraint_name",index_name)
+        record = select_one("SELECT constraint_name,index_name from all_constraints 
+                             WHERE owner = SYS_CONTEXT('userenv', 'session_user') 
+                             and table_name = '#{table_name}' and constraint_type = 'P' 
+                             and constraint_name like 'SYS_C%'
+                             and index_name = constraint_name")
+        constraint_name = record["constraint_name"]
+        index_name = record["index_name"]
         if constraint_name == nil
           raise "No default primary key constraint found on #{table_name}"
         end
