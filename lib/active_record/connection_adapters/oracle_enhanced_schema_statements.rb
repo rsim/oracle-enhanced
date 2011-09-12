@@ -289,9 +289,14 @@ module ActiveRecord
       def reset_sequence!(table_name, column_name, sequence_name = nil)
         table_name.downcase!
         if "#{quote_column_name(column_name)}" == "#{quote_column_name(table_name.classify.constantize.primary_key)}"
-          # Increase by default_sequence_start_value.
-          new_start_value = table_name.classify.constantize.maximum(column_name).to_i + default_sequence_start_value
           sequence_name ||="#{quote_table_name("#{table_name}_seq")}"
+          cache_size = select_value("
+            SELECT cache_size FROM all_sequences
+            WHERE sequence_owner = SYS_CONTEXT('userenv', 'session_user')
+            AND sequence_name = '#{sequence_name}'",cache_size)
+          # Increase by current sequence cache_size.
+          new_start_value = table_name.classify.constantize.maximum(column_name).to_i + cache_size.to_i
+          new_start_value += 1 if new_start_value == 0
           execute ("DROP SEQUENCE #{quote_table_name(sequence_name)}")
           execute ("CREATE SEQUENCE #{quote_table_name(sequence_name)} START WITH #{new_start_value}")
         else
