@@ -15,18 +15,35 @@ def redefine_task(*args, &block)
   end
 end
 
+# Initial roles to be granted to a user
+INITIAL_PRIVILEGES = ['create session', 'create table', 'create sequence', 'unlimited tablespace']
+
 # Creates database user with db:create
 def create_database_with_oracle_enhanced(config)
   if config['adapter'] == 'oracle_enhanced'
-    print "Please provide the SYSTEM password for your oracle installation\n>"
-    system_password = $stdin.gets.strip
-    ActiveRecord::Base.establish_connection(config.merge('username' => 'SYSTEM', 'password' => system_password))
+    establish_dba_connection config
     ActiveRecord::Base.connection.execute "DROP USER #{config['username']} CASCADE" rescue nil
     ActiveRecord::Base.connection.execute "CREATE USER #{config['username']} IDENTIFIED BY #{config['password']}"
-    ActiveRecord::Base.connection.execute "GRANT unlimited tablespace TO #{config['username']}"
-    ActiveRecord::Base.connection.execute "GRANT create session TO #{config['username']}"
-    ActiveRecord::Base.connection.execute "GRANT create table TO #{config['username']}"
-    ActiveRecord::Base.connection.execute "GRANT create sequence TO #{config['username']}"
+    INITIAL_PRIVILEGES.each do |privilege|
+      print "Granting #{privilege} to #{config['username']}\n"
+      begin
+        ActiveRecord::Base.connection.execute "GRANT #{privilege} TO #{config['username']}"
+      rescue
+        print "  Unable to grant this privilege\n"
+      end        
+    end
+
+    # Process initial SQL scripts required to set up the application user e.g. other roles and permissions. 
+    # There can be one SQL command per line. These scripts can reference the following metavariables:
+    # * $APP_USER: represents the application user id
+    Dir["db/*.sql"].sort.each do |filename|
+      print "Processing SQL in #{filename}\n"
+      File.open(filename).each_line.map(&:strip).reject(&:empty?).each do |line|
+        line.gsub!("$APP_USER", config['username'])
+        print "  #{line}\n" 
+        ActiveRecord::Base.connection.execute line
+      end
+    end
   else
     create_database_without_oracle_enhanced(config)
   end
@@ -37,9 +54,7 @@ alias :create_database :create_database_with_oracle_enhanced
 # Drops database user with db:drop
 def drop_database_with_oracle_enhanced(config)
   if config['adapter'] == 'oracle_enhanced'
-    print "Please provide the SYSTEM password for your oracle installation\n>"
-    system_password = $stdin.gets.strip
-    ActiveRecord::Base.establish_connection(config.merge('username' => 'SYSTEM', 'password' => system_password))
+    establish_dba_connection config
     ActiveRecord::Base.connection.execute "DROP USER #{config['username']} CASCADE"
   else
     drop_database_without_oracle_enhanced(config)
@@ -47,6 +62,15 @@ def drop_database_with_oracle_enhanced(config)
 end
 alias :drop_database_without_oracle_enhanced :drop_database
 alias :drop_database :drop_database_with_oracle_enhanced
+
+require 'highline/import' # For password prompt
+
+# Prompt for DBA user credentials. Defaults to SYSTEM if dbauser not specified in database config file.
+def establish_dba_connection(config)
+  dbauser = config['dbauser'] || 'SYSTEM'
+  pw = ask("Please enter the password for #{dbauser.upcase}") {|q| q.echo = false}
+  ActiveRecord::Base.establish_connection(config.merge('username' => dbauser, 'password' => pw))
+end
 
 namespace :db do
 

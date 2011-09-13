@@ -7,6 +7,10 @@ If you are on a Mac OS X 10.6 then use [these instructions](http://blog.rayapps.
 
 If you are on Linux (or will use Linux virtual machine) and need Oracle DB just for running tests then Oracle DB XE edition is enough. See [Oracle XE downloads page](http://www.oracle.com/technetwork/database/express-edition/downloads/index.html) for download links and instructions.
 
+Create your database using the Unicode (AL32UTF8) database character set.
+
+If your database exists on a remote server, ensure that the server can resolve the database name otherwise the DB Link tests will fail. You may need to edit the server's TNSNAMES.ORA file.
+
 If you are getting ORA-12520 errors when running tests then it means that Oracle cannot create enough processes to handle many connections (as during tests many connections are created and destroyed). In this case you need to log in as SYSTEM user and execute e.g.
 
     alter system set processes=200 scope=spfile;
@@ -35,6 +39,10 @@ Running tests
 * Set RAILS_GEM_VERSION to Rails version that you would like to use in oracle_enhanced tests, e.g.
 
         export RAILS_GEM_VERSION=3.0.3
+
+* Set NLS_LANG to handle Unicode tests, for example:
+
+		export NLS_LANG=AMERICAN_AMERICA.UTF8
 
 * Install necessary gems with
 
