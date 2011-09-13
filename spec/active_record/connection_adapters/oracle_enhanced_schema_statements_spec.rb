@@ -519,41 +519,6 @@ end
     before(:each) do
       @conn = ActiveRecord::Base.connection
       schema_define do
-        create_table :keyboards, :force => true, :id => false do |t|
-          t.string      :name
-        end
-      end
-    end
-
-    after(:each) do
-      schema_define do
-        drop_table :keyboards rescue nil
-      end
-    end
-
-    it "should raise error when default primary key name does not exist" do
-      lambda do
-        @conn.rename_default_primary_key("KEYBOARDS")
-      end.should raise_error
-    end
-
-    it "should raise error when default foreign key name does not exist" do
-      lambda do
-        @conn.rename_default_foreign_key("KEYBOARDS")
-      end.should raise_error
-    end
-
-    it "should raise error when table does not exist" do
-      lambda do
-        @conn.rename_default_foreign_key("NONEXIST_KEYBOARDS")
-      end.should raise_error
-    end
-  end
-
-  describe "rename default primary key and foreign key name" do
-    before(:each) do
-      @conn = ActiveRecord::Base.connection
-      schema_define do
         create_table :test_posts, :force => true do |t|
           t.string :title
         end
@@ -639,6 +604,64 @@ end
       lambda do
         @conn.rename_default_foreign_key("nonexist_table_name")
       end.should raise_error
+    end
+  end
+
+  describe "rename default primary key and multiple foreign keys name" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        drop_table :order_items rescue nil
+        drop_table :orders rescue nil
+        drop_table :products rescue nil
+        create_table :products do |t|
+          t.string :product_name
+        end
+        create_table :orders do |t|
+          t.string :shipping_address, :limit => 4000
+        end
+        create_table :order_items do |t|
+          t.integer :quantity
+          t.references :product, :foreign_key => true
+          t.integer :product_id
+          t.references :order, :foreign_key => true
+          t.integer :order_id
+        end
+      end
+      class ::Product < ActiveRecord::Base
+        has_many :order_items
+      end
+      class ::Order < ActiveRecord::Base
+        has_many :order_items
+      end
+      class ::OrderItems < ActiveRecord::Base
+        belongs_to :product
+        belongs_to :order
+      end
+    end
+
+    after(:each) do
+      Object.send(:remove_const, "Product")
+      Object.send(:remove_const, "Order")
+      Object.send(:remove_const, "OrderItems")
+      schema_define do
+        drop_table :order_items rescue nil
+        drop_table :orders rescue nil
+        drop_table :products rescue nil
+      end
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should rename multiple foreign keys name of referencing table in UPPERCASE" do
+      lambda do
+        @conn.rename_default_foreign_key("ORDER_ITEMS")
+      end.should_not raise_error
+    end
+
+    it "should rename multiple foreign keys name of referencing table in lowercase" do
+      lambda do
+        @conn.rename_default_foreign_key("order_items")
+      end.should_not raise_error
     end
   end
 

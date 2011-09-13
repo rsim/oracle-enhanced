@@ -222,6 +222,9 @@ module ActiveRecord
 
       def rename_default_primary_key(table_name)
         table_name.upcase!
+        unless table_exists?(table_name)
+          raise ArgumentError, "Table name '#{table_name} does not exist"
+        end
         record = select_one("SELECT constraint_name,index_name from all_constraints 
                              WHERE owner = SYS_CONTEXT('userenv', 'session_user') 
                              and table_name = '#{table_name}' and constraint_type = 'P' 
@@ -243,15 +246,23 @@ module ActiveRecord
         unless table_exists?(table_name)
           raise ArgumentError, "Table name '#{table_name} does not exist"
         end
-        constraint_name = select_value("SELECT constraint_name from all_constraints 
-                                        WHERE owner = SYS_CONTEXT('userenv', 'session_user') 
-                                        and table_name = '#{table_name}' and constraint_type = 'R' 
-                                        and constraint_name like 'SYS_C%'",constraint_name)
-        if constraint_name == nil
+        records = select_all("SELECT c.table_name as c_table_name,
+                              c.constraint_name,p.table_name as p_table_name
+                              from all_constraints p, all_constraints c
+                              WHERE p.owner = SYS_CONTEXT('userenv', 'session_user')
+                              and p.owner = c.owner
+                              and c.table_name = '#{table_name}'
+                              and p.constraint_name = c.r_constraint_name
+                              and c.constraint_type = 'R'
+                              and p.constraint_type = 'P'
+                              and c.constraint_name like 'SYS_C%'")
+        if records.size == 0
           raise "No default foreign key constraint found on #{table_name}"
         end
-        new_constraint_name ||="#{quote_table_name("#{table_name}_FK")}"
-        rename_constraint(table_name, constraint_name, new_constraint_name)
+        records.each do |record|
+          new_constraint_name ||="#{quote_table_name("#{record["c_table_name"]}_#{record["p_table_name"]}_FK")}"
+          rename_constraint(table_name, record["constraint_name"], new_constraint_name)
+        end
       end
 
 
