@@ -259,6 +259,74 @@ describe "OracleEnhancedAdapter schema definition" do
     end
   end
 
+  describe "reset sequence with non default sequence options" do
+    def create_test_employees_table(sequence_start_value = nil)
+      schema_define do
+        create_table :test_employees, sequence_start_value ? {:sequence_start_value => sequence_start_value} : {} do |t|
+          t.string      :first_name
+          t.string      :last_name
+        end
+      end
+    end
+
+    def save_default_sequence_start_value
+      @saved_sequence_start_value = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value
+    end
+
+    def restore_default_sequence_start_value
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = @saved_sequence_start_value
+    end
+
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+
+    before(:each) do
+      save_default_sequence_start_value
+    end
+
+    after(:each) do
+      restore_default_sequence_start_value
+      schema_define do
+        drop_table :test_employees
+      end
+      Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should reuse specified default sequence start value" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 1
+
+      create_test_employees_table
+      class ::TestEmployee < ActiveRecord::Base; end
+
+      employee = TestEmployee.create!
+      employee.id.should == 1
+
+      @conn.reset_sequence!("TEST_EMPLOYEES","ID")
+
+      new_employee = TestEmployee.create!
+      new_employee.id.should == 21
+    end
+
+    it "should reuse sequence start value and other options from table definition" do
+      create_test_employees_table("100 NOCACHE INCREMENT BY 10")
+      class ::TestEmployee < ActiveRecord::Base; end
+      
+      employee = TestEmployee.create!
+      employee.id.should == 100
+
+      @conn.reset_sequence!("TEST_EMPLOYEES","ID")
+
+      new_employee = TestEmployee.create!
+      new_employee.id.should == 101
+
+      new_employee = TestEmployee.create!
+      new_employee.id.should == 111
+
+    end
+  end
+
   describe "create table with primary key trigger" do
     def create_table_with_trigger(options = {})
       options.merge! :primary_key_trigger => true, :force => true
