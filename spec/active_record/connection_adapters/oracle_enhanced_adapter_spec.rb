@@ -668,8 +668,9 @@ describe "OracleEnhancedAdapter" do
 
   end if ENV['RAILS_GEM_VERSION'] >= '3.1'
 
-  describe "with statements pool" do
+  describe "with statement pool" do
     before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(:statement_limit => 3))
       @conn = ActiveRecord::Base.connection
       schema_define do
         drop_table :test_posts rescue nil
@@ -680,12 +681,28 @@ describe "OracleEnhancedAdapter" do
       @statements = @conn.instance_variable_get(:@statements)
     end
 
+    before(:each) do
+      @conn.clear_cache!
+    end
+
     after(:all) do
       schema_define do
         drop_table :test_posts
       end
       Object.send(:remove_const, "TestPost")
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should clear older cursors when statement limit is reached" do
+      pk = TestPost.columns.find { |c| c.primary }
+      sub = @conn.substitute_at(pk, 0)
+      binds = [[pk, 1]]
+
+      lambda {
+        4.times do |i|
+          @conn.exec_query("SELECT * FROM test_posts WHERE #{i}=#{i} AND id = #{sub}", "SQL", binds)
+        end
+      }.should change(@statements, :length).by(+3)
     end
 
     it "should cache UPDATE statements with bind variables" do
