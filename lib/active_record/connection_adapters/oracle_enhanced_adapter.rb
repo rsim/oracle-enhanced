@@ -241,32 +241,27 @@ module ActiveRecord
         def initialize(connection, max = 300)
           @connection = connection
           @max        = max
-          @cache      = Hash.new { |h,pid| h[pid] = {} }
+          @cache      = {}
         end
 
-        def each(&block); cache.each(&block); end
-        def key?(key);    cache.key?(key); end
-        def [](key);      cache[key]; end
-        def length;       cache.length; end
-        def delete(key);  cache.delete(key); end
+        def each(&block); @cache.each(&block); end
+        def key?(key);    @cache.key?(key); end
+        def [](key);      @cache[key]; end
+        def length;       @cache.length; end
+        def delete(key);  @cache.delete(key); end
 
         def []=(sql, key)
-          while @max <= cache.size
-            cache.shift.last.close
+          while @max <= @cache.size
+            @cache.shift.last.close
           end
-          cache[sql] = key
+          @cache[sql] = key
         end
 
         def clear
-          cache.values.each do |cursor|
+          @cache.values.each do |cursor|
             cursor.close
           end
-          cache.clear
-        end
-
-        private
-        def cache
-          @cache[$$]
+          @cache.clear
         end
       end
 

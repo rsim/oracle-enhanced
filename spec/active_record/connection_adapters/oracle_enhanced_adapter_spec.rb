@@ -688,22 +688,6 @@ describe "OracleEnhancedAdapter" do
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
-    it "should cache per pid" do
-      pending 'must support fork' unless Process.respond_to?(:fork)
-
-      cache = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::StatementPool.new nil, 10
-      cache['foo'] = 'bar'
-      cache['foo'].should == 'bar'
-
-      pid = fork {
-        lookup = cache['foo'];
-        exit!(!lookup)
-      }
-
-      Process.waitpid pid
-      $?.should be_success
-    end
-
     it "should cache UPDATE statements with bind variables" do
       lambda {
         pk = TestPost.columns.find { |c| c.primary }
