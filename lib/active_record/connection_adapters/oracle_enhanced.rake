@@ -44,10 +44,7 @@ alias :create_database :create_database_with_oracle_enhanced
 # Drops database user with db:drop
 def drop_database_with_oracle_enhanced(config)
   if config['adapter'] == 'oracle_enhanced'
-    print "Please provide the SYSTEM password for your oracle installation\n>"
-    system_password = $stdin.gets.strip
-    ActiveRecord::Base.establish_connection(config.merge('username' => 'SYSTEM', 'password' => system_password))
-    ActiveRecord::Base.connection.execute "DROP USER #{config['username']} CASCADE"
+    ActiveRecord::Base.connection.execute_structure_dump(ActiveRecord::Base.connection.full_drop)
   else
     drop_database_without_oracle_enhanced(config)
   end
