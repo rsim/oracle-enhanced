@@ -21,7 +21,6 @@ def create_database_with_oracle_enhanced(config)
     print "Please provide the SYSTEM password for your oracle installation\n>"
     system_password = $stdin.gets.strip
     ActiveRecord::Base.establish_connection(config.merge('username' => 'SYSTEM', 'password' => system_password))
-    ActiveRecord::Base.connection.execute "DROP USER #{config['username']} CASCADE" rescue nil
     ActiveRecord::Base.connection.execute "CREATE USER #{config['username']} IDENTIFIED BY #{config['password']}"
     ActiveRecord::Base.connection.execute "GRANT unlimited tablespace TO #{config['username']}"
     ActiveRecord::Base.connection.execute "GRANT create session TO #{config['username']}"
