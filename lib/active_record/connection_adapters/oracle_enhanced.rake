@@ -44,6 +44,7 @@ alias :create_database :create_database_with_oracle_enhanced
 # Drops database user with db:drop
 def drop_database_with_oracle_enhanced(config)
   if config['adapter'] == 'oracle_enhanced'
+    ActiveRecord::Base.establish_connection(config)
     ActiveRecord::Base.connection.execute_structure_dump(ActiveRecord::Base.connection.full_drop)
   else
     drop_database_without_oracle_enhanced(config)
