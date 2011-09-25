@@ -864,10 +864,14 @@ end
 
     before(:all) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:clob)
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:blob)
     end
 
     after(:all) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:clob)
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:blob)
     end
 
     before(:each) do
@@ -903,7 +907,6 @@ end
     end
 
     it "should add lob column with non_default tablespace" do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:clob)
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
       schema_define do
         add_column :test_posts, :body, :text
@@ -912,7 +915,6 @@ end
     end
 
     it "should add blob column with non_default tablespace" do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:blob)
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:blob] = DATABASE_NON_DEFAULT_TABLESPACE
       schema_define do
         add_column :test_posts, :attachment, :binary
