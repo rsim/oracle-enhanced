@@ -356,6 +356,7 @@ describe "OracleEnhancedAdapter schema dump" do
           t.virtual :short_name,       :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
           t.virtual :abbrev_name,      :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
           t.column  :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
+          t.virtual :field_with_leading_space, :as => "' ' || first_name || ' '", :limit => 300, :type => :string
         end
       end
     end
@@ -373,10 +374,11 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it 'should dump correctly' do
-      standard_dump.should =~ /t.virtual "full_name",(\s*):limit => 512,(\s*):as =>(.*),(\s*):type => :string/
-      standard_dump.should =~ /t.virtual "short_name",(\s*):limit => 300,(\s*):as =>(.*),(\s*):type => :string/
-      standard_dump.should =~ /t.virtual "full_name_length",(\s*):precision => 38,(\s*):scale => 0,(\s*):as =>(.*),(\s*):type => :integer/
-      standard_dump.should =~ /t.virtual "abbrev_name",(\s*):limit => 100,(\s*):as =>(.*),(\s*):type => :string/
+      standard_dump.should =~ /t\.virtual "full_name",(\s*):limit => 512,(\s*):as => "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\"",(\s*):type => :string/
+      standard_dump.should =~ /t\.virtual "short_name",(\s*):limit => 300,(\s*):as =>(.*),(\s*):type => :string/
+      standard_dump.should =~ /t\.virtual "full_name_length",(\s*):precision => 38,(\s*):scale => 0,(\s*):as =>(.*),(\s*):type => :integer/
+      standard_dump.should =~ /t\.virtual "abbrev_name",(\s*):limit => 100,(\s*):as =>(.*),(\s*):type => :string/
+      standard_dump.should =~ /t\.virtual "field_with_leading_space",(\s*):limit => 300,(\s*):as => "' '\|\|\\"FIRST_NAME\\"\|\|' '",(\s*):type => :string/
     end
 
     context 'with column cache' do

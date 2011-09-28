@@ -1030,8 +1030,10 @@ module ActiveRecord
             row['sql_type'] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
           end
 
+          is_virtual = row['virtual_column']=='YES'
+
           # clean up odd default spacing from Oracle
-          if row['data_default']
+          if row['data_default'] && !is_virtual
             row['data_default'].sub!(/^(.*?)\s*$/, '\1')
 
             # If a default contains a newline these cleanup regexes need to 
@@ -1047,7 +1049,7 @@ module ActiveRecord
                            # pass table name for table specific column definitions
                            table_name,
                            # pass column type if specified in class definition
-                           get_type_for_column(table_name, oracle_downcase(row['name'])), row['virtual_column']=='YES')
+                           get_type_for_column(table_name, oracle_downcase(row['name'])), is_virtual)
         end
       end
 
