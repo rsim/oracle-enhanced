@@ -69,7 +69,7 @@ module ActiveRecord
     def enhanced_write_lobs #:nodoc:
       if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
           !(self.class.custom_create_method || self.class.custom_update_method)
-        connection.write_lobs(self.class.table_name, self.class, attributes)
+        connection.write_lobs(self.class.table_name, self.class, attributes, !self.send(:"#{self.class.primary_key}_changed?")) #id_changed? is true after saving an existing record
       end
     end
     private :enhanced_write_lobs
