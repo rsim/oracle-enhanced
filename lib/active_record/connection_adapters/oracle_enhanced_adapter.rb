@@ -855,12 +855,12 @@ module ActiveRecord
 
         klass = klass.constantize rescue nil
         if klass.respond_to?(:ancestors) && klass.ancestors.include?(ActiveRecord::Base)
-          write_lobs(table_name, klass, fixture)
+          write_lobs(table_name, klass, fixture, klass.lob_columns)
         end
       end
 
-      # Writes LOB values from attributes, as indicated by the LOB columns of klass.
-      def write_lobs(table_name, klass, attributes) #:nodoc:
+      # Writes LOB values from attributes for specified columns
+      def write_lobs(table_name, klass, attributes, columns) #:nodoc:
         # is class with composite primary key>
         is_with_cpk = klass.respond_to?(:composite?) && klass.composite?
         if is_with_cpk
@@ -868,7 +868,7 @@ module ActiveRecord
         else
           id = quote(attributes[klass.primary_key])
         end
-        klass.columns.select { |col| col.sql_type =~ /LOB$/i }.each do |col|
+        columns.each do |col|
           value = attributes[col.name]
           # changed sequence of next two lines - should check if value is nil before converting to yaml
           next if value.nil?  || (value == '')
