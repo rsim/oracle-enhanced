@@ -26,6 +26,10 @@ module ActiveRecord
         @virtual
       end
 
+      def lob?
+        self.sql_type =~ /LOB$/i
+      end
+
       # convert something to a boolean
       # added y as boolean value
       def self.value_to_boolean(value) #:nodoc:
