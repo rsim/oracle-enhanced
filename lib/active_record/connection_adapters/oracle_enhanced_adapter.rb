@@ -844,7 +844,7 @@ module ActiveRecord
       end
 
       # Writes LOB values from attributes, as indicated by the LOB columns of klass.
-      def write_lobs(table_name, klass, attributes, is_update=false) #:nodoc:
+      def write_lobs(table_name, klass, attributes, skip_columns=nil) #:nodoc:
         # is class with composite primary key>
         is_with_cpk = klass.respond_to?(:composite?) && klass.composite?
         if is_with_cpk
@@ -853,7 +853,7 @@ module ActiveRecord
           id = quote(attributes[klass.primary_key])
         end
         cols = klass.columns.select { |col| col.sql_type =~ /LOB$/i }
-        cols.reject!{|col| klass.readonly_attributes.include?(col.name)}  if is_update && klass.readonly_attributes
+        cols.reject!{|col| skip_columns.include?(col.name)}  if skip_columns
         cols.each do |col|
           value = attributes[col.name]
           # changed sequence of next two lines - should check if value is nil before converting to yaml
