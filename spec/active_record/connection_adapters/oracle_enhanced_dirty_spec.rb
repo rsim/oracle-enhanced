@@ -121,6 +121,8 @@ if ActiveRecord::Base.instance_methods.include?('changed?')
           :comments => "initial"
       )
       @employee.save!.should be_true
+      @employee.reload
+      @employee.comments.should == 'initial'
 
       oci_conn = @conn.instance_variable_get('@connection')
       class << oci_conn
