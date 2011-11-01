@@ -851,7 +851,7 @@ module ActiveRecord
           next if value.nil?  || (value == '')
           value = value.to_yaml if col.text? && klass.serialized_attributes[col.name]
           uncached do
-            sql = is_with_cpk ? "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{klass.composite_where_clause(id)} FOR UPDATE" :
+            sql = is_with_cpk ? composite_select_sql(klass, attributes, col) :
               "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE"
             unless lob_record = select_one(sql, 'Writable Large Object')
               raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
@@ -860,6 +860,13 @@ module ActiveRecord
             @connection.write_lob(lob, value.to_s, col.type == :binary)
           end
         end
+      end
+
+      def composite_select_sql(klass, attributes, col)
+	q = attributes.dup
+	q.keep_if {|key| klass.primary_key.include?(key.to_sym)}
+	sql = klass.select(quote_column_name(col.name)).where(q).to_sql
+	sql + ' FOR UPDATE '
       end
 
       # Current database name
