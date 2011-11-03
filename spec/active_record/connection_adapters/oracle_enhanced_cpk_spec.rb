@@ -33,10 +33,12 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
   describe "do not use count distinct" do
     before(:all) do
       schema_define do
-        create_table :job_history, :primary_key => [:employee_id, :start_date], :force => true do |t|
+        create_table :job_history, :id => false, :force => true do |t|
           t.integer :employee_id
           t.date    :start_date
         end
+	execute "ALTER TABLE job_history ADD CONSTRAINT job_history_ID_PK PRIMARY KEY (employee_id, start_date)"
+
       end
       class ::JobHistory < ActiveRecord::Base
         set_table_name "job_history"
@@ -63,12 +65,14 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
   describe "table with LOB" do
     before(:all) do
       schema_define do
-        create_table  :cpk_write_lobs_test, :primary_key => [:type_category, :date_value], :force => true do |t|
+        create_table  :cpk_write_lobs_test, :id => false, :force => true do |t|
           t.string  :type_category, :limit => 15, :null => false  
           t.date    :date_value, :null => false
           t.text    :results, :null => false
           t.timestamps
         end
+	execute "ALTER TABLE cpk_write_lobs_test ADD CONSTRAINT cpk_write_lobs_test_ID_PK PRIMARY KEY (type_category, date_value)"
+
         create_table :non_cpk_write_lobs_test, :force => true do |t|
           t.date    :date_value, :null => false
           t.text    :results, :null => false
