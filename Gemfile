@@ -19,6 +19,7 @@ group :development do
       gem 'composite_primary_keys', '=2.3.2'
     when /^3/
       gem 'railties', "=#{ENV['RAILS_GEM_VERSION']}"
+      gem 'composite_primary_keys', '=4.0.0'
     end
   else
     # uses local copy of Rails 3 and Arel gems
