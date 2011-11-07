@@ -13,7 +13,7 @@ elsif RUBY_ENGINE == 'jruby'
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
 end
 
-ENV['RAILS_GEM_VERSION'] ||= '3.1-master'
+ENV['RAILS_GEM_VERSION'] ||= '3.2-master'
 NO_COMPOSITE_PRIMARY_KEYS = true if ENV['RAILS_GEM_VERSION'] >= '2.3.5' || ENV['RAILS_GEM_VERSION'] =~ /^2\.3\.1\d$/
 
 puts "==> Running specs with Rails version #{ENV['RAILS_GEM_VERSION']}"
@@ -23,6 +23,7 @@ require 'active_record'
 if ENV['RAILS_GEM_VERSION'] >= '3.0'
   require 'action_dispatch'
   require 'active_support/core_ext/module/attribute_accessors'
+  require 'active_support/core_ext/class/attribute_accessors'
 
   if ENV['RAILS_GEM_VERSION'] =~ /^3.0.0.beta/
     require "rails/log_subscriber"
