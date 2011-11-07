@@ -637,6 +637,13 @@ module ActiveRecord
         true
       end
 
+      def explain(arel)
+        sql = "EXPLAIN PLAN FOR #{to_sql(arel)}"
+        return if sql =~ /FROM all_/
+        execute(sql, 'EXPLAIN')
+        select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)").join("\n")
+      end
+
       # Returns an array of arrays containing the field values.
       # Order is the same as that returned by #columns.
       def select_rows(sql, name = nil)
