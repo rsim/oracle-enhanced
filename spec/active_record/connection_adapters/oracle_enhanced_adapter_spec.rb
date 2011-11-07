@@ -721,4 +721,29 @@ describe "OracleEnhancedAdapter" do
       }.should_not change(@statements, :length)
     end
   end if ENV['RAILS_GEM_VERSION'] >= '3.1'
+
+  describe "explain" do
+    before(:all) do
+      schema_define do
+        drop_table :test_posts rescue nil
+        create_table :test_posts
+      end
+      class ::TestPost < ActiveRecord::Base
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_posts
+      end
+      Object.send(:remove_const, "TestPost")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should explain query" do
+      explain = TestPost.where(:id => 1).explain
+      explain.should include("Cost")
+      explain.should include("INDEX UNIQUE SCAN")
+    end
+  end if ENV['RAILS_GEM_VERSION'] >= '3.2'
 end
