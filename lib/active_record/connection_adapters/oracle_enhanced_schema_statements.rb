@@ -68,7 +68,7 @@ module ActiveRecord
           end
         end
 
-        result = block.call(table_definition) if block
+        table_definition.instance_eval(&block) if block
         create_sequence = create_sequence || table_definition.create_sequence
         column_comments = table_definition.column_comments if table_definition.column_comments
         tablespace = tablespace_for(:table, options[:tablespace])
@@ -308,7 +308,7 @@ module ActiveRecord
         tablespace_sql = ''
         if tablespace = (tablespace_option || default_tablespace_for(obj_type))
           tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
-           " LOB (#{column_name}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
+           " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
           else
            " TABLESPACE #{tablespace}"
           end
