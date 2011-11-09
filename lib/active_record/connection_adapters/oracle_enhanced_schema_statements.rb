@@ -67,8 +67,13 @@ module ActiveRecord
             super(name, type, options)
           end
         end
-
-        table_definition.instance_eval(&block) if block
+        if block
+          if block.arity == 1
+            block.call(table_definition)
+          else
+            table_definition.instance_eval(&block)
+          end
+        end
         create_sequence = create_sequence || table_definition.create_sequence
         column_comments = table_definition.column_comments if table_definition.column_comments
         tablespace = tablespace_for(:table, options[:tablespace])
