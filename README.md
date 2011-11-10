@@ -263,6 +263,19 @@ There are several additional schema statements and data types available that you
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces =
           {:clob => 'TS_LOB', :blob => 'TS_LOB', :index => 'TS_INDEX', :table => 'TS_DATA'}
 
+  * `rename_constraint` to rename a constraint name, for example:
+
+        rename_constraint("TEST_POSTS", "TEST_POSTS_PK", "NEW_TEST_POSTS_PK")
+
+  * `rename_default_primary_key` and `rename_default_foreign_key` to rename them from 'SYS_C%' to '%_PK' and '%_FK'
+
+        # rename a primary key name from 'SYS_C%' to "PRODUCTS_PK"
+        rename_default_primary_key("PRODUCTS")
+        # rename a foreign key name from 'SYS_C%' to "ORDER_ITEMS_PRODUCTS_FK"
+        rename_default_foreign_key("ORDER_ITEMS")
+
+
+
 TROUBLESHOOTING
 ---------------
 
