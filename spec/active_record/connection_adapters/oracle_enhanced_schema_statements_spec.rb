@@ -497,6 +497,217 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 end
 
+  describe "rename constraint" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+        drop_table :test_comments rescue nil
+        drop_table :test_posts rescue nil
+        @conn.execute <<-SQL
+        CREATE TABLE "TEST_POSTS" ("ID" NUMBER(38) NOT NULL CONSTRAINT TEST_POSTS_PK PRIMARY KEY, 
+        "TITLE" VARCHAR2(255), "BODY" VARCHAR2(4000))
+        SQL
+        @conn.execute <<-SQL
+        CREATE TABLE "TEST_COMMENTS" ("ID" NUMBER(38) NOT NULL CONSTRAINT TEST_COMMENTS_PK PRIMARY KEY, 
+        "BODY" VARCHAR2(4000), "TEST_POST_ID" NUMBER(38), 
+        CONSTRAINT "TEST_COMMENTS_FK" FOREIGN KEY ("TEST_POST_ID") REFERENCES "TEST_POSTS"("ID"))
+        SQL
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_comments rescue nil
+        drop_table :test_posts rescue nil
+      end
+    end
+
+    it "should rename primary key constraint name of referenced table" do
+      lambda do
+        @conn.rename_constraint("TEST_POSTS", "TEST_POSTS_PK", "NEW_TEST_POSTS_PK")
+      end.should_not raise_error
+    end
+
+    it "should rename primary key constraint name of referencing table" do
+      lambda do
+        @conn.rename_constraint("TEST_COMMENTS", "TEST_COMMENTS_PK", "NEW_TEST_COMMENTS_PK")
+      end.should_not raise_error
+    end
+
+    it "should rename foreign key constraint name of referencing table" do
+      lambda do
+        @conn.rename_constraint("TEST_COMMENTS", "TEST_COMMENTS_FK", "NEW_TEST_COMMENTS_FK")
+      end.should_not raise_error
+    end
+
+    it "should raise error when original primary key name is same as new one" do
+      lambda do
+        @conn.rename_constraint("TEST_POSTS", "TEST_POSTS_PK", "TEST_POSTS_PK")
+      end.should raise_error
+    end
+
+    it "should raise error when original foreign key name is same as new one" do
+      lambda do
+        @conn.rename_constraint("TEST_COMMENTS", "TEST_COMMENTS_FK", "TEST_COMMENTS_FK")
+      end.should raise_error
+    end
+
+    it "should raise error when new constraint name length is too long" do
+      lambda do
+        @conn.rename_constraint("TEST_POSTS", "TEST_POSTS_PK", "a"*31)
+      end.should raise_error
+    end
+
+  end
+
+  describe "rename default primary key and foreign key name" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.string :title
+        end
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post, :foreign_key => true
+          t.integer :post_id
+        end
+      end
+      class ::TestPost < ActiveRecord::Base
+        has_many :test_comments
+      end
+      class ::TestComment < ActiveRecord::Base
+        belongs_to :test_post
+      end
+    end
+
+    after(:each) do
+      Object.send(:remove_const, "TestPost")
+      Object.send(:remove_const, "TestComment")
+      schema_define do
+        drop_table :test_comments rescue nil
+        drop_table :test_posts rescue nil
+      end
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+     end
+
+    it "should rename primary key name of referenced table in UPPERCASE" do
+      lambda do
+        @conn.rename_default_primary_key("TEST_POSTS")
+      end.should_not raise_error
+    end
+
+    it "should rename primary key name of referenced table in lowercase" do
+      lambda do
+        @conn.rename_default_primary_key("test_posts")
+      end.should_not raise_error
+    end
+
+    it "should rename primary key name of referencing table in UPPERCASE" do
+      lambda do
+        @conn.rename_default_primary_key("TEST_COMMENTS")
+      end.should_not raise_error
+    end
+
+    it "should rename primary key name of referencing table in lowercase" do
+      lambda do
+        @conn.rename_default_primary_key("test_comments")
+      end.should_not raise_error
+    end
+
+    it "should raise error rename primary key name of nonexist table in UPPERCASE" do
+      lambda do
+        @conn.rename_default_primary_key("NONEXIST_TABLE_NAME")
+      end.should raise_error
+    end
+
+    it "should raise error rename primary key name of nonexist table in lowercase" do
+      lambda do
+        @conn.rename_default_primary_key("nonexist_table_name")
+      end.should raise_error
+    end
+
+    it "should rename foreign key name of referencing table in UPPERCASE" do
+      lambda do
+        @conn.rename_default_foreign_key("TEST_COMMENTS")
+      end.should_not raise_error
+    end
+
+    it "should rename foreign key name of referencing table in lowercase" do
+      lambda do
+        @conn.rename_default_foreign_key("test_comments")
+      end.should_not raise_error
+    end
+
+    it "should raise error rename foreign key name of nonexist table in UPPERCASE" do
+      lambda do
+        @conn.rename_default_foreign_key("NONEXIST_TABLE_NAME")
+      end.should raise_error
+    end
+
+    it "should raise error rename foreign key name of nonexist table in lowercase" do
+      lambda do
+        @conn.rename_default_foreign_key("nonexist_table_name")
+      end.should raise_error
+    end
+  end
+
+  describe "rename default primary key and multiple foreign keys name" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        drop_table :order_items rescue nil
+        drop_table :orders rescue nil
+        drop_table :products rescue nil
+        create_table :products do |t|
+          t.string :product_name
+        end
+        create_table :orders do |t|
+          t.string :shipping_address, :limit => 4000
+        end
+        create_table :order_items do |t|
+          t.integer :quantity
+          t.references :product, :foreign_key => true
+          t.integer :product_id
+          t.references :order, :foreign_key => true
+          t.integer :order_id
+        end
+      end
+      class ::Product < ActiveRecord::Base
+        has_many :order_items
+      end
+      class ::Order < ActiveRecord::Base
+        has_many :order_items
+      end
+      class ::OrderItems < ActiveRecord::Base
+        belongs_to :product
+        belongs_to :order
+      end
+    end
+
+    after(:each) do
+      Object.send(:remove_const, "Product")
+      Object.send(:remove_const, "Order")
+      Object.send(:remove_const, "OrderItems")
+      schema_define do
+        drop_table :order_items rescue nil
+        drop_table :orders rescue nil
+        drop_table :products rescue nil
+      end
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should rename multiple foreign keys name of referencing table in UPPERCASE" do
+      lambda do
+        @conn.rename_default_foreign_key("ORDER_ITEMS")
+      end.should_not raise_error
+    end
+
+    it "should rename multiple foreign keys name of referencing table in lowercase" do
+      lambda do
+        @conn.rename_default_foreign_key("order_items")
+      end.should_not raise_error
+    end
+  end
+
   describe "ignore options for LOB columns" do
     after(:each) do
       schema_define do
