@@ -558,7 +558,7 @@ end
 
   end
 
-  describe "rename default primary key and foreign key name" do
+  describe "rename default primary key constraint name and foreign key constraint name" do
     before(:each) do
       @conn = ActiveRecord::Base.connection
       schema_define do
@@ -589,68 +589,68 @@ end
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
      end
 
-    it "should rename primary key name of referenced table in UPPERCASE" do
+    it "should rename primary key constraint name of referenced table in UPPERCASE" do
       lambda do
-        @conn.rename_default_primary_key("TEST_POSTS")
+        @conn.rename_default_primary_key_constraint("TEST_POSTS")
       end.should_not raise_error
     end
 
-    it "should rename primary key name of referenced table in lowercase" do
+    it "should rename primary key constraint name of referenced table in lowercase" do
       lambda do
-        @conn.rename_default_primary_key("test_posts")
+        @conn.rename_default_primary_key_constraint("test_posts")
       end.should_not raise_error
     end
 
-    it "should rename primary key name of referencing table in UPPERCASE" do
+    it "should rename primary key constraint name of referencing table in UPPERCASE" do
       lambda do
-        @conn.rename_default_primary_key("TEST_COMMENTS")
+        @conn.rename_default_primary_key_constraint("TEST_COMMENTS")
       end.should_not raise_error
     end
 
-    it "should rename primary key name of referencing table in lowercase" do
+    it "should rename primary key constraint name of referencing table in lowercase" do
       lambda do
-        @conn.rename_default_primary_key("test_comments")
+        @conn.rename_default_primary_key_constraint("test_comments")
       end.should_not raise_error
     end
 
-    it "should raise error rename primary key name of nonexist table in UPPERCASE" do
+    it "should raise error rename primary key constraint name of nonexist table in UPPERCASE" do
       lambda do
-        @conn.rename_default_primary_key("NONEXIST_TABLE_NAME")
+        @conn.rename_default_primary_key_constraint("NONEXIST_TABLE_NAME")
       end.should raise_error
     end
 
-    it "should raise error rename primary key name of nonexist table in lowercase" do
+    it "should raise error rename primary key constraint name of nonexist table in lowercase" do
       lambda do
-        @conn.rename_default_primary_key("nonexist_table_name")
+        @conn.rename_default_primary_key_constraint("nonexist_table_name")
       end.should raise_error
     end
 
-    it "should rename foreign key name of referencing table in UPPERCASE" do
+    it "should rename foreign key constraint name of referencing table in UPPERCASE" do
       lambda do
-        @conn.rename_default_foreign_key("TEST_COMMENTS")
+        @conn.rename_default_foreign_key_constraint("TEST_COMMENTS")
       end.should_not raise_error
     end
 
-    it "should rename foreign key name of referencing table in lowercase" do
+    it "should rename foreign key constraint name of referencing table in lowercase" do
       lambda do
-        @conn.rename_default_foreign_key("test_comments")
+        @conn.rename_default_foreign_key_constraint("test_comments")
       end.should_not raise_error
     end
 
-    it "should raise error rename foreign key name of nonexist table in UPPERCASE" do
+    it "should raise error rename foreign key constraint name of nonexist table in UPPERCASE" do
       lambda do
-        @conn.rename_default_foreign_key("NONEXIST_TABLE_NAME")
+        @conn.rename_default_foreign_key_constraint("NONEXIST_TABLE_NAME")
       end.should raise_error
     end
 
-    it "should raise error rename foreign key name of nonexist table in lowercase" do
+    it "should raise error rename foreign key constraint name of nonexist table in lowercase" do
       lambda do
-        @conn.rename_default_foreign_key("nonexist_table_name")
+        @conn.rename_default_foreign_key_constraint("nonexist_table_name")
       end.should raise_error
     end
   end
 
-  describe "rename default primary key and multiple foreign keys name" do
+  describe "rename default primary key constraint names and multiple foreign constraint key names" do
     before(:each) do
       @conn = ActiveRecord::Base.connection
       schema_define do
@@ -695,15 +695,15 @@ end
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
-    it "should rename multiple foreign keys name of referencing table in UPPERCASE" do
+    it "should rename multiple foreign key constraint names of referencing table in UPPERCASE" do
       lambda do
-        @conn.rename_default_foreign_key("ORDER_ITEMS")
+        @conn.rename_default_foreign_key_constraint("ORDER_ITEMS")
       end.should_not raise_error
     end
 
-    it "should rename multiple foreign keys name of referencing table in lowercase" do
+    it "should rename multiple foreign key constraint names of referencing table in lowercase" do
       lambda do
-        @conn.rename_default_foreign_key("order_items")
+        @conn.rename_default_foreign_key_constraint("order_items")
       end.should_not raise_error
     end
   end

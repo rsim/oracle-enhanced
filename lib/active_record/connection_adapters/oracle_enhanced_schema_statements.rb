@@ -225,7 +225,7 @@ module ActiveRecord
         execute "ALTER TABLE #{quote_table_name(table_name)} RENAME CONSTRAINT #{quote_column_name(constraint_name)} TO #{quote_column_name(new_constraint_name)}"
       end
 
-      def rename_default_primary_key(table_name)
+      def rename_default_primary_key_constraint(table_name)
         table_name.upcase!
         unless table_exists?(table_name)
           raise ArgumentError, "Table name '#{table_name} does not exist"
@@ -246,7 +246,7 @@ module ActiveRecord
         rename_index(table_name, index_name, new_index_name)
       end
 
-      def rename_default_foreign_key(table_name)
+      def rename_default_foreign_key_constraint(table_name)
         table_name.upcase!
         unless table_exists?(table_name)
           raise ArgumentError, "Table name '#{table_name} does not exist"
