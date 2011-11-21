@@ -271,6 +271,7 @@ module ActiveRecord
         @config = config
         @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 300 })
         @enable_dbms_output = false
+        @visitor = Arel::Visitors::Oracle.new self
       end
 
       def self.visitor_for(pool) # :nodoc:
