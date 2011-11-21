@@ -8,49 +8,6 @@ describe "OracleEnhancedAdapter schema definition" do
     @oracle11g = !! ActiveRecord::Base.connection.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
   end
 
-  describe "sexier migrations" do
-    it "should not change the block scope when using block parameter" do
-      @conn = ActiveRecord::Base.connection
-      schema_define do
-        def self.column_name
-          :name
-        end
-        create_table :keyboards do |t|
-          t.string column_name
-        end
-        drop_table :keyboards
-      end
-    end
-
-    it "should raise an exception when using a method outside the block scope when not using block parameter" do
-      @conn = ActiveRecord::Base.connection
-      lambda {
-        schema_define do
-          def self.column_name
-            :name
-          end
-          create_table :keyboards do
-            string column_name
-          end
-          drop_table :keyboards
-        end
-      }.should raise_error(NameError)
-    end
-
-    it "should create table without using block parameter" do
-      @conn = ActiveRecord::Base.connection
-      schema_define do
-        create_table :keyboards do
-          string :name
-        end
-      end
-      ActiveRecord::Base.connection.table_exists?("keyboards").should be_true
-      schema_define do
-        drop_table :keyboards
-      end
-    end
-  end
-
   describe "table and sequence creation with non-default primary key" do
 
     before(:all) do
