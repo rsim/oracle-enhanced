@@ -68,7 +68,7 @@ module ActiveRecord
           end
         end
 
-        table_definition.instance_eval(&block) if block
+        result = block.call(table_definition) if block
         create_sequence = create_sequence || table_definition.create_sequence
         column_comments = table_definition.column_comments if table_definition.column_comments
         tablespace = tablespace_for(:table, options[:tablespace])
