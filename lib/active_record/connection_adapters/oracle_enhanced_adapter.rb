@@ -620,6 +620,7 @@ module ActiveRecord
           end
 
           cursor.exec
+          return true if name == 'EXPLAIN'
           columns = cursor.get_col_names.map do |col_name|
             @connection.oracle_downcase(col_name)
           end
@@ -638,10 +639,14 @@ module ActiveRecord
         true
       end
 
-      def explain(arel)
+      def supports_explain?
+        true
+      end
+
+      def explain(arel, binds = [])
         sql = "EXPLAIN PLAN FOR #{to_sql(arel)}"
         return if sql =~ /FROM all_/
-        execute(sql, 'EXPLAIN')
+        exec_query(sql, 'EXPLAIN', binds)
         select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)").join("\n")
       end
 
