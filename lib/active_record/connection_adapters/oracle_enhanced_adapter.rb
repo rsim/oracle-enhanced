@@ -269,7 +269,7 @@ module ActiveRecord
         super(connection, logger)
         @quoted_column_names, @quoted_table_names = {}, {}
         @config = config
-        @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 300 })
+        @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
         @visitor = Arel::Visitors::Oracle.new self if defined?(Arel::Visitors::Oracle)
       end
