@@ -17,23 +17,3 @@ describe "OracleEnhancedAdapter to_d method" do
     n.to_d.should == BigDecimal.new(n.to_s)
   end
 end
-
-if ENV['RAILS_GEM_VERSION'] >= '2.3'
-
-  describe "OracleEnhancedAdapter Unicode aware upcase and downcase" do
-    before(:all) do
-      @down = "āčēģīķļņšūž"
-      @up = "ĀČĒĢĪĶĻŅŠŪŽ"
-    end
-
-    it "should translate Unicode string to upcase" do
-      @down.mb_chars.upcase.to_s.should == @up
-    end
-
-    it "should translate Unicode string to downcase" do
-      @up.mb_chars.downcase.to_s.should == @down
-    end
-  
-  end
-
-end
