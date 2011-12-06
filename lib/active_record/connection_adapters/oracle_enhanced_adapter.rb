@@ -647,7 +647,7 @@ module ActiveRecord
         sql = "EXPLAIN PLAN FOR #{to_sql(arel)}"
         return if sql =~ /FROM all_/
         exec_query(sql, 'EXPLAIN', binds)
-        select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)").join("\n")
+        select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)", 'EXPLAIN').join("\n")
       end
 
       # Returns an array of arrays containing the field values.
