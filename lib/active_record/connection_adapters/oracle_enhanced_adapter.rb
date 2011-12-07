@@ -620,16 +620,21 @@ module ActiveRecord
           end
 
           cursor.exec
-          return true if name == 'EXPLAIN'
-          columns = cursor.get_col_names.map do |col_name|
-            @connection.oracle_downcase(col_name)
+
+          if name == 'EXPLAIN'
+            res = true
+          else
+            columns = cursor.get_col_names.map do |col_name|
+              @connection.oracle_downcase(col_name)
+            end
+            rows = []
+            fetch_options = {:get_lob_value => (name != 'Writable Large Object')}
+            while row = cursor.fetch(fetch_options)
+              rows << row
+            end
+            res = ActiveRecord::Result.new(columns, rows)
           end
-          rows = []
-          fetch_options = {:get_lob_value => (name != 'Writable Large Object')}
-          while row = cursor.fetch(fetch_options)
-            rows << row
-          end
-          res = ActiveRecord::Result.new(columns, rows)
+
           cursor.close unless cached
           res
         end
