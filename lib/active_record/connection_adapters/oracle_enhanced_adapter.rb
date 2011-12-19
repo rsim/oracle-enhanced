@@ -369,6 +369,11 @@ module ActiveRecord
         IDENTIFIER_MAX_LENGTH
       end
 
+      # the maximum length of a sequence name
+      def sequence_name_length
+        IDENTIFIER_MAX_LENGTH
+      end
+
       # To avoid ORA-01795: maximum number of expressions in a list is 1000
       # tell ActiveRecord to limit us to 1000 ids at a time
       def in_clause_length
