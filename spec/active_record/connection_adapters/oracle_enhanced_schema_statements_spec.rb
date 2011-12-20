@@ -346,6 +346,46 @@ describe "OracleEnhancedAdapter schema definition" do
 
   end
 
+  describe "rename tables and sequences" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+        schema_define do
+          drop_table :test_employees rescue nil
+          drop_table :new_test_employees rescue nil
+          create_table  :test_employees do |t|
+            t.string    :first_name
+            t.string    :last_name
+          end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_employees rescue nil
+        drop_table :new_test_employees rescue nil
+      end
+    end
+
+    it "should rename table name with new one" do
+      lambda do
+        @conn.rename_table("test_employees","new_test_employees")
+      end.should_not raise_error
+    end
+
+    it "should raise error when new table name length is too long" do
+      lambda do
+        @conn.rename_table("test_employees","a"*31)
+      end.should raise_error
+    end
+
+    it "should raise error when new sequence name length is too long" do
+      lambda do
+        @conn.rename_table("test_employees","a"*27)
+      end.should raise_error
+    end
+
+  end
+
   describe "create triggers" do
 
     before(:all) do
