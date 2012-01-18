@@ -127,6 +127,8 @@ module ActiveRecord
               @raw_cursor.bind_param(position, ora_value)
             when :raw
               @raw_cursor.bind_param(position, OracleEnhancedAdapter.encode_raw(value))
+            when :decimal
+              @raw_cursor.bind_param(position, BigDecimal.new(value.to_s))
             else
               @raw_cursor.bind_param(position, value)
             end
