@@ -16,42 +16,46 @@ def redefine_task(*args, &block)
 end
 
 # Creates database user with db:create
-def create_database_with_oracle_enhanced(config)
-  if config['adapter'] == 'oracle_enhanced'
-    print "Please provide the SYSTEM password for your oracle installation\n>"
-    system_password = $stdin.gets.strip
-    ActiveRecord::Base.establish_connection(config.merge('username' => 'SYSTEM', 'password' => system_password))
-    begin
-      ActiveRecord::Base.connection.execute "CREATE USER #{config['username']} IDENTIFIED BY #{config['password']}"
-    rescue => e
-      if e.message =~ /ORA-01920/ # user name conflicts with another user or role name
-        ActiveRecord::Base.connection.execute "ALTER USER #{config['username']} IDENTIFIED BY #{config['password']}"
-      else
-        raise e
+if defined?(create_database) == 'method'
+  def create_database_with_oracle_enhanced(config)
+    if config['adapter'] == 'oracle_enhanced'
+      print "Please provide the SYSTEM password for your oracle installation\n>"
+      system_password = $stdin.gets.strip
+      ActiveRecord::Base.establish_connection(config.merge('username' => 'SYSTEM', 'password' => system_password))
+      begin
+        ActiveRecord::Base.connection.execute "CREATE USER #{config['username']} IDENTIFIED BY #{config['password']}"
+      rescue => e
+        if e.message =~ /ORA-01920/ # user name conflicts with another user or role name
+          ActiveRecord::Base.connection.execute "ALTER USER #{config['username']} IDENTIFIED BY #{config['password']}"
+        else
+          raise e
+        end
       end
+      ActiveRecord::Base.connection.execute "GRANT unlimited tablespace TO #{config['username']}"
+      ActiveRecord::Base.connection.execute "GRANT create session TO #{config['username']}"
+      ActiveRecord::Base.connection.execute "GRANT create table TO #{config['username']}"
+      ActiveRecord::Base.connection.execute "GRANT create sequence TO #{config['username']}"
+    else
+      create_database_without_oracle_enhanced(config)
     end
-    ActiveRecord::Base.connection.execute "GRANT unlimited tablespace TO #{config['username']}"
-    ActiveRecord::Base.connection.execute "GRANT create session TO #{config['username']}"
-    ActiveRecord::Base.connection.execute "GRANT create table TO #{config['username']}"
-    ActiveRecord::Base.connection.execute "GRANT create sequence TO #{config['username']}"
-  else
-    create_database_without_oracle_enhanced(config)
   end
+  alias :create_database_without_oracle_enhanced :create_database
+  alias :create_database :create_database_with_oracle_enhanced
 end
-alias :create_database_without_oracle_enhanced :create_database
-alias :create_database :create_database_with_oracle_enhanced
 
 # Drops database user with db:drop
-def drop_database_with_oracle_enhanced(config)
-  if config['adapter'] == 'oracle_enhanced'
-    ActiveRecord::Base.establish_connection(config)
-    ActiveRecord::Base.connection.execute_structure_dump(ActiveRecord::Base.connection.full_drop)
-  else
-    drop_database_without_oracle_enhanced(config)
+if defined?(drop_database) == 'method'
+  def drop_database_with_oracle_enhanced(config)
+    if config['adapter'] == 'oracle_enhanced'
+      ActiveRecord::Base.establish_connection(config)
+      ActiveRecord::Base.connection.execute_structure_dump(ActiveRecord::Base.connection.full_drop)
+    else
+      drop_database_without_oracle_enhanced(config)
+    end
   end
+  alias :drop_database_without_oracle_enhanced :drop_database
+  alias :drop_database :drop_database_with_oracle_enhanced
 end
-alias :drop_database_without_oracle_enhanced :drop_database
-alias :drop_database :drop_database_with_oracle_enhanced
 
 namespace :db do
 
