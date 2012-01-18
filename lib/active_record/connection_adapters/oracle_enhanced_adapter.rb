@@ -690,7 +690,7 @@ module ActiveRecord
       # New method in ActiveRecord 3.1
       # Will add RETURNING clause in case of trigger generated primary keys
       def sql_for_insert(sql, pk, id_value, sequence_name, binds)
-        unless id_value || pk.nil?
+        unless id_value || pk.nil? || (defined?(CompositePrimaryKeys) && pk.kind_of?(CompositePrimaryKeys::CompositeKeys))
           sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
           (binds = binds.dup) << [:returning_id, nil]
         end
