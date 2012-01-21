@@ -314,6 +314,8 @@ module ActiveRecord
               @raw_statement.setBlob(position, java_value)
             when :raw
               @raw_statement.setString(position, OracleEnhancedAdapter.encode_raw(java_value))
+            when :decimal
+              @raw_statement.setBigDecimal(position, java_value)
             else
               @raw_statement.setString(position, java_value)
             end
@@ -408,6 +410,8 @@ module ActiveRecord
               blob = Java::OracleSql::BLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::BLOB::DURATION_SESSION)
               blob.setBytes(1, value.to_java_bytes)
               blob
+            when :decimal
+              java.math.BigDecimal.new(value.to_s)
             else
               value
             end
