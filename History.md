@@ -1,3 +1,20 @@
+### 1.4.1 / Not Yet Released
+
+* Enhancements:
+  * Support for Rails 3.2
+  * Support for ActiveRecord 3.2 explain plans [#116]
+  * Support for ActiveRecord 3.1 statement pool, to avoid `ORA-01000` maximum open cursors exceeded (default `statement_limit` is 250 and can be changed in `database.yml`) [#100]
+  * Added error handling for `rename_table` method in migrations [#137]
+* Bug fixes:
+  * Store primary key as `nil` in cache at first time for table without primary key [#84]
+  * Fixed inserting records with decimal type columns (`ORA-01722` invalid number exceptions) [#130]
+  * Check virtual columns only in models that are using `oracle-enhanced` adapter, to avoid problems when using multiple database adapters [#85]
+  * Don't drop the user in rake `db:create` and `db:drop` tasks [#103]
+  * Don't add `db:create` and `db:drop` when ActiveRecord is not used as the primary datastore [#128]
+  * Quote column names in LOB statements to avoid `ORA-00936` errors [#91]
+  * Don't add the `RETURNING` clause if using `composite_primary_keys` gem [#132]
+  * Added `join_to_update` method that is necessary for ActiveRecord 3.1 to ensure that correct UPDATE statement is generated using `WHERE ... IN` subquery with offset condition
+
 ### 1.4.0 / 2011-08-09
 
 * Enhancements:
