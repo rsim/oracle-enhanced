@@ -25,7 +25,7 @@ If you would like to use latest adapter version from github then specify
 
 If you are using MRI 1.8 or 1.9 Ruby implementation then you need to install ruby-oci8 gem as well as Oracle client, e.g. [Oracle Instant Client](http://www.oracle.com/technetwork/database/features/instant-client/index-097480.html). Include in Gemfile also ruby-oci8:
 
-    gem 'ruby-oci8', '~> 2.0.6'
+    gem 'ruby-oci8', '~> 2.1.0'
 
 If you are using JRuby then you need to download latest [Oracle JDBC driver](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html) - either ojdbc6.jar for Java 6 or ojdbc5.jar for Java 5. And copy this file to one of these locations:
 
