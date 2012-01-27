@@ -1,4 +1,4 @@
-### 1.4.1 / Not Yet Released
+### 1.4.1 / 2011-01-27
 
 * Enhancements:
   * Support for Rails 3.2
