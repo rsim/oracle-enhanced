@@ -20,7 +20,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   s.files = [
     ".rspec",
     "Gemfile",
-    "History.txt",
+    "History.md",
     "License.txt",
     "README.md",
     "RUNNING_TESTS.md",

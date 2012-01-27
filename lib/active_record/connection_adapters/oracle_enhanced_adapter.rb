@@ -7,7 +7,7 @@
 #
 #########################################################################
 #
-# See History.txt for changes added to original oracle_adapter.rb
+# See History.md for changes added to original oracle_adapter.rb
 #
 #########################################################################
 #
