@@ -656,7 +656,7 @@ module ActiveRecord
       def explain(arel, binds = [])
         sql = "EXPLAIN PLAN FOR #{to_sql(arel)}"
         return if sql =~ /FROM all_/
-        exec_query(sql, 'EXPLAIN', binds)
+        exec_query(sql, 'EXPLAIN')
         select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)", 'EXPLAIN').join("\n")
       end
 

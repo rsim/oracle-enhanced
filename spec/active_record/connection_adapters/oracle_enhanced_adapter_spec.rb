@@ -724,6 +724,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "explain" do
     before(:all) do
+      @conn = ActiveRecord::Base.connection
       schema_define do
         drop_table :test_posts rescue nil
         create_table :test_posts
@@ -742,6 +743,14 @@ describe "OracleEnhancedAdapter" do
 
     it "should explain query" do
       explain = TestPost.where(:id => 1).explain
+      explain.should include("Cost")
+      explain.should include("INDEX UNIQUE SCAN")
+    end
+
+    it "should explain query with binds" do
+      pk = TestPost.columns.find { |c| c.primary }
+      sub = @conn.substitute_at(pk, 0)
+      explain = TestPost.where(TestPost.arel_table[pk.name].eq(sub)).bind([pk, 1]).explain
       explain.should include("Cost")
       explain.should include("INDEX UNIQUE SCAN")
     end
