@@ -7,6 +7,8 @@ if ActiveRecord::Base.method_defined?(:changed?)
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       @conn = ActiveRecord::Base.connection
+      @conn.execute "DROP TABLE test_employees" rescue nil
+      @conn.execute "DROP SEQUENCE test_employees_seq" rescue nil
       @conn.execute <<-SQL
         CREATE TABLE test_employees (
           id            NUMBER PRIMARY KEY,

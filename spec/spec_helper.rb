@@ -178,7 +178,9 @@ SYSTEM_CONNECTION_PARAMS = {
 DATABASE_NON_DEFAULT_TABLESPACE = ENV['DATABASE_NON_DEFAULT_TABLESPACE'] || "SYSTEM"
 
 # Set default $KCODE to UTF8
-$KCODE = "UTF8"
+if RUBY_VERSION < "1.9"
+  $KCODE = "UTF8"
+end
 
 # set default time zone in TZ environment variable
 # which will be used to set session time zone
