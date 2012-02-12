@@ -209,7 +209,11 @@ describe "OracleEnhancedAdapter" do
       end
       # Another class using the same table
       class ::TestEmployee2 < ActiveRecord::Base
-        set_table_name "test_employees"
+        if self.respond_to?(:table_name=)
+          self.table_name = "test_employees"
+        else
+          set_table_name "test_employees"
+        end
       end
     end
 
@@ -332,7 +336,11 @@ describe "OracleEnhancedAdapter" do
       SQL
       Object.send(:remove_const, 'CompositePrimaryKeys') if defined?(CompositePrimaryKeys)
       class ::TestEmployee < ActiveRecord::Base
-        set_primary_key :employee_id
+        if self.respond_to?(:primary_key=)
+          self.primary_key = :employee_id
+        else
+          set_primary_key :employee_id
+        end
       end
     end
 
@@ -509,7 +517,11 @@ describe "OracleEnhancedAdapter" do
     it "should allow creation of a table with non alphanumeric characters" do
       create_warehouse_things_table
       class ::WarehouseThing < ActiveRecord::Base
-        set_table_name "warehouse-things"
+        if self.respond_to?(:table_name=)
+          self.table_name = "warehouse-things"
+        else
+          set_table_name "warehouse-things"
+        end
       end
 
       wh = WarehouseThing.create!(:name => "Foo", :foo => 2)
@@ -521,7 +533,11 @@ describe "OracleEnhancedAdapter" do
     it "should allow creation of a table with CamelCase name" do
       create_camel_case_table
       class ::CamelCase < ActiveRecord::Base
-        set_table_name "CamelCase"
+        if self.respond_to?(:table_name=)
+          self.table_name = "CamelCase"
+        else
+          set_table_name "CamelCase"
+        end
       end
 
       cc = CamelCase.create!(:name => "Foo", :foo => 2)
@@ -553,7 +569,11 @@ describe "OracleEnhancedAdapter" do
       @conn.execute "CREATE OR REPLACE SYNONYM test_posts_seq FOR test_posts_seq@#{@db_link}"
       class ::TestPost < ActiveRecord::Base
       end
-      TestPost.set_table_name "test_posts"
+      if TestPost.respond_to?(:table_name=)
+        TestPost.table_name = "test_posts"
+      else
+        TestPost.set_table_name "test_posts"
+      end
     end
 
     after(:all) do
