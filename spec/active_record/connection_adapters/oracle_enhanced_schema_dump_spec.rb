@@ -34,7 +34,7 @@ describe "OracleEnhancedAdapter schema dump" do
   rescue
     nil
   end
-  
+
   describe "tables" do
     after(:each) do
       drop_test_posts_table
@@ -161,7 +161,7 @@ describe "OracleEnhancedAdapter schema dump" do
         end
       end
     end
-    
+
     after(:each) do
       schema_define do
         remove_foreign_key :test_comments, :test_posts rescue nil
@@ -228,15 +228,15 @@ describe "OracleEnhancedAdapter schema dump" do
       schema_define do
         add_column :test_posts, :baz_id, :integer
         add_column :test_posts, :fooz_id, :integer
-      
+
         execute <<-SQL
-          ALTER TABLE TEST_POSTS 
+          ALTER TABLE TEST_POSTS
           ADD CONSTRAINT UK_FOOZ_BAZ UNIQUE (BAZ_ID,FOOZ_ID)
         SQL
-      
+
         add_column :test_comments, :baz_id, :integer
         add_column :test_comments, :fooz_id, :integer
-      
+
         add_foreign_key :test_comments, :test_posts, :columns => ["baz_id", "fooz_id"], :name => 'comments_posts_baz_fooz_fk'
       end
       standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :columns => \["baz_id", "fooz_id"\], :name => "comments_posts_baz_fooz_fk"/
@@ -300,7 +300,7 @@ describe "OracleEnhancedAdapter schema dump" do
     after(:each) do
       drop_test_posts_table
     end
-    
+
     it "should include temporary options" do
       create_test_posts_table(:temporary => true)
       standard_dump.should =~ /create_table "test_posts", :temporary => true/
@@ -358,7 +358,11 @@ describe "OracleEnhancedAdapter schema dump" do
     end
     before(:each) do
       class ::TestName < ActiveRecord::Base
-        set_table_name "test_names"
+        if self.respond_to?(:table_name=)
+          self.table_name = "test_names"
+        else
+          set_table_name "test_names"
+        end
       end
     end
 

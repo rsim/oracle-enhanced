@@ -19,7 +19,11 @@ describe "OracleEnhancedAdapter structure dump" do
       end
       class ::TestPost < ActiveRecord::Base
       end
-      TestPost.set_table_name "test_posts"
+      if TestPost.respond_to?(:table_name=)
+        TestPost.table_name = "test_posts"
+      else
+        TestPost.set_table_name "test_posts"
+      end
     end
   
     after(:each) do
