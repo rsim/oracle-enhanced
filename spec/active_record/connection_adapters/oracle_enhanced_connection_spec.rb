@@ -188,7 +188,30 @@ describe "OracleEnhancedConnection" do
       cursor.fetch.should be_nil
       cursor.close
     end
+  end
 
+  describe "SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', '" do
+    before(:all) do
+      ENV['NLS_NUMERIC_CHARACTERS'] = ", "
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn.exec "CREATE TABLE test_employees (age NUMBER(10,2))"
+    end
+
+    after(:all) do
+      ENV['NLS_NUMERIC_CHARACTERS'] = nil
+      @conn.exec "DROP TABLE test_employees" rescue nil
+    end
+
+    it "should execute prepared statement with decimal bind parameter " do
+      cursor = @conn.prepare("INSERT INTO test_employees VALUES(:1)")
+      cursor.bind_param(1, "1.5", :decimal)
+      cursor.exec
+      cursor.close
+      cursor = @conn.prepare("SELECT age FROM test_employees")
+      cursor.exec
+      cursor.fetch.should == [1.5]
+      cursor.close
+    end
   end
 
   describe "auto reconnection" do

@@ -68,7 +68,7 @@ module ActiveRecord
           end
         end
 
-        table_definition.instance_eval(&block) if block
+        result = block.call(table_definition) if block
         create_sequence = create_sequence || table_definition.create_sequence
         column_comments = table_definition.column_comments if table_definition.column_comments
         tablespace = tablespace_for(:table, options[:tablespace])
@@ -98,8 +98,14 @@ module ActiveRecord
       end
 
       def rename_table(name, new_name) #:nodoc:
+        if new_name.to_s.length > table_name_length
+          raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{table_name_length} characters"
+        end
+        if "#{new_name}_seq".to_s.length > sequence_name_length
+          raise ArgumentError, "New sequence name '#{new_name}_seq' is too long; the limit is #{sequence_name_length} characters"
+        end
         execute "RENAME #{quote_table_name(name)} TO #{quote_table_name(new_name)}"
-        execute "RENAME #{quote_table_name("#{name}_seq")} TO #{quote_table_name("#{new_name}_seq")}" rescue nil
+        execute "RENAME #{quote_table_name("#{name}_seq")} TO #{quote_table_name("#{new_name}_seq")}"
       end
 
       def drop_table(name, options = {}) #:nodoc:

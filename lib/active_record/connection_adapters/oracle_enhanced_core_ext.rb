@@ -1,5 +1,6 @@
 require "bigdecimal"
-if (BigDecimal.instance_methods & ["to_d", :to_d]).empty?
+
+unless BigDecimal.method_defined?(:to_d)
   BigDecimal.class_eval do
     def to_d #:nodoc:
       self
@@ -7,7 +8,7 @@ if (BigDecimal.instance_methods & ["to_d", :to_d]).empty?
   end
 end
 
-if (Bignum.instance_methods & ["to_d", :to_d]).empty?
+unless Bignum.method_defined?(:to_d)
   Bignum.class_eval do
     def to_d #:nodoc:
       BigDecimal.new(self.to_s)
@@ -15,7 +16,7 @@ if (Bignum.instance_methods & ["to_d", :to_d]).empty?
   end
 end
 
-if (Fixnum.instance_methods & ["to_d", :to_d]).empty?
+unless Fixnum.method_defined?(:to_d)
   Fixnum.class_eval do
     def to_d #:nodoc:
       BigDecimal.new(self.to_s)

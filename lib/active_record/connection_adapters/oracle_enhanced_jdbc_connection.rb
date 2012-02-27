@@ -314,6 +314,8 @@ module ActiveRecord
               @raw_statement.setBlob(position, java_value)
             when :raw
               @raw_statement.setString(position, OracleEnhancedAdapter.encode_raw(java_value))
+            when :decimal
+              @raw_statement.setBigDecimal(position, java_value)
             else
               @raw_statement.setString(position, java_value)
             end
@@ -341,7 +343,6 @@ module ActiveRecord
 
         def exec
           @raw_result_set = @raw_statement.executeQuery
-          get_metadata
           true
         end
 
@@ -349,22 +350,24 @@ module ActiveRecord
           @raw_statement.executeUpdate
         end
 
-        def get_metadata
-          metadata = @raw_result_set.getMetaData
-          column_count = metadata.getColumnCount
-          @column_names = (1..column_count).map{|i| metadata.getColumnName(i)}
-          @column_types = (1..column_count).map{|i| metadata.getColumnTypeName(i).to_sym}
+        def metadata
+          @metadata ||= @raw_result_set.getMetaData
         end
 
-        def get_col_names
-          @column_names
+        def column_types
+          @column_types ||= (1..metadata.getColumnCount).map{|i| metadata.getColumnTypeName(i).to_sym}
         end
+
+        def column_names
+          @column_names ||= (1..metadata.getColumnCount).map{|i| metadata.getColumnName(i)}
+        end
+        alias :get_col_names :column_names
 
         def fetch(options={})
           if @raw_result_set.next
             get_lob_value = options[:get_lob_value]
             row_values = []
-            @column_types.each_with_index do |column_type, i|
+            column_types.each_with_index do |column_type, i|
               row_values <<
                 @connection.get_ruby_value_from_result_set(@raw_result_set, i+1, column_type, get_lob_value)
             end
@@ -407,6 +410,8 @@ module ActiveRecord
               blob = Java::OracleSql::BLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::BLOB::DURATION_SESSION)
               blob.setBytes(1, value.to_java_bytes)
               blob
+            when :decimal
+              java.math.BigDecimal.new(value.to_s)
             else
               value
             end

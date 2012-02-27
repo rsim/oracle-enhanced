@@ -45,7 +45,7 @@ group :development do
   gem 'ruby-plsql', '>=0.4.4'
 
   platforms :ruby do
-    gem 'ruby-oci8', '~> 2.0.4'
+    gem 'ruby-oci8', '>=2.0.4'
   end
 
 end

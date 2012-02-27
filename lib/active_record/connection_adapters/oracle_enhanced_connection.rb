@@ -93,8 +93,8 @@ module ActiveRecord
 
       # Returns an array of the values of the first column in a select:
       #   select_values("SELECT id FROM companies LIMIT 3") => [1,2,3]
-      def select_values(sql)
-        result = select(sql)
+      def select_values(sql, name = nil)
+        result = select(sql, name = nil)
         result.map { |r| r.values.first }
       end
 

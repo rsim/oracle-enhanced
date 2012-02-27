@@ -51,19 +51,7 @@ module LoggerSpecHelper
     @logger = MockLogger.new
     @old_logger = ActiveRecord::Base.logger
 
-    if ENV['RAILS_GEM_VERSION'] =~ /^3.0.0.beta/
-      queue = ActiveSupport::Notifications::Fanout.new
-      @notifier = ActiveSupport::Notifications::Notifier.new(queue)
-
-      Rails::LogSubscriber.colorize_logging = false
-
-      ActiveRecord::Base.logger = @logger
-      @old_notifier = ActiveSupport::Notifications.notifier
-      ActiveSupport::Notifications.notifier = @notifier
-
-      Rails::LogSubscriber.add(:active_record, ActiveRecord::Railties::LogSubscriber.new)
-
-    elsif ENV['RAILS_GEM_VERSION'] >= '3.0'
+    if ENV['RAILS_GEM_VERSION'] >= '3.0'
       @notifier = ActiveSupport::Notifications::Fanout.new
 
       ActiveSupport::LogSubscriber.colorize_logging = false
@@ -73,7 +61,9 @@ module LoggerSpecHelper
       ActiveSupport::Notifications.notifier = @notifier
 
       ActiveRecord::LogSubscriber.attach_to(:active_record)
-
+      if ENV['RAILS_GEM_VERSION'] >= '3.2'
+        ActiveSupport::Notifications.subscribe("sql.active_record", ActiveRecord::ExplainSubscriber.new)
+      end
     else # ActiveRecord 2.x
       if ActiveRecord::Base.respond_to?(:connection_pool)
         ActiveRecord::Base.connection_pool.clear_reloadable_connections!
@@ -188,7 +178,9 @@ SYSTEM_CONNECTION_PARAMS = {
 DATABASE_NON_DEFAULT_TABLESPACE = ENV['DATABASE_NON_DEFAULT_TABLESPACE'] || "SYSTEM"
 
 # Set default $KCODE to UTF8
-$KCODE = "UTF8"
+if RUBY_VERSION < "1.9"
+  $KCODE = "UTF8"
+end
 
 # set default time zone in TZ environment variable
 # which will be used to set session time zone

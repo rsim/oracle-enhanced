@@ -7,7 +7,7 @@
 #
 #########################################################################
 #
-# See History.txt for changes added to original oracle_adapter.rb
+# See History.md for changes added to original oracle_adapter.rb
 #
 #########################################################################
 #
@@ -269,8 +269,9 @@ module ActiveRecord
         super(connection, logger)
         @quoted_column_names, @quoted_table_names = {}, {}
         @config = config
-        @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 300 })
+        @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
+        @visitor = Arel::Visitors::Oracle.new self if defined?(Arel::Visitors::Oracle)
       end
 
       def self.visitor_for(pool) # :nodoc:
@@ -365,6 +366,11 @@ module ActiveRecord
 
       # the maximum length of an index name
       def index_name_length
+        IDENTIFIER_MAX_LENGTH
+      end
+
+      # the maximum length of a sequence name
+      def sequence_name_length
         IDENTIFIER_MAX_LENGTH
       end
 
@@ -619,15 +625,21 @@ module ActiveRecord
           end
 
           cursor.exec
-          columns = cursor.get_col_names.map do |col_name|
-            @connection.oracle_downcase(col_name)
+
+          if name == 'EXPLAIN'
+            res = true
+          else
+            columns = cursor.get_col_names.map do |col_name|
+              @connection.oracle_downcase(col_name)
+            end
+            rows = []
+            fetch_options = {:get_lob_value => (name != 'Writable Large Object')}
+            while row = cursor.fetch(fetch_options)
+              rows << row
+            end
+            res = ActiveRecord::Result.new(columns, rows)
           end
-          rows = []
-          fetch_options = {:get_lob_value => (name != 'Writable Large Object')}
-          while row = cursor.fetch(fetch_options)
-            rows << row
-          end
-          res = ActiveRecord::Result.new(columns, rows)
+
           cursor.close unless cached
           res
         end
@@ -637,11 +649,19 @@ module ActiveRecord
         true
       end
 
-      def explain(arel)
+      def supports_explain?
+        true
+      end
+
+      def explain(arel, binds = [])
         sql = "EXPLAIN PLAN FOR #{to_sql(arel)}"
         return if sql =~ /FROM all_/
-        execute(sql, 'EXPLAIN')
-        select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)").join("\n")
+        if ORACLE_ENHANCED_CONNECTION == :jdbc
+          exec_query(sql, 'EXPLAIN', binds)
+        else
+          exec_query(sql, 'EXPLAIN')
+        end
+        select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)", 'EXPLAIN').join("\n")
       end
 
       # Returns an array of arrays containing the field values.
@@ -674,7 +694,7 @@ module ActiveRecord
       # New method in ActiveRecord 3.1
       # Will add RETURNING clause in case of trigger generated primary keys
       def sql_for_insert(sql, pk, id_value, sequence_name, binds)
-        unless id_value || pk.nil?
+        unless id_value || pk.nil? || (defined?(CompositePrimaryKeys) && pk.kind_of?(CompositePrimaryKeys::CompositeKeys))
           sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
           (binds = binds.dup) << [:returning_id, nil]
         end
