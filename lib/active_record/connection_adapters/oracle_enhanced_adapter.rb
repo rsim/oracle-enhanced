@@ -842,9 +842,7 @@ module ActiveRecord
       # Returns default sequence name for table.
       # Will take all or first 26 characters of table name and append _seq suffix
       def default_sequence_name(table_name, primary_key = nil)
-        # TODO: remove schema prefix if present before truncating
-        # truncate table name if necessary to fit in max length of identifier
-        "#{table_name.to_s[0,IDENTIFIER_MAX_LENGTH-4]}_seq"
+        table_name.to_s.gsub /(^|\.)([\w$-]{1,#{sequence_name_length-4}})([\w$-]*)$/, '\1\2_seq'
       end
 
       # Inserts the given fixture into the table. Overridden to properly handle lobs.
