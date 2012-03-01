@@ -3,6 +3,7 @@ source 'http://rubygems.org'
 group :development do
   gem 'jeweler', '~> 1.5.1'
   gem 'rspec', '~> 2.4'
+  gem 'rdoc'
 
   if ENV['RAILS_GEM_VERSION']
     gem 'activerecord', "=#{ENV['RAILS_GEM_VERSION']}"
