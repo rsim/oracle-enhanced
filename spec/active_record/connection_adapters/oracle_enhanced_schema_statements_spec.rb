@@ -1145,7 +1145,7 @@ end
         tf.save!
         tf.reload
       end.should_not raise_error
-      tf.percent.should == 64.71
+      tf.percent.should == '64.71'.to_d
     end
 
     it 'should change virtual column type' do
@@ -1165,7 +1165,7 @@ end
         tf.save!
         tf.reload
       end.should_not raise_error
-      tf.percent.should == 64.70588
+      tf.percent.should == '64.70588'.to_d
     end
   end
 
