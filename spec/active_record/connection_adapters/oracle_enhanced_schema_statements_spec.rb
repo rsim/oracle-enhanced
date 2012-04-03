@@ -1010,7 +1010,11 @@ end
         end
       end
       class ::TestFraction < ActiveRecord::Base
-        set_table_name "test_fractions"
+        if self.respond_to?(:table_name=)
+          self.table_name = "test_fractions"
+        else
+          set_table_name "test_fractions"
+        end
       end
 
       TestFraction.reset_column_information
