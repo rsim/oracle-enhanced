@@ -181,6 +181,18 @@ describe "OracleEnhancedAdapter structure dump" do
       dump.should =~ /CREATE  INDEX "?IX_TEST_POSTS_FOO\"? ON "?TEST_POSTS"? \("?FOO"?\)/i
       dump.should_not =~ /CREATE UNIQUE INDEX "?UK_TEST_POSTS_/i
     end
+
+    it "should dump multi-value and function value indexes" do
+      ActiveRecord::Base.connection.add_index(:test_posts, [:foo, :foo_id], :name => :ix_test_posts_foo_foo_id)
+
+      @conn.execute <<-SQL
+        CREATE INDEX "IX_TEST_POSTS_FUNCTION" ON "TEST_POSTS" (TO_CHAR(LENGTH("FOO"))||"FOO")
+      SQL
+
+      dump = ActiveRecord::Base.connection.structure_dump
+      dump.should =~ /CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID\"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i
+      dump.should =~ /CREATE  INDEX "?IX_TEST_POSTS_FUNCTION\"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i
+    end
   end
   describe "temporary tables" do
     after(:all) do
