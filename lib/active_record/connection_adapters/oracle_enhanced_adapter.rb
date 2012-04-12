@@ -29,18 +29,30 @@
 # contribution.
 # portions Copyright 2005 Graham Jenkins
 
-# ActiveRecord 2.2 does not load version file automatically
-require 'active_record/version' unless defined?(ActiveRecord::VERSION)
-
 require 'active_record/connection_adapters/abstract_adapter'
 require 'active_record/connection_adapters/oracle_enhanced_connection'
 
-require 'active_record/connection_adapters/oracle_enhanced_base_ext'
 require 'active_record/connection_adapters/oracle_enhanced_column'
 
 require 'digest/sha1'
 
 module ActiveRecord
+  module ConnectionHandling #:nodoc:
+    # Establishes a connection to the database that's used by all Active Record objects.
+    def oracle_enhanced_connection(config) #:nodoc:
+      if config[:emulate_oracle_adapter] == true
+        # allows the enhanced adapter to look like the OracleAdapter. Useful to pick up
+        # conditionals in the rails activerecord test suite
+        require 'active_record/connection_adapters/emulation/oracle_adapter'
+        ConnectionAdapters::OracleAdapter.new(
+          ConnectionAdapters::OracleEnhancedConnection.create(config), logger, config)
+      else
+        ConnectionAdapters::OracleEnhancedAdapter.new(
+          ConnectionAdapters::OracleEnhancedConnection.create(config), logger, config)
+      end
+    end
+  end
+
   module ConnectionAdapters #:nodoc:
 
     # Oracle enhanced adapter will work with both
@@ -852,9 +864,9 @@ module ActiveRecord
         super
 
         if ActiveRecord::Base.pluralize_table_names
-          klass = table_name.singularize.camelize
+          klass = table_name.to_s.singularize.camelize
         else
-          klass = table_name.camelize
+          klass = table_name.to_s.camelize
         end
 
         klass = klass.constantize rescue nil
@@ -1337,18 +1349,7 @@ module ActiveRecord
   end
 end
 
-# Added LOB writing callback for sessions stored in database
-# Otherwise it is not working as Session class is defined before OracleAdapter is loaded in Rails 2.0
-if defined?(CGI::Session::ActiveRecordStore::Session)
-  if !CGI::Session::ActiveRecordStore::Session.respond_to?(:after_save_callback_chain) ||
-      CGI::Session::ActiveRecordStore::Session.after_save_callback_chain.detect{|cb| cb.method == :enhanced_write_lobs}.nil?
-    #:stopdoc:
-    class CGI::Session::ActiveRecordStore::Session
-      after_save :enhanced_write_lobs
-    end
-    #:startdoc:
-  end
-end
+require 'active_record/connection_adapters/oracle_enhanced_model'
 
 # Implementation of standard schema definition statements and extensions for schema definition
 require 'active_record/connection_adapters/oracle_enhanced_schema_statements'
@@ -1360,20 +1361,11 @@ require 'active_record/connection_adapters/oracle_enhanced_schema_definitions'
 # Extensions for context index definition
 require 'active_record/connection_adapters/oracle_enhanced_context_index'
 
-# Load custom create, update, delete methods functionality
-require 'active_record/connection_adapters/oracle_enhanced_procedures'
-
 # Load additional methods for composite_primary_keys support
 require 'active_record/connection_adapters/oracle_enhanced_cpk'
 
 # Load patch for dirty tracking methods
 require 'active_record/connection_adapters/oracle_enhanced_dirty'
-
-# Load rake tasks definitions
-begin
-  require 'active_record/connection_adapters/oracle_enhanced_tasks'
-rescue LoadError
-end if defined?(Rails) || defined?(RAILS_ROOT)
 
 # Patches and enhancements for schema dumper
 require 'active_record/connection_adapters/oracle_enhanced_schema_dumper'
@@ -1384,6 +1376,18 @@ require 'active_record/connection_adapters/oracle_enhanced_structure_dump'
 # Add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
 require 'active_record/connection_adapters/oracle_enhanced_core_ext'
 
-require 'active_record/connection_adapters/oracle_enhanced_activerecord_patches'
-
 require 'active_record/connection_adapters/oracle_enhanced_version'
+
+module ActiveRecord
+  autoload :OracleEnhancedProcedures, 'active_record/connection_adapters/oracle_enhanced_procedures'
+
+  module Model
+    include OracleEnhancedModel
+  end
+
+  class Base
+    # Include ActiveRecord::OracleEnhancedModel also in ActiveRecord::Base, since we are too late -
+    # the ActiveRecord::Model has already been loaded into ActiveRecord::Base.
+    include OracleEnhancedModel
+  end
+end

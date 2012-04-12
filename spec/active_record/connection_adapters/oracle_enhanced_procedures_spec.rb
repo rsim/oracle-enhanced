@@ -107,6 +107,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
 
   before(:each) do
     class ::TestEmployee < ActiveRecord::Base
+      include ActiveRecord::OracleEnhancedProcedures
+
       if self.respond_to?(:primary_key=)
         self.primary_key = :employee_id
       else
