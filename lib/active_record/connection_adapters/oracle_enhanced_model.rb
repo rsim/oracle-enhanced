@@ -1,14 +1,10 @@
 module ActiveRecord
   module OracleEnhancedModel
     module ClassMethods
-      # TODO REMOVE THIS AND PATCH #5267 commit 2fdb521
-      def sequence_name
-        if base_class == self
-          reset_sequence_name
-          @sequence_name
-        else
-          (@sequence_name ||= nil) || base_class.sequence_name
-        end
+      # TODO: Remove this when https://github.com/rails/rails/pull/5832/files gets merged in
+      def reset_sequence_name #:nodoc:
+        @explicit_sequence_name = false
+        @sequence_name          = connection.default_sequence_name(table_name, primary_key)
       end
 
       # Specify table columns which should be ignored by ActiveRecord, e.g.:
