@@ -248,6 +248,57 @@ And you can even create index on multiple tables by providing SELECT statements 
     Post.contains(:all_text, "aaa within title")
     Post.contains(:all_text, "bbb within comment_author")
 
+### Oracle virtual collumns support
+
+Since version R11G1 Oracle database allows adding computed [Virtual Columns](http://www.oracle-base.com/articles/11g/virtual-columns-11gr1.php) to the table.
+They can be used as normal fields in the queries, in the foreign key contstraints and to partitioning data.
+
+To define virtual column you can use `virtual` method in the `create_table` block, providing column expression in the `:as` option:
+
+    create_table :mytable do |t|
+        t.decimal :price, :precision => 15, :scale => 2
+        t.decimal :quantity, :precision => 15, :scale => 2
+        t.virtual :amount, :as => 'price * quantity'
+    end
+
+Oracle tries to predict type of the virtual column, based on its expression but sometimes it is necessary to state type explicitly.
+This can be done by providing `:type` option to the `virtual` method:
+
+    ...
+    t.virtual :amount_2, :as => 'ROUND(price * quantity,2)', :type => :decimal, :precision => 15, :scale => 2
+    t.virtual :amount_str, :as => "TO_CHAR(quantity) || ' x ' || TO_CHAR(price) || ' USD = ' || TO_CHAR(quantity*price) || ' USD'",
+        :type => :string, :limit => 100
+    ...
+
+It is possible to add virtual column to existing table:
+
+    add_column :mytable, :amount_4, :virtual, :as => 'ROUND(price * quantity,4)', :precision => 38, :scale => 4
+
+You can use the same options here as in the `create_table` `virtual` method.
+
+Changing virtual columns is also possible:
+
+    change_column :mytable, :amount, :virtual, :as => 'ROUND(price * quantity,0)', :type => :integer
+
+Virtual columns allowed in the foreign key constraints.
+For example it can be used to force foreign key constraint on polymorphic association:
+
+    create_table :comments do |t|
+      t.string :subject_type
+      t.integer :subject_id
+      t.virtual :subject_photo_id, :as => "CASE subject_type WHEN 'Photo' THEN subject_id END"
+      t.virtual :subject_event_id, :as => "CASE subject_type WHEN 'Event' THEN subject_id END"
+    end
+
+    add_foreign_key :comments, :photos, :column => :subject_photo_id
+    add_foreign_key :comments, :events, :column => :subject_event_id
+
+In the current adapter version it is not possible to set index on virtual column, because it is not correctly dumped to schema.rb.
+This restriction will be removed in the future version.
+
+For backward compatibility reasons it is possible to use `:default` option in the `create_table` instead of `:as` option.
+But this is deprecated and may be removed in the future version.
+
 ### Oracle specific schema statements and data types
 
 There are several additional schema statements and data types available that you can use in database migrations:
@@ -257,7 +308,6 @@ There are several additional schema statements and data types available that you
   * You can create table with primary key trigger using `:primary_key_trigger => true` option for `create_table`
   * You can define columns with `raw` type which maps to Oracle's `RAW` type
   * You can add table and column comments with `:comment` option
-  * On Oracle 11g you can define `virtual` columns with calculation formula in `:default` option
   * Default tablespaces can be specified for tables, indexes, clobs and blobs, for example:
 
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces =
