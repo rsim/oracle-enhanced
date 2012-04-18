@@ -232,6 +232,10 @@ module ActiveRecord #:nodoc:
         elsif options[:null] == true
           sql << " NULL" unless type == :primary_key
         end
+        # add AS expression for virtual columns
+        if options[:as].present?
+          sql << " AS (#{options[:as]})"
+        end
       end
 
       def execute_structure_dump(string)
