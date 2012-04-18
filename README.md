@@ -320,37 +320,6 @@ LINKS
 * Discuss at Oracle enhanced adapter group: http://groups.google.com/group/oracle-enhanced
 * Blog posts about Oracle enhanced adapter can be found at http://blog.rayapps.com/category/oracle_enhanced
 
-CONTRIBUTORS
-------------
-
-* Raimonds Simanovskis
-* Jorge Dias
-* James Wylder
-* Rob Christie
-* Nate Wieger
-* Edgars Beigarts
-* Lachlan Laycock
-* toddwf
-* Anton Jenkins
-* Dave Smylie
-* Alex Rothenberg
-* Billy Reisinger
-* David Blain
-* Joe Khoobyar
-* Edvard Majakari
-* Beau Fabry
-* Simon Chiang
-* Peter Nyberg
-* Dwayne Litzenberger
-* Aaron Patterson
-* Darcy Schultz
-* Alexi Rahman
-* Joeri Samson
-* Luca Bernardo Ciddio
-* Sam Baskinger
-* Benjamin Ortega
-* Yasuo Honda
-
 LICENSE
 -------
 
