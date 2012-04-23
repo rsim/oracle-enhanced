@@ -127,6 +127,210 @@ describe "OracleEnhancedAdapter schema definition" do
 
   end
 
+  describe "sequence with default primary key" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+        schema_define do
+          drop_table :test_customers rescue nil
+          create_table :test_customers, :force => true do |t|
+            t.integer :customer_number
+            t.string  :first_name
+            t.string  :last_name
+          end
+        end
+        class ::TestCustomer < ActiveRecord::Base; end
+        @customer = TestCustomer.create(
+          :customer_number => 100,
+          :first_name => "First",
+          :last_name => "Last"
+        )
+    end
+    after(:each) do
+      schema_define do
+        drop_table :test_customers
+      end
+      Object.send(:remove_const, "TestCustomer")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should reset sequence value with two arguments in lowercase and uppercase" do
+      lambda do
+        @conn.reset_sequence!("test_customers","ID")
+      end.should_not raise_error
+    end
+
+    it "should reset sequence value with two arguments in uppercase and lowercase" do
+      lambda do
+        @conn.reset_sequence!("TEST_CUSTOMERS","id")
+      end.should_not raise_error
+    end
+
+    it "should reset sequence with two arguments in uppercase" do
+      lambda do
+        @conn.reset_sequence!("TEST_CUSTOMERS","ID")
+      end.should_not raise_error
+    end
+
+    it "should reset sequence with two arguments in lowercase" do
+      lambda do
+        @conn.reset_sequence!("test_customers","id")
+      end.should_not raise_error
+    end
+
+    it "should reset sequence with default_sequence_start_value when table has no records" do
+      lambda do
+        @conn.execute("truncate table test_customers")
+        @conn.reset_sequence!("test_customers","id","test_customers_seq")
+      end.should_not raise_error
+    end
+
+    it "should fail when the sequence does not exist" do
+      lambda do
+        @conn.reset_sequence!("test_customers","id","nonexist_test_customers_seq")
+      end.should raise_error
+    end
+
+    it "should fail when the table does not exist" do
+      lambda do
+        @conn.reset_sequence!("nonexist_test_customers","id","test_customers_seq")
+      end.should raise_error
+    end
+
+    it "should fail when the column does not exist" do
+      lambda do
+        @conn.reset_sequence!("test_customers","nonexist_id","test_customers_seq")
+      end.should raise_error(ArgumentError)
+    end
+
+    it "should fail when the column is not of the primary key" do
+      lambda do
+        @conn.reset_sequence!("test_customers","customer_number","test_customers_seq")
+      end.should raise_error
+    end
+  end
+
+  describe "reset sequence with non default primary key" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+        schema_define do
+          execute "drop table test_customers" rescue nil
+          create_table :test_customers, :id => false, :force => true do |t|
+            t.integer :customer_number
+            t.string  :first_name
+            t.string  :last_name
+          end
+          add_column :test_customers, :customer_id, :primary_key
+          # create_sequence_and_trigger or create_sequence method preferred
+          execute("create sequence test_customers_seq start with #{default_sequence_start_value}")
+        end
+        class ::TestCustomer < ActiveRecord::Base; end
+        @customer = TestCustomer.create(
+          :customer_number => 100,
+          :first_name => "First",
+          :last_name => "Last"
+        )
+    end
+    after(:each) do
+      schema_define do
+        drop_table :test_customers
+      end
+      Object.send(:remove_const, "TestCustomer")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should reset sequence with two arguments in uppercase" do
+      lambda do
+        @conn.reset_sequence!("TEST_CUSTOMERS","CUSTOMER_ID")
+      end.should_not raise_error
+    end
+
+    it "should reset sequence with two arguments in lowercase" do
+      lambda do
+        @conn.reset_sequence!("test_customers","customer_id")
+      end.should_not raise_error
+    end
+
+    it "should reset sequence with three arguments in uppercase" do
+      lambda do
+        @conn.reset_sequence!("TEST_CUSTOMERS","CUSTOMER_ID","TEST_CUSTOMERS_SEQ")
+      end.should_not raise_error
+    end
+
+    it "should reset sequence with three arguments in lowercase" do
+      lambda do
+        @conn.reset_sequence!("test_customers","customer_id","test_customers_seq")
+      end.should_not raise_error
+    end
+  end
+
+  describe "reset sequence with non default sequence options" do
+    def create_test_employees_table(sequence_start_value = nil)
+      schema_define do
+        create_table :test_employees, sequence_start_value ? {:sequence_start_value => sequence_start_value} : {} do |t|
+          t.string      :first_name
+          t.string      :last_name
+        end
+      end
+    end
+
+    def save_default_sequence_start_value
+      @saved_sequence_start_value = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value
+    end
+
+    def restore_default_sequence_start_value
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = @saved_sequence_start_value
+    end
+
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+
+    before(:each) do
+      save_default_sequence_start_value
+    end
+
+    after(:each) do
+      restore_default_sequence_start_value
+      schema_define do
+        drop_table :test_employees
+      end
+      Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should reuse specified default sequence start value" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 1
+
+      create_test_employees_table
+      class ::TestEmployee < ActiveRecord::Base; end
+
+      employee = TestEmployee.create!
+      employee.id.should == 1
+
+      @conn.reset_sequence!("TEST_EMPLOYEES","ID")
+
+      new_employee = TestEmployee.create!
+      new_employee.id.should == 21
+    end
+
+    it "should reuse sequence start value and other options from table definition" do
+      create_test_employees_table("100 NOCACHE INCREMENT BY 10")
+      class ::TestEmployee < ActiveRecord::Base; end
+      
+      employee = TestEmployee.create!
+      employee.id.should == 100
+
+      @conn.reset_sequence!("TEST_EMPLOYEES","ID")
+
+      new_employee = TestEmployee.create!
+      new_employee.id.should == 101
+
+      new_employee = TestEmployee.create!
+      new_employee.id.should == 111
+
+    end
+  end
+
   describe "create table with primary key trigger" do
     def create_table_with_trigger(options = {})
       options.merge! :primary_key_trigger => true, :force => true
