@@ -211,7 +211,7 @@ describe "OracleEnhancedAdapter schema definition" do
         insert_id = @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Raimonds')", nil, "id")
         @conn.select_value("SELECT test_employees_seq.currval FROM dual").should == insert_id
       end
-      
+
       it "should create new record for model" do
         e = TestEmployee.create!(:first_name => 'Raimonds')
         @conn.select_value("SELECT test_employees_seq.currval FROM dual").should == e.id
@@ -554,7 +554,7 @@ end
         belongs_to :test_post
       end
     end
-    
+
     after(:each) do
       Object.send(:remove_const, "TestPost")
       Object.send(:remove_const, "TestComment")
@@ -630,26 +630,26 @@ end
       TestPost.delete(p.id)
       TestComment.find_by_id(c.id).test_post_id.should be_nil
     end
-    
+
     it "should add a composite foreign key" do
       schema_define do
         add_column :test_posts, :baz_id, :integer
         add_column :test_posts, :fooz_id, :integer
-        
+
         execute <<-SQL
-          ALTER TABLE TEST_POSTS 
+          ALTER TABLE TEST_POSTS
           ADD CONSTRAINT UK_FOOZ_BAZ UNIQUE (BAZ_ID,FOOZ_ID)
         SQL
-        
+
         add_column :test_comments, :baz_id, :integer
         add_column :test_comments, :fooz_id, :integer
-        
+
         add_foreign_key :test_comments, :test_posts, :columns => ["baz_id", "fooz_id"]
       end
-      
+
       lambda do
         TestComment.create(:body => "test", :fooz_id => 1, :baz_id => 1)
-      end.should raise_error() {|e| e.message.should =~ 
+      end.should raise_error() {|e| e.message.should =~
         /ORA-02291.*\.TES_COM_BAZ_ID_FOO_ID_FK/}
     end
 
@@ -657,18 +657,18 @@ end
       schema_define do
         add_column :test_posts, :baz_id, :integer
         add_column :test_posts, :fooz_id, :integer
-        
+
         execute <<-SQL
-          ALTER TABLE TEST_POSTS 
+          ALTER TABLE TEST_POSTS
           ADD CONSTRAINT UK_FOOZ_BAZ UNIQUE (BAZ_ID,FOOZ_ID)
         SQL
-        
+
         add_column :test_comments, :baz_id, :integer
         add_column :test_comments, :fooz_id, :integer
-        
+
         add_foreign_key :test_comments, :test_posts, :columns => ["baz_id", "fooz_id"], :name => 'comments_posts_baz_fooz_fk'
       end
-      
+
       lambda do
         TestComment.create(:body => "test", :baz_id => 1, :fooz_id => 1)
       end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.COMMENTS_POSTS_BAZ_FOOZ_FK/}
@@ -720,7 +720,7 @@ end
         belongs_to :test_post
       end
     end
-    
+
     after(:each) do
       Object.send(:remove_const, "TestPost")
       Object.send(:remove_const, "TestComment")
@@ -997,19 +997,18 @@ end
 
   end
 
-  describe 'virtual columns' do
+  describe 'virtual columns in create_table' do
     before(:all) do
-      oracle11g = @oracle11g
+      pending "Not supported in this database version" unless @oracle11g
+    end
+
+    it 'should create virtual column with old syntax' do
       schema_define do
-        expr = "( numerator/NULLIF(denominator,0) )*100"
         create_table :test_fractions, :force => true do |t|
-          t.integer :numerator, :default=>0
-          t.integer :denominator, :default=>0
-          t.virtual :percent, :default=>expr if oracle11g
+          t.integer :field1
+          t.virtual :field2, :default => 'field1 + 1'
         end
       end
-    end
-    before(:each) do
       class ::TestFraction < ActiveRecord::Base
         if self.respond_to?(:table_name=)
           self.table_name = "test_fractions"
@@ -1017,27 +1016,156 @@ end
           set_table_name "test_fractions"
         end
       end
+
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.virtual? }
+      tf.should_not be nil
+      tf.name.should == "field2"
+      tf.virtual?.should be true
+      lambda do
+        tf = TestFraction.new(:field1=>10)
+        tf.field2.should be nil # not whatever is in DATA_DEFAULT column
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.field2.to_i.should == 11
+
+      schema_define do
+        drop_table :test_fractions
+      end
     end
 
-    after(:all) do
+    it 'should raise error if column expression is not provided' do
+      lambda {
+        schema_define do
+          create_table :test_fractions do |t|
+            t.integer :field1
+            t.virtual :field2
+          end
+        end
+      }.should raise_error
+    end
+  end
+
+  describe 'virtual columns' do
+    before(:all) do
+      pending "Not supported in this database version" unless @oracle11g
+    end
+
+    before(:each) do
+      expr = "( numerator/NULLIF(denominator,0) )*100"
+      schema_define do
+        create_table :test_fractions, :force => true do |t|
+          t.integer :numerator, :default=>0
+          t.integer :denominator, :default=>0
+          t.virtual :percent, :as => expr
+        end
+      end
+      class ::TestFraction < ActiveRecord::Base
+        if self.respond_to?(:table_name=)
+          self.table_name = "test_fractions"
+        else
+          set_table_name "test_fractions"
+        end
+      end
+      TestFraction.reset_column_information
+    end
+
+    after(:each) do
       schema_define do
         drop_table :test_fractions
       end
     end
 
     it 'should include virtual columns and not try to update them' do
-      pending "Not supported in this database version" unless @oracle11g
       tf = TestFraction.columns.detect { |c| c.virtual? }
       tf.should_not be nil
       tf.name.should == "percent"
       tf.virtual?.should be true
       lambda do
         tf = TestFraction.new(:numerator=>20, :denominator=>100)
-        tf.percent.should==0 # not whatever is in DATA_DEFAULT column
+        tf.percent.should be nil # not whatever is in DATA_DEFAULT column
         tf.save!
         tf.reload
       end.should_not raise_error
       tf.percent.to_i.should == 20
+    end
+
+    it 'should add virtual column' do
+      schema_define do
+        add_column :test_fractions, :rem, :virtual, :as => 'remainder(numerator, NULLIF(denominator,0))'
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'rem' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      lambda do
+        tf = TestFraction.new(:numerator=>7, :denominator=>5)
+        tf.rem.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.rem.to_i.should == 2
+    end
+
+    it 'should add virtual column with explicit type' do
+      schema_define do
+        add_column :test_fractions, :expression, :virtual, :as => "TO_CHAR(numerator) || '/' || TO_CHAR(denominator)", :type => :string, :limit => 100
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'expression' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      tf.type.should be :string
+      tf.limit.should be 100
+      lambda do
+        tf = TestFraction.new(:numerator=>7, :denominator=>5)
+        tf.expression.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.expression.should == '7/5'
+    end
+
+    it 'should change virtual column definition' do
+      schema_define do
+        change_column :test_fractions, :percent, :virtual,
+          :as => "ROUND((numerator/NULLIF(denominator,0))*100, 2)", :type => :decimal, :precision => 15, :scale => 2
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'percent' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      tf.type.should be :decimal
+      tf.precision.should be 15
+      tf.scale.should be 2
+      lambda do
+        tf = TestFraction.new(:numerator=>11, :denominator=>17)
+        tf.percent.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.percent.should == '64.71'.to_d
+    end
+
+    it 'should change virtual column type' do
+      schema_define do
+        change_column :test_fractions, :percent, :virtual, :type => :decimal, :precision => 12, :scale => 5
+      end
+      TestFraction.reset_column_information
+      tf = TestFraction.columns.detect { |c| c.name == 'percent' }
+      tf.should_not be nil
+      tf.virtual?.should be true
+      tf.type.should be :decimal
+      tf.precision.should be 12
+      tf.scale.should be 5
+      lambda do
+        tf = TestFraction.new(:numerator=>11, :denominator=>17)
+        tf.percent.should be nil
+        tf.save!
+        tf.reload
+      end.should_not raise_error
+      tf.percent.should == '64.70588'.to_d
     end
   end
 
@@ -1060,7 +1188,7 @@ end
       end
       @conn.instance_eval{ remove_instance_variable :@would_execute_sql }
     end
-    
+
     it "should support the :options option to create_table" do
       schema_define do
         create_table :test_posts, :options=>'NOLOGGING', :force => true do |t|
@@ -1069,7 +1197,7 @@ end
       end
       @would_execute_sql.should =~ /CREATE +TABLE .* \(.*\) NOLOGGING/
     end
-    
+
     it "should support the :tablespace option to create_table" do
       schema_define do
         create_table :test_posts, :tablespace=>'bogus', :force => true do |t|
@@ -1105,14 +1233,14 @@ end
         @would_execute_sql.should =~ /CREATE +TABLE .*\(.*\)\s+ORGANIZATION INDEX INITRANS 4 COMPRESS 1 TABLESPACE bogus/
       end
     end
-    
+
     it "should support the :options option to add_index" do
       schema_define do
         add_index :keyboards, :name, :options=>'NOLOGGING'
       end
       @would_execute_sql.should =~ /CREATE +INDEX .* ON .* \(.*\) NOLOGGING/
     end
-    
+
     it "should support the :tablespace option to add_index" do
       schema_define do
         add_index :keyboards, :name, :tablespace=>'bogus'
