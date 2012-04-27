@@ -62,13 +62,18 @@ module ActiveRecord
       
       private
 
+      def scale_present?(field_type)
+        scale = extract_scale(field_type)
+        return scale.nil? || scale == 0
+      end
+
       def simplified_type(field_type)
         forced_column_type ||
         case field_type
         when /decimal|numeric|number/i
           if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
             :boolean
-          elsif extract_scale(field_type) == 0 ||
+          elsif scale_present?(field_type) ||
                 # if column name is ID or ends with _ID
                 OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
             :integer
