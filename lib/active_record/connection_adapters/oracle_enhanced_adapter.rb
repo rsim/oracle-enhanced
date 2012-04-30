@@ -716,7 +716,7 @@ module ActiveRecord
       EXEC_INSERT_RESULT_COLUMNS = %w(returning_id) #:nodoc:
 
       # New method in ActiveRecord 3.1
-      def exec_insert(sql, name, binds)
+      def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
         log(sql, name, binds) do
           returning_id_index = nil
           cursor = if @statements.key?(sql)
