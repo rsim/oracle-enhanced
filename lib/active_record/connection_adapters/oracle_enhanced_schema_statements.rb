@@ -94,6 +94,7 @@ module ActiveRecord
         column_comments.each do |column_name, comment|
           add_comment name, column_name, comment
         end
+        table_definition.indexes.each_pair { |c,o| add_index name, c, o }
         
       end
 
@@ -125,8 +126,10 @@ module ActiveRecord
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name].to_s if options.key?(:name)
           tablespace = tablespace_for(:index, options[:tablespace])
+          additional_options = options[:options]
         else
           index_type = options
+          additional_options = nil
         end
 
         if index_name.to_s.length > index_name_length
@@ -137,7 +140,7 @@ module ActiveRecord
         end
         quoted_column_names = column_names.map { |e| quote_column_name_or_expression(e) }.join(", ")
 
-        execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{options[:options]}"
+        execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{additional_options}"
       ensure
         self.all_schema_indexes = nil
       end

@@ -88,11 +88,15 @@ module ActiveRecord
       # Note: If no name is specified, the database driver creates one for you!
       def references_with_foreign_keys(*args)
         options = args.extract_options!
+        index_options = options[:index]
         fk_options = options.delete(:foreign_key)
 
         if fk_options && !options[:polymorphic]
           fk_options = {} if fk_options == true
-          args.each { |to_table| foreign_key(to_table, fk_options) }
+          args.each do |to_table| 
+            foreign_key(to_table, fk_options) 
+            add_index(to_table, "#{to_table}_id", index_options.is_a?(Hash) ? index_options : nil) if index_options
+          end
         end
 
         references_without_foreign_keys(*(args << options))
@@ -190,6 +194,7 @@ module ActiveRecord
       def references_with_foreign_keys(*args)
         options = args.extract_options!
         polymorphic = options[:polymorphic]
+        index_options = options[:index]
         fk_options = options.delete(:foreign_key)
 
         references_without_foreign_keys(*(args << options))
@@ -197,7 +202,10 @@ module ActiveRecord
         args.extract_options!
         if fk_options && !polymorphic
           fk_options = {} if fk_options == true
-          args.each { |to_table| foreign_key(to_table, fk_options) }
+          args.each do |to_table| 
+            foreign_key(to_table, fk_options) 
+            add_index(to_table, "#{to_table}_id", index_options.is_a?(Hash) ? index_options : nil) if index_options
+          end
         end
       end
     end
