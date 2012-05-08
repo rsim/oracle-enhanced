@@ -73,7 +73,7 @@ module ActiveRecord
             db_link ? [result['owner'], result['table_name'], db_link] : [result['owner'], result['table_name']]
           end
         else
-          raise OracleEnhancedConnectionException, %Q{"DESC #{name}" failed; does it exist?}
+          raise OracleEnhancedConnectionException, "Failed to find description of table #{name}"
         end
       end
 

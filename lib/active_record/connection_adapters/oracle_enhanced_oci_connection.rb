@@ -370,7 +370,7 @@ class OCI8 #:nodoc:
 
     def describe(name)
       info = describe_table(name.to_s)
-      raise %Q{"DESC #{name}" failed} if info.nil?
+      raise "Failed to find description of table #{name}" if info.nil?
       [info.obj_schema, info.obj_name]
     end
   else
@@ -385,7 +385,7 @@ class OCI8 #:nodoc:
     def describe(name)
       @desc ||= @@env.alloc(OCIDescribe)
       @desc.attrSet(OCI_ATTR_DESC_PUBLIC, -1) if VERSION >= '0.1.14'
-      do_ocicall(@ctx) { @desc.describeAny(@svc, name.to_s, OCI_PTYPE_UNK) } rescue raise %Q{"DESC #{name}" failed; does it exist?}
+      do_ocicall(@ctx) { @desc.describeAny(@svc, name.to_s, OCI_PTYPE_UNK) } rescue raise "Failed to find description of table #{name}"
       info = @desc.attrGet(OCI_ATTR_PARAM)
 
       case info.attrGet(OCI_ATTR_PTYPE)
@@ -397,7 +397,7 @@ class OCI8 #:nodoc:
         schema = info.attrGet(OCI_ATTR_SCHEMA_NAME)
         name   = info.attrGet(OCI_ATTR_NAME)
         describe(schema + '.' + name)
-      else raise %Q{"DESC #{name}" failed; not a table or view.}
+      else raise "Failed to find description of table #{name}"
       end
     end
   end
