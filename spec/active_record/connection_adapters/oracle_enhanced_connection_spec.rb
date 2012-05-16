@@ -32,7 +32,6 @@ describe "OracleEnhancedConnection" do
     it "should be in autocommit mode after connection" do
       @conn.should be_autocommit
     end
-
   end
 
   describe "create connection with NLS parameters" do
@@ -57,6 +56,22 @@ describe "OracleEnhancedConnection" do
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
       default = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS[:nls_date_format]
       @conn.select("SELECT value FROM v$nls_parameters WHERE parameter = 'NLS_DATE_FORMAT'").should == [{'value' => default}]
+    end
+  end
+
+  describe "switch the active schema" do
+    it "should default the current schema to the :username" do
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn.select("select sys_context( 'userenv', 'current_schema' ) as current_schema from dual")[0]['current_schema'].should == CONNECTION_PARAMS[:username].upcase
+      @conn.owner.should == CONNECTION_PARAMS[:username].upcase
+    end
+
+    it "should allow switching to another schema by setting the :schema option" do
+      params = CONNECTION_PARAMS.dup
+      params[:schema] = 'system'
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      @conn.select("select sys_context( 'userenv', 'current_schema' ) as current_schema from dual")[0]['current_schema'].should == params[:schema].upcase
+      @conn.owner.should == params[:schema].upcase
     end
   end
 

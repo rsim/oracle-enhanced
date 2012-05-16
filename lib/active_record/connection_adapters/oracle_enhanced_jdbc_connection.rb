@@ -146,7 +146,7 @@ module ActiveRecord
         self.autocommit = true
 
         # default schema owner
-        @owner = username.upcase unless username.nil?
+        @username = username.upcase unless username.nil?
 
         @raw_connection
       end
