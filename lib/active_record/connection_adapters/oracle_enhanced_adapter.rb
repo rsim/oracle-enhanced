@@ -1097,7 +1097,7 @@ module ActiveRecord
         SQL
 
         # added deletion of ignored columns
-        select_all(table_cols, name).delete_if do |row|
+        select_all(table_cols, name).to_a.delete_if do |row|
           ignored_columns && ignored_columns.include?(row['name'].downcase)
         end.map do |row|
           limit, scale = row['limit'], row['scale']
@@ -1273,7 +1273,7 @@ module ActiveRecord
 
       def select(sql, name = nil, binds = [])
         if ActiveRecord.const_defined?(:Result)
-          exec_query(sql, name, binds).to_a
+          exec_query(sql, name, binds)
         else
           log(sql, name) do
             @connection.select(sql, name, false)
