@@ -1,7 +1,7 @@
 source 'http://rubygems.org'
 
 group :development do
-  # gem 'jeweler', '~> 1.5.1'
+  gem 'jeweler', '~> 1.8.3'
   gem 'rspec', '~> 2.4'
   gem 'rdoc'
 
@@ -45,10 +45,10 @@ group :development do
     gem "active_record_deprecated_finders", :git => "git://github.com/rails/active_record_deprecated_finders"
   end
 
-  gem 'ruby-plsql', '>=0.4.4'
+  gem 'ruby-plsql', '>=0.5.0'
 
   platforms :ruby do
-    gem 'ruby-oci8', '>=2.0.4'
+    gem 'ruby-oci8', '>=2.1.2'
   end
 
 end
