@@ -329,19 +329,10 @@ module ActiveRecord
 
       module ContextIndexClassMethods
         # Add context index condition.
-        case ::ActiveRecord::VERSION::MAJOR
-        when 3
-          def contains(column, query, options ={})
-            score_label = options[:label].to_i || 1
-            where("CONTAINS(#{connection.quote_column_name(column)}, ?, #{score_label}) > 0", query).
-              order("SCORE(#{score_label}) DESC")
-          end
-        when 2
-          def contains(column, query, options ={})
-            score_label = options[:label].to_i || 1
-            scoped(:conditions => ["CONTAINS(#{connection.quote_column_name(column)}, ?, #{score_label}) > 0", query],
-              :order => "SCORE(#{score_label}) DESC")
-          end
+        def contains(column, query, options ={})
+          score_label = options[:label].to_i || 1
+          where("CONTAINS(#{connection.quote_column_name(column)}, ?, #{score_label}) > 0", query).
+            order("SCORE(#{score_label}) DESC")
         end
       end
 
