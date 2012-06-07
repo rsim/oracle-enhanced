@@ -5,7 +5,7 @@ module ActiveRecord #:nodoc:
       module InstanceMethods #:nodoc:
         private
         
-        def field_changed?(attr, old, value)
+        def _field_changed?(attr, old, value)
           if column = column_for_attribute(attr)
             # Added also :decimal type
             if (column.type == :integer || column.type == :decimal) && column.null && (old.nil? || old == 0) && value.blank?
