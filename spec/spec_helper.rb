@@ -151,3 +151,8 @@ DATABASE_NON_DEFAULT_TABLESPACE = ENV['DATABASE_NON_DEFAULT_TABLESPACE'] || "SYS
 ENV['TZ'] ||= 'Europe/Riga'
 
 # ActiveRecord::Base.logger = Logger.new(STDOUT)
+
+# Set default_timezone :local explicitly 
+# because this default value has been changed to :utc atrails master branch 
+ActiveRecord::Base.default_timezone = :local
+
