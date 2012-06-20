@@ -45,6 +45,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "lib/active_record/connection_adapters/oracle_enhanced_schema_dumper.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_schema_statements.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_schema_statements_ext.rb",
+    "lib/active_record/connection_adapters/oracle_enhanced_session_store.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_structure_dump.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_tasks.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_version.rb",
