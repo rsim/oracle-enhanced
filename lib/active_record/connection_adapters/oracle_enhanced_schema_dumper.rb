@@ -116,7 +116,7 @@ module ActiveRecord #:nodoc:
             case index.type
             when nil
               # use table.inspect as it will remove prefix and suffix
-              statement_parts = [ ('add_index ' + remove_prefix_and_suffix(table).inspect) ]
+              statement_parts = [ ('add_index ' + table.inspect) ]
               statement_parts << index.columns.inspect
               statement_parts << (':name => ' + index.name.inspect)
               statement_parts << ':unique => true' if index.unique
@@ -154,7 +154,7 @@ module ActiveRecord #:nodoc:
             pk = @connection.primary_key(table)
           end
           
-          tbl.print "  create_table #{remove_prefix_and_suffix(table).inspect}"
+          tbl.print "  create_table #{table.inspect}"
           
           # addition to make temporary option work
           tbl.print ", :temporary => true" if @connection.temporary_table?(table)
