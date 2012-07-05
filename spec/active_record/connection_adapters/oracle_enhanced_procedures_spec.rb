@@ -297,6 +297,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     }.should raise_error("Make the transaction rollback")
     @employee.id.should == empl_id
     TestEmployee.find_by_employee_id(empl_id).should_not be_nil
+    clear_logger
   end
 
   it "should set timestamps when creating record" do
@@ -332,6 +333,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     @logger.logged(:debug).last.should match(/^TestEmployee Create \(\d+\.\d+(ms)?\)  custom create method$/)
+    clear_logger
   end
 
   it "should log update record" do
@@ -344,6 +346,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     set_logger
     @employee.save!
     @logger.logged(:debug).last.should match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with employee_id=#{@employee.id}$/)
+    clear_logger
   end
 
   it "should log delete record" do
@@ -355,6 +358,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     set_logger
     @employee.destroy
     @logger.logged(:debug).last.should match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with employee_id=#{@employee.id}$/)
+    clear_logger
   end
 
   it "should validate new record before creation" do
