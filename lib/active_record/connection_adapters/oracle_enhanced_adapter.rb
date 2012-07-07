@@ -703,8 +703,115 @@ module ActiveRecord
 
       EXEC_INSERT_RESULT_COLUMNS = %w(returning_id) #:nodoc:
 
+      ################################### New Codes For GeoRuby Types Support #######################################################
+      
+      def create_cursor_and_bind_types(conn)
+         cursor = conn.parse("BEGIN :geom := SDO_GEOMETRY(:sdo_gtype, :sdo_srid, :sdo_point, :sdo_elem_info_array, :sdo_ordinate_array); END;")
+         cursor.bind_param(:sdo_gtype, OraNumber)
+         cursor.bind_param(:sdo_srid, OraNumber) 
+         cursor.bind_param(:sdo_point, OCI8::Object::Mdsys::SdoPointType) 
+         cursor.bind_param(:sdo_elem_info_array, OCI8::Object::Mdsys::SdoElemInfoArray)
+         cursor.bind_param(:sdo_ordinate_array, OCI8::Object::Mdsys::SdoOrdinateArray)
+         
+         cursor.bind_param(:geom, OCI8::Object::Mdsys::SdoGeometry)
+         cursor
+      end
+      
+      def set_common_fields(gtype, srid)
+        values = Hash.new
+        values[:sdo_gtype] = OraNumber.new(gtype)
+        values[:sdo_srid] = OraNumber.new(srid)
+        values[:sdo_point] = nil ###TODO
+        values        
+      end
+      
+      #Currently we only support Point, LineString and Polygons.
+      def initialize_geometry_needed_fields(conn, georuby_geom, gtype)
+        values = set_common_fields(gtype, georuby_geom.srid)
+        
+        case gtype
+        when 2001
+          values[:sdo_elem_info_array] = OCI8::Object::Mdsys::SdoElemInfoArray.new(conn,OraNumber.new(1),OraNumber.new(1),OraNumber.new(1))
+          values[:sdo_ordinate_array] = OCI8::Object::Mdsys::SdoOrdinateArray.new(conn,OraNumber.new(georuby_geom.x),OraNumber.new(georuby_geom.y))
+          
+        when 2002
+          values[:sdo_elem_info_array] = OCI8::Object::Mdsys::SdoElemInfoArray.new(conn,OraNumber.new(1),OraNumber.new(2),OraNumber.new(1))
+          values[:sdo_ordinate_array] = OCI8::Object::Mdsys::SdoOrdinateArray.new(conn)
+
+          #If we create SdoOrdinateArray with no parameters but connection (as in this case^) the @attributes will be a hash. we need it as an Array. so we convert it to array
+          values[:sdo_ordinate_array].instance_variable_set('@attributes', Array.new) 
+          
+          georuby_geom.points.each do |point|
+            if point.class == GeoRuby::SimpleFeatures::Point
+              values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.x
+              values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.y
+            elsif point.class == Array #if I want to save this:  LineString.from_points([[12,32],[7,3],[34,54]])
+              values[:sdo_ordinate_array].instance_variable_get('@attributes') << point[0]
+              values[:sdo_ordinate_array].instance_variable_get('@attributes') << point[1]
+            else #save existing points (SDO_GEOMETRY)
+              values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.x ###TODO
+              values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.y ###TODO
+            end
+          end ##end of each  
+          
+        when 2003
+          values[:sdo_elem_info_array] = OCI8::Object::Mdsys::SdoElemInfoArray.new(conn,OraNumber.new(1),OraNumber.new(3),OraNumber.new(1))
+          values[:sdo_ordinate_array] = OCI8::Object::Mdsys::SdoOrdinateArray.new(conn)
+          
+          #If we create SdoOrdinateArray with no parameters but connection (as in this case) the @attributes will be a hash. we need it as an Array. so we convert it to array
+          values[:sdo_ordinate_array].instance_variable_set('@attributes', Array.new)
+          
+          georuby_geom.rings.each do |ring|
+            ring.points.each do |point| ##TODO: What is a ring? What does it means to developer?
+              if point.class == GeoRuby::SimpleFeatures::Point
+                values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.x
+                values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.y
+              elsif point.class == Array
+                values[:sdo_ordinate_array].instance_variable_get('@attributes') << point[0]
+                values[:sdo_ordinate_array].instance_variable_get('@attributes') << point[1]
+              else
+                values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.x ###TODO
+                values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.y ###TODO
+              end
+            end
+          end           
+        end 
+             
+        values
+      end
+      
+      def bind_values_and_create_sdo_geom(cursor, value)
+        cursor[:sdo_gtype] = value[:sdo_gtype]
+        cursor[:sdo_srid] = value[:sdo_srid]
+        cursor[:sdo_point] = value[:sdo_point]
+        cursor[:sdo_elem_info_array] = value[:sdo_elem_info_array]
+        cursor[:sdo_ordinate_array] = value[:sdo_ordinate_array]
+        cursor.exec
+        cursor[:geom]
+      end
+      
+      def create_sdo_geometry_object (conn, georuby_geom, gtype)
+        bind_values_and_create_sdo_geom(create_cursor_and_bind_types(conn), initialize_geometry_needed_fields(conn, georuby_geom, gtype))        
+      end
+      
+      def is_georuby_object? (value)
+        value.class.to_s.include?("GeoRuby::SimpleFeatures")
+      end
+      
+      def bind_georuby_objects_to_sdo_geometry(i, cursor, val)
+        case val.class
+        when GeoRuby::SimpleFeatures::Point
+          cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2001) , OCI8::Object::Mdsys::SdoGeometry)
+        when GeoRuby::SimpleFeatures::LineString
+          cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2002) , OCI8::Object::Mdsys::SdoGeometry)
+        when GeoRuby::SimpleFeatures::Polygon
+          cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2003) , OCI8::Object::Mdsys::SdoGeometry)
+        end
+      end
+      
       # New method in ActiveRecord 3.1
       def exec_insert(sql, name, binds)
+        @conn = OCI8.new("behpooyesh", "123456", "//174.0.0.201:1521/isfahantaxi")
         log(sql, name, binds) do
           returning_id_index = nil
           cursor = if @statements.key?(sql)
@@ -712,12 +819,19 @@ module ActiveRecord
           else
             @statements[sql] = @connection.prepare(sql)
           end
-
+                  
           binds.each_with_index do |bind, i|
             col, val = bind
+            puts "HAAAAAAAAYYYYYHAAAAAAAAYYYYYHAAAAAAAAYYYYY #{col}, #{val.class}"
             if col == :returning_id
               returning_id_index = i + 1
               cursor.bind_returning_param(returning_id_index, Integer)
+            elsif val.class == GeoRuby::SimpleFeatures::Point
+              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2001) , OCI8::Object::Mdsys::SdoGeometry)
+            elsif val.class == GeoRuby::SimpleFeatures::LineString
+              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2002) , OCI8::Object::Mdsys::SdoGeometry)  
+            elsif val.class == GeoRuby::SimpleFeatures::Polygon
+              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2003) , OCI8::Object::Mdsys::SdoGeometry)  
             else
               cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
             end
@@ -736,6 +850,7 @@ module ActiveRecord
 
       # New method in ActiveRecord 3.1
       def exec_update(sql, name, binds)
+        @conn = OCI8.new("behpooyesh", "123456", "//174.0.0.201:1521/isfahantaxi")
         log(sql, name, binds) do
           cached = false
           if binds.empty?
@@ -749,7 +864,11 @@ module ActiveRecord
 
             binds.each_with_index do |bind, i|
               col, val = bind
-              cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
+              if is_georuby_object? (val)
+                cursor = bind_georuby_objects_to_sdo_geometry(i, cursor, val)
+              else
+                cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
+              end
             end
             cached = true
           end
@@ -759,6 +878,7 @@ module ActiveRecord
           res
         end
       end
+      #########################DAVE#######################################################
 
       alias :exec_delete :exec_update
 
