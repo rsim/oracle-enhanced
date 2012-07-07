@@ -709,6 +709,7 @@ module ActiveRecord
          cursor = conn.parse("BEGIN :geom := SDO_GEOMETRY(:sdo_gtype, :sdo_srid, :sdo_point, :sdo_elem_info_array, :sdo_ordinate_array); END;")
          cursor.bind_param(:sdo_gtype, OraNumber)
          cursor.bind_param(:sdo_srid, OraNumber) 
+         GeoShape.find_by_name("test")
          cursor.bind_param(:sdo_point, OCI8::Object::Mdsys::SdoPointType) 
          cursor.bind_param(:sdo_elem_info_array, OCI8::Object::Mdsys::SdoElemInfoArray)
          cursor.bind_param(:sdo_ordinate_array, OCI8::Object::Mdsys::SdoOrdinateArray)
