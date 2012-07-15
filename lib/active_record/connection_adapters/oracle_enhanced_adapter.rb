@@ -707,9 +707,9 @@ module ActiveRecord
       
       def create_cursor_and_bind_types(conn)
          cursor = conn.parse("BEGIN :geom := SDO_GEOMETRY(:sdo_gtype, :sdo_srid, :sdo_point, :sdo_elem_info_array, :sdo_ordinate_array); END;")
+	 GeoShape.first
          cursor.bind_param(:sdo_gtype, OraNumber)
          cursor.bind_param(:sdo_srid, OraNumber) 
-         GeoShape.first
          cursor.bind_param(:sdo_point, OCI8::Object::Mdsys::SdoPointType) 
          cursor.bind_param(:sdo_elem_info_array, OCI8::Object::Mdsys::SdoElemInfoArray)
          cursor.bind_param(:sdo_ordinate_array, OCI8::Object::Mdsys::SdoOrdinateArray)
@@ -727,7 +727,7 @@ module ActiveRecord
       end
       
       #Currently we only support Point, LineString and Polygons.
-      def initialize_geometry_needed_fields(conn, georuby_geom, gtype)
+      def initialize_geometry_needed_fields(conn, georuby_geom, gtype, geometry_column_name)
         values = set_common_fields(gtype, georuby_geom.srid)
         
         case gtype
@@ -750,8 +750,11 @@ module ActiveRecord
               values[:sdo_ordinate_array].instance_variable_get('@attributes') << point[0]
               values[:sdo_ordinate_array].instance_variable_get('@attributes') << point[1]
             else #save existing points (SDO_GEOMETRY)
-              values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.x ###TODO
-              values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.y ###TODO
+              #values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.x ###TODO
+              #values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.y ###TODO
+ 
+              values[:sdo_ordinate_array].instance_variable_get('@attributes') << (point.send :"#{geometry_column_name}").x ###TODO
+              values[:sdo_ordinate_array].instance_variable_get('@attributes') << (point.send :"#{geometry_column_name}").y ###TODO
             end
           end ##end of each  
           
@@ -773,6 +776,9 @@ module ActiveRecord
               else
                 values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.x ###TODO
                 values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.y ###TODO
+
+                values[:sdo_ordinate_array].instance_variable_get('@attributes') << (point.send :"#{geometry_column_name}").x ###TODO
+                values[:sdo_ordinate_array].instance_variable_get('@attributes') << (point.send :"#{geometry_column_name}").y ###TODO
               end
             end
           end           
@@ -791,8 +797,8 @@ module ActiveRecord
         cursor[:geom]
       end
       
-      def create_sdo_geometry_object (conn, georuby_geom, gtype)
-        bind_values_and_create_sdo_geom(create_cursor_and_bind_types(conn), initialize_geometry_needed_fields(conn, georuby_geom, gtype))        
+      def create_sdo_geometry_object (conn, georuby_geom, gtype, geometry_column_name)
+        bind_values_and_create_sdo_geom(create_cursor_and_bind_types(conn), initialize_geometry_needed_fields(conn, georuby_geom, gtype, geometry_column_name))        
       end
       
       def is_georuby_object? (value)
@@ -823,16 +829,16 @@ module ActiveRecord
                   
           binds.each_with_index do |bind, i|
             col, val = bind
-#            puts "HAAAAAAAAYYYYYHAAAAAAAAYYYYYHAAAAAAAAYYYYY #{col}, #{val.class}"
+            #puts "HAAAAAAAAYYYYYHAAAAAAAAYYYYYHAAAAAAAAYYYYY #{col.name}, #{val.class}"
             if col == :returning_id
               returning_id_index = i + 1
               cursor.bind_returning_param(returning_id_index, Integer)
             elsif val.class == GeoRuby::SimpleFeatures::Point
-              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2001) , OCI8::Object::Mdsys::SdoGeometry)
+              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2001, col.name) , OCI8::Object::Mdsys::SdoGeometry)
             elsif val.class == GeoRuby::SimpleFeatures::LineString
-              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2002) , OCI8::Object::Mdsys::SdoGeometry)  
+              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2002, col.name) , OCI8::Object::Mdsys::SdoGeometry)  
             elsif val.class == GeoRuby::SimpleFeatures::Polygon
-              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2003) , OCI8::Object::Mdsys::SdoGeometry)  
+              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2003, col.name) , OCI8::Object::Mdsys::SdoGeometry)  
             else
               cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
             end
