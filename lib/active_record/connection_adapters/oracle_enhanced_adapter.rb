@@ -774,8 +774,8 @@ module ActiveRecord
                 values[:sdo_ordinate_array].instance_variable_get('@attributes') << point[0]
                 values[:sdo_ordinate_array].instance_variable_get('@attributes') << point[1]
               else
-                values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.x ###TODO
-                values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.y ###TODO
+                #values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.x ###TODO
+                #values[:sdo_ordinate_array].instance_variable_get('@attributes') << point.shape.y ###TODO
 
                 values[:sdo_ordinate_array].instance_variable_get('@attributes') << (point.send :"#{geometry_column_name}").x ###TODO
                 values[:sdo_ordinate_array].instance_variable_get('@attributes') << (point.send :"#{geometry_column_name}").y ###TODO
