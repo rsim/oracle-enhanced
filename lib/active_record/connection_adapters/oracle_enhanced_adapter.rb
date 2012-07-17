@@ -1212,6 +1212,7 @@ module ActiveRecord
           order_by
         end
         order_columns = order_columns.zip((0...order_columns.size).to_a).map do |c, i|
+          c = c.to_sql unless c.is_a?(String)
           # remove any ASC/DESC modifiers
           value = c =~ /^(.+)\s+(ASC|DESC)\s*$/i ? $1 : c
           "FIRST_VALUE(#{value}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__"
