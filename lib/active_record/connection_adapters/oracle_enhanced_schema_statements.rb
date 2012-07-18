@@ -115,6 +115,7 @@ module ActiveRecord
         execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
       ensure
         clear_table_columns_cache(name)
+        self.all_schema_indexes = nil
       end
 
       # clear cached indexes when adding new index
