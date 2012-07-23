@@ -74,6 +74,18 @@ describe "OracleEnhancedConnection" do
     end
   end
 
+  describe "with slash-prefixed database name (service name)" do
+    before(:all) do
+      params = CONNECTION_PARAMS.dup
+      params[:database] = "/#{params[:database]}" unless params[:database].match(/^\//)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+    end
+
+    it "should create new connection" do
+      @conn.should be_active
+    end
+  end
+
   if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
     describe "create JDBC connection" do
