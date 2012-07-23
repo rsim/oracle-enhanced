@@ -95,15 +95,19 @@ module ActiveRecord
           # to_s needed if username, password or database is specified as number in database.yml file
           username = config[:username] && config[:username].to_s
           password = config[:password] && config[:password].to_s
-          database = config[:database] && config[:database].to_s
+          database = config[:database] && config[:database].to_s || 'XE'
           host, port = config[:host], config[:port]
           privilege = config[:privilege] && config[:privilege].to_s
 
           # connection using TNS alias
           if database && !host && !config[:url] && ENV['TNS_ADMIN']
-            url = "jdbc:oracle:thin:@#{database || 'XE'}"
+            url = "jdbc:oracle:thin:@#{database}"
           else
-            url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}:#{database || 'XE'}"
+            unless database.match(/^(\:|\/)/)
+              # assume database is a SID if no colon or slash are supplied (backward-compatibility)
+              database = ":#{database}"
+            end
+            url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}#{database}"
           end
 
           prefetch_rows = config[:prefetch_rows] || 100

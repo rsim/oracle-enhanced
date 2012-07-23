@@ -309,7 +309,8 @@ module ActiveRecord
           host ||= 'localhost'
           host = "[#{host}]" if host =~ /^[^\[].*:/  # IPv6
           port ||= 1521
-          "//#{host}:#{port}/#{database}"
+          database = "/#{database}" unless database.match(/^\//)
+          "//#{host}:#{port}#{database}"
         # if no host is specified then assume that
         # database parameter is TNS alias or TNS connection string
         else

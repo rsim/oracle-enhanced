@@ -72,6 +72,15 @@ In Rails application `config/database.yml` use oracle_enhanced as adapter name, 
       username: user
       password: secret
 
+If you're connecting to a service name, indicate the service with a
+leading slash on the database parameter:
+
+    development:
+      adapter: oracle_enhanced
+      database: /xe
+      username: user
+      password: secret
+
 If `TNS_ADMIN` environment variable is pointing to directory where `tnsnames.ora` file is located then you can use TNS connection name in `database` parameter. Otherwise you can directly specify database host, port (defaults to 1521) and database name in the following way:
 
     development:
