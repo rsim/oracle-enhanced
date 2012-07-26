@@ -319,7 +319,7 @@ module ActiveRecord
 
         conn = OCI8.new username, password, connection_string, privilege
         conn.autocommit = true
-        conn.non_blocking = true if async
+        conn.non_blocking = !!async unless async.nil? 
         conn.prefetch_rows = prefetch_rows
         conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil
         conn.exec "alter session set time_zone = '#{time_zone}'" unless time_zone.blank?
