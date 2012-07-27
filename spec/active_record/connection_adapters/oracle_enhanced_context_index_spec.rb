@@ -88,7 +88,7 @@ describe "OracleEnhancedAdapter context index" do
     it "should create single VARCHAR2 column index" do
       @conn.add_context_index :posts, :title
       @title_words.each do |word|
-        Post.contains(:title, word).all.should == [@post2, @post1]
+        Post.contains(:title, word).to_a.should == [@post2, @post1]
       end
       @conn.remove_context_index :posts, :title
     end
@@ -96,7 +96,7 @@ describe "OracleEnhancedAdapter context index" do
     it "should create single CLOB column index" do
       @conn.add_context_index :posts, :body
       @body_words.each do |word|
-        Post.contains(:body, word).all.should == [@post2, @post1]
+        Post.contains(:body, word).to_a.should == [@post2, @post1]
       end
       @conn.remove_context_index :posts, :body
     end
@@ -110,14 +110,14 @@ describe "OracleEnhancedAdapter context index" do
     it "should create multiple column index" do
       @conn.add_context_index :posts, [:title, :body]
       (@title_words+@body_words).each do |word|
-        Post.contains(:title, word).all.should == [@post2, @post1]
+        Post.contains(:title, word).to_a.should == [@post2, @post1]
       end
       @conn.remove_context_index :posts, [:title, :body]
     end
 
     it "should index records with null values" do
       @conn.add_context_index :posts, [:title, :body]
-      Post.contains(:title, "withnull").all.should == [@post_with_null_body, @post_with_null_title]
+      Post.contains(:title, "withnull").to_a.should == [@post_with_null_body, @post_with_null_title]
       @conn.remove_context_index :posts, [:title, :body]
     end
 
@@ -125,14 +125,14 @@ describe "OracleEnhancedAdapter context index" do
       @conn.add_context_index :posts, [:title, :body],
         :index_column => :all_text, :sync => 'ON COMMIT'
       @post = Post.create(:title => "abc", :body => "def")
-      Post.contains(:all_text, "abc").all.should == [@post]
-      Post.contains(:all_text, "def").all.should == [@post]
+      Post.contains(:all_text, "abc").to_a.should == [@post]
+      Post.contains(:all_text, "def").to_a.should == [@post]
       @post.update_attributes!(:title => "ghi")
       # index will not be updated as all_text column is not changed
-      Post.contains(:all_text, "ghi").all.should be_empty
+      Post.contains(:all_text, "ghi").to_a.should be_empty
       @post.update_attributes!(:all_text => "1")
       # index will be updated when all_text column is changed
-      Post.contains(:all_text, "ghi").all.should == [@post]
+      Post.contains(:all_text, "ghi").to_a.should == [@post]
       @conn.remove_context_index :posts, :index_column => :all_text
     end
 
@@ -141,11 +141,11 @@ describe "OracleEnhancedAdapter context index" do
         :index_column => :all_text, :index_column_trigger_on => [:created_at, :updated_at],
         :sync => 'ON COMMIT'
       @post = Post.create(:title => "abc", :body => "def")
-      Post.contains(:all_text, "abc").all.should == [@post]
-      Post.contains(:all_text, "def").all.should == [@post]
+      Post.contains(:all_text, "abc").to_a.should == [@post]
+      Post.contains(:all_text, "def").to_a.should == [@post]
       @post.update_attributes!(:title => "ghi")
       # index should be updated as created_at column is changed
-      Post.contains(:all_text, "ghi").all.should == [@post]
+      Post.contains(:all_text, "ghi").to_a.should == [@post]
       @conn.remove_context_index :posts, :index_column => :all_text
     end
 
@@ -153,9 +153,9 @@ describe "OracleEnhancedAdapter context index" do
       @post = Post.create!(:title => "āčē", :body => "dummy")
       @conn.add_context_index :posts, :title,
         :lexer => { :type => "BASIC_LEXER", :base_letter_type => 'GENERIC', :base_letter => true }
-      Post.contains(:title, "āčē").all.should == [@post]
-      Post.contains(:title, "ace").all.should == [@post]
-      Post.contains(:title, "ACE").all.should == [@post]
+      Post.contains(:title, "āčē").to_a.should == [@post]
+      Post.contains(:title, "ace").to_a.should == [@post]
+      Post.contains(:title, "ACE").to_a.should == [@post]
       @conn.remove_context_index :posts, :title
     end
 
@@ -163,9 +163,9 @@ describe "OracleEnhancedAdapter context index" do
       @conn.add_context_index :posts, :title, :transactional => true
       Post.transaction do
         @post = Post.create(:title => "abc")
-        Post.contains(:title, "abc").all.should == [@post]
+        Post.contains(:title, "abc").to_a.should == [@post]
         @post.update_attributes!(:title => "ghi")
-        Post.contains(:title, "ghi").all.should == [@post]
+        Post.contains(:title, "ghi").to_a.should == [@post]
       end
       @conn.remove_context_index :posts, :title
     end
@@ -208,7 +208,7 @@ describe "OracleEnhancedAdapter context index" do
       @post.comments.create!(:author => "ccc", :body => "ddd")
       @post.comments.create!(:author => "eee", :body => "fff")
       ["aaa", "bbb", "ccc", "ddd", "eee", "fff"].each do |word|
-        Post.contains(:all_text, word).all.should == [@post]
+        Post.contains(:all_text, word).to_a.should == [@post]
       end
       @conn.remove_context_index :posts, :name => 'post_and_comments_index'
     end
@@ -230,7 +230,7 @@ describe "OracleEnhancedAdapter context index" do
       @post.comments.create!(:author => "ccc", :body => "ddd")
       @post.comments.create!(:author => "eee", :body => "fff")
       ["aaa", "bbb", "ccc", "ddd", "eee", "fff"].each do |word|
-        Post.contains(:all_text, word).all.should == [@post]
+        Post.contains(:all_text, word).to_a.should == [@post]
       end
       @conn.remove_context_index :posts, :name => 'post_and_comments_index'
     end
@@ -244,14 +244,14 @@ describe "OracleEnhancedAdapter context index" do
         "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
         ],
         :index_column => :all_text
-      Post.contains(:all_text, "aaa within title").all.should == [@post]
-      Post.contains(:all_text, "aaa within body").all.should be_empty
-      Post.contains(:all_text, "bbb within body").all.should == [@post]
-      Post.contains(:all_text, "bbb within title").all.should be_empty
-      Post.contains(:all_text, "ccc within comment_author").all.should == [@post]
-      Post.contains(:all_text, "ccc within comment_body").all.should be_empty
-      Post.contains(:all_text, "ddd within comment_body").all.should == [@post]
-      Post.contains(:all_text, "ddd within comment_author").all.should be_empty
+      Post.contains(:all_text, "aaa within title").to_a.should == [@post]
+      Post.contains(:all_text, "aaa within body").to_a.should be_empty
+      Post.contains(:all_text, "bbb within body").to_a.should == [@post]
+      Post.contains(:all_text, "bbb within title").to_a.should be_empty
+      Post.contains(:all_text, "ccc within comment_author").to_a.should == [@post]
+      Post.contains(:all_text, "ccc within comment_body").to_a.should be_empty
+      Post.contains(:all_text, "ddd within comment_body").to_a.should == [@post]
+      Post.contains(:all_text, "ddd within comment_author").to_a.should be_empty
       @conn.remove_context_index :posts, :index_column => :all_text
     end
 
@@ -290,14 +290,14 @@ describe "OracleEnhancedAdapter context index" do
     it "should create index on single column" do
       @conn.add_context_index :posts, :title, :tablespace => @tablespace
       verify_logged_statements
-      Post.contains(:title, 'aaa').all.should == [@post]
+      Post.contains(:title, 'aaa').to_a.should == [@post]
       @conn.remove_context_index :posts, :title
     end
 
     it "should create index on multiple columns" do
       @conn.add_context_index :posts, [:title, :body], :name => 'index_posts_text', :tablespace => @conn.default_tablespace
       verify_logged_statements
-      Post.contains(:title, 'aaa AND bbb').all.should == [@post]
+      Post.contains(:title, 'aaa AND bbb').to_a.should == [@post]
       @conn.remove_context_index :posts, :name => 'index_posts_text'
     end
 
