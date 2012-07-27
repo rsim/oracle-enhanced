@@ -682,7 +682,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should load included association with more than 1000 records" do
-      posts = TestPost.includes(:test_comments).all
+      posts = TestPost.includes(:test_comments).to_a
       posts.size.should == @ids.size
     end
 
