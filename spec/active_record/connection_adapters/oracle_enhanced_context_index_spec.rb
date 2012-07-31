@@ -406,6 +406,7 @@ describe "OracleEnhancedAdapter context index" do
           :name => 'xxx_post_and_comments_i',
           :index_column => :all_text, :index_column_trigger_on => :updated_at,
           :lexer => { :type => "BASIC_LEXER", :base_letter_type => 'GENERIC', :base_letter => true },
+          :wordlist => { :type => "BASIC_WORDLIST", :prefix_index => true },
           :sync => 'ON COMMIT'
         }
         schema_define do

@@ -21,6 +21,7 @@ module ActiveRecord
       # * <tt>:tablespace</tt>
       # * <tt>:sync</tt> - 'MANUAL', 'EVERY "interval-string"' or 'ON COMMIT' (defaults to 'MANUAL').
       # * <tt>:lexer</tt> - Lexer options (e.g. <tt>:type => 'BASIC_LEXER', :base_letter => true</tt>).
+      # * <tt>:wordlist</tt> - Wordlist options (e.g. <tt>:type => 'BASIC_WORDLIST', :prefix_index => true</tt>).
       # * <tt>:transactional</tt> - When +true+, the CONTAINS operator will process inserted and updated rows.
       #
       # ===== Examples
@@ -64,6 +65,9 @@ module ActiveRecord
       # ====== Creating index using lexer
       #  add_context_index :posts, :title, :lexer => { :type => 'BASIC_LEXER', :base_letter => true, ... }
       #
+      # ====== Creating index using wordlist
+      #  add_context_index :posts, :title, :wordlist => { :type => 'BASIC_WORDLIST', :prefix_index => true, ... }
+      #
       # ====== Creating transactional index (will reindex changed rows when querying)
       #  add_context_index :posts, :title, :transactional => true
       #
@@ -105,6 +109,12 @@ module ActiveRecord
           (lexer_options = options[:lexer].dup).delete(:type)
           create_lexer_preference(lexer_name, lexer_type, lexer_options)
           parameters << "LEXER #{lexer_name}"
+        end
+        if options[:wordlist] && (wordlist_type = options[:wordlist][:type])
+          wordlist_name = default_wordlist_name(index_name)
+          (wordlist_options = options[:wordlist].dup).delete(:type)
+          create_wordlist_preference(wordlist_name, wordlist_type, wordlist_options)
+          parameters << "WORDLIST #{wordlist_name}"
         end
         if options[:transactional]
           parameters << "TRANSACTIONAL"
@@ -246,6 +256,23 @@ module ActiveRecord
         execute sql
       end
 
+      def create_wordlist_preference(wordlist_name, wordlist_type, options)
+        drop_ctx_preference(wordlist_name)
+        sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{wordlist_name}', '#{wordlist_type}');\n"
+        options.each do |key, value|
+          plsql_value = case value
+          when String; "'#{value}'"
+          when true; "'YES'"
+          when false; "'NO'"
+          when nil; 'NULL'
+          else value
+          end
+          sql << "CTX_DDL.SET_ATTRIBUTE('#{wordlist_name}', '#{key}', #{plsql_value});\n"
+        end
+        sql << "END;\n"
+        execute sql
+      end
+
       def drop_ctx_preference(preference_name)
         execute "BEGIN CTX_DDL.DROP_PREFERENCE('#{preference_name}'); END;" rescue nil
       end
@@ -286,6 +313,10 @@ module ActiveRecord
 
       def default_lexer_name(index_name)
         "#{index_name}_lex"
+      end
+
+      def default_wordlist_name(index_name)
+        "#{index_name}_wl"
       end
 
       module BaseClassMethods

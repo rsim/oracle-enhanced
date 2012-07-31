@@ -3,13 +3,14 @@ module ActiveRecord
     class OracleEnhancedColumn < Column
 
       attr_reader :table_name, :forced_column_type, :nchar, :virtual_column_data_default #:nodoc:
-      
+
       def initialize(name, default, sql_type = nil, null = true, table_name = nil, forced_column_type = nil, virtual=false) #:nodoc:
         @table_name = table_name
         @forced_column_type = forced_column_type
         @virtual = virtual
-        super(name, default, sql_type, null)
         @virtual_column_data_default = default.inspect if virtual
+        default = nil if virtual
+        super(name, default, sql_type, null)
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
         @nchar = true if @type == :string && sql_type[0,1] == 'N'
