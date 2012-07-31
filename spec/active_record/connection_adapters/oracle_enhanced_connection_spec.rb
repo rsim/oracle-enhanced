@@ -74,6 +74,18 @@ describe "OracleEnhancedConnection" do
     end
   end
 
+  describe "with slash-prefixed database name (service name)" do
+    before(:all) do
+      params = CONNECTION_PARAMS.dup
+      params[:database] = "/#{params[:database]}" unless params[:database].match(/^\//)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+    end
+
+    it "should create new connection" do
+      @conn.should be_active
+    end
+  end
+
   if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
     describe "create JDBC connection" do
@@ -141,6 +153,16 @@ describe "OracleEnhancedConnection" do
         @conn.should be_active
       end
 
+    end
+
+    it "should fall back to directly instantiating OracleDriver" do
+      params = CONNECTION_PARAMS.dup
+      params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST && "#{DATABASE_HOST}:"}#{DATABASE_PORT && "#{DATABASE_PORT}:"}#{DATABASE_NAME}"
+      params[:host] = nil
+      params[:database] = nil
+      java.sql.DriverManager.stub!(:getConnection).and_raise('no suitable driver found')
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      @conn.should be_active
     end
 
   end

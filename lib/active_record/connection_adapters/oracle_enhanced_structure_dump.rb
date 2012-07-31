@@ -117,7 +117,7 @@ module ActiveRecord #:nodoc:
           else
             index_type = options
           end
-          quoted_column_names = column_names.map { |e| quote_column_name(e) }.join(", ")
+          quoted_column_names = column_names.map { |e| quote_column_name_or_expression(e) }.join(", ")
           "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
         end
       end
@@ -231,6 +231,10 @@ module ActiveRecord #:nodoc:
           sql << " NOT NULL"
         elsif options[:null] == true
           sql << " NULL" unless type == :primary_key
+        end
+        # add AS expression for virtual columns
+        if options[:as].present?
+          sql << " AS (#{options[:as]})"
         end
       end
 
