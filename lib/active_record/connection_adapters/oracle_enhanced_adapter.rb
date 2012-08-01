@@ -833,12 +833,17 @@ module ActiveRecord
             if col == :returning_id
               returning_id_index = i + 1
               cursor.bind_returning_param(returning_id_index, Integer)
-            elsif val.class == GeoRuby::SimpleFeatures::Point
-              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2001, col.name) , OCI8::Object::Mdsys::SdoGeometry)
-            elsif val.class == GeoRuby::SimpleFeatures::LineString
-              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2002, col.name) , OCI8::Object::Mdsys::SdoGeometry)  
-            elsif val.class == GeoRuby::SimpleFeatures::Polygon
-              cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2003, col.name) , OCI8::Object::Mdsys::SdoGeometry)  
+            elsif col.class == ActiveRecord::ConnectionAdapters::SpatialOracleColumn
+              if val.class == GeoRuby::SimpleFeatures::Point
+                cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2001, col.name) , OCI8::Object::Mdsys::SdoGeometry)
+              elsif val.class == GeoRuby::SimpleFeatures::LineString
+                cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2002, col.name) , OCI8::Object::Mdsys::SdoGeometry)  
+              elsif val.class == GeoRuby::SimpleFeatures::Polygon
+                cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2003, col.name) , OCI8::Object::Mdsys::SdoGeometry)
+              else
+                GeoShape.first ####
+                cursor.bind_param(i + 1, OCI8::Object::Mdsys::SdoGeometry)
+              end  
             else
               cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
             end
