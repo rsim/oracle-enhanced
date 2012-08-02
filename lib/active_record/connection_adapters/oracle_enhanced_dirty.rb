@@ -18,7 +18,7 @@ module ActiveRecord #:nodoc:
             # therefore need to convert empty string value to nil if old value is nil
             elsif column.type == :string && column.null && old.nil?
               value = nil if value == ''
-            elsif old == 0 && value.present? && value != '0'
+            elsif old == 0 && value.is_a?(String) && value.present? && value != '0'
               value = nil
             else
               value = column.type_cast(value)
