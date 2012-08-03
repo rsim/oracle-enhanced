@@ -917,6 +917,10 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     class ::Test2Employee < ActiveRecord::Base
       serialize :comments
     end
+    class ::TestEmployeeReadOnlyClob < ActiveRecord::Base
+      set_table_name :test_employees
+      attr_readonly :comments
+    end
   end
 
   after(:all) do
@@ -926,6 +930,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @conn.execute "DROP SEQUENCE test2_employees_seq"
     Object.send(:remove_const, "TestEmployee")
     Object.send(:remove_const, "Test2Employee")
+    Object.send(:remove_const, "TestEmployeeReadOnlyClob")
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
 
@@ -943,6 +948,21 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     )
     @employee.should be_valid
   end
+
+  it "should respect attr_readonly setting for CLOB column" do
+    @employee = TestEmployeeReadOnlyClob.create!(
+      :first_name => "First",
+      :comments => "initial"
+    )
+    @employee.should be_valid
+    @employee.reload
+    @employee.comments.should == 'initial'
+    @employee.comments = "changed"
+    @employee.save.should == true
+    @employee.reload
+    @employee.comments.should == 'initial'
+  end
+
 
   it "should create record with CLOB data" do
     @employee = TestEmployee.create!(
