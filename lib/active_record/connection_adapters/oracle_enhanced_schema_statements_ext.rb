@@ -96,6 +96,7 @@ module ActiveRecord
         end
         
         sql = "FOREIGN KEY (#{columns_sql}) REFERENCES #{quote_table_name(to_table)}(#{references_sql})"
+        sql = "CONSTRAINT #{quote_table_name(options[:name])} #{sql}" if options[:name]
         
         case options[:dependent]
         when :nullify
