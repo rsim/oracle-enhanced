@@ -42,7 +42,7 @@ group :development do
       gem "journey", :git => "git://github.com/rails/journey"
     end
 
-    gem "active_record_deprecated_finders", :git => "git://github.com/rails/active_record_deprecated_finders"
+    gem "activerecord-deprecated_finders", :git => "git://github.com/rails/activerecord-deprecated_finders"
   end
 
   gem 'ruby-plsql', '>=0.5.0'
