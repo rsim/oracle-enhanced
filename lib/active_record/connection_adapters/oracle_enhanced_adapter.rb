@@ -930,11 +930,14 @@ module ActiveRecord
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
-              LOWER(c.column_name) AS column_name, e.column_expression
+              LOWER(c.column_name) AS column_name, e.column_expression,
+              atc.virtual_column
             FROM all_indexes#{db_link} i
               JOIN all_ind_columns#{db_link} c ON c.index_name = i.index_name AND c.index_owner = i.owner
               LEFT OUTER JOIN all_ind_expressions#{db_link} e ON e.index_name = i.index_name AND
                 e.index_owner = i.owner AND e.column_position = c.column_position
+              LEFT OUTER JOIN all_tab_cols#{db_link} atc ON i.table_name = atc.table_name AND
+                c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
             WHERE i.owner = '#{owner}'
                AND i.table_owner = '#{owner}'
                AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
@@ -969,7 +972,16 @@ module ActiveRecord
                 row['tablespace_name'] == default_tablespace_name ? nil : row['tablespace_name'], [])
               current_index = row['index_name']
             end
-            all_schema_indexes.last.columns << (row['column_expression'] || row['column_name'].downcase)
+
+            # Functional index columns and virtual columns both get stored as column expressions, 
+            # but re-creating a virtual column index as an expression (instead of using the virtual column's name)
+            # results in a ORA-54018 error.  Thus, we only want the column expression value returned
+            # when the column is not virtual.
+            if row['column_expression'] && row['virtual_column'] != 'YES'
+              all_schema_indexes.last.columns << row['column_expression']
+            else
+              all_schema_indexes.last.columns << row['column_name'].downcase
+            end
           end
         end
 
