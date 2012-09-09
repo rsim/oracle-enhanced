@@ -270,8 +270,15 @@ module ActiveRecord
         clear_table_columns_cache(table_name)
       end
 
-      def remove_column(table_name, column_name) #:nodoc:
-        execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)}"
+      def remove_column(table_name, *column_names) #:nodoc:
+        if column_names.flatten!
+          message = 'Passing array to remove_columns is deprecated, please use ' +
+                    'multiple arguments, like: `remove_columns(:posts, :foo, :bar)`'
+          ActiveSupport::Deprecation.warn message, caller
+        end
+        columns_for_remove(table_name, *column_names).map { |column_name|
+          execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)}"
+        }
       ensure
         clear_table_columns_cache(table_name)
       end
