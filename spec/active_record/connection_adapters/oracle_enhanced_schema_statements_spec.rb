@@ -934,6 +934,7 @@ end
       schema_define do
         create_table :test_posts, :force => true do |t|
           t.string :title, :null => false
+          t.string :content
         end
       end
       class ::TestPost < ActiveRecord::Base; end
@@ -995,6 +996,26 @@ end
       TestPost.columns_hash['title'].should be_nil
     end
 
+    it "should remove column when using change_table" do
+      schema_define do
+        change_table :test_posts do |t|
+          t.remove :title
+        end
+      end
+      TestPost.reset_column_information
+      TestPost.columns_hash['title'].should be_nil
+    end
+
+    it "should remove multiple columns when using change_table" do
+      schema_define do
+        change_table :test_posts do |t|
+          t.remove :title, :content
+        end
+      end
+      TestPost.reset_column_information
+      TestPost.columns_hash['title'].should be_nil
+      TestPost.columns_hash['content'].should be_nil
+    end
   end
 
   describe 'virtual columns in create_table' do
