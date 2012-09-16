@@ -581,7 +581,7 @@ module ActiveRecord
 
       # Reconnects to the database.
       def reconnect! #:nodoc:
-        clear_cache!
+        super
         @connection.reset!
       rescue OracleEnhancedConnectionException => e
         @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
@@ -594,7 +594,7 @@ module ActiveRecord
 
       # Disconnects from the database.
       def disconnect! #:nodoc:
-        clear_cache!
+        super
         @connection.logoff rescue nil
       end
 
