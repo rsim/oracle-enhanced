@@ -308,6 +308,10 @@ module ActiveRecord
         true
       end
 
+      def supports_transaction_isolation? #:nodoc:
+        true
+      end
+
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         :nls_calendar            => nil,
@@ -789,6 +793,21 @@ module ActiveRecord
 
       def begin_db_transaction #:nodoc:
         @connection.autocommit = false
+      end
+
+      def transaction_isolation_levels
+        # Oracle database supports `READ COMMITTED` and `SERIALIZABLE`
+        # No read uncommitted nor repeatable read supppoted
+        # http://docs.oracle.com/cd/E11882_01/server.112/e26088/statements_10005.htm#SQLRF55422
+        {
+          read_committed:   "READ COMMITTED",
+          serializable:     "SERIALIZABLE"
+        }
+      end
+
+      def begin_isolated_db_transaction(isolation)
+        begin_db_transaction
+        execute "SET TRANSACTION ISOLATION LEVEL  #{transaction_isolation_levels.fetch(isolation)}"
       end
 
       def commit_db_transaction #:nodoc:
