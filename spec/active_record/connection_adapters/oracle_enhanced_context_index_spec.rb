@@ -7,19 +7,19 @@ describe "OracleEnhancedAdapter context index" do
 
   def create_table_posts
     schema_define do
-      create_table :posts, :force => true do |t|
+      create_table :posts, force: true do |t|
         t.string :title
         t.text :body
         t.integer :comments_count
         t.timestamps
-        t.string :all_text, :limit => 2 # will be used for multi-column index
+        t.string :all_text, limit: 2 # will be used for multi-column index
       end
     end
   end
 
   def create_table_comments
     schema_define do
-      create_table :comments, :force => true do |t|
+      create_table :comments, force: true do |t|
         t.integer :post_id
         t.string :author
         t.text :body
@@ -68,11 +68,11 @@ describe "OracleEnhancedAdapter context index" do
       class ::Post < ActiveRecord::Base
         has_context_index
       end
-      @post0 = Post.create(:title => "dummy title", :body => "dummy body")
-      @post1 = Post.create(:title => @title_words.join(' '), :body => @body_words.join(' '))
-      @post2 = Post.create(:title => (@title_words*2).join(' '), :body => (@body_words*2).join(' '))
-      @post_with_null_body = Post.create(:title => "withnull", :body => nil)
-      @post_with_null_title = Post.create(:title => nil, :body => "withnull")
+      @post0 = Post.create(title: "dummy title", body: "dummy body")
+      @post1 = Post.create(title: @title_words.join(' '), body: @body_words.join(' '))
+      @post2 = Post.create(title: (@title_words*2).join(' '), body: (@body_words*2).join(' '))
+      @post_with_null_body = Post.create(title: "withnull", body: nil)
+      @post_with_null_title = Post.create(title: nil, body: "withnull")
     end
 
     after(:all) do
@@ -123,36 +123,36 @@ describe "OracleEnhancedAdapter context index" do
 
     it "should create multiple column index with specified main index column" do
       @conn.add_context_index :posts, [:title, :body],
-        :index_column => :all_text, :sync => 'ON COMMIT'
-      @post = Post.create(:title => "abc", :body => "def")
+        index_column: :all_text, sync: 'ON COMMIT'
+      @post = Post.create(title: "abc", body: "def")
       Post.contains(:all_text, "abc").to_a.should == [@post]
       Post.contains(:all_text, "def").to_a.should == [@post]
-      @post.update_attributes!(:title => "ghi")
+      @post.update_attributes!(title: "ghi")
       # index will not be updated as all_text column is not changed
       Post.contains(:all_text, "ghi").to_a.should be_empty
-      @post.update_attributes!(:all_text => "1")
+      @post.update_attributes!(all_text: "1")
       # index will be updated when all_text column is changed
       Post.contains(:all_text, "ghi").to_a.should == [@post]
-      @conn.remove_context_index :posts, :index_column => :all_text
+      @conn.remove_context_index :posts, index_column: :all_text
     end
 
     it "should create multiple column index with trigger updated main index column" do
       @conn.add_context_index :posts, [:title, :body],
-        :index_column => :all_text, :index_column_trigger_on => [:created_at, :updated_at],
-        :sync => 'ON COMMIT'
-      @post = Post.create(:title => "abc", :body => "def")
+        index_column: :all_text, index_column_trigger_on: [:created_at, :updated_at],
+        sync: 'ON COMMIT'
+      @post = Post.create(title: "abc", body: "def")
       Post.contains(:all_text, "abc").to_a.should == [@post]
       Post.contains(:all_text, "def").to_a.should == [@post]
-      @post.update_attributes!(:title => "ghi")
+      @post.update_attributes!(title: "ghi")
       # index should be updated as created_at column is changed
       Post.contains(:all_text, "ghi").to_a.should == [@post]
-      @conn.remove_context_index :posts, :index_column => :all_text
+      @conn.remove_context_index :posts, index_column: :all_text
     end
 
     it "should use base letter conversion with BASIC_LEXER" do
-      @post = Post.create!(:title => "āčē", :body => "dummy")
+      @post = Post.create!(title: "āčē", body: "dummy")
       @conn.add_context_index :posts, :title,
-        :lexer => { :type => "BASIC_LEXER", :base_letter_type => 'GENERIC', :base_letter => true }
+        lexer: { type: "BASIC_LEXER", base_letter_type: 'GENERIC', base_letter: true }
       Post.contains(:title, "āčē").to_a.should == [@post]
       Post.contains(:title, "ace").to_a.should == [@post]
       Post.contains(:title, "ACE").to_a.should == [@post]
@@ -160,11 +160,11 @@ describe "OracleEnhancedAdapter context index" do
     end
 
     it "should create transactional index and sync index within transaction on inserts and updates" do
-      @conn.add_context_index :posts, :title, :transactional => true
+      @conn.add_context_index :posts, :title, transactional: true
       Post.transaction do
-        @post = Post.create(:title => "abc")
+        @post = Post.create(title: "abc")
         Post.contains(:title, "abc").to_a.should == [@post]
-        @post.update_attributes!(:title => "ghi")
+        @post.update_attributes!(title: "ghi")
         Post.contains(:title, "ghi").to_a.should == [@post]
       end
       @conn.remove_context_index :posts, :title
@@ -176,11 +176,11 @@ describe "OracleEnhancedAdapter context index" do
       @conn = ActiveRecord::Base.connection
       create_tables
       class ::Post < ActiveRecord::Base
-        has_many :comments, :dependent => :destroy
+        has_many :comments, dependent: :destroy
         has_context_index
       end
       class ::Comment < ActiveRecord::Base
-        belongs_to :post, :counter_cache => true
+        belongs_to :post, counter_cache: true
       end
     end
 
@@ -201,16 +201,16 @@ describe "OracleEnhancedAdapter context index" do
         # specify aliases always with AS keyword
         "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
         ],
-        :name => 'post_and_comments_index',
-        :index_column => :all_text, :index_column_trigger_on => [:updated_at, :comments_count],
-        :sync => 'ON COMMIT'
-      @post = Post.create!(:title => "aaa", :body => "bbb")
-      @post.comments.create!(:author => "ccc", :body => "ddd")
-      @post.comments.create!(:author => "eee", :body => "fff")
+        name: 'post_and_comments_index',
+        index_column: :all_text, index_column_trigger_on: [:updated_at, :comments_count],
+        sync: 'ON COMMIT'
+      @post = Post.create!(title: "aaa", body: "bbb")
+      @post.comments.create!(author: "ccc", body: "ddd")
+      @post.comments.create!(author: "eee", body: "fff")
       ["aaa", "bbb", "ccc", "ddd", "eee", "fff"].each do |word|
         Post.contains(:all_text, word).to_a.should == [@post]
       end
-      @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+      @conn.remove_context_index :posts, name: 'post_and_comments_index'
     end
 
     it "should create multiple table index with specified main index column (when subquery has newlines)" do
@@ -223,27 +223,27 @@ describe "OracleEnhancedAdapter context index" do
             FROM comments
             WHERE comments.post_id = :id }
         ],
-        :name => 'post_and_comments_index',
-        :index_column => :all_text, :index_column_trigger_on => [:updated_at, :comments_count],
-        :sync => 'ON COMMIT'
-      @post = Post.create!(:title => "aaa", :body => "bbb")
-      @post.comments.create!(:author => "ccc", :body => "ddd")
-      @post.comments.create!(:author => "eee", :body => "fff")
+        name: 'post_and_comments_index',
+        index_column: :all_text, index_column_trigger_on: [:updated_at, :comments_count],
+        sync: 'ON COMMIT'
+      @post = Post.create!(title: "aaa", body: "bbb")
+      @post.comments.create!(author: "ccc", body: "ddd")
+      @post.comments.create!(author: "eee", body: "fff")
       ["aaa", "bbb", "ccc", "ddd", "eee", "fff"].each do |word|
         Post.contains(:all_text, word).to_a.should == [@post]
       end
-      @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+      @conn.remove_context_index :posts, name: 'post_and_comments_index'
     end
 
     it "should find by search term within specified field" do
-      @post = Post.create!(:title => "aaa", :body => "bbb")
-      @post.comments.create!(:author => "ccc", :body => "ddd")
+      @post = Post.create!(title: "aaa", body: "bbb")
+      @post.comments.create!(author: "ccc", body: "ddd")
       @conn.add_context_index :posts,
         [:title, :body,
         # specify aliases always with AS keyword
         "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
         ],
-        :index_column => :all_text
+        index_column: :all_text
       Post.contains(:all_text, "aaa within title").to_a.should == [@post]
       Post.contains(:all_text, "aaa within body").to_a.should be_empty
       Post.contains(:all_text, "bbb within body").to_a.should == [@post]
@@ -252,7 +252,7 @@ describe "OracleEnhancedAdapter context index" do
       Post.contains(:all_text, "ccc within comment_body").to_a.should be_empty
       Post.contains(:all_text, "ddd within comment_body").to_a.should == [@post]
       Post.contains(:all_text, "ddd within comment_author").to_a.should be_empty
-      @conn.remove_context_index :posts, :index_column => :all_text
+      @conn.remove_context_index :posts, index_column: :all_text
     end
 
   end
@@ -264,7 +264,7 @@ describe "OracleEnhancedAdapter context index" do
       class ::Post < ActiveRecord::Base
         has_context_index
       end
-      @post = Post.create(:title => 'aaa', :body => 'bbb')
+      @post = Post.create(title: 'aaa', body: 'bbb')
       @tablespace = @conn.default_tablespace
       set_logger
       @conn = ActiveRecord::Base.connection
@@ -288,17 +288,17 @@ describe "OracleEnhancedAdapter context index" do
     end
 
     it "should create index on single column" do
-      @conn.add_context_index :posts, :title, :tablespace => @tablespace
+      @conn.add_context_index :posts, :title, tablespace: @tablespace
       verify_logged_statements
       Post.contains(:title, 'aaa').to_a.should == [@post]
       @conn.remove_context_index :posts, :title
     end
 
     it "should create index on multiple columns" do
-      @conn.add_context_index :posts, [:title, :body], :name => 'index_posts_text', :tablespace => @conn.default_tablespace
+      @conn.add_context_index :posts, [:title, :body], name: 'index_posts_text', tablespace: @conn.default_tablespace
       verify_logged_statements
       Post.contains(:title, 'aaa AND bbb').to_a.should == [@post]
-      @conn.remove_context_index :posts, :name => 'index_posts_text'
+      @conn.remove_context_index :posts, name: 'index_posts_text'
     end
 
   end
@@ -325,7 +325,7 @@ describe "OracleEnhancedAdapter context index" do
 
       it "should dump definition of single column index" do
         @conn.add_context_index :posts, :title
-        standard_dump.should =~ /add_context_index "posts", \["title"\], :name => \"index_posts_on_title\"$/
+        standard_dump.should =~ /add_context_index "posts", \["title"\], name: \"index_posts_on_title\"$/
         @conn.remove_context_index :posts, :title
       end
 
@@ -337,41 +337,41 @@ describe "OracleEnhancedAdapter context index" do
 
       it "should dump definition of multiple table index with options" do
         options = {
-          :name => 'post_and_comments_index',
-          :index_column => :all_text, :index_column_trigger_on => :updated_at,
-          :transactional => true,
-          :sync => 'ON COMMIT'
+          name: 'post_and_comments_index',
+          index_column: :all_text, index_column_trigger_on: :updated_at,
+          transactional: true,
+          sync: 'ON COMMIT'
         }
         sub_query = "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
         @conn.add_context_index :posts, [:title, :body, sub_query], options
         standard_dump.should =~ /add_context_index "posts", \[:title, :body, "#{sub_query}"\], #{options.inspect[1..-2]}$/
-        @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+        @conn.remove_context_index :posts, name: 'post_and_comments_index'
       end
 
       it "should dump definition of multiple table index with options (when definition is larger than 4000 bytes)" do
         options = {
-          :name => 'post_and_comments_index',
-          :index_column => :all_text, :index_column_trigger_on => :updated_at,
-          :transactional => true,
-          :sync => 'ON COMMIT'
+          name: 'post_and_comments_index',
+          index_column: :all_text, index_column_trigger_on: :updated_at,
+          transactional: true,
+          sync: 'ON COMMIT'
         }
         sub_query = "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id#{' AND 1=1' * 500}"
         @conn.add_context_index :posts, [:title, :body, sub_query], options
         standard_dump.should =~ /add_context_index "posts", \[:title, :body, "#{sub_query}"\], #{options.inspect[1..-2]}$/
-        @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+        @conn.remove_context_index :posts, name: 'post_and_comments_index'
       end
 
       it "should dump definition of multiple table index with options (when subquery has newlines)" do
         options = {
-          :name => 'post_and_comments_index',
-          :index_column => :all_text, :index_column_trigger_on => :updated_at,
-          :transactional => true,
-          :sync => 'ON COMMIT'
+          name: 'post_and_comments_index',
+          index_column: :all_text, index_column_trigger_on: :updated_at,
+          transactional: true,
+          sync: 'ON COMMIT'
         }
         sub_query = "SELECT comments.author AS comment_author, comments.body AS comment_body\nFROM comments\nWHERE comments.post_id = :id"
         @conn.add_context_index :posts, [:title, :body, sub_query], options
         standard_dump.should =~ /add_context_index "posts", \[:title, :body, "#{sub_query.gsub(/\n/, ' ')}"\], #{options.inspect[1..-2]}$/
-        @conn.remove_context_index :posts, :name => 'post_and_comments_index'
+        @conn.remove_context_index :posts, name: 'post_and_comments_index'
       end
 
     end
@@ -391,7 +391,7 @@ describe "OracleEnhancedAdapter context index" do
 
       it "should dump definition of single column index" do
         schema_define { add_context_index :posts, :title }
-        standard_dump.should =~ /add_context_index "posts", \["title"\], :name => "i_xxx_posts_xxx_title"$/
+        standard_dump.should =~ /add_context_index "posts", \["title"\], name: "i_xxx_posts_xxx_title"$/
         schema_define { remove_context_index :posts, :title }
       end
 
@@ -403,11 +403,11 @@ describe "OracleEnhancedAdapter context index" do
 
       it "should dump definition of multiple table index with options" do
         options = {
-          :name => 'xxx_post_and_comments_i',
-          :index_column => :all_text, :index_column_trigger_on => :updated_at,
-          :lexer => { :type => "BASIC_LEXER", :base_letter_type => 'GENERIC', :base_letter => true },
-          :wordlist => { :type => "BASIC_WORDLIST", :prefix_index => true },
-          :sync => 'ON COMMIT'
+          name: 'xxx_post_and_comments_i',
+          index_column: :all_text, index_column_trigger_on: :updated_at,
+          lexer: { type: "BASIC_LEXER", base_letter_type: 'GENERIC', base_letter: true },
+          wordlist: { type: "BASIC_WORDLIST", prefix_index: true },
+          sync: 'ON COMMIT'
         }
         schema_define do
           add_context_index :posts,
@@ -417,7 +417,7 @@ describe "OracleEnhancedAdapter context index" do
         end
         standard_dump.should =~ /add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{
           options.inspect[1..-2].gsub(/[{}]/){|s| '\\'<<s }}$/
-        schema_define { remove_context_index :posts, :name => 'xxx_post_and_comments_i' }
+        schema_define { remove_context_index :posts, name: 'xxx_post_and_comments_i' }
       end
 
     end
