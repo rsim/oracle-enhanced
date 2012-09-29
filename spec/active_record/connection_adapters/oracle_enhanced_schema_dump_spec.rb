@@ -17,7 +17,7 @@ describe "OracleEnhancedAdapter schema dump" do
   end
 
   def create_test_posts_table(options = {})
-    options.merge! :force => true
+    options.merge! force: true
     schema_define do
       create_table :test_posts, options do |t|
         t.string :title
@@ -42,12 +42,12 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should not include ignored table names in schema dump" do
       create_test_posts_table
-      standard_dump(:ignore_tables => %w(test_posts)).should_not =~ /create_table "test_posts"/
+      standard_dump(ignore_tables: %w(test_posts)).should_not =~ /create_table "test_posts"/
     end
 
     it "should not include ignored table regexes in schema dump" do
       create_test_posts_table
-      standard_dump(:ignore_tables => [ /test_posts/i ]).should_not =~ /create_table "test_posts"/
+      standard_dump(ignore_tables: [ /test_posts/i ]).should_not =~ /create_table "test_posts"/
     end
 
   end
@@ -55,9 +55,9 @@ describe "OracleEnhancedAdapter schema dump" do
   describe "dumping default values" do
     before :each do
       schema_define do
-        create_table "test_defaults", :force => true do |t|
-          t.string "regular", :default => "c"
-          t.string "special_c", :default => "\n"
+        create_table "test_defaults", force: true do |t|
+          t.string "regular", default: "c"
+          t.string "special_c", default: "\n"
         end
       end
     end
@@ -69,7 +69,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should be able to dump default values using special characters" do
-      standard_dump.should =~ /t.string \"special_c\", :default => "\\n"/
+      standard_dump.should =~ /t.string \"special_c\", default: "\\n"/
     end
   end
   describe "table prefixes and suffixes" do
@@ -124,8 +124,8 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should include non-default primary key in schema dump" do
-      create_test_posts_table(:primary_key => 'post_id')
-      standard_dump.should =~ /create_table "test_posts", :primary_key => "post_id"/
+      create_test_posts_table(primary_key: 'post_id')
+      standard_dump.should =~ /create_table "test_posts", primary_key: "post_id"/
     end
 
   end
@@ -138,13 +138,13 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should include primary key trigger in schema dump" do
-      create_test_posts_table(:primary_key_trigger => true)
+      create_test_posts_table(primary_key_trigger: true)
       standard_dump.should =~ /create_table "test_posts".*add_primary_key_trigger "test_posts"/m
     end
 
     it "should include primary key trigger with non-default primary key in schema dump" do
-      create_test_posts_table(:primary_key_trigger => true, :primary_key => 'post_id')
-      standard_dump.should =~ /create_table "test_posts", :primary_key => "post_id".*add_primary_key_trigger "test_posts", :primary_key => "post_id"/m
+      create_test_posts_table(primary_key_trigger: true, primary_key: 'post_id')
+      standard_dump.should =~ /create_table "test_posts", primary_key: "post_id".*add_primary_key_trigger "test_posts", primary_key: "post_id"/m
     end
 
   end
@@ -152,11 +152,11 @@ describe "OracleEnhancedAdapter schema dump" do
   describe "foreign key constraints" do
     before(:all) do
       schema_define do
-        create_table :test_posts, :force => true do |t|
+        create_table :test_posts, force: true do |t|
           t.string :title
         end
-        create_table :test_comments, :force => true do |t|
-          t.string :body, :limit => 4000
+        create_table :test_comments, force: true do |t|
+          t.string :body, limit: 4000
           t.references :test_post
         end
       end
@@ -165,7 +165,7 @@ describe "OracleEnhancedAdapter schema dump" do
     after(:each) do
       schema_define do
         remove_foreign_key :test_comments, :test_posts rescue nil
-        remove_foreign_key :test_comments, :name => 'comments_posts_baz_fooz_fk' rescue nil
+        remove_foreign_key :test_comments, name: 'comments_posts_baz_fooz_fk' rescue nil
       end
     end
     after(:all) do
@@ -179,49 +179,49 @@ describe "OracleEnhancedAdapter schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :name => "test_comments_test_post_id_fk"/
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", name: "test_comments_test_post_id_fk"/
     end
 
     it "should include foreign key with delete dependency in schema dump" do
       schema_define do
-        add_foreign_key :test_comments, :test_posts, :dependent => :delete
+        add_foreign_key :test_comments, :test_posts, dependent: :delete
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :name => "test_comments_test_post_id_fk", :dependent => :delete/
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", name: "test_comments_test_post_id_fk", dependent: :delete/
     end
 
     it "should include foreign key with nullify dependency in schema dump" do
       schema_define do
-        add_foreign_key :test_comments, :test_posts, :dependent => :nullify
+        add_foreign_key :test_comments, :test_posts, dependent: :nullify
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :name => "test_comments_test_post_id_fk", :dependent => :nullify/
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", name: "test_comments_test_post_id_fk", dependent: :nullify/
     end
 
     it "should not include foreign keys on ignored table names in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump(:ignore_tables => %w(test_comments)).should_not =~ /add_foreign_key "test_comments"/
+      standard_dump(ignore_tables: %w(test_comments)).should_not =~ /add_foreign_key "test_comments"/
     end
 
     it "should not include foreign keys on ignored table regexes in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump(:ignore_tables => [ /test_comments/i ]).should_not =~ /add_foreign_key "test_comments"/
+      standard_dump(ignore_tables: [ /test_comments/i ]).should_not =~ /add_foreign_key "test_comments"/
     end
 
     it "should include foreign keys referencing ignored table names in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump(:ignore_tables => %w(test_posts)).should =~ /add_foreign_key "test_comments"/
+      standard_dump(ignore_tables: %w(test_posts)).should =~ /add_foreign_key "test_comments"/
     end
 
     it "should include foreign keys referencing ignored table regexes in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump(:ignore_tables => [ /test_posts/i ]).should =~ /add_foreign_key "test_comments"/
+      standard_dump(ignore_tables: [ /test_posts/i ]).should =~ /add_foreign_key "test_comments"/
     end
 
     it "should include composite foreign keys" do
@@ -237,9 +237,9 @@ describe "OracleEnhancedAdapter schema dump" do
         add_column :test_comments, :baz_id, :integer
         add_column :test_comments, :fooz_id, :integer
 
-        add_foreign_key :test_comments, :test_posts, :columns => ["baz_id", "fooz_id"], :name => 'comments_posts_baz_fooz_fk'
+        add_foreign_key :test_comments, :test_posts, columns: ["baz_id", "fooz_id"], name: 'comments_posts_baz_fooz_fk'
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :columns => \["baz_id", "fooz_id"\], :name => "comments_posts_baz_fooz_fk"/
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", columns: \["baz_id", "fooz_id"\], name: "comments_posts_baz_fooz_fk"/
     end
     it "should include foreign keys following all tables" do
       # if foreign keys preceed declaration of all tables
@@ -261,37 +261,37 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should include synonym to other schema table in schema dump" do
       schema_define do
-        add_synonym :test_synonym, "schema_name.table_name", :force => true
+        add_synonym :test_synonym, "schema_name.table_name", force: true
       end
-      standard_dump.should =~ /add_synonym "test_synonym", "schema_name.table_name", :force => true/
+      standard_dump.should =~ /add_synonym "test_synonym", "schema_name.table_name", force: true/
     end
 
     it "should include synonym to other database table in schema dump" do
       schema_define do
-        add_synonym :test_synonym, "table_name@link_name", :force => true
+        add_synonym :test_synonym, "table_name@link_name", force: true
       end
-      standard_dump.should =~ /add_synonym "test_synonym", "table_name@link_name(\.[-A-Za-z0-9_]+)*", :force => true/
+      standard_dump.should =~ /add_synonym "test_synonym", "table_name@link_name(\.[-A-Za-z0-9_]+)*", force: true/
     end
 
     it "should not include ignored table names in schema dump" do
       schema_define do
-        add_synonym :test_synonym, "schema_name.table_name", :force => true
+        add_synonym :test_synonym, "schema_name.table_name", force: true
       end
-      standard_dump(:ignore_tables => %w(test_synonym)).should_not =~ /add_synonym "test_synonym"/
+      standard_dump(ignore_tables: %w(test_synonym)).should_not =~ /add_synonym "test_synonym"/
     end
 
     it "should not include ignored table regexes in schema dump" do
       schema_define do
-        add_synonym :test_synonym, "schema_name.table_name", :force => true
+        add_synonym :test_synonym, "schema_name.table_name", force: true
       end
-      standard_dump(:ignore_tables => [ /test_synonym/i ]).should_not =~ /add_synonym "test_synonym"/
+      standard_dump(ignore_tables: [ /test_synonym/i ]).should_not =~ /add_synonym "test_synonym"/
     end
 
     it "should include synonyms to ignored table regexes in schema dump" do
       schema_define do
-        add_synonym :test_synonym, "schema_name.table_name", :force => true
+        add_synonym :test_synonym, "schema_name.table_name", force: true
       end
-      standard_dump(:ignore_tables => [ /table_name/i ]).should =~ /add_synonym "test_synonym"/
+      standard_dump(ignore_tables: [ /table_name/i ]).should =~ /add_synonym "test_synonym"/
     end
 
   end
@@ -302,8 +302,8 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should include temporary options" do
-      create_test_posts_table(:temporary => true)
-      standard_dump.should =~ /create_table "test_posts", :temporary => true/
+      create_test_posts_table(temporary: true)
+      standard_dump.should =~ /create_table "test_posts", temporary: true/
     end
   end
 
@@ -314,20 +314,20 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should not specify default tablespace in add index" do
       create_test_posts_table
-      standard_dump.should =~ /add_index "test_posts", \["title"\], :name => "index_test_posts_on_title"$/
+      standard_dump.should =~ /add_index "test_posts", \["title"\], name: "index_test_posts_on_title"$/
     end
 
     it "should specify non-default tablespace in add index" do
       tablespace_name = @conn.default_tablespace
       @conn.stub!(:default_tablespace).and_return('dummy')
       create_test_posts_table
-      standard_dump.should =~ /add_index "test_posts", \["title"\], :name => "index_test_posts_on_title", :tablespace => "#{tablespace_name}"$/
+      standard_dump.should =~ /add_index "test_posts", \["title"\], name: "index_test_posts_on_title", tablespace: "#{tablespace_name}"$/
     end
 
     it "should create and dump function-based indexes" do
       create_test_posts_table
-      @conn.add_index :test_posts, "NVL(created_at, updated_at)", :name => "index_test_posts_cr_upd_at"
-      standard_dump.should =~ /add_index "test_posts", \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], :name => "index_test_posts_cr_upd_at"$/
+      @conn.add_index :test_posts, "NVL(created_at, updated_at)", name: "index_test_posts_cr_upd_at"
+      standard_dump.should =~ /add_index "test_posts", \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], name: "index_test_posts_cr_upd_at"$/
     end
 
   end
@@ -349,14 +349,14 @@ describe "OracleEnhancedAdapter schema dump" do
     before(:all) do
       pending "Not supported in this database version" unless @oracle11g
       schema_define do
-        create_table :test_names, :force => true do |t|
+        create_table :test_names, force: true do |t|
           t.string  :first_name
           t.string  :last_name
-          t.virtual :full_name,        :as => "first_name || ', ' || last_name"
-          t.virtual :short_name,       :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
-          t.virtual :abbrev_name,      :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
-          t.column  :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
-          t.virtual :field_with_leading_space, :as => "' ' || first_name || ' '", :limit => 300, :type => :string
+          t.virtual :full_name,        as: "first_name || ', ' || last_name"
+          t.virtual :short_name,       as: "COALESCE(first_name, last_name)", type: :string, limit: 300
+          t.virtual :abbrev_name,      as: "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", type: "VARCHAR(100)"
+          t.column  :full_name_length, :virtual, as: "length(first_name || ', ' || last_name)", type: :integer
+          t.virtual :field_with_leading_space, as: "' ' || first_name || ' '", limit: 300, type: :string
         end
       end
     end
@@ -378,11 +378,11 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it 'should dump correctly' do
-      standard_dump.should =~ /t\.virtual "full_name",(\s*):limit => 512,(\s*):as => "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\"",(\s*):type => :string/
-      standard_dump.should =~ /t\.virtual "short_name",(\s*):limit => 300,(\s*):as =>(.*),(\s*):type => :string/
-      standard_dump.should =~ /t\.virtual "full_name_length",(\s*):precision => 38,(\s*):scale => 0,(\s*):as =>(.*),(\s*):type => :integer/
-      standard_dump.should =~ /t\.virtual "abbrev_name",(\s*):limit => 100,(\s*):as =>(.*),(\s*):type => :string/
-      standard_dump.should =~ /t\.virtual "field_with_leading_space",(\s*):limit => 300,(\s*):as => "' '\|\|\\"FIRST_NAME\\"\|\|' '",(\s*):type => :string/
+      standard_dump.should =~ /t\.virtual "full_name",(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\"",(\s*)type: :string/
+      standard_dump.should =~ /t\.virtual "short_name",(\s*)limit: 300,(\s*)as:(.*),(\s*)type: :string/
+      standard_dump.should =~ /t\.virtual "full_name_length",(\s*)precision: 38,(\s*)scale: 0,(\s*)as:(.*),(\s*)type: :integer/
+      standard_dump.should =~ /t\.virtual "abbrev_name",(\s*)limit: 100,(\s*)as:(.*),(\s*)type: :string/
+      standard_dump.should =~ /t\.virtual "field_with_leading_space",(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '",(\s*)type: :string/
     end
 
     context 'with column cache' do
