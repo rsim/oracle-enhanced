@@ -51,7 +51,7 @@ module ActiveRecord #:nodoc:
         if @connection.respond_to?(:has_primary_key_trigger?) && @connection.has_primary_key_trigger?(table_name)
           pk, pk_seq = @connection.pk_and_sequence_for(table_name)
           stream.print "  add_primary_key_trigger #{table_name.inspect}"
-          stream.print ", :primary_key => \"#{pk}\"" if pk != 'id'
+          stream.print ", primary_key: \"#{pk}\"" if pk != 'id'
           stream.print "\n\n"
         end
       end
@@ -65,20 +65,20 @@ module ActiveRecord #:nodoc:
             if foreign_key.options[:columns].size == 1
               column = foreign_key.options[:columns].first
               if column != "#{foreign_key.to_table.singularize}_id"
-                statement_parts << (':column => ' + column.inspect)
+                statement_parts << ('column: ' + column.inspect)
               end
               
               if foreign_key.options[:references].first != 'id'
-                statement_parts << (':primary_key => ' + foreign_key.options[:primary_key].inspect)
+                statement_parts << ('primary_key: ' + foreign_key.options[:primary_key].inspect)
               end
             else
-              statement_parts << (':columns => ' + foreign_key.options[:columns].inspect)
+              statement_parts << ('columns: ' + foreign_key.options[:columns].inspect)
             end
 
-            statement_parts << (':name => ' + foreign_key.options[:name].inspect)
+            statement_parts << ('name: ' + foreign_key.options[:name].inspect)
             
             unless foreign_key.options[:dependent].blank?
-              statement_parts << (':dependent => ' + foreign_key.options[:dependent].inspect)
+              statement_parts << ('dependent: ' + foreign_key.options[:dependent].inspect)
             end
 
             '  ' + statement_parts.join(', ')
@@ -97,7 +97,7 @@ module ActiveRecord #:nodoc:
             table_name = syn.table_name
             table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
             table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
-            stream.print "  add_synonym #{syn.name.inspect}, #{table_name.inspect}, :force => true"
+            stream.print "  add_synonym #{syn.name.inspect}, #{table_name.inspect}, force: true"
             stream.puts
           end
           stream.puts unless syns.empty?
@@ -118,9 +118,9 @@ module ActiveRecord #:nodoc:
               # use table.inspect as it will remove prefix and suffix
               statement_parts = [ ('add_index ' + table.inspect) ]
               statement_parts << index.columns.inspect
-              statement_parts << (':name => ' + index.name.inspect)
-              statement_parts << ':unique => true' if index.unique
-              statement_parts << ':tablespace => ' + index.tablespace.inspect if index.tablespace
+              statement_parts << ('name: ' + index.name.inspect)
+              statement_parts << 'unique: true' if index.unique
+              statement_parts << 'tablespace: ' + index.tablespace.inspect if index.tablespace
             when 'CTXSYS.CONTEXT'
               if index.statement_parameters
                 statement_parts = [ ('add_context_index ' + table.inspect) ]
@@ -128,7 +128,7 @@ module ActiveRecord #:nodoc:
               else
                 statement_parts = [ ('add_context_index ' + table.inspect) ]
                 statement_parts << index.columns.inspect
-                statement_parts << (':name => ' + index.name.inspect)
+                statement_parts << ('name: ' + index.name.inspect)
               end
             else
               # unrecognized index type
@@ -157,16 +157,16 @@ module ActiveRecord #:nodoc:
           tbl.print "  create_table #{table.inspect}"
           
           # addition to make temporary option work
-          tbl.print ", :temporary => true" if @connection.temporary_table?(table)
+          tbl.print ", temporary: true" if @connection.temporary_table?(table)
           
           if columns.detect { |c| c.name == pk }
             if pk != 'id'
-              tbl.print %Q(, :primary_key => "#{pk}")
+              tbl.print %Q(, primary_key: "#{pk}")
             end
           else
-            tbl.print ", :id => false"
+            tbl.print ", id: false"
           end
-          tbl.print ", :force => true"
+          tbl.print ", force: true"
           tbl.puts " do |t|"
 
           # then dump all non-primary key columns
@@ -270,7 +270,7 @@ module ActiveRecord #:nodoc:
         
         spec = prepare_column_options(column, types)
         (spec.keys - [:name, :type]).each do |k|
-          key_s = (k == :virtual_type ? ":type => " : "#{k.inspect} => ")
+          key_s = (k == :virtual_type ? "type: " : "#{k.to_s}: ")
           spec[k] = key_s + spec[k]
         end
         spec
