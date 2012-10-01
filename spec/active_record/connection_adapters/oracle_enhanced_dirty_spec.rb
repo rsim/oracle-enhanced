@@ -118,6 +118,24 @@ if ActiveRecord::Base.method_defined?(:changed?)
       @employee.should_not be_changed
     end
 
+    it "should not update unchanged CLOBs" do
+      @employee = TestEmployee.create!(
+          :comments => "initial"
+      )
+      @employee.save!.should be_true
+      @employee.reload
+      @employee.comments.should == 'initial'
+
+      oci_conn = @conn.instance_variable_get('@connection')
+      class << oci_conn
+         def write_lob(lob, value, is_binary = false); raise "don't do this'"; end
+      end
+      @employee.save!.should_not raise_exception(RuntimeError, "don't do this'")
+      class << oci_conn
+        remove_method :write_lob
+      end
+    end
+
   end
 
 end

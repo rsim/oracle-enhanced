@@ -62,21 +62,33 @@ module ActiveRecord
     # After setting large objects to empty, select the OCI8::LOB
     # and write back the data.
     if ActiveRecord::VERSION::MAJOR == 3 && ActiveRecord::VERSION::MINOR >= 1
+      before_update :record_changed_lobs
       after_update :enhanced_write_lobs
     else
+      before_update :record_changed_lobs
       after_save :enhanced_write_lobs
     end
     def enhanced_write_lobs #:nodoc:
       if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
           !(self.class.custom_create_method || self.class.custom_update_method)
-        connection.write_lobs(self.class.table_name, self.class, attributes)
+        connection.write_lobs(self.class.table_name, self.class, attributes, @changed_lob_columns || self.class.lob_columns)
       end
     end
+    def record_changed_lobs
+      @changed_lob_columns = self.class.lob_columns.select{|col| self.send(:"#{col.name}_changed?") && !self.class.readonly_attributes.to_a.include?(col.name)}
+    end
     private :enhanced_write_lobs
+    private :record_changed_lobs
 
     # Get table comment from schema definition.
     def self.table_comment
       connection.table_comment(self.table_name)
+    end
+
+    def self.lob_columns
+      columns.select do |column|
+        column.respond_to?(:lob?) && column.lob?
+      end
     end
 
     def self.virtual_columns
