@@ -405,6 +405,23 @@ describe "OracleEnhancedAdapter schema dump" do
         col.virtual_column_data_default.should_not =~ /:as/
       end
     end
+
+    context "with index on virtual column" do
+      before(:all) do
+        schema_define do 
+          add_index 'test_names', 'field_with_leading_space', :name => "index_on_virtual_col"
+        end
+      end
+      after(:all) do
+        schema_define do
+          remove_index 'test_names', :name => 'index_on_virtual_col'
+        end
+      end
+      it 'should dump correctly' do
+        standard_dump.should_not =~ /add_index "test_names".+FIRST_NAME.+$/
+        standard_dump.should     =~ /add_index "test_names".+field_with_leading_space.+$/
+      end
+    end
   end
 
 end
