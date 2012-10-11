@@ -15,7 +15,10 @@ begin
 
   unless ojdbc_jar.nil? || ENV_JAVA['java.class.path'] =~ Regexp.new(ojdbc_jar)
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
-    env_path = (ENV["PATH"] || ENV["Path"] || '').split(/[:;]/)
+    # Windows pathes include : and ; like C:\Program Files. So we have to split by only ;
+    # TODO: is the ENV['os'] the right way to detect if we are running on windows?
+    env_path = (ENV["PATH"] || ENV["Path"] || '').send( :split, ENV['os'] =~ /windows/i ? ';' : /[:;]/ )
+
     # Look for JDBC driver at first in lib subdirectory (application specific JDBC file version)
     # then in Ruby load path and finally in environment PATH
     if ojdbc_jar_path = ['./lib'].concat($LOAD_PATH).concat(env_path).find{|d| File.exists?(File.join(d,ojdbc_jar))}
@@ -86,7 +89,7 @@ module ActiveRecord
             @raw_connection = @raw_connection.innermost_delegate
           elsif @raw_connection.respond_to?(:getUnderlyingConnection)
             @pooled_connection = @raw_connection
-            @raw_connection = @raw_connection.underlying_connection            
+            @raw_connection = @raw_connection.underlying_connection
           end
 
           config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
@@ -285,7 +288,7 @@ module ActiveRecord
             # else
             #   nil
             # end
-            
+
             # Workaround with CallableStatement
             s = @raw_connection.prepareCall("BEGIN #{sql}; END;")
             s.registerOutParameter(1, java.sql.Types::BIGINT)
