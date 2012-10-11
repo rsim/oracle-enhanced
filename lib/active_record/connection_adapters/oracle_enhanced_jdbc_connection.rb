@@ -15,9 +15,7 @@ begin
 
   unless ojdbc_jar.nil? || ENV_JAVA['java.class.path'] =~ Regexp.new(ojdbc_jar)
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
-    # Windows pathes include : and ; like C:\Program Files. So we have to split by only ;
-    # TODO: is the ENV['os'] the right way to detect if we are running on windows?
-    env_path = (ENV["PATH"] || ENV["Path"] || '').send( :split, ENV['os'] =~ /windows/i ? ';' : /[:;]/ )
+    env_path = (ENV["PATH"] || ENV["Path"] || '').split(File::PATH_SEPARATOR)
 
     # Look for JDBC driver at first in lib subdirectory (application specific JDBC file version)
     # then in Ruby load path and finally in environment PATH
