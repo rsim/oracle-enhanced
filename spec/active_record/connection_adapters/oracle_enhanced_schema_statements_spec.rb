@@ -1212,7 +1212,7 @@ end
       it "should use correct tablespace" do
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:table] = DATABASE_NON_DEFAULT_TABLESPACE
         @conn.create_table :tablespace_tests do |t|
-          t.integer :id
+          t.string :foo
         end
         @would_execute_sql.should =~ /CREATE +TABLE .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/
       end

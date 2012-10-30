@@ -250,7 +250,7 @@ describe "OracleEnhancedAdapter structure dump" do
   describe "full drop" do
     before(:each) do 
       @conn.create_table :full_drop_test do |t|
-        t.integer :id
+        t.string :foo
       end
       @conn.create_table :full_drop_test_temp, :temporary => true do |t|
         t.string :foo
