@@ -347,17 +347,20 @@ describe "OracleEnhancedAdapter schema dump" do
 
   describe 'virtual columns' do
     before(:all) do
-      pending "Not supported in this database version" unless @oracle11g
-      schema_define do
-        create_table :test_names, :force => true do |t|
-          t.string  :first_name
-          t.string  :last_name
-          t.virtual :full_name,        :as => "first_name || ', ' || last_name"
-          t.virtual :short_name,       :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
-          t.virtual :abbrev_name,      :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
-          t.column  :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
-          t.virtual :field_with_leading_space, :as => "' ' || first_name || ' '", :limit => 300, :type => :string
+      if @oracle11g
+        schema_define do
+          create_table :test_names, :force => true do |t|
+            t.string  :first_name
+            t.string  :last_name
+            t.virtual :full_name,        :as => "first_name || ', ' || last_name"
+            t.virtual :short_name,       :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
+            t.virtual :abbrev_name,      :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
+            t.column  :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
+            t.virtual :field_with_leading_space, :as => "' ' || first_name || ' '", :limit => 300, :type => :string
+          end
         end
+      else
+        pending "Not supported in this database version"
       end
     end
 
