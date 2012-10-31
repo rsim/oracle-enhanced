@@ -362,18 +362,22 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     before(:each) do
-      class ::TestName < ActiveRecord::Base
-        if self.respond_to?(:table_name=)
-          self.table_name = "test_names"
-        else
-          set_table_name "test_names"
+      if @oracle11g
+        class ::TestName < ActiveRecord::Base
+          if self.respond_to?(:table_name=)
+            self.table_name = "test_names"
+          else
+            set_table_name "test_names"
+          end
         end
       end
     end
 
     after(:all) do
-      schema_define do
-        drop_table :test_names
+      if @oracle11g
+        schema_define do
+          drop_table :test_names
+        end
       end
     end
 
@@ -408,13 +412,17 @@ describe "OracleEnhancedAdapter schema dump" do
 
     context "with index on virtual column" do
       before(:all) do
-        schema_define do 
-          add_index 'test_names', 'field_with_leading_space', :name => "index_on_virtual_col"
+        if @oracle11g
+          schema_define do 
+            add_index 'test_names', 'field_with_leading_space', :name => "index_on_virtual_col"
+          end
         end
       end
       after(:all) do
-        schema_define do
-          remove_index 'test_names', :name => 'index_on_virtual_col'
+        if @oracle11g
+          schema_define do
+            remove_index 'test_names', :name => 'index_on_virtual_col'
+          end
         end
       end
       it 'should dump correctly' do

@@ -1019,7 +1019,7 @@ end
   end
 
   describe 'virtual columns in create_table' do
-    before(:all) do
+    before(:each) do
       pending "Not supported in this database version" unless @oracle11g
     end
 
@@ -1069,11 +1069,8 @@ end
   end
 
   describe 'virtual columns' do
-    before(:all) do
-      pending "Not supported in this database version" unless @oracle11g
-    end
-
     before(:each) do
+      pending "Not supported in this database version" unless @oracle11g
       expr = "( numerator/NULLIF(denominator,0) )*100"
       schema_define do
         create_table :test_fractions, :force => true do |t|
@@ -1093,8 +1090,10 @@ end
     end
 
     after(:each) do
-      schema_define do
-        drop_table :test_fractions
+      if @oracle11g
+        schema_define do
+          drop_table :test_fractions
+        end
       end
     end
 
