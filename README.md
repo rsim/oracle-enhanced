@@ -341,7 +341,7 @@ Please verify that
         require 'rubygems'
         gem 'activerecord'
         gem 'activerecord-oracle_enhanced-adapter'
-        require 'activerecord'
+        require 'active_record'
         ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced", :database => "database",:username => "user",:password => "password")
 
     and see if it is successful (use your correct database, username and password)
