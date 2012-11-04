@@ -121,14 +121,22 @@ module ActiveRecord
       # clear cached indexes when adding new index
       def add_index(table_name, column_name, options = {}) #:nodoc:
         column_names = Array(column_name)
-        index_name   = index_name(table_name, :column => column_names)
+        index_name   = index_name(table_name, column: column_names)
 
         if Hash === options # legacy support, since this param was a string
+          options.assert_valid_keys(:unique, :order, :name, :where, :length, :tablespace, :options)
+
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name].to_s if options.key?(:name)
           tablespace = tablespace_for(:index, options[:tablespace])
           additional_options = options[:options]
         else
+          message = "Passing a string as third argument of `add_index` is deprecated and will" +
+            " be removed in Rails 4.1." +
+            " Use add_index(#{table_name.inspect}, #{column_name.inspect}, unique: true) instead"
+
+          ActiveSupport::Deprecation.warn message
+
           index_type = options
           additional_options = nil
         end
