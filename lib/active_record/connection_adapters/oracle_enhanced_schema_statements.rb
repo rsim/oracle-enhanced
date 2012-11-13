@@ -271,6 +271,8 @@ module ActiveRecord
       end
 
       def remove_column(table_name, *column_names) #:nodoc:
+        raise ArgumentError.new("You must specify at least one column name.  Example: remove_column(:people, :first_name)") if column_names.empty?
+
         major, minor = ActiveRecord::VERSION::MAJOR, ActiveRecord::VERSION::MINOR
         is_deprecated = (major == 3 and minor >= 2) or major > 3
 
