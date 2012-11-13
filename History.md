@@ -1,4 +1,4 @@
-### Unreleased
+### 1.4.2.rc1 / 2012-11-13
 
 * Enhancements:
   * Wordlist option for context index [#154]
