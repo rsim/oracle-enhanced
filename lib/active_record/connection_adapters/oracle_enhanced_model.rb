@@ -51,6 +51,12 @@ module ActiveRecord
         connection.table_comment(self.table_name)
       end
 
+      def lob_columns
+        columns.select do |column|
+          column.respond_to?(:lob?) && column.lob?
+        end
+      end
+
       def virtual_columns
         columns.select do |column|
           column.respond_to?(:virtual?) && column.virtual?
@@ -71,16 +77,23 @@ module ActiveRecord
 
     private
 
+    def record_changed_lobs
+      @changed_lob_columns = self.class.lob_columns.select{|col| self.send(:"#{col.name}_changed?") && !self.class.readonly_attributes.to_a.include?(col.name)}
+    end
+
     # After setting large objects to empty, select the OCI8::LOB
     # and write back the data.
     def update
-      super
       if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
-          !(
-            (self.class.respond_to?(:custom_create_method) && self.class.custom_create_method) ||
-            (self.class.respond_to?(:custom_update_method) && self.class.custom_update_method)
-          )
-        connection.write_lobs(self.class.table_name, self.class, attributes)
+        !(
+          (self.class.respond_to?(:custom_create_method) && self.class.custom_create_method) ||
+          (self.class.respond_to?(:custom_update_method) && self.class.custom_update_method)
+        )
+          record_changed_lobs
+          super
+          connection.write_lobs(self.class.table_name, self.class, attributes, @changed_lob_columns || self.class.lob_columns)
+      else
+        super
       end
     end
   end

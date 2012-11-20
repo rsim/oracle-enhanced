@@ -302,9 +302,6 @@ For example it can be used to force foreign key constraint on polymorphic associ
     add_foreign_key :comments, :photos, :column => :subject_photo_id
     add_foreign_key :comments, :events, :column => :subject_event_id
 
-In the current adapter version it is not possible to set index on virtual column, because it is not correctly dumped to schema.rb.
-This restriction will be removed in the future version.
-
 For backward compatibility reasons it is possible to use `:default` option in the `create_table` instead of `:as` option.
 But this is deprecated and may be removed in the future version.
 
@@ -344,7 +341,7 @@ Please verify that
         require 'rubygems'
         gem 'activerecord'
         gem 'activerecord-oracle_enhanced-adapter'
-        require 'activerecord'
+        require 'active_record'
         ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced", :database => "database",:username => "user",:password => "password")
 
     and see if it is successful (use your correct database, username and password)
