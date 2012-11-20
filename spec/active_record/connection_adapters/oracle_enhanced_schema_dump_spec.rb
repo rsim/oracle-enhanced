@@ -347,33 +347,40 @@ describe "OracleEnhancedAdapter schema dump" do
 
   describe 'virtual columns' do
     before(:all) do
-      pending "Not supported in this database version" unless @oracle11g
-      schema_define do
-        create_table :test_names, force: true do |t|
-          t.string  :first_name
-          t.string  :last_name
-          t.virtual :full_name,        as: "first_name || ', ' || last_name"
-          t.virtual :short_name,       as: "COALESCE(first_name, last_name)", type: :string, limit: 300
-          t.virtual :abbrev_name,      as: "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", type: "VARCHAR(100)"
-          t.column  :full_name_length, :virtual, as: "length(first_name || ', ' || last_name)", type: :integer
-          t.virtual :field_with_leading_space, as: "' ' || first_name || ' '", limit: 300, type: :string
+      if @oracle11g
+        schema_define do
+          create_table :test_names, :force => true do |t|
+            t.string  :first_name
+            t.string  :last_name
+            t.virtual :full_name,        :as => "first_name || ', ' || last_name"
+            t.virtual :short_name,       :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
+            t.virtual :abbrev_name,      :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
+            t.column  :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
+            t.virtual :field_with_leading_space, :as => "' ' || first_name || ' '", :limit => 300, :type => :string
+          end
         end
+      else
+        pending "Not supported in this database version"
       end
     end
 
     before(:each) do
-      class ::TestName < ActiveRecord::Base
-        if self.respond_to?(:table_name=)
-          self.table_name = "test_names"
-        else
-          set_table_name "test_names"
+      if @oracle11g
+        class ::TestName < ActiveRecord::Base
+          if self.respond_to?(:table_name=)
+            self.table_name = "test_names"
+          else
+            set_table_name "test_names"
+          end
         end
       end
     end
 
     after(:all) do
-      schema_define do
-        drop_table :test_names
+      if @oracle11g
+        schema_define do
+          drop_table :test_names
+        end
       end
     end
 
@@ -403,6 +410,27 @@ describe "OracleEnhancedAdapter schema dump" do
 
         standard_dump
         col.virtual_column_data_default.should_not =~ /:as/
+      end
+    end
+
+    context "with index on virtual column" do
+      before(:all) do
+        if @oracle11g
+          schema_define do 
+            add_index 'test_names', 'field_with_leading_space', :name => "index_on_virtual_col"
+          end
+        end
+      end
+      after(:all) do
+        if @oracle11g
+          schema_define do
+            remove_index 'test_names', :name => 'index_on_virtual_col'
+          end
+        end
+      end
+      it 'should dump correctly' do
+        standard_dump.should_not =~ /add_index "test_names".+FIRST_NAME.+$/
+        standard_dump.should     =~ /add_index "test_names".+field_with_leading_space.+$/
       end
     end
   end

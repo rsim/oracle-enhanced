@@ -37,5 +37,10 @@ end
 if ActiveRecord::Base.method_defined?(:changed?)
   ActiveRecord::Base.class_eval do
     include ActiveRecord::ConnectionAdapters::OracleEnhancedDirty::InstanceMethods
+    # Starting with rails 3.2.9 the method #field_changed?
+    # was renamed to #_field_changed?
+    if private_method_defined?(:field_changed?)
+      alias_method :field_changed?, :_field_changed?
+    end
   end
 end
