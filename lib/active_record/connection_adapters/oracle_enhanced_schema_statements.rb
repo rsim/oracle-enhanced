@@ -130,14 +130,14 @@ module ActiveRecord
           index_name = options[:name].to_s if options.key?(:name)
           tablespace = tablespace_for(:index, options[:tablespace])
           additional_options = options[:options]
-        elsif NilClass === options
-          # To avoid unnecessary warnings when options set to nil.
         else
-          message = "Passing a string as third argument of `add_index` is deprecated and will" +
-            " be removed in Rails 4.1." +
-            " Use add_index(#{table_name.inspect}, #{column_name.inspect}, unique: true) instead"
+          if options
+            message = "Passing a string as third argument of `add_index` is deprecated and will" +
+              " be removed in Rails 4.1." +
+              " Use add_index(#{table_name.inspect}, #{column_name.inspect}, unique: true) instead"
 
-          ActiveSupport::Deprecation.warn message
+            ActiveSupport::Deprecation.warn message
+        end
 
           index_type = options
           additional_options = nil
