@@ -1380,23 +1380,16 @@ module ActiveRecord
       #
       #   distinct("posts.id", "posts.created_at desc")
       def distinct(columns, order_by) #:nodoc:
-        return "DISTINCT #{columns}" if order_by.blank?
-
         # construct a valid DISTINCT clause, ie. one that includes the ORDER BY columns, using
         # FIRST_VALUE such that the inclusion of these columns doesn't invalidate the DISTINCT
-        order_columns = if order_by.is_a?(String)
-          order_by.split(',').map { |s| s.strip }.reject(&:blank?)
-        else # in latest ActiveRecord versions order_by is already Array
-          order_by
-        end
-        order_columns = order_columns.zip((0...order_columns.size).to_a).map do |c, i|
+        order_columns = order_by.map { |c|
           c = c.to_sql unless c.is_a?(String)
           # remove any ASC/DESC modifiers
-          value = c =~ /^(.+)\s+(ASC|DESC)\s*$/i ? $1 : c
-          "FIRST_VALUE(#{value}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__"
-        end
-        sql = "DISTINCT #{columns}, "
-        sql << order_columns * ", "
+          c.gsub(/\s+(ASC|DESC)\s*?/i, '')
+          }.reject(&:blank?).map.with_index { |c,i| 
+            "FIRST_VALUE(#{c}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__" 
+          }
+          [super].concat(order_columns).join(', ')
       end
 
       def temporary_table?(table_name) #:nodoc:
