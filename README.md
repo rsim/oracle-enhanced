@@ -257,7 +257,7 @@ And you can even create index on multiple tables by providing SELECT statements 
     Post.contains(:all_text, "aaa within title")
     Post.contains(:all_text, "bbb within comment_author")
 
-### Oracle virtual collumns support
+### Oracle virtual columns support
 
 Since version R11G1 Oracle database allows adding computed [Virtual Columns](http://www.oracle-base.com/articles/11g/virtual-columns-11gr1.php) to the table.
 They can be used as normal fields in the queries, in the foreign key contstraints and to partitioning data.
