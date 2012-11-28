@@ -137,7 +137,7 @@ module ActiveRecord
               " Use add_index(#{table_name.inspect}, #{column_name.inspect}, unique: true) instead"
 
             ActiveSupport::Deprecation.warn message
-        end
+          end
 
           index_type = options
           additional_options = nil
