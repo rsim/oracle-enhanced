@@ -1379,17 +1379,18 @@ module ActiveRecord
       # making every row the same.
       #
       #   distinct("posts.id", "posts.created_at desc")
-      def distinct(columns, order_by) #:nodoc:
+     
+      def columns_for_distinct(columns, orders) #:nodoc:
         # construct a valid DISTINCT clause, ie. one that includes the ORDER BY columns, using
         # FIRST_VALUE such that the inclusion of these columns doesn't invalidate the DISTINCT
-        order_columns = order_by.map { |c|
-          c = c.to_sql unless c.is_a?(String)
+        order_columns = orders.reject(&:blank?).map{ |s|
+          s = s.to_sql unless s.is_a?(String)
           # remove any ASC/DESC modifiers
-          c.gsub(/\s+(ASC|DESC)\s*?/i, '')
-          }.reject(&:blank?).map.with_index { |c,i| 
-            "FIRST_VALUE(#{c}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__" 
+          s.gsub(/\s+(ASC|DESC)\s*?/i, '')
+          }.reject(&:blank?).map.with_index { |column,i| 
+            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns} ORDER BY #{column}) AS alias_#{i}__" 
           }
-          [super].concat(order_columns).join(', ')
+          [super, *order_columns].join(', ')
       end
 
       def temporary_table?(table_name) #:nodoc:
