@@ -228,11 +228,11 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
     @conn.execute "DROP SEQUENCE test2_employees_seq"
   end
 
-  it "should set NUMBER column type as decimal if emulate_integers_by_column_name is false" do
+  it "should set NUMBER column type as float if emulate_integers_by_column_name is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
     columns = @conn.columns('test2_employees')
     column = columns.detect{|c| c.name == "job_id"}
-    column.type.should == :decimal
+    column.type.should == :float
   end
 
   it "should set NUMBER column type as integer if emulate_integers_by_column_name is true" do
@@ -244,18 +244,25 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
     column.type.should == :integer
   end
 
-  it "should set NUMBER column type as decimal if column name does not contain 'id' and emulate_integers_by_column_name is true" do
+  it "should set NUMBER column type as float if column name does not contain 'id' and emulate_integers_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
     columns = @conn.columns('test2_employees')
     column = columns.detect{|c| c.name == "salary"}
-    column.type.should == :decimal
+    column.type.should == :float
   end
 
-  it "should return BigDecimal value from NUMBER column if emulate_integers_by_column_name is false" do
+  it "should return Float value from NUMBER column if emulate_integers_by_column_name is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
     columns = @conn.columns('test2_employees')
     column = columns.detect{|c| c.name == "job_id"}
-    column.type_cast(1.0).class.should == BigDecimal
+    column.type_cast(1.0).class.should == Float
+  end
+
+  it "should return BigDecimal value from NUMBER(2,2) column if emulate_integers_by_column_name is false" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
+      columns = @conn.columns('test2_employees')
+      column = columns.detect{|c| c.name == "commission_pct"}
+      column.type_cast(1.0).class.should == BigDecimal
   end
 
   it "should return Fixnum value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
@@ -289,10 +296,10 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       @employee2.reload
     end
     
-    it "should return BigDecimal value from NUMBER column if emulate_integers_by_column_name is false" do
+    it "should return Float value from NUMBER column if emulate_integers_by_column_name is false" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
       create_employee2
-      @employee2.job_id.class.should == BigDecimal
+      @employee2.job_id.class.should == Float
     end
 
     it "should return Fixnum value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
@@ -307,10 +314,10 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       @employee2.job_id_before_type_cast.class.should == Fixnum
     end
 
-    it "should return BigDecimal value from NUMBER column if column name does not contain 'id' and emulate_integers_by_column_name is true" do
+    it "should return Float value from NUMBER column if column name does not contain 'id' and emulate_integers_by_column_name is true" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
       create_employee2
-      @employee2.salary.class.should == BigDecimal
+      @employee2.salary.class.should == Float
     end
 
     it "should return Fixnum value from NUMBER column if column specified in set_integer_columns" do

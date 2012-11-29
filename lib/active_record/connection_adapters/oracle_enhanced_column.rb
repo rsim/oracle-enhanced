@@ -77,6 +77,8 @@ module ActiveRecord
                 # if column name is ID or ends with _ID
                 OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
             :integer
+          elsif field_type == 'NUMBER'
+            :float
           else
             :decimal
           end
