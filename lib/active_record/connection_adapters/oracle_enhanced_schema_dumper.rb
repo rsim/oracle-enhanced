@@ -59,15 +59,21 @@ module ActiveRecord #:nodoc:
       def foreign_keys(table_name, stream)
         if @connection.respond_to?(:foreign_keys) && (foreign_keys = @connection.foreign_keys(table_name)).any?
           add_foreign_key_statements = foreign_keys.map do |foreign_key|
-            statement_parts = [ ('add_foreign_key ' + foreign_key.from_table.inspect) ]
-            statement_parts << foreign_key.to_table.inspect
-            
+            from_table = foreign_key.from_table
+            to_table   = foreign_key.to_table
+
+            from_table.extend TableInspect
+            to_table.extend TableInspect
+
+            statement_parts = [ ('add_foreign_key ' + from_table.inspect) ]
+            statement_parts << to_table.inspect
+
             if foreign_key.options[:columns].size == 1
               column = foreign_key.options[:columns].first
-              if column != "#{foreign_key.to_table.singularize}_id"
+              if column != "#{to_table.singularize}_id"
                 statement_parts << (':column => ' + column.inspect)
               end
-              
+
               if foreign_key.options[:references].first != 'id'
                 statement_parts << (':primary_key => ' + foreign_key.options[:primary_key].inspect)
               end
@@ -76,7 +82,7 @@ module ActiveRecord #:nodoc:
             end
 
             statement_parts << (':name => ' + foreign_key.options[:name].inspect)
-            
+
             unless foreign_key.options[:dependent].blank?
               statement_parts << (':dependent => ' + foreign_key.options[:dependent].inspect)
             end
@@ -153,12 +159,12 @@ module ActiveRecord #:nodoc:
           elsif @connection.respond_to?(:primary_key)
             pk = @connection.primary_key(table)
           end
-          
+
           tbl.print "  create_table #{table.inspect}"
-          
+
           # addition to make temporary option work
           tbl.print ", :temporary => true" if @connection.temporary_table?(table)
-          
+
           if columns.detect { |c| c.name == pk }
             if pk != 'id'
               tbl.print %Q(, :primary_key => "#{pk}")
@@ -217,7 +223,7 @@ module ActiveRecord #:nodoc:
 
           tbl.puts "  end"
           tbl.puts
-          
+
           indexes(table, tbl)
 
           tbl.rewind
@@ -227,20 +233,20 @@ module ActiveRecord #:nodoc:
           stream.puts "#   #{e.message}"
           stream.puts
         end
-        
+
         stream
       end
 
       def remove_prefix_and_suffix(table)
         table.gsub(/^(#{ActiveRecord::Base.table_name_prefix})(.+)(#{ActiveRecord::Base.table_name_suffix})$/,  "\\2")
-      end 
-      
+      end
+
       # remove table name prefix and suffix when doing #inspect (which is used in tables method)
       module TableInspect #:nodoc:
         def inspect
           remove_prefix_and_suffix(self)
         end
-        
+
         private
         def remove_prefix_and_suffix(table_name)
           if table_name =~ /\A#{ActiveRecord::Base.table_name_prefix.to_s.gsub('$','\$')}(.*)#{ActiveRecord::Base.table_name_suffix.to_s.gsub('$','\$')}\Z/
