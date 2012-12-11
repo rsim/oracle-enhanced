@@ -8,7 +8,7 @@ module ActiveRecord
       end
 
       # Create primary key trigger (so that you can skip primary key value in INSERT statement).
-      # By default trigger name will be "table_name_pkt", you can override the name with 
+      # By default trigger name will be "table_name_pkt", you can override the name with
       # :trigger_name option (but it is not recommended to override it as then this trigger will
       # not be detected by ActiveRecord model and it will still do prefetching of sequence value).
       #
@@ -38,26 +38,26 @@ module ActiveRecord
       # generates
       #  ALTER TABLE comments ADD CONSTRAINT
       #     comments_post_id_fk FOREIGN KEY (post_id) REFERENCES posts (id)
-      # 
+      #
       # ==== Creating a named foreign key
       #  add_foreign_key(:comments, :posts, :name => 'comments_belongs_to_posts')
       # generates
       #  ALTER TABLE comments ADD CONSTRAINT
       #     comments_belongs_to_posts FOREIGN KEY (post_id) REFERENCES posts (id)
-      # 
+      #
       # ==== Creating a cascading foreign_key on a custom column
       #  add_foreign_key(:people, :people, :column => 'best_friend_id', :dependent => :nullify)
       # generates
       #  ALTER TABLE people ADD CONSTRAINT
       #     people_best_friend_id_fk FOREIGN KEY (best_friend_id) REFERENCES people (id)
       #     ON DELETE SET NULL
-      # 
+      #
       # ==== Creating a composite foreign key
       #  add_foreign_key(:comments, :posts, :columns => ['post_id', 'author_id'], :name => 'comments_post_fk')
       # generates
       #  ALTER TABLE comments ADD CONSTRAINT
       #     comments_post_fk FOREIGN KEY (post_id, author_id) REFERENCES posts (post_id, author_id)
-      #       
+      #
       # === Supported options
       # [:column]
       #   Specify the column name on the from_table that references the to_table. By default this is guessed
@@ -83,7 +83,7 @@ module ActiveRecord
 
       def foreign_key_definition(to_table, options = {}) #:nodoc:
         columns = Array(options[:column] || options[:columns])
-        
+
         if columns.size > 1
           # composite foreign key
           columns_sql = columns.map {|c| quote_column_name(c)}.join(',')
@@ -94,9 +94,11 @@ module ActiveRecord
           references = options[:references] ? options[:references].first : nil
           references_sql = quote_column_name(options[:primary_key] || references || "id")
         end
-        
-        sql = "FOREIGN KEY (#{columns_sql}) REFERENCES #{quote_table_name(to_table)}(#{references_sql})"
-        
+
+        table_name = quote_table_name("#{ActiveRecord::Base.table_name_prefix}#{to_table}#{ActiveRecord::Base.table_name_suffix}")
+
+        sql = "FOREIGN KEY (#{columns_sql}) REFERENCES #{table_name}(#{references_sql})"
+
         case options[:dependent]
         when :nullify
           sql << " ON DELETE SET NULL"
@@ -129,9 +131,9 @@ module ActiveRecord
       def foreign_key_constraint_name(table_name, columns, options = {})
         columns = Array(columns)
         constraint_name = original_name = options[:name] || "#{table_name}_#{columns.join('_')}_fk"
-        
+
         return constraint_name if constraint_name.length <= OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH
-        
+
         # leave just first three letters from each word
         constraint_name = constraint_name.split('_').map{|w| w[0,3]}.join('_')
         # generate unique name using hash function
@@ -141,7 +143,7 @@ module ActiveRecord
         @logger.warn "#{adapter_name} shortened foreign key constraint name #{original_name} to #{constraint_name}" if @logger
         constraint_name
       end
-      
+
 
       public
 
@@ -184,7 +186,7 @@ module ActiveRecord
             fks[name][:dependent] = :nullify
           end
         end
-        
+
         fks.map do |k, v|
           options = {:name => k, :columns => v[:columns], :references => v[:references], :dependent => v[:dependent]}
           OracleEnhancedForeignKeyDefinition.new(table_name, v[:to_table], options)
