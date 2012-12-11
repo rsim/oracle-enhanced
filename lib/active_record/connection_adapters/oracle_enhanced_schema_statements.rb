@@ -22,11 +22,11 @@ module ActiveRecord
       #   end
       #
       # Create primary key trigger (so that you can skip primary key value in INSERT statement).
-      # By default trigger name will be "table_name_pkt", you can override the name with 
+      # By default trigger name will be "table_name_pkt", you can override the name with
       # :trigger_name option (but it is not recommended to override it as then this trigger will
       # not be detected by ActiveRecord model and it will still do prefetching of sequence value).
       # Example:
-      # 
+      #
       #   create_table :users, :primary_key_trigger => true do |t|
       #     # ...
       #   end
@@ -37,11 +37,11 @@ module ActiveRecord
       #     t.string      :first_name, :comment => “Given name”
       #     t.string      :last_name, :comment => “Surname”
       #   end
-      
+
       def create_table(name, options = {}, &block)
         create_sequence = options[:id] != false
         column_comments = {}
-        
+
         table_definition = TableDefinition.new(self)
         table_definition.primary_key(options[:primary_key] || Base.get_primary_key(name.to_s.singularize)) unless options[:id] == false
 
@@ -87,14 +87,14 @@ module ActiveRecord
         end
         create_sql << " #{options[:options]}"
         execute create_sql
-        
+
         create_sequence_and_trigger(name, options) if create_sequence
-        
+
         add_table_comment name, options[:comment]
         column_comments.each do |column_name, comment|
           add_comment name, column_name, comment
         end
-        
+
       end
 
       def rename_table(name, new_name) #:nodoc:
@@ -114,6 +114,35 @@ module ActiveRecord
         execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
       ensure
         clear_table_columns_cache(name)
+      end
+
+      def initialize_schema_migrations_table
+        sm_table = ActiveRecord::Migrator.schema_migrations_table_name
+
+        unless table_exists?(sm_table)
+          index_name = "#{Base.table_name_prefix}unique_schema_migrations#{Base.table_name_suffix}"
+          if index_name.length > index_name_length
+            truncate_to    = index_name_length - index_name.to_s.length - 1
+            truncated_name = "unique_schema_migrations"[0..truncate_to]
+            index_name     = "#{Base.table_name_prefix}#{truncated_name}#{Base.table_name_suffix}"
+          end
+
+          create_table(sm_table, :id => false) do |schema_migrations_table|
+            schema_migrations_table.column :version, :string, :null => false
+          end
+          add_index sm_table, :version, :unique => true, :name => index_name
+
+          # Backwards-compatibility: if we find schema_info, assume we've
+          # migrated up to that point:
+          si_table = Base.table_name_prefix + 'schema_info' + Base.table_name_suffix
+          if table_exists?(si_table)
+            ActiveSupport::Deprecation.warn "Usage of the schema table `#{si_table}` is deprecated. Please switch to using `schema_migrations` table"
+
+            old_version = select_value("SELECT version FROM #{quote_table_name(si_table)}").to_i
+            assume_migrated_upto_version(old_version)
+            drop_table(si_table)
+          end
+        end
       end
 
       # clear cached indexes when adding new index
@@ -166,10 +195,10 @@ module ActiveRecord
         options = {} unless options.is_a?(Hash)
         identifier_max_length = options[:identifier_max_length] || index_name_length
         return default_name if default_name.length <= identifier_max_length
-        
+
         # remove 'index', 'on' and 'and' keywords
         shortened_name = "i_#{table_name}_#{Array(options[:column]) * '_'}"
-        
+
         # leave just first three letters from each word
         if shortened_name.length > identifier_max_length
           shortened_name = shortened_name.split('_').map{|w| w[0,3]}.join('_')

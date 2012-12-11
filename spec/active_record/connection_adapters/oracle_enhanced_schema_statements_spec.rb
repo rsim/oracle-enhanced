@@ -322,7 +322,7 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :test_employees
       end
       Object.send(:remove_const, "TestEmployee")
-      ActiveRecord::Base.table_name_prefix = nil
+      ActiveRecord::Base.table_name_prefix = ''
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
@@ -545,8 +545,8 @@ end
   end
 
   describe "foreign key constraints" do
-    let(:table_name_prefix) { nil }
-    let(:table_name_suffix) { nil }
+    let(:table_name_prefix) { '' }
+    let(:table_name_suffix) { '' }
 
     before(:each) do
       ActiveRecord::Base.table_name_prefix = table_name_prefix
@@ -576,8 +576,8 @@ end
         drop_table :test_comments rescue nil
         drop_table :test_posts rescue nil
       end
-      ActiveRecord::Base.table_name_prefix = nil
-      ActiveRecord::Base.table_name_suffix = nil
+      ActiveRecord::Base.table_name_prefix = ''
+      ActiveRecord::Base.table_name_suffix = ''
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
@@ -1319,6 +1319,66 @@ end
       end
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:index)
       @would_execute_sql.should =~ /CREATE +INDEX .* ON .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/
+    end
+
+    describe "#initialize_schema_migrations_table" do
+      # In Rails 2.3 to 3.2.x the index name for the migrations
+      # table is hard-coded. We can modify the index name here
+      # so we can support prefixes/suffixes that would
+      # cause the index to be too long.
+      #
+      # Rails 4 can use this solution as well.
+      after(:each) do
+        ActiveRecord::Base.table_name_prefix = ''
+        ActiveRecord::Base.table_name_suffix = ''
+      end
+
+      def add_schema_migrations_index
+        schema_define do
+          initialize_schema_migrations_table
+        end
+      end
+
+      context "without prefix or suffix" do
+        it "should not truncate the index name" do
+          add_schema_migrations_index
+
+          @would_execute_sql.should include('CREATE UNIQUE INDEX "UNIQUE_SCHEMA_MIGRATIONS" ON "SCHEMA_MIGRATIONS" ("VERSION")')
+        end
+      end
+
+      context "with prefix" do
+        before { ActiveRecord::Base.table_name_prefix = 'toolong_' }
+
+        it "should truncate the 'unique_schema_migrations' portion of the index name to fit the prefix within the limit" do
+          add_schema_migrations_index
+
+          @would_execute_sql.should include('CREATE UNIQUE INDEX "TOOLONG_UNIQUE_SCHEMA_MIGRATIO" ON "TOOLONG_SCHEMA_MIGRATIONS" ("VERSION")')
+        end
+      end
+
+      context "with suffix" do
+        before { ActiveRecord::Base.table_name_suffix = '_toolong' }
+
+        it "should truncate the 'unique_schema_migrations' portion of the index name to fit the suffix within the limit" do
+          add_schema_migrations_index
+
+          @would_execute_sql.should include('CREATE UNIQUE INDEX "UNIQUE_SCHEMA_MIGRATIO_TOOLONG" ON "SCHEMA_MIGRATIONS_TOOLONG" ("VERSION")')
+        end
+      end
+
+      context "with prefix and suffix" do
+        before do
+          ActiveRecord::Base.table_name_prefix = 'begin_'
+          ActiveRecord::Base.table_name_suffix = '_end'
+        end
+
+        it "should truncate the 'unique_schema_migrations' portion of the index name to fit the suffix within the limit" do
+          add_schema_migrations_index
+
+          @would_execute_sql.should include('CREATE UNIQUE INDEX "BEGIN_UNIQUE_SCHEMA_MIGRAT_END" ON "BEGIN_SCHEMA_MIGRATIONS_END" ("VERSION")')
+        end
+      end
     end
   end
 end
