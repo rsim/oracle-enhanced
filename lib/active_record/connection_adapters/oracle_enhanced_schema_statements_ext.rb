@@ -95,7 +95,7 @@ module ActiveRecord
           references_sql = quote_column_name(options[:primary_key] || references || "id")
         end
 
-        table_name = quote_table_name("#{ActiveRecord::Base.table_name_prefix}#{to_table}")
+        table_name = quote_table_name("#{ActiveRecord::Base.table_name_prefix}#{to_table}#{ActiveRecord::Base.table_name_suffix}")
 
         sql = "FOREIGN KEY (#{columns_sql}) REFERENCES #{table_name}(#{references_sql})"
 
