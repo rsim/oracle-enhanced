@@ -545,7 +545,12 @@ end
   end
 
   describe "foreign key constraints" do
+    let(:table_name_prefix) { nil }
+    let(:table_name_suffix) { nil }
+
     before(:each) do
+      ActiveRecord::Base.table_name_prefix = table_name_prefix
+      ActiveRecord::Base.table_name_suffix = table_name_suffix
       schema_define do
         create_table :test_posts, :force => true do |t|
           t.string :title
@@ -571,6 +576,8 @@ end
         drop_table :test_comments rescue nil
         drop_table :test_posts rescue nil
       end
+      ActiveRecord::Base.table_name_prefix = nil
+      ActiveRecord::Base.table_name_suffix = nil
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
@@ -581,6 +588,34 @@ end
       lambda do
         TestComment.create(:body => "test", :test_post_id => 1)
       end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TEST_COMMENTS_TEST_POST_ID_FK/}
+    end
+
+    context "with table_name_prefix" do
+      let(:table_name_prefix) { 'xxx_' }
+
+      it "should use table_name_prefix for foreign table" do
+        schema_define do
+          add_foreign_key :test_comments, :test_posts
+        end
+
+        lambda do
+          TestComment.create(:body => "test", :test_post_id => 1)
+        end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.XXX_TES_COM_TES_POS_ID_FK/}
+      end
+    end
+
+    context "with table_name_suffix" do
+      let(:table_name_suffix) { '_xxx' }
+
+      it "should use table_name_suffix for foreign table" do
+        schema_define do
+          add_foreign_key :test_comments, :test_posts
+        end
+
+        lambda do
+          TestComment.create(:body => "test", :test_post_id => 1)
+        end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TES_COM_XXX_TES_POS_ID_FK/}
+      end
     end
 
     it "should add foreign key with name" do
