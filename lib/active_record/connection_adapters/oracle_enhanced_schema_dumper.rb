@@ -67,9 +67,9 @@ module ActiveRecord #:nodoc:
               if column != "#{foreign_key.to_table.singularize}_id"
                 statement_parts << (':column => ' + column.inspect)
               end
-              	              
+
               if foreign_key.options[:references].first != 'id'
-                statement_parts << (':primary_key => ' + foreign_key.options[:references].inspect)
+                statement_parts << (':primary_key => ' + foreign_key.options[:references].first.inspect)
               end
             else
               statement_parts << (':columns => ' + foreign_key.options[:columns].inspect)
