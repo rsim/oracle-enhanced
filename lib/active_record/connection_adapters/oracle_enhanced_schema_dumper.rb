@@ -61,15 +61,14 @@ module ActiveRecord #:nodoc:
           add_foreign_key_statements = foreign_keys.map do |foreign_key|
             statement_parts = [ ('add_foreign_key ' + foreign_key.from_table.inspect) ]
             statement_parts << foreign_key.to_table.inspect
-            
+            puts foreign_key.options.inspect
             if foreign_key.options[:columns].size == 1
               column = foreign_key.options[:columns].first
               if column != "#{foreign_key.to_table.singularize}_id"
                 statement_parts << (':column => ' + column.inspect)
               end
-              
+              	              
               if foreign_key.options[:references].first != 'id'
-              	puts foreign_key.options.inspect
                 statement_parts << (':primary_key => ' + foreign_key.options[:references].first)
               end
             else
