@@ -69,6 +69,7 @@ module ActiveRecord #:nodoc:
               end
               
               if foreign_key.options[:references].first != 'id'
+              	puts foreign_key.options.inspect
                 statement_parts << (':primary_key => ' + foreign_key.options[:primary_key].inspect)
               end
             else
