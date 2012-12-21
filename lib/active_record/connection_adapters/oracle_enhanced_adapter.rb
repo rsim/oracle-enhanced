@@ -86,7 +86,6 @@ module ActiveRecord
     # Optionals NLS parameters:
     # 
     # * <tt>:nls_calendar</tt>
-    # * <tt>:nls_characterset</tt>
     # * <tt>:nls_comp</tt>
     # * <tt>:nls_currency</tt>
     # * <tt>:nls_date_format</tt> - format for :date columns, defaults to <tt>YYYY-MM-DD HH24:MI:SS</tt>
@@ -96,7 +95,6 @@ module ActiveRecord
     # * <tt>:nls_language</tt>
     # * <tt>:nls_length_semantics</tt> - semantics of size of VARCHAR2 and CHAR columns, defaults to <tt>CHAR</tt>
     #   (meaning that size specifies number of characters and not bytes)
-    # * <tt>:nls_nchar_characterset</tt>
     # * <tt>:nls_nchar_conv_excp</tt>
     # * <tt>:nls_numeric_characters</tt>
     # * <tt>:nls_sort</tt>
@@ -299,7 +297,6 @@ module ActiveRecord
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         :nls_calendar            => nil,
-        :nls_characterset        => nil,
         :nls_comp                => nil,
         :nls_currency            => nil,
         :nls_date_format         => 'YYYY-MM-DD HH24:MI:SS',
@@ -308,7 +305,6 @@ module ActiveRecord
         :nls_iso_currency        => nil,
         :nls_language            => nil,
         :nls_length_semantics    => 'CHAR',
-        :nls_nchar_characterset  => nil,
         :nls_nchar_conv_excp     => nil,
         :nls_numeric_characters  => nil,
         :nls_sort                => nil,
