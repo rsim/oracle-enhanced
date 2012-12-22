@@ -829,7 +829,6 @@ module ActiveRecord
                   
           binds.each_with_index do |bind, i|
             col, val = bind
-            #puts "HAAAAAAAAYYYYYHAAAAAAAAYYYYYHAAAAAAAAYYYYY #{col.name}, #{val.class}"
             if col == :returning_id
               returning_id_index = i + 1
               cursor.bind_returning_param(returning_id_index, Integer)
