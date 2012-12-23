@@ -269,6 +269,11 @@ module ActiveRecord
         super(connection, logger)
         @quoted_column_names, @quoted_table_names = {}, {}
         @config = config
+
+        path = "//"+@config[:host]+":"+@config[:port].to_s+"/"+@config[:database]
+	@conn = OCI8.new @config[:username], @config[:password], path
+        
+
         @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
         @visitor = Arel::Visitors::Oracle.new self if defined?(Arel::Visitors::Oracle)
@@ -818,7 +823,8 @@ module ActiveRecord
       
       # New method in ActiveRecord 3.1
       def exec_insert(sql, name, binds)
-        @conn = OCI8.new("behyab", "behyabpass", "//10.25.25.201:1521/isfahantaxi")
+        #@conn = OCI8.new("behyab", "behyabpass", "//10.25.25.201:1521/isfahantaxi")
+
         log(sql, name, binds) do
           returning_id_index = nil
           cursor = if @statements.key?(sql)
@@ -829,12 +835,14 @@ module ActiveRecord
                   
           binds.each_with_index do |bind, i|
             col, val = bind
+            #puts "HAAAAAAAAYYYYYHAAAAAAAAYYYYYHAAAAAAAAYYYYY #{col.name}, #{val.class}"
             if col == :returning_id
               returning_id_index = i + 1
               cursor.bind_returning_param(returning_id_index, Integer)
             elsif col.class == ActiveRecord::ConnectionAdapters::SpatialOracleColumn
               if val.class == GeoRuby::SimpleFeatures::Point
                 cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2001, col.name) , OCI8::Object::Mdsys::SdoGeometry)
+
               elsif val.class == GeoRuby::SimpleFeatures::LineString
                 cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2002, col.name) , OCI8::Object::Mdsys::SdoGeometry)  
               elsif val.class == GeoRuby::SimpleFeatures::Polygon
@@ -861,7 +869,7 @@ module ActiveRecord
 
       # New method in ActiveRecord 3.1
       def exec_update(sql, name, binds)
-        @conn = OCI8.new("behyab", "behyabpass", "//10.25.25.201:1521/isfahantaxi")
+#        @conn = OCI8.new("behyab", "behyabpass", "//10.25.25.201:1521/isfahantaxi")
         log(sql, name, binds) do
           cached = false
           if binds.empty?
