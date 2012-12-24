@@ -16,6 +16,7 @@ if ActiveRecord::Base.method_defined?(:changed?)
           last_name     VARCHAR2(25),
           job_id        NUMBER(6,0) NULL,
           salary        NUMBER(8,2),
+          pto_per_hour  NUMBER,
           comments      CLOB,
           hire_date     DATE
         )
@@ -59,6 +60,15 @@ if ActiveRecord::Base.method_defined?(:changed?)
       @employee.should_not be_changed
       @employee.reload
       @employee.salary = ''
+      @employee.should_not be_changed
+    end
+
+    it "should not mark empty float (stored as NULL) as changed when reassigning it" do
+      @employee = TestEmployee.create!(:pto_per_hour => '')
+      @employee.pto_per_hour = ''
+      @employee.should_not be_changed
+      @employee.reload
+      @employee.pto_per_hour = ''
       @employee.should_not be_changed
     end
 
