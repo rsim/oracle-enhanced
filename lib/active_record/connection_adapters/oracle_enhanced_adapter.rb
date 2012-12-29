@@ -730,15 +730,11 @@ module ActiveRecord
       
       def create_cursor_and_bind_types(conn)
          cursor = conn.parse("BEGIN :geom := SDO_GEOMETRY(:sdo_gtype, :sdo_srid, :sdo_point, :sdo_elem_info_array, :sdo_ordinate_array); END;")
-	 #OnlineGpsPoint.first
-
          cursor.bind_param(:sdo_gtype, OraNumber)
          cursor.bind_param(:sdo_srid, OraNumber) 
          cursor.bind_param(:sdo_point, OCI8::Object::Mdsys::SdoPointType) 
          cursor.bind_param(:sdo_elem_info_array, OCI8::Object::Mdsys::SdoElemInfoArray)
-         cursor.bind_param(:sdo_ordinate_array, OCI8::Object::Mdsys::SdoOrdinateArray)
-         
-	
+         cursor.bind_param(:sdo_ordinate_array, OCI8::Object::Mdsys::SdoOrdinateArray)   
          cursor.bind_param(:geom, OCI8::Object::Mdsys::SdoGeometry)
          cursor
       end
@@ -843,8 +839,6 @@ module ActiveRecord
       
       # New method in ActiveRecord 3.1
       def exec_insert(sql, name, binds)
-        #@conn = OCI8.new("behyab", "behyabpass", "//10.25.25.201:1521/isfahantaxi")
-
         log(sql, name, binds) do
           returning_id_index = nil
           cursor = if @statements.key?(sql)
@@ -855,7 +849,6 @@ module ActiveRecord
                   
           binds.each_with_index do |bind, i|
             col, val = bind
-            #puts "HAAAAAAAAYYYYYHAAAAAAAAYYYYYHAAAAAAAAYYYYY #{col.name}, #{val.class}"
             if col == :returning_id
               returning_id_index = i + 1
               cursor.bind_returning_param(returning_id_index, Integer)
@@ -868,7 +861,6 @@ module ActiveRecord
               elsif val.class == GeoRuby::SimpleFeatures::Polygon
                 cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2003, col.name) , OCI8::Object::Mdsys::SdoGeometry)
               else
-                #OnlineGpsPoint.first ####
                 cursor.bind_param(i + 1, OCI8::Object::Mdsys::SdoGeometry)
               end  
             else
@@ -889,7 +881,6 @@ module ActiveRecord
 
       # New method in ActiveRecord 3.1
       def exec_update(sql, name, binds)
-#        @conn = OCI8.new("behyab", "behyabpass", "//10.25.25.201:1521/isfahantaxi")
         log(sql, name, binds) do
           cached = false
           if binds.empty?
@@ -917,7 +908,6 @@ module ActiveRecord
           res
         end
       end
-      #########################DAVE#######################################################
 
       alias :exec_delete :exec_update
 
