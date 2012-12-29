@@ -40,6 +40,24 @@ require 'active_record/connection_adapters/oracle_enhanced_column'
 
 require 'digest/sha1'
 
+module OCI8::Object::Mdsys
+  class SdoGeometry < OCI8::Object::Base
+    set_typename('MDSYS.SDO_GEOMETRY')
+  end
+
+  class SdoPointType < OCI8::Object::Base
+    set_typename('MDSYS.SDO_POINT_TYPE')
+  end
+
+  class SdoElemInfoArray < OCI8::Object::Base
+    set_typename('MDSYS.SDO_ELEM_INFO_ARRAY')
+  end
+
+  class SdoOrdinateArray < OCI8::Object::Base
+    set_typename('MDSYS.SDO_ORDINATE_ARRAY')
+  end
+end
+
 module ActiveRecord
   module ConnectionAdapters #:nodoc:
 
@@ -712,13 +730,15 @@ module ActiveRecord
       
       def create_cursor_and_bind_types(conn)
          cursor = conn.parse("BEGIN :geom := SDO_GEOMETRY(:sdo_gtype, :sdo_srid, :sdo_point, :sdo_elem_info_array, :sdo_ordinate_array); END;")
-	OnlineGpsPoint.first
+	 #OnlineGpsPoint.first
+
          cursor.bind_param(:sdo_gtype, OraNumber)
          cursor.bind_param(:sdo_srid, OraNumber) 
          cursor.bind_param(:sdo_point, OCI8::Object::Mdsys::SdoPointType) 
          cursor.bind_param(:sdo_elem_info_array, OCI8::Object::Mdsys::SdoElemInfoArray)
          cursor.bind_param(:sdo_ordinate_array, OCI8::Object::Mdsys::SdoOrdinateArray)
          
+	
          cursor.bind_param(:geom, OCI8::Object::Mdsys::SdoGeometry)
          cursor
       end
@@ -848,7 +868,7 @@ module ActiveRecord
               elsif val.class == GeoRuby::SimpleFeatures::Polygon
                 cursor.bind_param(i + 1, create_sdo_geometry_object(@conn, val, 2003, col.name) , OCI8::Object::Mdsys::SdoGeometry)
               else
-                OnlineGpsPoint.first ####
+                #OnlineGpsPoint.first ####
                 cursor.bind_param(i + 1, OCI8::Object::Mdsys::SdoGeometry)
               end  
             else
