@@ -113,6 +113,8 @@ If you deploy JRuby on Rails application in Java application server that support
       adapter: oracle_enhanced
       jndi: "jdbc/jndi_connection_name"
 
+To use jndi with Tomcat you need to set the accessToUnderlyingConnectionAllowed to true property on the pool. See  the [Tomcat Documentation](http://tomcat.apache.org/tomcat-7.0-doc/jndi-resources-howto.html) for reference.
+
 You can find other available database.yml connection parameters in [oracle_enhanced_adapter.rb](/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb). There are many NLS settings as well as some other Oracle session settings.
 
 ### Adapter settings
