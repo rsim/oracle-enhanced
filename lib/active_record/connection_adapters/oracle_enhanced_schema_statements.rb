@@ -289,6 +289,7 @@ module ActiveRecord
         column_names.each {|column_name| execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)}"}
       ensure
         clear_table_columns_cache(table_name)
+        self.all_schema_indexes = nil
       end
 
       def add_comment(table_name, column_name, comment) #:nodoc:
