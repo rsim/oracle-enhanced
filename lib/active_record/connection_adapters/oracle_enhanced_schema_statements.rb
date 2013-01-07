@@ -109,7 +109,7 @@ module ActiveRecord
       end
 
       def drop_table(name, options = {}) #:nodoc:
-        super(name)
+        super(name) rescue nil
         seq_name = options[:sequence_name] || default_sequence_name(name)
         execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
       ensure
