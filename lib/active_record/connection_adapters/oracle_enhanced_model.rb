@@ -83,7 +83,7 @@ module ActiveRecord
 
     # After setting large objects to empty, select the OCI8::LOB
     # and write back the data.
-    def update
+    def update_record
       if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
         !(
           (self.class.respond_to?(:custom_create_method) && self.class.custom_create_method) ||
