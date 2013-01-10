@@ -98,7 +98,7 @@ module ActiveRecord #:nodoc:
 
     # Creates a record with custom create method
     # and returns its id.
-    def create
+    def create_record
       # check if class has custom create method
       if self.class.custom_create_method
         # run before/after callbacks defined in model
@@ -133,7 +133,7 @@ module ActiveRecord #:nodoc:
 
     # Updates the associated record with custom update method
     # Returns the number of affected rows.
-    def update(attribute_names = @attributes.keys)
+    def update_record(attribute_names = @attributes.keys)
       # check if class has custom update method
       if self.class.custom_update_method
         # run before/after callbacks defined in model
