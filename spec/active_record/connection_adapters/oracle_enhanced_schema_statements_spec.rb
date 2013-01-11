@@ -2,6 +2,7 @@ require 'spec_helper'
 
 describe "OracleEnhancedAdapter schema definition" do
   include SchemaSpecHelper
+  include LoggerSpecHelper
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -186,6 +187,14 @@ describe "OracleEnhancedAdapter schema definition" do
         e = TestEmployee.create!(:first_name => 'Raimonds')
         @conn.select_value("SELECT test_employees_seq.currval FROM dual").should == e.id
       end
+
+      it "should not generate NoMethodError for :returning_id:Symbol" do
+        set_logger
+        insert_id = @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Yasuo')", nil, "id")
+        @logger.output(:error).should_not match(/^Could not log "sql.active_record" event. NoMethodError: undefined method `name' for :returning_id:Symbol/)
+        clear_logger
+      end
+
     end
 
     describe "with separate creation of primary key trigger" do
