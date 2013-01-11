@@ -2,13 +2,14 @@ module ActiveRecord
   module ConnectionAdapters #:nodoc:
     class OracleEnhancedColumn < Column
 
-      attr_reader :table_name, :forced_column_type, :nchar, :virtual_column_data_default #:nodoc:
+      attr_reader :table_name, :forced_column_type, :nchar, :virtual_column_data_default, :returning_id #:nodoc:
 
-      def initialize(name, default, sql_type = nil, null = true, table_name = nil, forced_column_type = nil, virtual=false) #:nodoc:
+      def initialize(name, default, sql_type = nil, null = true, table_name = nil, forced_column_type = nil, virtual=false, returning_id=false) #:nodoc:
         @table_name = table_name
         @forced_column_type = forced_column_type
         @virtual = virtual
         @virtual_column_data_default = default.inspect if virtual
+        @returning_id = returning_id
         default = nil if virtual
         super(name, default, sql_type, null)
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
@@ -24,6 +25,10 @@ module ActiveRecord
 
       def virtual?
         @virtual
+      end
+
+      def returning_id?
+        @returning_id
       end
 
       def lob?
