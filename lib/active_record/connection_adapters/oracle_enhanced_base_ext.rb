@@ -75,7 +75,7 @@ module ActiveRecord
       end
     end
     def record_changed_lobs
-      @changed_lob_columns = self.class.lob_columns.select{|col| self.send(:"#{col.name}_changed?") && !self.class.readonly_attributes.to_a.include?(col.name)}
+      @changed_lob_columns = self.class.lob_columns.select{|col| self.send(:"#{col.name}_changed?") && !self.class.readonly_attributes.to_a.include?(col.name) || self.class.serialized_attributes.keys && !self.class.readonly_attributes.to_a.include?(col.name)}
     end
     private :enhanced_write_lobs
     private :record_changed_lobs
