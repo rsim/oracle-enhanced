@@ -16,7 +16,6 @@ begin
   unless ojdbc_jar.nil? || ENV_JAVA['java.class.path'] =~ Regexp.new(ojdbc_jar)
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
     env_path = (ENV["PATH"] || ENV["Path"] || '').split(File::PATH_SEPARATOR)
-
     # Look for JDBC driver at first in lib subdirectory (application specific JDBC file version)
     # then in Ruby load path and finally in environment PATH
     if ojdbc_jar_path = ['./lib'].concat($LOAD_PATH).concat(env_path).find{|d| File.exists?(File.join(d,ojdbc_jar))}
