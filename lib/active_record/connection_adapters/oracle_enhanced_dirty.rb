@@ -5,7 +5,7 @@ module ActiveRecord #:nodoc:
       module InstanceMethods #:nodoc:
         private
         
-        def field_changed?(attr, old, value)
+        def _field_changed?(attr, old, value)
           if column = column_for_attribute(attr)
             # Added also :decimal type
             if (column.type == :integer || column.type == :decimal) && column.null && (old.nil? || old == 0) && value.blank?
@@ -18,6 +18,8 @@ module ActiveRecord #:nodoc:
             # therefore need to convert empty string value to nil if old value is nil
             elsif column.type == :string && column.null && old.nil?
               value = nil if value == ''
+            elsif old == 0 && value.is_a?(String) && value.present? && value != '0'
+              value = nil
             else
               value = column.type_cast(value)
             end
@@ -35,5 +37,10 @@ end
 if ActiveRecord::Base.method_defined?(:changed?)
   ActiveRecord::Base.class_eval do
     include ActiveRecord::ConnectionAdapters::OracleEnhancedDirty::InstanceMethods
+    # Starting with rails 3.2.9 the method #field_changed?
+    # was renamed to #_field_changed?
+    if private_method_defined?(:field_changed?)
+      alias_method :field_changed?, :_field_changed?
+    end
   end
 end

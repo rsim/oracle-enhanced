@@ -113,6 +113,8 @@ If you deploy JRuby on Rails application in Java application server that support
       adapter: oracle_enhanced
       jndi: "jdbc/jndi_connection_name"
 
+To use jndi with Tomcat you need to set the accessToUnderlyingConnectionAllowed to true property on the pool. See  the [Tomcat Documentation](http://tomcat.apache.org/tomcat-7.0-doc/jndi-resources-howto.html) for reference.
+
 You can find other available database.yml connection parameters in [oracle_enhanced_adapter.rb](/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb). There are many NLS settings as well as some other Oracle session settings.
 
 ### Adapter settings
@@ -257,7 +259,7 @@ And you can even create index on multiple tables by providing SELECT statements 
     Post.contains(:all_text, "aaa within title")
     Post.contains(:all_text, "bbb within comment_author")
 
-### Oracle virtual collumns support
+### Oracle virtual columns support
 
 Since version R11G1 Oracle database allows adding computed [Virtual Columns](http://www.oracle-base.com/articles/11g/virtual-columns-11gr1.php) to the table.
 They can be used as normal fields in the queries, in the foreign key contstraints and to partitioning data.
@@ -341,7 +343,7 @@ Please verify that
         require 'rubygems'
         gem 'activerecord'
         gem 'activerecord-oracle_enhanced-adapter'
-        require 'activerecord'
+        require 'active_record'
         ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced", :database => "database",:username => "user",:password => "password")
 
     and see if it is successful (use your correct database, username and password)

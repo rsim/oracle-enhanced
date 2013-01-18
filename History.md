@@ -1,4 +1,21 @@
-### 1.4.1 / 2011-01-27
+### 1.4.2 / 2012-11-13
+
+* Enhancements:
+  * Wordlist option for context index [#154]
+  * Fall back to directly connecting via OracleDriver on JRuby [#163]
+  * Allow slash-prefixed database name in database.yml for using a service [#201]
+* Bug fixes:
+  * Fixed explain plans to work with JDBC and OCI8 [#146]
+  * Fixed various issues with virtual columns [#159]
+  * Fixed SQL structure dump with function indexes [#161]
+  * Fixed broken column remove inside a change_table block [#216]
+  * Dump indexes on virtual columns using the column's name instead of the column expression [#211]
+  * Don't update lobs that haven't changed or are attr_readonly [#212]
+  * Support dirty tracking with rails 3.2.9
+  * Do not consider the numeric attribute as changed if the old value is zero and the new value is not a string [#247]
+  * Removed table_name_prefix and table_name_suffix when schema dumper executed [#248]
+
+### 1.4.1 / 2012-01-27
 
 * Enhancements:
   * Support for Rails 3.2

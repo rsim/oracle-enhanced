@@ -2,6 +2,7 @@ require 'spec_helper'
 
 describe "OracleEnhancedAdapter schema definition" do
   include SchemaSpecHelper
+  include LoggerSpecHelper
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -186,6 +187,14 @@ describe "OracleEnhancedAdapter schema definition" do
         e = TestEmployee.create!(:first_name => 'Raimonds')
         @conn.select_value("SELECT test_employees_seq.currval FROM dual").should == e.id
       end
+
+      it "should not generate NoMethodError for :returning_id:Symbol" do
+        set_logger
+        insert_id = @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Yasuo')", nil, "id")
+        @logger.output(:error).should_not match(/^Could not log "sql.active_record" event. NoMethodError: undefined method `name' for :returning_id:Symbol/)
+        clear_logger
+      end
+
     end
 
     describe "with separate creation of primary key trigger" do
@@ -536,7 +545,12 @@ end
   end
 
   describe "foreign key constraints" do
+    let(:table_name_prefix) { nil }
+    let(:table_name_suffix) { nil }
+
     before(:each) do
+      ActiveRecord::Base.table_name_prefix = table_name_prefix
+      ActiveRecord::Base.table_name_suffix = table_name_suffix
       schema_define do
         create_table :test_posts, :force => true do |t|
           t.string :title
@@ -562,6 +576,8 @@ end
         drop_table :test_comments rescue nil
         drop_table :test_posts rescue nil
       end
+      ActiveRecord::Base.table_name_prefix = nil
+      ActiveRecord::Base.table_name_suffix = nil
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
@@ -572,6 +588,34 @@ end
       lambda do
         TestComment.create(:body => "test", :test_post_id => 1)
       end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TEST_COMMENTS_TEST_POST_ID_FK/}
+    end
+
+    context "with table_name_prefix" do
+      let(:table_name_prefix) { 'xxx_' }
+
+      it "should use table_name_prefix for foreign table" do
+        schema_define do
+          add_foreign_key :test_comments, :test_posts
+        end
+
+        lambda do
+          TestComment.create(:body => "test", :test_post_id => 1)
+        end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.XXX_TES_COM_TES_POS_ID_FK/}
+      end
+    end
+
+    context "with table_name_suffix" do
+      let(:table_name_suffix) { '_xxx' }
+
+      it "should use table_name_suffix for foreign table" do
+        schema_define do
+          add_foreign_key :test_comments, :test_posts
+        end
+
+        lambda do
+          TestComment.create(:body => "test", :test_post_id => 1)
+        end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TES_COM_XXX_TES_POS_ID_FK/}
+      end
     end
 
     it "should add foreign key with name" do
@@ -1019,7 +1063,7 @@ end
   end
 
   describe 'virtual columns in create_table' do
-    before(:all) do
+    before(:each) do
       pending "Not supported in this database version" unless @oracle11g
     end
 
@@ -1069,11 +1113,8 @@ end
   end
 
   describe 'virtual columns' do
-    before(:all) do
-      pending "Not supported in this database version" unless @oracle11g
-    end
-
     before(:each) do
+      pending "Not supported in this database version" unless @oracle11g
       expr = "( numerator/NULLIF(denominator,0) )*100"
       schema_define do
         create_table :test_fractions, :force => true do |t|
@@ -1093,8 +1134,10 @@ end
     end
 
     after(:each) do
-      schema_define do
-        drop_table :test_fractions
+      if @oracle11g
+        schema_define do
+          drop_table :test_fractions
+        end
       end
     end
 

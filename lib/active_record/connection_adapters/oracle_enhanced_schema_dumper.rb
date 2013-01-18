@@ -13,10 +13,10 @@ module ActiveRecord #:nodoc:
       private
 
       def ignore_table?(table)
-        [ActiveRecord::Migrator.proper_table_name('schema_migrations'), ignore_tables].flatten.any? do |ignored|
+        ['schema_migrations', ignore_tables].flatten.any? do |ignored|
           case ignored
-          when String; table == ignored
-          when Regexp; table =~ ignored
+          when String; remove_prefix_and_suffix(table) == ignored
+          when Regexp; remove_prefix_and_suffix(table) =~ ignored
           else
             raise StandardError, 'ActiveRecord::SchemaDumper.ignore_tables accepts an array of String and / or Regexp values.'
           end
@@ -177,7 +177,7 @@ module ActiveRecord #:nodoc:
             spec[:name]      = column.name.inspect
             spec[:type]      = column.virtual? ? 'virtual' : column.type.to_s
             spec[:type]      = column.virtual? ? 'virtual' : column.type.to_s
-            spec[:virtual_type] = column.type.inspect if column.virtual?
+            spec[:virtual_type] = column.type.inspect if column.virtual? && column.sql_type != 'NUMBER'
             spec[:limit]     = column.limit.inspect if column.limit != @types[column.type][:limit] && column.type != :decimal
             spec[:precision] = column.precision.inspect if !column.precision.nil?
             spec[:scale]     = column.scale.inspect if !column.scale.nil?
@@ -230,7 +230,10 @@ module ActiveRecord #:nodoc:
         
         stream
       end
-      
+
+      def remove_prefix_and_suffix(table)
+        table.gsub(/^(#{ActiveRecord::Base.table_name_prefix})(.+)(#{ActiveRecord::Base.table_name_suffix})$/,  "\\2")
+      end 
       
       # remove table name prefix and suffix when doing #inspect (which is used in tables method)
       module TableInspect #:nodoc:
