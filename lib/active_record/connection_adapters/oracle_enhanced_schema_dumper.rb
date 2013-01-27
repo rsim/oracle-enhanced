@@ -280,7 +280,7 @@ module ActiveRecord #:nodoc:
         spec = {}
         spec[:name]      = column.name.inspect
         spec[:type]      = column.virtual? ? 'virtual' : column.type.to_s
-        spec[:virtual_type] = column.type.inspect if column.virtual?
+        spec[:virtual_type] = column.type.inspect if column.virtual? && column.sql_type != 'NUMBER'
         spec[:limit]     = column.limit.inspect if column.limit != types[column.type][:limit] && column.type != :decimal
         spec[:precision] = column.precision.inspect if !column.precision.nil?
         spec[:scale]     = column.scale.inspect if !column.scale.nil?

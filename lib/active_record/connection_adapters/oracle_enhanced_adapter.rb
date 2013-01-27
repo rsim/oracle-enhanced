@@ -58,7 +58,7 @@ module ActiveRecord
     # Oracle enhanced adapter will work with both
     # Ruby 1.8/1.9 ruby-oci8 gem (which provides interface to Oracle OCI client)
     # or with JRuby and Oracle JDBC driver.
-    # 
+    #
     # It should work with Oracle 9i, 10g and 11g databases.
     # Limited set of functionality should work on Oracle 8i as well but several features
     # rely on newer functionality in Oracle database.
@@ -83,9 +83,9 @@ module ActiveRecord
     # * <tt>:username</tt>
     # * <tt>:password</tt>
     # * <tt>:database</tt> - either TNS alias or connection string for OCI client or database name in JDBC connection string
-    # 
+    #
     # Optional parameters:
-    # 
+    #
     # * <tt>:host</tt> - host name for JDBC connection, defaults to "localhost"
     # * <tt>:port</tt> - port number for JDBC connection, defaults to 1521
     # * <tt>:privilege</tt> - set "SYSDBA" if you want to connect with this privilege
@@ -94,11 +94,10 @@ module ActiveRecord
     # * <tt>:cursor_sharing</tt> - cursor sharing mode to minimize amount of unique statements, defaults to "force"
     # * <tt>:time_zone</tt> - database session time zone
     #   (it is recommended to set it using ENV['TZ'] which will be then also used for database session time zone)
-    # 
+    #
     # Optionals NLS parameters:
-    # 
+    #
     # * <tt>:nls_calendar</tt>
-    # * <tt>:nls_characterset</tt>
     # * <tt>:nls_comp</tt>
     # * <tt>:nls_currency</tt>
     # * <tt>:nls_date_format</tt> - format for :date columns, defaults to <tt>YYYY-MM-DD HH24:MI:SS</tt>
@@ -108,7 +107,6 @@ module ActiveRecord
     # * <tt>:nls_language</tt>
     # * <tt>:nls_length_semantics</tt> - semantics of size of VARCHAR2 and CHAR columns, defaults to <tt>CHAR</tt>
     #   (meaning that size specifies number of characters and not bytes)
-    # * <tt>:nls_nchar_characterset</tt>
     # * <tt>:nls_nchar_conv_excp</tt>
     # * <tt>:nls_numeric_characters</tt>
     # * <tt>:nls_sort</tt>
@@ -117,7 +115,7 @@ module ActiveRecord
     # * <tt>:nls_timestamp_tz_format</tt>
     # * <tt>:nls_time_format</tt>
     # * <tt>:nls_time_tz_format</tt>
-    # 
+    #
     class OracleEnhancedAdapter < AbstractAdapter
 
       ##
@@ -138,12 +136,12 @@ module ActiveRecord
       # to Date then you can add the following line to your initializer file:
       #
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = true
-      # 
+      #
       # As this option can have side effects when unnecessary typecasting is done it is recommended
       # that Date columns are explicily defined with +set_date_columns+ method.
       cattr_accessor :emulate_dates
       self.emulate_dates = false
-      
+
        ##
         # :singleton-method:
         # OracleEnhancedAdapter will use the default tablespace, but if you want specific types of
@@ -151,7 +149,7 @@ module ActiveRecord
         #
         #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces =
         #  {:clob => 'TS_LOB', :blob => 'TS_LOB', :index => 'TS_INDEX', :table => 'TS_DATA'}
-        # 
+        #
         # Using the :tablespace option where available (e.g create_table) will take precedence
         # over these settings.
       cattr_accessor :default_tablespaces
@@ -165,7 +163,7 @@ module ActiveRecord
       # to Date then you can add the following line to your initializer file:
       #
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-      # 
+      #
       # As this option can have side effects when unnecessary typecasting is done it is recommended
       # that Date columns are explicily defined with +set_date_columns+ method.
       cattr_accessor :emulate_dates_by_column_name
@@ -224,7 +222,7 @@ module ActiveRecord
         return true if ["CHAR(1)","VARCHAR2(1)"].include?(field_type)
         field_type =~ /^VARCHAR2/ && (name =~ /_flag$/i || name =~ /_yn$/i)
       end
-      
+
       # How boolean value should be quoted to String.
       # Used if +emulate_booleans_from_strings+ option is set to +true+.
       def self.boolean_to_string(bool)
@@ -234,15 +232,15 @@ module ActiveRecord
       ##
       # :singleton-method:
       # Specify non-default date format that should be used when assigning string values to :date columns, e.g.:
-      # 
+      #
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = “%d.%m.%Y”
       cattr_accessor :string_to_date_format
       self.string_to_date_format = nil
-      
+
       ##
       # :singleton-method:
       # Specify non-default time format that should be used when assigning string values to :datetime columns, e.g.:
-      # 
+      #
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = “%d.%m.%Y %H:%M:%S”
       cattr_accessor :string_to_time_format
       self.string_to_time_format = nil
@@ -291,7 +289,7 @@ module ActiveRecord
       end
 
       ADAPTER_NAME = 'OracleEnhanced'.freeze
-      
+
       def adapter_name #:nodoc:
         ADAPTER_NAME
       end
@@ -315,7 +313,6 @@ module ActiveRecord
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         :nls_calendar            => nil,
-        :nls_characterset        => nil,
         :nls_comp                => nil,
         :nls_currency            => nil,
         :nls_date_format         => 'YYYY-MM-DD HH24:MI:SS',
@@ -324,7 +321,6 @@ module ActiveRecord
         :nls_iso_currency        => nil,
         :nls_language            => nil,
         :nls_length_semantics    => 'CHAR',
-        :nls_nchar_characterset  => nil,
         :nls_nchar_conv_excp     => nil,
         :nls_numeric_characters  => nil,
         :nls_sort                => nil,
@@ -434,12 +430,12 @@ module ActiveRecord
       # Names must be from 1 to 30 bytes long with these exceptions:
       # * Names of databases are limited to 8 bytes.
       # * Names of database links can be as long as 128 bytes.
-      #  
+      #
       # Nonquoted identifiers cannot be Oracle Database reserved words
-      #  
+      #
       # Nonquoted identifiers must begin with an alphabetic character from
       # your database character set
-      #  
+      #
       # Nonquoted identifiers can contain only alphanumeric characters from
       # your database character set and the underscore (_), dollar sign ($),
       # and pound sign (#). Database links can also contain periods (.) and
@@ -454,7 +450,7 @@ module ActiveRecord
       # can be prefixed with schema name
       # CamelCase table names should be quoted
       def self.valid_table_name?(name) #:nodoc:
-        name = name.to_s 
+        name = name.to_s
         name =~ VALID_TABLE_NAME && !(name =~ /[A-Z]/ && name =~ /[a-z]/) ? true : false
       end
 
@@ -462,7 +458,7 @@ module ActiveRecord
         name = name.to_s
         @quoted_table_names[name] ||= name.split('.').map{|n| n.split('@').map{|m| quote_column_name(m)}.join('@')}.join('.')
       end
-      
+
       def quote_string(s) #:nodoc:
         s.gsub(/'/, "''")
       end
@@ -712,17 +708,16 @@ module ActiveRecord
       def sql_for_insert(sql, pk, id_value, sequence_name, binds)
         unless id_value || pk.nil? || (defined?(CompositePrimaryKeys) && pk.kind_of?(CompositePrimaryKeys::CompositeKeys))
           sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
-          (binds = binds.dup) << [:returning_id, nil]
+          returning_id_col = OracleEnhancedColumn.new("returning_id", nil, "number", true, "dual", :integer, true, true)
+          (binds = binds.dup) << [returning_id_col, nil]
         end
         [sql, binds]
       end
 
-      EXEC_INSERT_RESULT_COLUMNS = %w(returning_id) #:nodoc:
-
       # New method in ActiveRecord 3.1
       def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
         log(sql, name, binds) do
-          returning_id_index = nil
+          returning_id_col = returning_id_index = nil
           cursor = if @statements.key?(sql)
             @statements[sql]
           else
@@ -731,7 +726,8 @@ module ActiveRecord
 
           binds.each_with_index do |bind, i|
             col, val = bind
-            if col == :returning_id
+            if col.returning_id?
+              returning_id_col = [col]
               returning_id_index = i + 1
               cursor.bind_returning_param(returning_id_index, Integer)
             else
@@ -746,7 +742,7 @@ module ActiveRecord
             returning_id = cursor.get_returning_param(returning_id_index, Integer)
             rows << [returning_id]
           end
-          ActiveRecord::Result.new(EXEC_INSERT_RESULT_COLUMNS, rows)
+          ActiveRecord::Result.new(returning_id_col || [], rows)
         end
       end
 
@@ -1008,7 +1004,7 @@ module ActiveRecord
               current_index = row['index_name']
             end
 
-            # Functional index columns and virtual columns both get stored as column expressions, 
+            # Functional index columns and virtual columns both get stored as column expressions,
             # but re-creating a virtual column index as an expression (instead of using the virtual column's name)
             # results in a ORA-54018 error.  Thus, we only want the column expression value returned
             # when the column is not virtual.
@@ -1034,12 +1030,12 @@ module ActiveRecord
         @@ignore_table_columns[table_name] += args.map{|a| a.to_s.downcase}
         @@ignore_table_columns[table_name].uniq!
       end
-      
+
       def ignored_table_columns(table_name) #:nodoc:
         @@ignore_table_columns ||= {}
         @@ignore_table_columns[table_name]
       end
-      
+
       # used just in tests to clear ignored table columns
       def clear_ignored_table_columns #:nodoc:
         @@ignore_table_columns = nil
@@ -1055,7 +1051,7 @@ module ActiveRecord
           @@table_column_type[table_name][col.to_s.downcase] = column_type
         end
       end
-      
+
       def get_type_for_column(table_name, column_name) #:nodoc:
         @@table_column_type && @@table_column_type[table_name] && @@table_column_type[table_name][column_name.to_s.downcase]
       end
@@ -1142,7 +1138,7 @@ module ActiveRecord
           if row['data_default'] && !is_virtual
             row['data_default'].sub!(/^(.*?)\s*$/, '\1')
 
-            # If a default contains a newline these cleanup regexes need to 
+            # If a default contains a newline these cleanup regexes need to
             # match newlines.
             row['data_default'].sub!(/^'(.*)'$/m, '\1')
             row['data_default'] = nil if row['data_default'] =~ /^(null|empty_[bc]lob\(\))$/i
@@ -1181,7 +1177,7 @@ module ActiveRecord
       cattr_accessor :default_sequence_start_value
       self.default_sequence_start_value = 10000
 
-      # Find a table's primary key and sequence. 
+      # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
         if @@cache_columns
@@ -1229,7 +1225,7 @@ module ActiveRecord
       # Oracle requires the ORDER BY columns to be in the SELECT list for DISTINCT
       # queries. However, with those columns included in the SELECT DISTINCT list, you
       # won't actually get a distinct list of the column you want (presuming the column
-      # has duplicates with multiple values for the ordered-by columns. So we use the 
+      # has duplicates with multiple values for the ordered-by columns. So we use the
       # FIRST_VALUE function to get a single (first) value for each column, effectively
       # making every row the same.
       #
@@ -1328,7 +1324,7 @@ module ActiveRecord
       #
       # PL/SQL in Oracle uses dbms_output for logging print statements
       # These methods stick that output into the Rails log so Ruby and PL/SQL
-      # code can can be debugged together in a single application 
+      # code can can be debugged together in a single application
 
       # Maximum DBMS_OUTPUT buffer size
       DBMS_OUTPUT_BUFFER_SIZE = 10000  # can be 1-1000000
@@ -1360,7 +1356,7 @@ module ActiveRecord
       ensure
         log_dbms_output if dbms_output_enabled?
       end
-      
+
       private
 
       def set_dbms_output_plsql_connection
