@@ -78,7 +78,10 @@ module ActiveRecord
     private
 
     def record_changed_lobs
-      @changed_lob_columns = self.class.lob_columns.select{|col| self.send(:"#{col.name}_changed?") && !self.class.readonly_attributes.to_a.include?(col.name)}
+      @changed_lob_columns = self.class.lob_columns.select do |col|
+        self.class.serialized_attributes.keys.include?(col.name) ||
+          (self.send(:"#{col.name}_changed?") && !self.class.readonly_attributes.to_a.include?(col.name))
+      end
     end
 
     # After setting large objects to empty, select the OCI8::LOB

@@ -94,9 +94,11 @@ module ActiveRecord
           references = options[:references] ? options[:references].first : nil
           references_sql = quote_column_name(options[:primary_key] || references || "id")
         end
-        
-        sql = "FOREIGN KEY (#{columns_sql}) REFERENCES #{quote_table_name(to_table)}(#{references_sql})"
-        
+
+        table_name = ActiveRecord::Migrator.proper_table_name(to_table)
+
+        sql = "FOREIGN KEY (#{columns_sql}) REFERENCES #{quote_table_name(table_name)}(#{references_sql})"
+
         case options[:dependent]
         when :nullify
           sql << " ON DELETE SET NULL"

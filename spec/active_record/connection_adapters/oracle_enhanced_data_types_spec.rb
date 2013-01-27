@@ -1056,6 +1056,18 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @employee.reload
     @employee.comments.should == @char_data
   end
+
+  it "should keep unchanged serialized data when other columns changed" do
+    @employee = Test2Employee.create!(
+      :first_name => "First",
+      :last_name => "Last",
+      :comments => "initial serialized data"
+    )
+    @employee.first_name = "Steve"
+    @employee.save
+    @employee.reload
+    @employee.comments.should == "initial serialized data"
+  end
 end
 
 describe "OracleEnhancedAdapter handling of BLOB columns" do
