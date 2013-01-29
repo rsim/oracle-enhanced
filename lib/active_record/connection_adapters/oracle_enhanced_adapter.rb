@@ -36,6 +36,106 @@ require 'active_record/connection_adapters/oracle_enhanced_column'
 
 require 'digest/sha1'
 
+ActiveRecord::Base.class_eval do
+  class_attribute :custom_create_method, :custom_update_method, :custom_delete_method
+end
+
+module ActiveRecord
+  class Base
+
+    # Specify table columns which should be ignored by ActiveRecord, e.g.:
+    #
+    #   ignore_table_columns :attribute1, :attribute2
+    def self.ignore_table_columns(*args)
+      connection.ignore_table_columns(table_name,*args)
+    end
+
+    # Specify which table columns should be typecasted to Date (without time), e.g.:
+    # 
+    #   set_date_columns :created_on, :updated_on
+    def self.set_date_columns(*args)
+      connection.set_type_for_columns(table_name,:date,*args)
+    end
+
+    # Specify which table columns should be typecasted to Time (or DateTime), e.g.:
+    #
+    #   set_datetime_columns :created_date, :updated_date
+    def self.set_datetime_columns(*args)
+      connection.set_type_for_columns(table_name,:datetime,*args)
+    end
+
+    # Specify which table columns should be typecasted to boolean values +true+ or +false+, e.g.:
+    #
+    #   set_boolean_columns :is_valid, :is_completed
+    def self.set_boolean_columns(*args)
+      connection.set_type_for_columns(table_name,:boolean,*args)
+    end
+
+    # Specify which table columns should be typecasted to integer values.
+    # Might be useful to force NUMBER(1) column to be integer and not boolean, or force NUMBER column without
+    # scale to be retrieved as integer and not decimal. Example:
+    #
+    #   set_integer_columns :version_number, :object_identifier
+    def self.set_integer_columns(*args)
+      connection.set_type_for_columns(table_name,:integer,*args)
+    end
+
+    # Specify which table columns should be typecasted to string values.
+    # Might be useful to specify that columns should be string even if its name matches boolean column criteria.
+    #
+    #   set_string_columns :active_flag
+    def self.set_string_columns(*args)
+      connection.set_type_for_columns(table_name,:string,*args)
+    end
+
+    # Get table comment from schema definition.
+    def self.table_comment
+      connection.table_comment(self.table_name)
+    end
+
+    def self.lob_columns
+      columns.select do |column|
+        column.respond_to?(:lob?) && column.lob?
+      end
+    end
+
+    def self.virtual_columns
+      columns.select do |column|
+        column.respond_to?(:virtual?) && column.virtual?
+      end
+    end
+
+    def arel_attributes_with_values(attribute_names)
+      virtual_column_names = self.class.virtual_columns.map(&:name)
+      super(attribute_names - virtual_column_names)
+    end
+
+    # After setting large objects to empty, select the OCI8::LOB
+    # and write back the data.
+    before_update :record_changed_lobs
+    after_update :enhanced_write_lobs
+
+    private
+
+    def enhanced_write_lobs
+      if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) && 
+          !(
+            (self.class.custom_create_method || self.class.custom_create_method) ||
+            (self.class.custom_update_method || self.class.custom_update_method)
+          )
+        connection.write_lobs(self.class.table_name, self.class, attributes, @changed_lob_columns || self.class.lob_columns)
+      end
+    end
+
+    def record_changed_lobs
+      @changed_lob_columns = self.class.lob_columns.select do |col|
+        self.class.serialized_attributes.keys.include?(col.name) ||
+          (self.send(:"#{col.name}_changed?") && !self.class.readonly_attributes.to_a.include?(col.name))
+      end
+    end
+  end
+end
+
 module ActiveRecord
   module ConnectionHandling #:nodoc:
     # Establishes a connection to the database that's used by all Active Record objects.
@@ -1418,8 +1518,6 @@ module ActiveRecord
   end
 end
 
-require 'active_record/connection_adapters/oracle_enhanced_model'
-
 # Implementation of standard schema definition statements and extensions for schema definition
 require 'active_record/connection_adapters/oracle_enhanced_schema_statements'
 require 'active_record/connection_adapters/oracle_enhanced_schema_statements_ext'
@@ -1449,14 +1547,4 @@ require 'active_record/connection_adapters/oracle_enhanced_version'
 
 module ActiveRecord
   autoload :OracleEnhancedProcedures, 'active_record/connection_adapters/oracle_enhanced_procedures'
-
-  module Model
-    include OracleEnhancedModel
-  end
-
-  class Base
-    # Include ActiveRecord::OracleEnhancedModel also in ActiveRecord::Base, since we are too late -
-    # the ActiveRecord::Model has already been loaded into ActiveRecord::Base.
-    include OracleEnhancedModel
-  end
 end
