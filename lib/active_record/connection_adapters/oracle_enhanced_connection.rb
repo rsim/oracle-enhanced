@@ -4,17 +4,23 @@ module ActiveRecord
     class OracleEnhancedConnection #:nodoc:
 
       def self.create(config)
-        case ORACLE_ENHANCED_CONNECTION
-        when :oci
-          OracleEnhancedOCIConnection.new(config)
-        when :jdbc
-          OracleEnhancedJDBCConnection.new(config)
-        else
-          nil
-        end
+        connection = create_connection(config)
+        connection.post_initialize
+        connection
       end
 
-      attr_reader :raw_connection
+      attr_reader :raw_connection, :config, :username
+      attr_accessor :owner
+
+      def post_initialize
+        schema = config[:schema]
+        if schema.blank?
+          @owner = username.upcase unless username.nil?
+        else
+          exec "alter session set current_schema = #{schema}"
+          @owner = schema.upcase
+        end
+      end
 
       # Oracle column names by default are case-insensitive, but treated as upcase;
       # for neatness, we'll downcase within Rails. EXCEPT that folks CAN quote
@@ -98,8 +104,19 @@ module ActiveRecord
         result.map { |r| r.values.first }
       end
 
+      protected
+      def self.create_connection(config)
+        case ORACLE_ENHANCED_CONNECTION
+        when :oci
+          OracleEnhancedOCIConnection.new(config)
+        when :jdbc
+          OracleEnhancedJDBCConnection.new(config)
+        else
+          nil
+        end
+      end
     end
-    
+
     class OracleEnhancedConnectionException < StandardError #:nodoc:
     end
 

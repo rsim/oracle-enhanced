@@ -23,7 +23,7 @@ module ActiveRecord
       def initialize(config)
         @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
         # default schema owner
-        @owner = config[:username].to_s.upcase
+        @username = config[:username].to_s.upcase
       end
 
       def raw_oci_connection
