@@ -149,6 +149,43 @@ describe "OracleEnhancedAdapter schema dump" do
 
   end
 
+  describe "foreign key constraints with table prefix" do
+    before(:all) do
+      ActiveRecord::Base.table_name_prefix = "xxx_"
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.string :title
+        end
+        create_table :test_comments, :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        remove_foreign_key :test_comments, :test_posts rescue nil
+        remove_foreign_key :test_comments, :name => 'comments_posts_baz_fooz_fk' rescue nil
+      end
+    end
+    after(:all) do
+      schema_define do
+        drop_table :test_comments rescue nil
+        drop_table :test_posts rescue nil
+      end
+      ActiveRecord::Base.table_name_prefix = ''
+    end
+
+    it "should not include table prefix in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", :column => "test_post_id", :name => "xxx_tes_com_tes_pos_id_fk"/
+      ActiveRecord::Base.table_name_prefix = ''
+    end
+  end
+
   describe "foreign key constraints" do
     before(:all) do
       schema_define do
