@@ -35,6 +35,30 @@ describe "OracleEnhancedConnection" do
 
   end
 
+  describe "create connection with schema option" do
+    before(:all) do
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_WITH_SCHEMA_PARAMS)
+    end
+
+    before(:each) do
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_WITH_SCHEMA_PARAMS) unless @conn.active?
+    end
+
+    it "should create new connection" do
+      @conn.should be_active
+    end
+
+    it "should swith to specified schema" do
+      @conn.select_value("select SYS_CONTEXT('userenv', 'current_schema') from dual").should == CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase
+    end
+
+    it "should swith to specified schema after reset" do
+      @conn.reset!
+      @conn.select_value("select SYS_CONTEXT('userenv', 'current_schema') from dual").should == CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase
+    end
+
+  end
+
   describe "create connection with NLS parameters" do
     after do
       ENV['NLS_DATE_FORMAT'] = nil

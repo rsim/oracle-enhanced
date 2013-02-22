@@ -26,6 +26,9 @@ Running tests
         SQL> CREATE USER oracle_enhanced IDENTIFIED BY oracle_enhanced;
         SQL> GRANT unlimited tablespace, create session, create table, create sequence, create procedure, create trigger, create view, create materialized view, create database link, create synonym, create type, ctxapp TO oracle_enhanced;
 
+        SQL> CREATE USER oracle_enhanced_schema IDENTIFIED BY oracle_enhanced_schema;
+        SQL> GRANT unlimited tablespace, create session, create table, create sequence, create procedure, create trigger, create view, create materialized view, create database link, create synonym, create type, ctxapp TO oracle_enhanced_schema;
+
 * If you use RVM then switch to corresponding Ruby (1.8.7, 1.9.2 or JRuby) and it is recommended to create isolated gemset for test purposes (e.g. rvm create gemset oracle_enhanced)
 
 * Install bundler with
