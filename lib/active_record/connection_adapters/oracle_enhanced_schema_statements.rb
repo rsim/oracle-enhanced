@@ -98,15 +98,17 @@ module ActiveRecord
         
       end
 
-      def rename_table(name, new_name) #:nodoc:
+      def rename_table(table_name, new_name) #:nodoc:
         if new_name.to_s.length > table_name_length
           raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{table_name_length} characters"
         end
         if "#{new_name}_seq".to_s.length > sequence_name_length
           raise ArgumentError, "New sequence name '#{new_name}_seq' is too long; the limit is #{sequence_name_length} characters"
         end
-        execute "RENAME #{quote_table_name(name)} TO #{quote_table_name(new_name)}"
-        execute "RENAME #{quote_table_name("#{name}_seq")} TO #{quote_table_name("#{new_name}_seq")}"
+        execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
+        execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{quote_table_name("#{new_name}_seq")}"
+
+        rename_table_indexes(table_name, new_name)
       end
 
       def drop_table(name, options = {}) #:nodoc:
@@ -282,6 +284,8 @@ module ActiveRecord
 
       def rename_column(table_name, column_name, new_column_name) #:nodoc:
         execute "ALTER TABLE #{quote_table_name(table_name)} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
+        self.all_schema_indexes = nil
+        rename_column_indexes(table_name, column_name, new_column_name)
       ensure
         clear_table_columns_cache(table_name)
       end
