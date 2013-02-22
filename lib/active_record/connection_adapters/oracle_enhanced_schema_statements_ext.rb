@@ -243,7 +243,7 @@ module ActiveRecord
 
       # get synonyms for schema dump
       def synonyms #:nodoc:
-        select_all("SELECT synonym_name, table_owner, table_name, db_link FROM user_synonyms").collect do |row|
+        select_all("SELECT synonym_name, table_owner, table_name, db_link FROM all_synonyms WHERE owner = SYS_CONTEXT('userenv', 'current_schema')").collect do |row|
           OracleEnhancedSynonymDefinition.new(oracle_downcase(row['synonym_name']),
             oracle_downcase(row['table_owner']), oracle_downcase(row['table_name']), oracle_downcase(row['db_link']))
         end

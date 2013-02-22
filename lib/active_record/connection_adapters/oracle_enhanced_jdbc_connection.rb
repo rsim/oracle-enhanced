@@ -159,8 +159,14 @@ module ActiveRecord
 
         self.autocommit = true
 
-        # default schema owner
-        @owner = username.upcase unless username.nil?
+        schema = config[:schema] && config[:schema].to_s
+        if schema.blank?
+          # default schema owner
+          @owner = username.upcase unless username.nil?
+        else
+          exec "alter session set current_schema = #{schema}"
+          @owner = schema
+        end
 
         @raw_connection
       end
