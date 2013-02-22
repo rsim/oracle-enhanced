@@ -12,15 +12,15 @@ require 'rake'
 
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
-  gem.name = "activerecord-oracle_enhanced-adapter"
+  gem.name = "pmacs-activerecord-oracle_enhanced-adapter"
   gem.summary = "Oracle enhanced adapter for ActiveRecord"
   gem.description = <<-EOS
 Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 EOS
-  gem.email = "raimonds.simanovskis@gmail.com"
-  gem.homepage = "http://github.com/rsim/oracle-enhanced"
-  gem.authors = ["Raimonds Simanovskis"]
+  gem.email = "charles.treatman@gmail.com"
+  gem.homepage = "http://github.com/pmacs/oracle-enhanced"
+  gem.authors = ["Charles Treatman", "Raimonds Simanovskis"]
   gem.extra_rdoc_files = ['README.md']
   gem.license = 'MIT'
 end
