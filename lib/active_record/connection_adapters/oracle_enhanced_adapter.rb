@@ -1074,14 +1074,19 @@ module ActiveRecord
         select_value("SELECT SYS_CONTEXT('userenv', 'session_user') FROM dual")
       end
 
+      # Current database session schema
+      def current_schema
+        select_value("SELECT SYS_CONTEXT('userenv', 'current_schema') FROM dual")
+      end
+
       # Default tablespace name of current user
       def default_tablespace
-        select_value("SELECT LOWER(default_tablespace) FROM user_users WHERE username = SYS_CONTEXT('userenv', 'session_user')")
+        select_value("SELECT LOWER(default_tablespace) FROM user_users WHERE username = SYS_CONTEXT('userenv', 'current_schema')")
       end
 
       def tables(name = nil) #:nodoc:
         select_values(
-        "SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name) FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'session_user') AND secondary = 'N'",
+        "SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name) FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'",
         name)
       end
 
@@ -1094,7 +1099,7 @@ module ActiveRecord
       end
 
       def materialized_views #:nodoc:
-        select_values("SELECT LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'session_user')")
+        select_values("SELECT LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')")
       end
 
       cattr_accessor :all_schema_indexes #:nodoc:
