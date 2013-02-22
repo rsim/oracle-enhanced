@@ -26,6 +26,15 @@ module ActiveRecord
         create_primary_key_trigger(table_name, options)
       end
 
+      def table_definition_tablespace
+        # TODO: Support specifying an :index_tablespace option in create_table?
+        tablespace_sql = ''
+        if tablespace = default_tablespace_for(:index)
+          tablespace_sql << " USING INDEX TABLESPACE #{tablespace}"
+        end
+        tablespace_sql
+      end
+
       # Adds a new foreign key to the +from_table+, referencing the primary key of +to_table+
       # (syntax and partial implementation taken from http://github.com/matthuhiggins/foreigner)
       #
