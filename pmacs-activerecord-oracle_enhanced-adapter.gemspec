@@ -4,17 +4,15 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = %q{activerecord-oracle_enhanced-adapter}
-  s.version = "1.5.5"
-
+  s.name = %q{pmacs-activerecord-oracle_enhanced-adapter}
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.license = 'MIT'
-  s.authors = [%q{Raimonds Simanovskis}]
-  s.date = %q{2014-05-23}
+  s.authors = [%q{Charles Treatman}, %q{Raimonds Simanovskis}]
+  s.date = %q{2013-03-18}
+
   s.description = %q{Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 }
-  s.email = %q{raimonds.simanovskis@gmail.com}
+  s.email = %q{charles.treatman@gmail.com}
   s.extra_rdoc_files = [
     "README.md"
   ]
@@ -27,7 +25,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "RUNNING_TESTS.md",
     "Rakefile",
     "VERSION",
-    "activerecord-oracle_enhanced-adapter.gemspec",
     "lib/active_record/connection_adapters/emulation/oracle_adapter.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_adapter.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_column.rb",
@@ -46,7 +43,8 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "lib/active_record/connection_adapters/oracle_enhanced_schema_statements_ext.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_structure_dump.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_version.rb",
-    "lib/activerecord-oracle_enhanced-adapter.rb",
+    "lib/pmacs-activerecord-oracle_enhanced-adapter.rb",
+    "pmacs-activerecord-oracle_enhanced-adapter.gemspec",
     "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_connection_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_context_index_spec.rb",
@@ -62,10 +60,10 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "spec/active_record/connection_adapters/oracle_enhanced_structure_dump_spec.rb",
     "spec/spec_helper.rb"
   ]
-  s.homepage = %q{http://github.com/rsim/oracle-enhanced}
-  s.require_paths = [%q{lib}]
-  s.rubygems_version = %q{1.8.6}
-  s.summary = %q{Oracle enhanced adapter for ActiveRecord}
+  s.homepage = "http://github.com/pmacs/oracle-enhanced"
+  s.require_paths = ["lib"]
+  s.rubygems_version = "1.8.21"
+  s.summary = "Oracle enhanced adapter for ActiveRecord"
   s.test_files = [
     "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_connection_spec.rb",
@@ -89,6 +87,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_development_dependency(%q<jeweler>, ["~> 1.8"])
       s.add_development_dependency(%q<rspec>, ["~> 2.4"])
+      s.add_development_dependency(%q<rdoc>, [">= 0"])
       s.add_development_dependency(%q<activerecord>, [">= 0"])
       s.add_development_dependency(%q<activemodel>, [">= 0"])
       s.add_development_dependency(%q<activesupport>, [">= 0"])
@@ -101,6 +100,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     else
       s.add_dependency(%q<jeweler>, ["~> 1.8"])
       s.add_dependency(%q<rspec>, ["~> 2.4"])
+      s.add_dependency(%q<rdoc>, [">= 0"])
       s.add_dependency(%q<activerecord>, [">= 0"])
       s.add_dependency(%q<activemodel>, [">= 0"])
       s.add_dependency(%q<activesupport>, [">= 0"])
@@ -114,6 +114,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   else
     s.add_dependency(%q<jeweler>, ["~> 1.8"])
     s.add_dependency(%q<rspec>, ["~> 2.4"])
+    s.add_dependency(%q<rdoc>, [">= 0"])
     s.add_dependency(%q<activerecord>, [">= 0"])
     s.add_dependency(%q<activemodel>, [">= 0"])
     s.add_dependency(%q<activesupport>, [">= 0"])
