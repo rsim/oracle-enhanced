@@ -86,7 +86,7 @@ module ActiveRecord
             @raw_connection = @raw_connection.innermost_delegate
           elsif @raw_connection.respond_to?(:getUnderlyingConnection)
             @pooled_connection = @raw_connection
-            @raw_connection = @raw_connection.underlying_connection            
+            @raw_connection = @raw_connection.underlying_connection
           end
 
           config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
@@ -285,7 +285,7 @@ module ActiveRecord
             # else
             #   nil
             # end
-            
+
             # Workaround with CallableStatement
             s = @raw_connection.prepareCall("BEGIN #{sql}; END;")
             s.registerOutParameter(1, java.sql.Types::BIGINT)
