@@ -190,6 +190,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
       it "should not generate NoMethodError for :returning_id:Symbol" do
         set_logger
+        @conn.reconnect! unless @conn.active?
         insert_id = @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Yasuo')", nil, "id")
         @logger.output(:error).should_not match(/^Could not log "sql.active_record" event. NoMethodError: undefined method `name' for :returning_id:Symbol/)
         clear_logger
