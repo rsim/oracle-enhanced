@@ -1548,3 +1548,6 @@ require 'active_record/connection_adapters/oracle_enhanced_version'
 module ActiveRecord
   autoload :OracleEnhancedProcedures, 'active_record/connection_adapters/oracle_enhanced_procedures'
 end
+
+# Patches and enhancements for column dumper
+require 'active_record/connection_adapters/oracle_enhanced_column_dumper'
