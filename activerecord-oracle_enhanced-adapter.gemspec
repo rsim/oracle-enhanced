@@ -89,7 +89,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_development_dependency(%q<jeweler>, ["~> 1.5.1"])
       s.add_development_dependency(%q<rspec>, ["~> 2.4"])
       s.add_development_dependency(%q<activerecord>, [">= 0"])
       s.add_development_dependency(%q<activemodel>, [">= 0"])
@@ -101,7 +100,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
       s.add_development_dependency(%q<ruby-plsql>, [">= 0.4.4"])
       s.add_development_dependency(%q<ruby-oci8>, [">= 2.0.4"])
     else
-      s.add_dependency(%q<jeweler>, ["~> 1.5.1"])
       s.add_dependency(%q<rspec>, ["~> 2.4"])
       s.add_dependency(%q<activerecord>, [">= 0"])
       s.add_dependency(%q<activemodel>, [">= 0"])
@@ -114,7 +112,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
       s.add_dependency(%q<ruby-oci8>, [">= 2.0.4"])
     end
   else
-    s.add_dependency(%q<jeweler>, ["~> 1.5.1"])
     s.add_dependency(%q<rspec>, ["~> 2.4"])
     s.add_dependency(%q<activerecord>, [">= 0"])
     s.add_dependency(%q<activemodel>, [">= 0"])
