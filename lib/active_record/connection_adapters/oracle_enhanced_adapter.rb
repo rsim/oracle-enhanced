@@ -36,6 +36,8 @@ require 'active_record/connection_adapters/oracle_enhanced_column'
 
 require 'digest/sha1'
 
+require 'arel/visitors/bind_visitor'
+
 ActiveRecord::Base.class_eval do
   class_attribute :custom_create_method, :custom_update_method, :custom_delete_method
 end
@@ -375,13 +377,21 @@ module ActiveRecord
         end
       end
 
+      class BindSubstitution < Arel::Visitors::Oracle #:nodoc:
+        include Arel::Visitors::BindVisitor
+      end
+
       def initialize(connection, logger, config) #:nodoc:
         super(connection, logger)
         @quoted_column_names, @quoted_table_names = {}, {}
         @config = config
         @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
-        @visitor = Arel::Visitors::Oracle.new self if defined?(Arel::Visitors::Oracle)
+        if config.fetch(:prepared_statements) { true }
+          @visitor = Arel::Visitors::Oracle.new self
+        else
+          @visitor = unprepared_visitor
+        end
       end
 
       def self.visitor_for(pool) # :nodoc:
@@ -776,7 +786,7 @@ module ActiveRecord
       end
 
       def explain(arel, binds = [])
-        sql = "EXPLAIN PLAN FOR #{to_sql(arel)}"
+        sql = "EXPLAIN PLAN FOR #{to_sql(arel, binds)}"
         return if sql =~ /FROM all_/
         if ORACLE_ENHANCED_CONNECTION == :jdbc
           exec_query(sql, 'EXPLAIN', binds)
