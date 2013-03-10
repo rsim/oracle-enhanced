@@ -120,12 +120,12 @@ module ActiveRecord
     private
 
     def enhanced_write_lobs
-      if connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) && 
+      if self.class.connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) && 
           !(
             (self.class.custom_create_method || self.class.custom_create_method) ||
             (self.class.custom_update_method || self.class.custom_update_method)
           )
-        connection.write_lobs(self.class.table_name, self.class, attributes, @changed_lob_columns || self.class.lob_columns)
+        self.class.connection.write_lobs(self.class.table_name, self.class, attributes, @changed_lob_columns || self.class.lob_columns)
       end
     end
 
