@@ -1561,3 +1561,56 @@ end
 
 # Patches and enhancements for column dumper
 require 'active_record/connection_adapters/oracle_enhanced_column_dumper'
+
+module ActiveRecord
+  module ConnectionAdapters
+    class OracleEnhancedAdapter < AbstractAdapter
+      class SchemaCreation < AbstractAdapter::SchemaCreation
+        private
+
+        def visit_TableDefinition(o)
+          tablespace = tablespace_for(:table, o.options[:tablespace])
+          create_sql = "CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE "
+          create_sql << "#{quote_table_name(o.name)} ("
+          create_sql << o.columns.map { |c| accept c }.join(', ')
+          #create_sql << ", "
+          # how to get these two arguments...
+          #create_sql << foreign_key_definition(to_table, options)
+          create_sql << ")"
+          unless o.temporary
+            create_sql << " ORGANIZATION #{o.options[:organization]}" if o.options[:organization]
+            create_sql << "#{tablespace}"
+          end
+          create_sql << " #{o.options[:options]}"
+          create_sql
+        end
+
+        def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
+          tablespace_sql = ''
+          if tablespace = (tablespace_option || default_tablespace_for(obj_type))
+            tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
+              " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
+            else
+              " TABLESPACE #{tablespace}"
+            end
+          end
+          tablespace_sql
+        end
+
+        def default_tablespace_for(type)
+          (ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[type] || 
+           ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[native_database_types[type][:name]]) rescue nil
+        end
+
+        def foreign_key_definition(to_table, options = {})
+          @conn.foreign_key_definition(to_table, options)
+        end
+
+      end
+      
+      def schema_creation
+          SchemaCreation.new self
+      end
+    end
+  end
+end
