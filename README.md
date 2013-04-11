@@ -368,7 +368,7 @@ When Apache with Phusion Passenger (mod_passenger or previously mod_rails) is us
 RUNNING TESTS
 -------------
 
-See [RUNNING_TESTS.md](/rsim/oracle-enhanced/blob/master/RUNNING_TESTS.md) for information how to set up environment and run Oracle enhanced adapter unit tests.
+See [RUNNING_TESTS.md](https://github.com/rsim/oracle-enhanced/blob/master/README.md) for information how to set up environment and run Oracle enhanced adapter unit tests.
 
 LINKS
 -----
