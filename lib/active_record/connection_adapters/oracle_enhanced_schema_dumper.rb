@@ -69,7 +69,7 @@ module ActiveRecord #:nodoc:
               end
               
               if foreign_key.options[:references].first != 'id'
-                statement_parts << (':primary_key => ' + foreign_key.options[:primary_key].inspect)
+                statement_parts << (':primary_key => ' + foreign_key.options[:references].first.inspect)
               end
             else
               statement_parts << (':columns => ' + foreign_key.options[:columns].inspect)
@@ -149,7 +149,7 @@ module ActiveRecord #:nodoc:
 
           # first dump primary key column
           if @connection.respond_to?(:pk_and_sequence_for)
-            pk, pk_seq = @connection.pk_and_sequence_for(table)
+            pk = @connection.pk_and_sequence_for(table, nil, nil, nil, true)
           elsif @connection.respond_to?(:primary_key)
             pk = @connection.primary_key(table)
           end
@@ -159,11 +159,33 @@ module ActiveRecord #:nodoc:
           # addition to make temporary option work
           tbl.print ", :temporary => true" if @connection.temporary_table?(table)
           
-          if columns.detect { |c| c.name == pk }
-            if pk != 'id'
-              tbl.print %Q(, :primary_key => "#{pk}")
+          unless pk.empty?
+
+            # Set the first primary key name
+            current_primary_key_name = pk.first.downcase
+            
+            # Check primary key length
+            if pk.size == 1
+              
+              # Find current primary key based on name
+              current_primary_key = columns.select { |c| c.name.downcase == current_primary_key_name }
+              pk_is_numeric = current_primary_key.first.sql_type.include?('NUMBER')
+
+              # table with non-default primary key case
+              if current_primary_key_name != 'id' && pk_is_numeric
+                tbl.print %Q(, :primary_key => "#{current_primary_key_name}")
+              elsif !pk_is_numeric
+                # There is a primary key but it's not numeric
+                tbl.print ", :id => false"
+              end
+
+            else
+              # Composite key. Set id to false.
+              tbl.print ", :id => false"
             end
+
           else
+            # There is no primary key. Set id to false.
             tbl.print ", :id => false"
           end
           tbl.print ", :force => true"
@@ -172,7 +194,7 @@ module ActiveRecord #:nodoc:
           # then dump all non-primary key columns
           column_specs = columns.map do |column|
             raise StandardError, "Unknown type '#{column.sql_type}' for column '#{column.name}'" if @types[column.type].nil?
-            next if column.name == pk
+            next if column.name == current_primary_key_name && column.sql_type.include?('NUMBER') && pk.size == 1
             spec = {}
             spec[:name]      = column.name.inspect
             spec[:type]      = column.virtual? ? 'virtual' : column.type.to_s
@@ -216,6 +238,18 @@ module ActiveRecord #:nodoc:
           end
 
           tbl.puts "  end"
+          
+          # Alter the table to add either a composite primary key, or a non-numeric primary key.
+          unless pk.empty?
+            current_primary_key = columns.select { |c| c.name == current_primary_key_name }
+
+            unless pk_is_numeric && pk.size == 1
+              table_no_quotes = table.inspect.gsub /"/, ''
+              tbl.puts
+              tbl.puts  "  execute \"ALTER TABLE #{table_no_quotes} ADD PRIMARY KEY (#{pk.join(", ").downcase})\""
+            end
+          end
+
           tbl.puts
           
           indexes(table, tbl)
