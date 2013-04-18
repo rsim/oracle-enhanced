@@ -149,7 +149,7 @@ module ActiveRecord #:nodoc:
 
           # first dump primary key column
           if @connection.respond_to?(:pk_and_sequence_for)
-            pk, pk_seq = @connection.pk_and_sequence_for(table)
+            pk = @connection.pks_and_sequence_for(table)
           elsif @connection.respond_to?(:primary_key)
             pk = @connection.primary_key(table)
           end
@@ -159,11 +159,27 @@ module ActiveRecord #:nodoc:
           # addition to make temporary option work
           tbl.print ", :temporary => true" if @connection.temporary_table?(table)
           
-          if columns.detect { |c| c.name == pk }
-            if pk != 'id'
-              tbl.print %Q(, :primary_key => "#{pk}")
+          unless pk.empty?
+
+            # Check primary key length
+            if pk.size == 1
+              
+              # Find current primary key based on name
+              current_primary_key = columns.select { |c| c.name == pk[0].downcase }
+
+              if pk[0] != 'id' && current_primary_key[0].sql_type.include?('NUMBER')
+                tbl.print %Q(, :primary_key => "#{pk[0].downcase}")
+              else
+                # Key is not numeric, but is still a primary key so we should stop the creation of a numeric primary key.
+                tbl.print ", :id => false"
+              end
+            else
+              # Composite key. Set id to false.
+              tbl.print ", :id => false"
             end
+
           else
+            # There is no primary key. Set id to false.
             tbl.print ", :id => false"
           end
           tbl.print ", :force => true"
@@ -172,7 +188,7 @@ module ActiveRecord #:nodoc:
           # then dump all non-primary key columns
           column_specs = columns.map do |column|
             raise StandardError, "Unknown type '#{column.sql_type}' for column '#{column.name}'" if @types[column.type].nil?
-            next if column.name == pk
+            next if column.name == pk[0].downcase && column.sql_type.include?('NUMBER') && pk.size == 1
             spec = {}
             spec[:name]      = column.name.inspect
             spec[:type]      = column.virtual? ? 'virtual' : column.type.to_s
@@ -216,6 +232,18 @@ module ActiveRecord #:nodoc:
           end
 
           tbl.puts "  end"
+          
+          # Alter the table to add a primary key that is not a number.
+          unless pk.empty?
+            current_primary_key = columns.select { |c| c.name == pk[0].downcase }
+
+            unless current_primary_key[0].sql_type.include?('NUMBER') && pk[0].downcase == 'id' && pk.size == 1
+              table_no_quotes = table.inspect.gsub /"/, ''
+              tbl.puts
+              tbl.puts  "  execute \"ALTER TABLE #{table_no_quotes} ADD PRIMARY KEY (#{pk.join(", ").downcase})\""
+            end
+          end
+
           tbl.puts
           
           indexes(table, tbl)

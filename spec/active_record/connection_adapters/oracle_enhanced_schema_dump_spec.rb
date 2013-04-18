@@ -130,6 +130,63 @@ describe "OracleEnhancedAdapter schema dump" do
 
   end
 
+  describe "table with non-default primary key with non-numeric data type" do
+
+    before(:all) do
+      schema_define do
+        create_table :test_posts, :id => false, :force => true do |t|
+          t.string :guid_key
+          t.string :title
+        end
+        execute "ALTER TABLE test_posts ADD PRIMARY KEY (guid_key)"
+      end
+    end
+
+    after(:each) do
+      drop_test_posts_table
+    end
+
+    it "should include alter table for primary key" do
+      standard_dump.should =~ /create_table "test_posts", :id => false/
+      standard_dump.should =~ /t.string "guid_key"/
+      standard_dump.should =~ /execute "ALTER TABLE test_posts ADD PRIMARY KEY \(guid_key\)"/
+    end
+
+  end
+
+  describe "table with composite primary key" do
+
+    before(:all) do
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.string :title
+        end
+        create_table :test_keywords, :force => true do |t|
+          t.string :name
+        end
+
+        create_table :test_posts_keywords, :id => false, :force => true do |t|
+          t.integer :posts_id
+          t.integer :keywords_id
+        end
+        execute "ALTER TABLE test_posts_keywords ADD PRIMARY KEY (posts_id, keywords_id)"
+      end
+    end
+
+    after(:each) do
+      drop_table :test_posts rescue nil
+      drop_table :test_keywords rescue nil
+    end
+
+    it "should generate a composite primary key in schema dump" do
+      standard_dump.should =~ /create_table "test_posts_keywords", :id => false/
+      standard_dump.should =~ /t.integer "posts_id"/
+      standard_dump.should =~ /t.integer "keywords_id"/
+      standard_dump.should =~ /execute "ALTER TABLE test_posts_keywords ADD PRIMARY KEY \(posts_id, keywords_id\)"/
+    end
+
+  end
+
   describe "table with primary key trigger" do
 
     after(:each) do
