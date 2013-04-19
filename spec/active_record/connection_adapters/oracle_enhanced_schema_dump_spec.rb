@@ -50,6 +50,11 @@ describe "OracleEnhancedAdapter schema dump" do
       standard_dump(:ignore_tables => [ /test_posts/i ]).should_not =~ /create_table "test_posts"/
     end
 
+    it "should create a standard primary key" do
+      create_test_posts_table
+      standard_dump.should_not =~ /create_table "test_posts", :id => false/
+    end
+
   end
 
   describe "dumping default values" do
@@ -118,6 +123,8 @@ describe "OracleEnhancedAdapter schema dump" do
 
   end
 
+
+
   describe "table with non-default primary key" do
     after(:each) do
       drop_test_posts_table
@@ -126,6 +133,11 @@ describe "OracleEnhancedAdapter schema dump" do
     it "should include non-default primary key in schema dump" do
       create_test_posts_table(:primary_key => 'post_id')
       standard_dump.should =~ /create_table "test_posts", :primary_key => "post_id"/
+    end
+
+    it "should not include alter table statement" do
+      create_test_posts_table(:primary_key => 'post_id')
+      standard_dump.should_not =~ /ALTER TABLE test_posts ADD PRIMARY KEY \(post_id\)/
     end
 
   end
