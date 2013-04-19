@@ -149,7 +149,7 @@ module ActiveRecord #:nodoc:
 
           # first dump primary key column
           if @connection.respond_to?(:pk_and_sequence_for)
-            pk = @connection.pks_and_sequence_for(table)
+            pk = @connection.pk_and_sequence_for(table, nil, nil, nil, true)
           elsif @connection.respond_to?(:primary_key)
             pk = @connection.primary_key(table)
           end
