@@ -168,7 +168,7 @@ module ActiveRecord #:nodoc:
             if pk.size == 1
               
               # Find current primary key based on name
-              current_primary_key = columns.select { |c| c.name == current_primary_key_name }
+              current_primary_key = columns.select { |c| c.name.downcase == current_primary_key_name }
               pk_is_numeric = current_primary_key.first.sql_type.include?('NUMBER')
 
               # table with non-default primary key case
