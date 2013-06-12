@@ -149,17 +149,17 @@ module ActiveRecord #:nodoc:
                       AND name NOT LIKE 'BIN$%'
                       AND owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY type").each do |source|
           ddl = "CREATE OR REPLACE   \n"
-          lines = select_all(%Q{
+          select_all(%Q{
                   SELECT text
                     FROM all_source
                    WHERE name = '#{source['name']}'
                      AND type = '#{source['type']}'
                      AND owner = SYS_CONTEXT('userenv', 'session_user')
                    ORDER BY line
-                }).map do |row|
+                }).each do |row|
             ddl << row['text']
           end
-          ddl << ";" unless ddl.strip[-1,1] == ";"
+          ddl << ";" unless ddl.strip[-1,1] == ';'
           structure << ddl
         end
 
@@ -240,7 +240,7 @@ module ActiveRecord #:nodoc:
 
       def execute_structure_dump(string)
         string.split(STATEMENT_TOKEN).each do |ddl|
-          ddl.chop! if ddl.last == ";"
+          ddl.chop! if ddl[-1,1] == ';'
           execute(ddl) unless ddl.blank?
         end
       end
