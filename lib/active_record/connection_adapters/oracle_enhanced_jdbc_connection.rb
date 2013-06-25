@@ -309,7 +309,8 @@ module ActiveRecord
           @raw_statement = raw_statement
         end
 
-        def bind_param(position, value, col_type = nil)
+        def bind_param(position, value, column)
+          col_type = column && column.type
           java_value = ruby_to_java_value(value, col_type)
           case value
           when Integer
@@ -336,10 +337,14 @@ module ActiveRecord
           when Time
             @raw_statement.setTimestamp(position, java_value)
           when NilClass
-            # TODO: currently nil is always bound as NULL with VARCHAR type.
-            # When nils will actually be used by ActiveRecord as bound parameters
-            # then need to pass actual column type.
-            @raw_statement.setNull(position, java.sql.Types::VARCHAR)
+            if column && column.object_type?
+              @raw_statement.setNull(position, java.sql.Types::STRUCT, column.sql_type)
+            else
+              # TODO: currently nil is always bound as NULL with VARCHAR type.
+              # When nils will actually be used by ActiveRecord as bound parameters
+              # then need to pass actual column type.
+              @raw_statement.setNull(position, java.sql.Types::VARCHAR)
+            end
           else
             raise ArgumentError, "Don't know how to bind variable with type #{value.class}"
           end
