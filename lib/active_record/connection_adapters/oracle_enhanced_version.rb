@@ -1,1 +1,1 @@
-ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::VERSION = File.read(File.dirname(__FILE__)+'/../../../VERSION').chomp
+ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::VERSION = File.read(File.expand_path('../../../../VERSION', __FILE__)).chomp
