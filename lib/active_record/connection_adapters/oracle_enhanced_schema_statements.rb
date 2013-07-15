@@ -38,11 +38,12 @@ module ActiveRecord
       #     t.string      :last_name, :comment => “Surname”
       #   end
 
-      def create_table(name, options = {}, &block)
+      def create_table(name, options = {})
         create_sequence = options[:id] != false
         column_comments = {}
-
-        table_definition = TableDefinition.new(self)
+        temporary = options.delete(:temporary)
+        additional_options = options
+        table_definition = create_table_definition name, temporary, additional_options
         table_definition.primary_key(options[:primary_key] || Base.get_primary_key(name.to_s.singularize)) unless options[:id] == false
 
         # store that primary key was defined in create_table block
@@ -68,7 +69,7 @@ module ActiveRecord
           end
         end
 
-        result = block.call(table_definition) if block
+        yield table_definition if block_given? 
         create_sequence = create_sequence || table_definition.create_sequence
         column_comments = table_definition.column_comments if table_definition.column_comments
         tablespace = tablespace_for(:table, options[:tablespace])
@@ -77,16 +78,7 @@ module ActiveRecord
           drop_table(name, options)
         end
 
-        create_sql = "CREATE#{' GLOBAL TEMPORARY' if options[:temporary]} TABLE "
-        create_sql << quote_table_name(name)
-        create_sql << " (#{table_definition.to_sql})"
-        unless options[:temporary]
-          create_sql << " ORGANIZATION #{options[:organization]}" if options[:organization]
-          create_sql << tablespace
-          table_definition.lob_columns.each{|cd| create_sql << tablespace_for(cd.sql_type.downcase.to_sym, nil, name, cd.name)}
-        end
-        create_sql << " #{options[:options]}"
-        execute create_sql
+        execute schema_creation.accept table_definition
 
         create_sequence_and_trigger(name, options) if create_sequence
 
@@ -96,6 +88,10 @@ module ActiveRecord
         end
         table_definition.indexes.each_pair { |c,o| add_index name, c, o }
 
+      end
+
+      def create_table_definition(name, temporary, options)
+        TableDefinition.new native_database_types, name, temporary, options
       end
 
       def rename_table(table_name, new_name) #:nodoc:
@@ -155,7 +151,7 @@ module ActiveRecord
         index_name   = index_name(table_name, column: column_names)
 
         if Hash === options # legacy support, since this param was a string
-          options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options)
+          options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options, :using)
 
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name].to_s if options.key?(:name)
