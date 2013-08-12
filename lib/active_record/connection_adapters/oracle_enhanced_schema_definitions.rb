@@ -152,10 +152,9 @@ module ActiveRecord
         columns.select(&:lob?)
       end
     
-      private
-        def foreign_keys
-          @foreign_keys ||= []
-        end
+      def foreign_keys
+        @foreign_keys ||= []
+      end
     end
 
     module OracleEnhancedTable

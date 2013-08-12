@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'digest/sha1'
 
 module ActiveRecord
@@ -88,6 +89,11 @@ module ActiveRecord
         end
         table_definition.indexes.each_pair { |c,o| add_index name, c, o }
 
+        unless table_definition.foreign_keys.nil?
+          table_definition.foreign_keys.each do |foreign_key|
+            add_foreign_key(table_definition.name, foreign_key.to_table, foreign_key.options)
+          end
+        end
       end
 
       def create_table_definition(name, temporary, options)
