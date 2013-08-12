@@ -587,7 +587,7 @@ module ActiveRecord
         if value && column
           case column.type
           when :text, :binary
-            %Q{empty_#{ column.sql_type.downcase rescue 'blob' }()}
+            %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
           # NLS_DATE_FORMAT independent TIMESTAMP support
           when :timestamp
             quote_timestamp_with_to_timestamp(value)
@@ -1561,3 +1561,77 @@ end
 
 # Patches and enhancements for column dumper
 require 'active_record/connection_adapters/oracle_enhanced_column_dumper'
+
+module ActiveRecord
+  module ConnectionAdapters
+    class OracleEnhancedAdapter < AbstractAdapter
+      class SchemaCreation < AbstractAdapter::SchemaCreation
+        private
+
+        def visit_TableDefinition(o)
+          tablespace = tablespace_for(:table, o.options[:tablespace])
+          create_sql = "CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE "
+          create_sql << "#{quote_table_name(o.name)} ("
+          create_sql << o.columns.map { |c| accept c }.join(', ')
+          create_sql << ")"
+          unless o.temporary
+            create_sql << " ORGANIZATION #{o.options[:organization]}" if o.options[:organization]
+            create_sql << "#{tablespace}"
+          end
+          create_sql << " #{o.options[:options]}"
+          create_sql
+        end
+
+        def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
+          tablespace_sql = ''
+          if tablespace = (tablespace_option || default_tablespace_for(obj_type))
+            tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
+              " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
+            else
+              " TABLESPACE #{tablespace}"
+            end
+          end
+          tablespace_sql
+        end
+
+        def default_tablespace_for(type)
+          (ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[type] || 
+           ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[native_database_types[type][:name]]) rescue nil
+        end
+
+        def foreign_key_definition(to_table, options = {})
+          @conn.foreign_key_definition(to_table, options)
+        end
+
+      end
+      
+      def schema_creation
+          SchemaCreation.new self
+      end
+    end
+
+    def add_column_options!(sql, options)
+      type = options[:type] || ((column = options[:column]) && column.type)
+      type = type && type.to_sym
+      # handle case of defaults for CLOB columns, which would otherwise get "quoted" incorrectly
+      if options_include_default?(options)
+        if type == :text
+          sql << " DEFAULT #{quote(options[:default])}"
+        else
+          # from abstract adapter
+          sql << " DEFAULT #{quote(options[:default], options[:column])}"
+        end
+      end
+      # must explicitly add NULL or NOT NULL to allow change_column to work on migrations
+      if options[:null] == false
+        sql << " NOT NULL"
+      elsif options[:null] == true
+        sql << " NULL" unless type == :primary_key
+      end
+      # add AS expression for virtual columns
+      if options[:as].present?
+        sql << " AS (#{options[:as]})"
+      end
+    end
+  end
+end
