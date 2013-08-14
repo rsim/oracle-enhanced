@@ -614,7 +614,7 @@ module ActiveRecord
 
             binds.each_with_index do |bind, i|
               col, val = bind
-              cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
+              cursor.bind_param(i + 1, type_cast(val, col), col)
             end
 
             cached = true
@@ -715,7 +715,7 @@ module ActiveRecord
               returning_id_index = i + 1
               cursor.bind_returning_param(returning_id_index, Integer)
             else
-              cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
+              cursor.bind_param(i + 1, type_cast(val, col), col)
             end
           end
 
@@ -745,7 +745,7 @@ module ActiveRecord
 
             binds.each_with_index do |bind, i|
               col, val = bind
-              cursor.bind_param(i + 1, type_cast(val, col), col && col.type)
+              cursor.bind_param(i + 1, type_cast(val, col), col)
             end
             cached = true
           end
@@ -1077,7 +1077,7 @@ module ActiveRecord
         @@do_not_prefetch_primary_key[table_name] = nil
 
         table_cols = <<-SQL.strip.gsub(/\s+/, ' ')
-          SELECT column_name AS name, data_type AS sql_type, data_default, nullable, virtual_column, hidden_column,
+          SELECT column_name AS name, data_type AS sql_type, data_default, nullable, virtual_column, hidden_column, data_type_owner AS sql_type_owner,
                  DECODE(data_type, 'NUMBER', data_precision,
                                    'FLOAT', data_precision,
                                    'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
@@ -1099,6 +1099,10 @@ module ActiveRecord
           limit, scale = row['limit'], row['scale']
           if limit || scale
             row['sql_type'] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
+          end
+
+          if row['sql_type_owner']
+            row['sql_type'] = row['sql_type_owner'] + '.' + row['sql_type']
           end
 
           is_virtual = row['virtual_column']=='YES'
