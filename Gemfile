@@ -1,7 +1,7 @@
 source 'http://rubygems.org'
 
 group :development do
-  gem 'jeweler', '~> 1.5.1'
+  gem 'jeweler', '~> 1.8'
   gem 'rspec', '~> 2.4'
   gem 'rdoc'
 
