@@ -1152,20 +1152,20 @@ module ActiveRecord
 
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
-      def pk_and_sequence_for(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
+      def pk_and_sequence_for(table_name, owner=nil, desc_table_name=nil, db_link=nil, composite=false) #:nodoc:
         if @@cache_columns
           @@pk_and_sequence_for_cache ||= {}
           if @@pk_and_sequence_for_cache.key?(table_name)
             @@pk_and_sequence_for_cache[table_name]
           else
-            @@pk_and_sequence_for_cache[table_name] = pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link)
+            @@pk_and_sequence_for_cache[table_name] = pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link, composite)
           end
         else
-          pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link)
+          pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link, composite)
         end
       end
 
-      def pk_and_sequence_for_without_cache(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
+      def pk_and_sequence_for_without_cache(table_name, owner=nil, desc_table_name=nil, db_link=nil, composite=false) #:nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
         # changed back from user_constraints to all_constraints for consistency
@@ -1179,8 +1179,13 @@ module ActiveRecord
              AND cc.constraint_name = c.constraint_name
         SQL
 
-        # only support single column keys
-        pks.size == 1 ? [oracle_downcase(pks.first), nil] : nil
+        unless composite
+          # only support single column keys
+          pks.size == 1 ? [oracle_downcase(pks.first), nil] : nil
+        else
+          pks
+        end
+        
       end
 
       # Returns just a table's primary key
