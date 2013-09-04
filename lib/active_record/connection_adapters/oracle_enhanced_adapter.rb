@@ -847,11 +847,15 @@ module ActiveRecord
       def insert_fixture(fixture, table_name) #:nodoc:
         super
 
-        if ActiveRecord::Base.pluralize_table_names
+        if fixture.class_name
+          klass = fixture.class_name
+        elsif ActiveRecord::Base.pluralize_table_names
           klass = table_name.singularize.camelize
         else
           klass = table_name.camelize
         end
+
+        klass = klass.constantize rescue nil
 
         klass = klass.constantize rescue nil
         if klass.respond_to?(:ancestors) && klass.ancestors.include?(ActiveRecord::Base)
