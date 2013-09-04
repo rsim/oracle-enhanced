@@ -857,7 +857,6 @@ module ActiveRecord
 
         klass = klass.constantize rescue nil
 
-        klass = klass.constantize rescue nil
         if klass.respond_to?(:ancestors) && klass.ancestors.include?(ActiveRecord::Base)
           write_lobs(table_name, klass, fixture, klass.lob_columns)
         end
