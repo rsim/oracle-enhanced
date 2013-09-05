@@ -6,7 +6,8 @@ describe "OracleEnhancedAdapter schema definition" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @oracle11g = !! ActiveRecord::Base.connection.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
+    @oracle11g_or_higher = !! !! ActiveRecord::Base.connection.select_value(
+      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
   end
 
   describe "table and sequence creation with non-default primary key" do
@@ -1062,7 +1063,7 @@ end
 
   describe 'virtual columns in create_table' do
     before(:each) do
-      pending "Not supported in this database version" unless @oracle11g
+      pending "Not supported in this database version" unless @oracle11g_or_higher
     end
 
     it 'should create virtual column with old syntax' do
@@ -1112,7 +1113,7 @@ end
 
   describe 'virtual columns' do
     before(:each) do
-      pending "Not supported in this database version" unless @oracle11g
+      pending "Not supported in this database version" unless @oracle11g_or_higher
       expr = "( numerator/NULLIF(denominator,0) )*100"
       schema_define do
         create_table :test_fractions, :force => true do |t|
@@ -1132,7 +1133,7 @@ end
     end
 
     after(:each) do
-      if @oracle11g
+      if @oracle11g_or_higher
         schema_define do
           drop_table :test_fractions
         end
