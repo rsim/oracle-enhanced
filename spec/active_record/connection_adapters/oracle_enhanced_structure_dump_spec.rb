@@ -6,7 +6,8 @@ describe "OracleEnhancedAdapter structure dump" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-    @oracle11g = !! @conn.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
+    @oracle11g_or_higher = !! @conn.select_value(
+      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
   end
   describe "structure dump" do
     before(:each) do
@@ -143,7 +144,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
   
     it "should dump virtual columns" do
-      pending "Not supported in this database version" unless @oracle11g
+      pending "Not supported in this database version" unless @oracle11g_or_higher
       @conn.execute <<-SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
