@@ -1568,6 +1568,15 @@ module ActiveRecord
       class SchemaCreation < AbstractAdapter::SchemaCreation
         private
 
+        def visit_ColumnDefinition(o)
+          if o.type.to_sym == :virtual
+            sql_type = type_to_sql(o.default[:type], o.limit, o.precision, o.scale) if o.default[:type]
+            "#{quote_column_name(o.name)} #{sql_type} AS (#{o.default[:as]})"
+          else
+            super
+          end
+        end
+
         def visit_TableDefinition(o)
           tablespace = tablespace_for(:table, o.options[:tablespace])
           create_sql = "CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE "
