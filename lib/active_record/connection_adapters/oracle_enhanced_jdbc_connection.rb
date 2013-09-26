@@ -7,8 +7,10 @@ begin
   java_version = java.lang.System.getProperty("java.version")
   ojdbc_jar = if java_version =~ /^1.5/
     "ojdbc5.jar"
-  elsif java_version >= '1.6'
+  elsif java_version =~ /^1.6/
     "ojdbc6.jar"
+  elsif java_version =~ /^1.7/
+    "ojdbc7.jar"
   else
     nil
   end
