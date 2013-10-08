@@ -1379,24 +1379,37 @@ module ActiveRecord
       # making every row the same.
       #
       #   distinct("posts.id", "posts.created_at desc")
-      def distinct(columns, order_by) #:nodoc:
-        return "DISTINCT #{columns}" if order_by.blank?
+      def distinct(columns, orders) #:nodoc:
+        # To support Rails 4.0.0 and future releases
+        # because `columns_for_distinct method introduced after Rails 4.0.0 released
+        if super.respond_to?(:columns_for_distinct)
+          super
+        else
+          order_columns = orders.map { |c|
+            c = c.to_sql unless c.is_a?(String)
+            # remove any ASC/DESC modifiers
+            c.gsub(/\s+(ASC|DESC)\s*?/i, '')
+            }.reject(&:blank?).map.with_index { |c,i| 
+              "FIRST_VALUE(#{c}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__" 
+            }
+            [super].concat(order_columns).join(', ')
+        end
+      end 
 
-        # construct a valid DISTINCT clause, ie. one that includes the ORDER BY columns, using
-        # FIRST_VALUE such that the inclusion of these columns doesn't invalidate the DISTINCT
-        order_columns = if order_by.is_a?(String)
-          order_by.split(',').map { |s| s.strip }.reject(&:blank?)
-        else # in latest ActiveRecord versions order_by is already Array
-          order_by
-        end
-        order_columns = order_columns.zip((0...order_columns.size).to_a).map do |c, i|
-          c = c.to_sql unless c.is_a?(String)
+      def columns_for_distinct(columns, orders) #:nodoc:
+        # construct a valid columns name for DISTINCT clause, 
+        # ie. one that includes the ORDER BY columns, using FIRST_VALUE such that 
+        # the inclusion of these columns doesn't invalidate the DISTINCT
+        #
+        # It does not construct DISTINCT clause. Just return column names for distinct.
+        order_columns = orders.reject(&:blank?).map{ |s|
+          s = s.to_sql unless s.is_a?(String)
           # remove any ASC/DESC modifiers
-          value = c =~ /^(.+)\s+(ASC|DESC)\s*$/i ? $1 : c
-          "FIRST_VALUE(#{value}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__"
-        end
-        sql = "DISTINCT #{columns}, "
-        sql << order_columns * ", "
+          s.gsub(/\s+(ASC|DESC)\s*?/i, '')
+          }.reject(&:blank?).map.with_index { |column,i| 
+            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns} ORDER BY #{column}) AS alias_#{i}__" 
+          }
+          [super, *order_columns].join(', ')
       end
 
       def temporary_table?(table_name) #:nodoc:
