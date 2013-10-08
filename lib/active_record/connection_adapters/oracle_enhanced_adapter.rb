@@ -1379,10 +1379,29 @@ module ActiveRecord
       # making every row the same.
       #
       #   distinct("posts.id", "posts.created_at desc")
-     
+      def distinct(columns, orders) #:nodoc:
+        # To support Rails 4.0.0 and future releases
+        # because `columns_for_distinct method introduced after Rails 4.0.0 released
+        if super.respond_to?(:columns_for_distinct)
+          super
+        else
+          order_columns = orders.map { |c|
+            c = c.to_sql unless c.is_a?(String)
+            # remove any ASC/DESC modifiers
+            c.gsub(/\s+(ASC|DESC)\s*?/i, '')
+            }.reject(&:blank?).map.with_index { |c,i| 
+              "FIRST_VALUE(#{c}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__" 
+            }
+            [super].concat(order_columns).join(', ')
+        end
+      end 
+
       def columns_for_distinct(columns, orders) #:nodoc:
-        # construct a valid DISTINCT clause, ie. one that includes the ORDER BY columns, using
-        # FIRST_VALUE such that the inclusion of these columns doesn't invalidate the DISTINCT
+        # construct a valid columns name for DISTINCT clause, 
+        # ie. one that includes the ORDER BY columns, using FIRST_VALUE such that 
+        # the inclusion of these columns doesn't invalidate the DISTINCT
+        #
+        # It does not construct DISTINCT clause. Just return column names for distinct.
         order_columns = orders.reject(&:blank?).map{ |s|
           s = s.to_sql unless s.is_a?(String)
           # remove any ASC/DESC modifiers
