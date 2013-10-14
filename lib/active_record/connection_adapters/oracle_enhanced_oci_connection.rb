@@ -113,11 +113,17 @@ module ActiveRecord
           @raw_cursor = raw_cursor
         end
 
-        def bind_param(position, value, col_type = nil)
-          if value.nil?
+        def bind_param(position, value, column = nil)
+          if column && column.object_type?
+            if @connection.raw_connection.respond_to? :get_tdo_by_typename
+              @raw_cursor.bind_param(position, value, :named_type, column.sql_type)
+            else
+              raise "Use ruby-oci8 2.1.6 or later to bind Oracle objects."
+            end
+          elsif value.nil?
             @raw_cursor.bind_param(position, nil, String)
           else
-            case col_type
+            case col_type = column && column.type
             when :text, :binary
               # ruby-oci8 cannot create CLOB/BLOB from ''
               lob_value = value == '' ? ' ' : value

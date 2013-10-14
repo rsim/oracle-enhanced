@@ -226,7 +226,9 @@ describe "OracleEnhancedConnection" do
 
     it "should execute prepared statement with decimal bind parameter " do
       cursor = @conn.prepare("INSERT INTO test_employees VALUES(:1)")
-      cursor.bind_param(1, "1.5", :decimal)
+      column = ActiveRecord::ConnectionAdapters::OracleEnhancedColumn.new('age', nil, 'NUMBER(10,2)')
+      column.type.should == :decimal
+      cursor.bind_param(1, "1.5", column)
       cursor.exec
       cursor.close
       cursor = @conn.prepare("SELECT age FROM test_employees")
