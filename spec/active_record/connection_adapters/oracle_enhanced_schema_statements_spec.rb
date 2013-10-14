@@ -375,17 +375,26 @@ describe "OracleEnhancedAdapter schema definition" do
         schema_define do
           drop_table :test_employees rescue nil
           drop_table :new_test_employees rescue nil
+          drop_table :test_employees_no_primary_key rescue nil
+
           create_table  :test_employees do |t|
             t.string    :first_name
             t.string    :last_name
           end
-      end
+
+          create_table  :test_employees_no_pkey, :id => false do |t|
+            t.string    :first_name
+            t.string    :last_name
+          end
+        end
     end
 
     after(:each) do
       schema_define do
         drop_table :test_employees rescue nil
         drop_table :new_test_employees rescue nil
+        drop_table :test_employees_no_pkey rescue nil
+        drop_table :new_test_employees_no_pkey rescue nil
       end
     end
 
@@ -405,6 +414,12 @@ describe "OracleEnhancedAdapter schema definition" do
       lambda do
         @conn.rename_table("test_employees","a"*27)
       end.should raise_error
+    end
+
+    it "should rename table when table has no primary key and sequence" do
+      lambda do
+        @conn.rename_table("test_employees_no_pkey","new_test_employees_no_pkey")
+      end.should_not raise_error
     end
 
   end
