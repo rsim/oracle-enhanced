@@ -115,7 +115,7 @@ If you deploy JRuby on Rails application in Java application server that support
 
 To use jndi with Tomcat you need to set the accessToUnderlyingConnectionAllowed to true property on the pool. See  the [Tomcat Documentation](http://tomcat.apache.org/tomcat-7.0-doc/jndi-resources-howto.html) for reference.
 
-You can find other available database.yml connection parameters in [oracle_enhanced_adapter.rb](/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb). There are many NLS settings as well as some other Oracle session settings.
+You can find other available database.yml connection parameters in [oracle_enhanced_adapter.rb](http://github.com/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb). There are many NLS settings as well as some other Oracle session settings.
 
 ### Adapter settings
 
@@ -140,7 +140,7 @@ If you want to change Oracle enhanced adapter default settings then create initi
 
 In case of Rails 2 application you do not need to use `ActiveSupport.on_load(:active_record) do ... end` around settings code block.
 
-See other adapter settings in [oracle_enhanced_adapter.rb](/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb).
+See other adapter settings in [oracle_enhanced_adapter.rb](http://github.com/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb).
 
 ### Legacy schema support
 
@@ -368,7 +368,7 @@ When Apache with Phusion Passenger (mod_passenger or previously mod_rails) is us
 RUNNING TESTS
 -------------
 
-See [RUNNING_TESTS.md](/rsim/oracle-enhanced/blob/master/RUNNING_TESTS.md) for information how to set up environment and run Oracle enhanced adapter unit tests.
+See [RUNNING_TESTS.md](https://github.com/rsim/oracle-enhanced/blob/master/RUNNING_TESTS.md) for information how to set up environment and run Oracle enhanced adapter unit tests.
 
 LINKS
 -----
