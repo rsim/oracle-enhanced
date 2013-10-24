@@ -13,8 +13,8 @@ module ActiveRecord
     module OracleEnhancedColumnDefinition
        def self.included(base) #:nodoc:
         base.class_eval do
-          alias_method_chain :to_sql, :virtual_columns
-          alias to_s :to_sql
+          #alias_method_chain :to_sql, :virtual_columns
+          #alias to_s :to_sql
         end
        end
 
@@ -60,7 +60,7 @@ module ActiveRecord
       def self.included(base) #:nodoc:
         base.class_eval do
           alias_method_chain :references, :foreign_keys
-          alias_method_chain :to_sql, :foreign_keys
+          #alias_method_chain :to_sql, :foreign_keys
 
           alias_method_chain :column, :virtual_columns
         end
@@ -106,11 +106,15 @@ module ActiveRecord
       # Note: If no name is specified, the database driver creates one for you!
       def references_with_foreign_keys(*args)
         options = args.extract_options!
+        index_options = options[:index]
         fk_options = options.delete(:foreign_key)
 
         if fk_options && !options[:polymorphic]
           fk_options = {} if fk_options == true
-          args.each { |to_table| foreign_key(to_table, fk_options) }
+          args.each do |to_table| 
+            foreign_key(to_table, fk_options) 
+            add_index(to_table, "#{to_table}_id", index_options.is_a?(Hash) ? index_options : nil) if index_options
+          end
         end
 
         references_without_foreign_keys(*(args << options))
@@ -129,7 +133,8 @@ module ActiveRecord
       # ====== Defining the column of the +to_table+.
       #  t.foreign_key(:people, :column => :sender_id, :primary_key => :person_id)
       def foreign_key(to_table, options = {})
-        if @base.respond_to?(:supports_foreign_keys?) && @base.supports_foreign_keys?
+        #TODO
+        if ActiveRecord::Base.connection.supports_foreign_keys?
           to_table = to_table.to_s.pluralize if ActiveRecord::Base.pluralize_table_names
           foreign_keys << ForeignKey.new(@base, to_table, options)
         else
@@ -147,10 +152,9 @@ module ActiveRecord
         columns.select(&:lob?)
       end
     
-      private
-        def foreign_keys
-          @foreign_keys ||= []
-        end
+      def foreign_keys
+        @foreign_keys ||= []
+      end
     end
 
     module OracleEnhancedTable
@@ -208,6 +212,7 @@ module ActiveRecord
       def references_with_foreign_keys(*args)
         options = args.extract_options!
         polymorphic = options[:polymorphic]
+        index_options = options[:index]
         fk_options = options.delete(:foreign_key)
 
         references_without_foreign_keys(*(args << options))
@@ -215,7 +220,10 @@ module ActiveRecord
         args.extract_options!
         if fk_options && !polymorphic
           fk_options = {} if fk_options == true
-          args.each { |to_table| foreign_key(to_table, fk_options) }
+          args.each do |to_table| 
+            foreign_key(to_table, fk_options) 
+            add_index(to_table, "#{to_table}_id", index_options.is_a?(Hash) ? index_options : nil) if index_options
+          end
         end
       end
     end

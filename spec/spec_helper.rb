@@ -13,35 +13,21 @@ elsif RUBY_ENGINE == 'jruby'
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
 end
 
-ENV['RAILS_GEM_VERSION'] ||= '3.2-master'
-NO_COMPOSITE_PRIMARY_KEYS = true if ENV['RAILS_GEM_VERSION'] >= '2.3.5' || ENV['RAILS_GEM_VERSION'] =~ /^2\.3\.1\d$/
+ENV['RAILS_GEM_VERSION'] ||= '4.0-master'
+NO_COMPOSITE_PRIMARY_KEYS = true
 
 puts "==> Running specs with Rails version #{ENV['RAILS_GEM_VERSION']}"
 
 require 'active_record'
 
-if ENV['RAILS_GEM_VERSION'] >= '3.0'
-  require 'action_dispatch'
-  require 'active_support/core_ext/module/attribute_accessors'
-  require 'active_support/core_ext/class/attribute_accessors'
+require 'action_dispatch'
+require 'active_support/core_ext/module/attribute_accessors'
+require 'active_support/core_ext/class/attribute_accessors'
 
-  if ENV['RAILS_GEM_VERSION'] =~ /^3.0.0.beta/
-    require "rails/log_subscriber"
-    require 'active_record/railties/log_subscriber'
-  else
-    require "active_support/log_subscriber"
-    require 'active_record/log_subscriber'
-  end
+require "active_support/log_subscriber"
+require 'active_record/log_subscriber'
 
-  require 'logger'
-elsif ENV['RAILS_GEM_VERSION'] =~ /^2.3/
-  require 'action_pack'
-  require 'action_controller/session/abstract_store'
-  require 'active_record/session_store'
-elsif ENV['RAILS_GEM_VERSION'] <= '2.3'
-  require 'action_pack'
-  require 'action_controller/session/active_record_store'
-end
+require 'logger'
 
 require 'active_record/connection_adapters/oracle_enhanced_adapter'
 require 'ruby-plsql'
@@ -51,30 +37,16 @@ module LoggerSpecHelper
     @logger = MockLogger.new
     @old_logger = ActiveRecord::Base.logger
 
-    if ENV['RAILS_GEM_VERSION'] >= '3.0'
-      @notifier = ActiveSupport::Notifications::Fanout.new
+    @notifier = ActiveSupport::Notifications::Fanout.new
 
-      ActiveSupport::LogSubscriber.colorize_logging = false
+    ActiveSupport::LogSubscriber.colorize_logging = false
 
-      ActiveRecord::Base.logger = @logger
-      @old_notifier = ActiveSupport::Notifications.notifier
-      ActiveSupport::Notifications.notifier = @notifier
+    ActiveRecord::Base.logger = @logger
+    @old_notifier = ActiveSupport::Notifications.notifier
+    ActiveSupport::Notifications.notifier = @notifier
 
-      ActiveRecord::LogSubscriber.attach_to(:active_record)
-      if ENV['RAILS_GEM_VERSION'] >= '3.2'
-        ActiveSupport::Notifications.subscribe("sql.active_record", ActiveRecord::ExplainSubscriber.new)
-      end
-    else # ActiveRecord 2.x
-      if ActiveRecord::Base.respond_to?(:connection_pool)
-        ActiveRecord::Base.connection_pool.clear_reloadable_connections!
-      else
-        ActiveRecord::Base.clear_active_connections!
-      end
-      ActiveRecord::Base.logger = @logger
-      ActiveRecord::Base.colorize_logging = false
-      # ActiveRecord::Base.logger.level = Logger::DEBUG
-    end
-
+    ActiveRecord::LogSubscriber.attach_to(:active_record)
+    ActiveSupport::Notifications.subscribe("sql.active_record", ActiveRecord::ExplainSubscriber.new)
   end
 
   class MockLogger
@@ -115,11 +87,8 @@ module LoggerSpecHelper
     ActiveRecord::Base.logger = @old_logger
     @logger = nil
 
-    if ENV['RAILS_GEM_VERSION'] >= '3.0'
-      ActiveSupport::Notifications.notifier = @old_notifier
-      @notifier = nil
-    end
-
+    ActiveSupport::Notifications.notifier = @old_notifier
+    @notifier = nil
   end
 
   # Wait notifications to be published (for Rails 3.0)
@@ -177,11 +146,13 @@ SYSTEM_CONNECTION_PARAMS = {
 
 DATABASE_NON_DEFAULT_TABLESPACE = ENV['DATABASE_NON_DEFAULT_TABLESPACE'] || "SYSTEM"
 
-# Set default $KCODE to UTF8
-if RUBY_VERSION < "1.9"
-  $KCODE = "UTF8"
-end
-
 # set default time zone in TZ environment variable
 # which will be used to set session time zone
 ENV['TZ'] ||= 'Europe/Riga'
+
+# ActiveRecord::Base.logger = Logger.new(STDOUT)
+
+# Set default_timezone :local explicitly 
+# because this default value has been changed to :utc atrails master branch 
+ActiveRecord::Base.default_timezone = :local
+

@@ -6,7 +6,8 @@ describe "OracleEnhancedAdapter schema definition" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @oracle11g = !! ActiveRecord::Base.connection.select_value("SELECT * FROM v$version WHERE banner LIKE 'Oracle%11g%'")
+    @oracle11g_or_higher = !! !! ActiveRecord::Base.connection.select_value(
+      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
   end
 
   describe "table and sequence creation with non-default primary key" do
@@ -817,7 +818,6 @@ end
     end
 
     it "should add foreign key in change_table" do
-      return pending("Not in this ActiveRecord version") unless ENV['RAILS_GEM_VERSION'] >= '2.1'
       schema_define do
         create_table :test_comments, :force => true do |t|
           t.string :body, :limit => 4000
@@ -833,7 +833,6 @@ end
     end
 
     it "should add foreign key in change_table references" do
-      return pending("Not in this ActiveRecord version") unless ENV['RAILS_GEM_VERSION'] >= '2.1'
       schema_define do
         create_table :test_comments, :force => true do |t|
           t.string :body, :limit => 4000
@@ -848,7 +847,6 @@ end
     end
 
     it "should remove foreign key by table name" do
-      return pending("Not in this ActiveRecord version") unless ENV['RAILS_GEM_VERSION'] >= '2.1'
       schema_define do
         create_table :test_comments, :force => true do |t|
           t.string :body, :limit => 4000
@@ -1080,7 +1078,7 @@ end
 
   describe 'virtual columns in create_table' do
     before(:each) do
-      pending "Not supported in this database version" unless @oracle11g
+      pending "Not supported in this database version" unless @oracle11g_or_higher
     end
 
     it 'should create virtual column with old syntax' do
@@ -1130,7 +1128,7 @@ end
 
   describe 'virtual columns' do
     before(:each) do
-      pending "Not supported in this database version" unless @oracle11g
+      pending "Not supported in this database version" unless @oracle11g_or_higher
       expr = "( numerator/NULLIF(denominator,0) )*100"
       schema_define do
         create_table :test_fractions, :force => true do |t|
@@ -1150,7 +1148,7 @@ end
     end
 
     after(:each) do
-      if @oracle11g
+      if @oracle11g_or_higher
         schema_define do
           drop_table :test_fractions
         end
@@ -1295,7 +1293,7 @@ end
       it "should use correct tablespace" do
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:table] = DATABASE_NON_DEFAULT_TABLESPACE
         @conn.create_table :tablespace_tests do |t|
-          t.integer :id
+          t.string :foo
         end
         @would_execute_sql.should =~ /CREATE +TABLE .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/
       end

@@ -918,7 +918,11 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       serialize :comments
     end
     class ::TestEmployeeReadOnlyClob < ActiveRecord::Base
-      set_table_name :test_employees
+      if self.respond_to?(:table_name=)
+        self.table_name = "test_employees"
+      else
+        set_table_name = "test_employees"
+      end
       attr_readonly :comments
     end
   end

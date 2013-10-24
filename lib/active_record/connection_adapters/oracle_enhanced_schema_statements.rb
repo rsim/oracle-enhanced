@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'digest/sha1'
 
 module ActiveRecord
@@ -38,11 +39,12 @@ module ActiveRecord
       #     t.string      :last_name, :comment => “Surname”
       #   end
 
-      def create_table(name, options = {}, &block)
+      def create_table(name, options = {})
         create_sequence = options[:id] != false
         column_comments = {}
-
-        table_definition = TableDefinition.new(self)
+        temporary = options.delete(:temporary)
+        additional_options = options
+        table_definition = create_table_definition name, temporary, additional_options
         table_definition.primary_key(options[:primary_key] || Base.get_primary_key(name.to_s.singularize)) unless options[:id] == false
 
         # store that primary key was defined in create_table block
@@ -68,7 +70,7 @@ module ActiveRecord
           end
         end
 
-        result = block.call(table_definition) if block
+        yield table_definition if block_given? 
         create_sequence = create_sequence || table_definition.create_sequence
         column_comments = table_definition.column_comments if table_definition.column_comments
         tablespace = tablespace_for(:table, options[:tablespace])
@@ -77,16 +79,7 @@ module ActiveRecord
           drop_table(name, options)
         end
 
-        create_sql = "CREATE#{' GLOBAL TEMPORARY' if options[:temporary]} TABLE "
-        create_sql << quote_table_name(name)
-        create_sql << " (#{table_definition.to_sql})"
-        unless options[:temporary]
-          create_sql << " ORGANIZATION #{options[:organization]}" if options[:organization]
-          create_sql << tablespace
-          table_definition.lob_columns.each{|cd| create_sql << tablespace_for(cd.sql_type.downcase.to_sym, nil, name, cd.name)}
-        end
-        create_sql << " #{options[:options]}"
-        execute create_sql
+        execute schema_creation.accept table_definition
 
         create_sequence_and_trigger(name, options) if create_sequence
 
@@ -94,18 +87,30 @@ module ActiveRecord
         column_comments.each do |column_name, comment|
           add_comment name, column_name, comment
         end
+        table_definition.indexes.each_pair { |c,o| add_index name, c, o }
 
+        unless table_definition.foreign_keys.nil?
+          table_definition.foreign_keys.each do |foreign_key|
+            add_foreign_key(table_definition.name, foreign_key.to_table, foreign_key.options)
+          end
+        end
       end
 
-      def rename_table(name, new_name) #:nodoc:
+      def create_table_definition(name, temporary, options)
+        TableDefinition.new native_database_types, name, temporary, options
+      end
+
+      def rename_table(table_name, new_name) #:nodoc:
         if new_name.to_s.length > table_name_length
           raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{table_name_length} characters"
         end
         if "#{new_name}_seq".to_s.length > sequence_name_length
           raise ArgumentError, "New sequence name '#{new_name}_seq' is too long; the limit is #{sequence_name_length} characters"
         end
-        execute "RENAME #{quote_table_name(name)} TO #{quote_table_name(new_name)}"
-        execute "RENAME #{quote_table_name("#{name}_seq")} TO #{quote_table_name("#{new_name}_seq")}" rescue nil
+        execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
+        execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{quote_table_name("#{new_name}_seq")}" rescue nil
+
+        rename_table_indexes(table_name, new_name)
       end
 
       def drop_table(name, options = {}) #:nodoc:
@@ -114,6 +119,7 @@ module ActiveRecord
         execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
       ensure
         clear_table_columns_cache(name)
+        self.all_schema_indexes = nil
       end
 
       def initialize_schema_migrations_table
@@ -148,25 +154,39 @@ module ActiveRecord
       # clear cached indexes when adding new index
       def add_index(table_name, column_name, options = {}) #:nodoc:
         column_names = Array(column_name)
-        index_name   = index_name(table_name, :column => column_names)
+        index_name   = index_name(table_name, column: column_names)
 
         if Hash === options # legacy support, since this param was a string
+          options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options, :using)
+
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name].to_s if options.key?(:name)
           tablespace = tablespace_for(:index, options[:tablespace])
+          max_index_length = options.fetch(:internal, false) ? index_name_length : allowed_index_name_length
+          additional_options = options[:options]
         else
+          if options
+            message = "Passing a string as third argument of `add_index` is deprecated and will" +
+              " be removed in Rails 4.1." +
+              " Use add_index(#{table_name.inspect}, #{column_name.inspect}, unique: true) instead"
+
+            ActiveSupport::Deprecation.warn message
+          end
+
           index_type = options
+          additional_options = nil
+          max_index_length = allowed_index_name_length
         end
 
-        if index_name.to_s.length > index_name_length
-          raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' is too long; the limit is #{index_name_length} characters"
+        if index_name.to_s.length > max_index_length
+          raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' is too long; the limit is #{max_index_length} characters"
         end
         if index_name_exists?(table_name, index_name, false)
           raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' already exists"
         end
         quoted_column_names = column_names.map { |e| quote_column_name_or_expression(e) }.join(", ")
 
-        execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{options[:options]}"
+        execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{additional_options}"
       ensure
         self.all_schema_indexes = nil
       end
@@ -176,6 +196,14 @@ module ActiveRecord
       def remove_index(table_name, options = {}) #:nodoc:
         index_name = index_name(table_name, options)
         unless index_name_exists?(table_name, index_name, true)
+          # sometimes options can be String or Array with column names
+          options = {} unless options.is_a?(Hash)
+          if options.has_key? :name
+            options_without_column = options.dup
+            options_without_column.delete :column
+            index_name_without_column = index_name(table_name, options_without_column)
+            return index_name_without_column if index_name_exists?(table_name, index_name_without_column, false)
+          end
           raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' does not exist"
         end
         remove_index!(table_name, index_name)
@@ -295,27 +323,18 @@ module ActiveRecord
 
       def rename_column(table_name, column_name, new_column_name) #:nodoc:
         execute "ALTER TABLE #{quote_table_name(table_name)} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
+        self.all_schema_indexes = nil
+        rename_column_indexes(table_name, column_name, new_column_name)
       ensure
         clear_table_columns_cache(table_name)
       end
 
       def remove_column(table_name, *column_names) #:nodoc:
-        raise ArgumentError.new("You must specify at least one column name.  Example: remove_column(:people, :first_name)") if column_names.empty?
-
-        major, minor = ActiveRecord::VERSION::MAJOR, ActiveRecord::VERSION::MINOR
-        is_deprecated = (major == 3 and minor >= 2) or major > 3
-
-        if column_names.flatten! and is_deprecated
-          message = 'Passing array to remove_columns is deprecated, please use ' +
-            'multiple arguments, like: `remove_columns(:posts, :foo, :bar)`'
-          ActiveSupport::Deprecation.warn message, caller
-        end
-
-        column_names.each do |column_name|
-          execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)}"
-        end
+        raise ArgumentError.new("You must specify at least one column name. Example: remove_column(:people, :first_name)") if column_names.empty?
+        column_names.each {|column_name| execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)}"}
       ensure
         clear_table_columns_cache(table_name)
+        self.all_schema_indexes = nil
       end
 
       def add_comment(table_name, column_name, comment) #:nodoc:

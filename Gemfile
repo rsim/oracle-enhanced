@@ -41,12 +41,14 @@ group :development do
     else
       gem "journey", :git => "git://github.com/rails/journey"
     end
+
+    gem "activerecord-deprecated_finders"
   end
 
-  gem 'ruby-plsql', '>=0.4.4'
+  gem 'ruby-plsql', '>=0.5.0'
 
   platforms :ruby do
-    gem 'ruby-oci8', '>=2.0.4'
+    gem 'ruby-oci8', '>=2.1.2'
   end
 
 end

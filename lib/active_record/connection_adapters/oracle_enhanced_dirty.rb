@@ -18,7 +18,7 @@ module ActiveRecord #:nodoc:
             # therefore need to convert empty string value to nil if old value is nil
             elsif column.type == :string && column.null && old.nil?
               value = nil if value == ''
-            elsif old == 0 && value.is_a?(String) && value.present? && value != '0'
+            elsif old == 0 && value.is_a?(String) && value.present? && non_zero?(value)
               value = nil
             else
               value = column.type_cast(value)
@@ -27,6 +27,10 @@ module ActiveRecord #:nodoc:
 
           old != value
         end
+
+        def non_zero?(value)
+          value !~ /\A0+(\.0+)?\z/
+        end 
         
       end
 
@@ -37,10 +41,5 @@ end
 if ActiveRecord::Base.method_defined?(:changed?)
   ActiveRecord::Base.class_eval do
     include ActiveRecord::ConnectionAdapters::OracleEnhancedDirty::InstanceMethods
-    # Starting with rails 3.2.9 the method #field_changed?
-    # was renamed to #_field_changed?
-    if private_method_defined?(:field_changed?)
-      alias_method :field_changed?, :_field_changed?
-    end
   end
 end

@@ -107,6 +107,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
 
   before(:each) do
     class ::TestEmployee < ActiveRecord::Base
+      include ActiveRecord::OracleEnhancedProcedures
+
       if self.respond_to?(:primary_key=)
         self.primary_key = :employee_id
       else
@@ -226,9 +228,9 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.first_name.should == "First"
   end
 
-  it "should not update record if nothing is changed and partial updates are enabled" do
+  it "should not update record if nothing is changed and partial writes are enabled" do
     return pending("Not in this ActiveRecord version") unless TestEmployee.respond_to?(:partial_updates=)
-    TestEmployee.partial_updates = true
+    TestEmployee.partial_writes = true
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -240,9 +242,9 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.version.should == 1
   end
 
-  it "should update record if nothing is changed and partial updates are disabled" do
+  it "should update record if nothing is changed and partial writes are disabled" do
     return pending("Not in this ActiveRecord version") unless TestEmployee.respond_to?(:partial_updates=)
-    TestEmployee.partial_updates = false
+    TestEmployee.partial_writes = false
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -295,6 +297,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     }.should raise_error("Make the transaction rollback")
     @employee.id.should == empl_id
     TestEmployee.find_by_employee_id(empl_id).should_not be_nil
+    clear_logger
   end
 
   it "should set timestamps when creating record" do
@@ -330,10 +333,11 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     @logger.logged(:debug).last.should match(/^TestEmployee Create \(\d+\.\d+(ms)?\)  custom create method$/)
+    clear_logger
   end
 
   it "should log update record" do
-    (TestEmployee.partial_updates = false) rescue nil
+    (TestEmployee.partial_writes = false) rescue nil
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -342,6 +346,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     set_logger
     @employee.save!
     @logger.logged(:debug).last.should match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with employee_id=#{@employee.id}$/)
+    clear_logger
   end
 
   it "should log delete record" do
@@ -353,6 +358,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     set_logger
     @employee.destroy
     @logger.logged(:debug).last.should match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with employee_id=#{@employee.id}$/)
+    clear_logger
   end
 
   it "should validate new record before creation" do
