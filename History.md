@@ -1,3 +1,24 @@
+### 1.4.3 / 2013-10-24
+
+* No changes since 1.4.3.rc2
+
+### 1.4.3.rc2 / 2013-10-23
+
+* Change build procedures
+* No other changes since 1.4.3.rc1
+
+### 1.4.3.rc1 / 2013-10-19
+
+* Enhancements:
+  * Allow inserting NULL to Oracle Spatial Data Types such as MDSYS.SDO_GEOMETRY [#311]
+  * Support ojdbc7.jar JDBC Driver [#335]
+
+* Bug fixes:
+  * Fixed Gemfile to bundle update work [#294]
+  * Fixed broken links in README.md and RUNNING_TESTS.md [#303 #306]
+  * Address rename_table works if the source table created with :id => false [#336]
+  * Use expand_path to show VERSION with Windows XP
+
 ### 1.4.2 / 2013-03-18
 
 * No changes since 1.4.2.rc2
