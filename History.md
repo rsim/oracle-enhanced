@@ -1,3 +1,7 @@
+### 1.4.3 / 2013-10-24
+
+* No changes since 1.4.3.rc2
+
 ### 1.4.3.rc2 / 2013-10-23
 
 * Change build procedures
