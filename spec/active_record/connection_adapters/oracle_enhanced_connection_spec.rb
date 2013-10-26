@@ -92,7 +92,8 @@ describe "OracleEnhancedConnection" do
 
       it "should create new connection using :url" do
         params = CONNECTION_PARAMS.dup
-        params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST && "#{DATABASE_HOST}:"}#{DATABASE_PORT && "#{DATABASE_PORT}:"}#{DATABASE_NAME}"
+        params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST && "//#{DATABASE_HOST}#{DATABASE_PORT && ":#{DATABASE_PORT}"}/"}#{DATABASE_NAME}"
+
         params[:host] = nil
         params[:database] = nil
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
@@ -157,7 +158,7 @@ describe "OracleEnhancedConnection" do
 
     it "should fall back to directly instantiating OracleDriver" do
       params = CONNECTION_PARAMS.dup
-      params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST && "#{DATABASE_HOST}:"}#{DATABASE_PORT && "#{DATABASE_PORT}:"}#{DATABASE_NAME}"
+      params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST && "//#{DATABASE_HOST}#{DATABASE_PORT && ":#{DATABASE_PORT}"}/"}#{DATABASE_NAME}"
       params[:host] = nil
       params[:database] = nil
       java.sql.DriverManager.stub!(:getConnection).and_raise('no suitable driver found')
