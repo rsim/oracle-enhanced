@@ -6,10 +6,41 @@ Oracle enhanced adapter for ActiveRecord
 DESCRIPTION
 -----------
 
-Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions 2.3.x and 3.x and it is working with Oracle database versions 10g and 11g.
+Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 4.0 and it is working with Oracle database versions from 10g to 12c.
 
 INSTALLATION
 ------------
+
+### Rails 4
+
+Oracle enhanced adapter version 1.5 just supports Rails 4 and does not support Rails 3.2 or lower version of Rails.
+
+When using Ruby on Rails version 4 then in Gemfile include
+
+    gem 'activerecord-oracle_enhanced-adapter', '~> 1.5.0'
+
+where instead of 1.5.0 you can specify any other desired version. It is recommended to specify version with `~>` which means that use specified version or later patch versions (in this example any later 1.5.x version but not 1.6.x version). Oracle enhanced adapter maintains API backwards compatibility during patch version upgrades and therefore it is safe to always upgrade to latest patch version.
+
+If you would like to use latest adapter version from github then specify
+
+    gem 'activerecord-oracle_enhanced-adapter', :git => 'git://github.com/rsim/oracle-enhanced.git'
+
+If you are using CRuby 1.9.3 or 2.0 then you need to install ruby-oci8 gem as well as Oracle client, e.g. [Oracle Instant Client](http://www.oracle.com/technetwork/database/features/instant-client/index-097480.html). Include in Gemfile also ruby-oci8:
+
+    gem 'ruby-oci8', '~> 2.1.0'
+
+If you are using JRuby then you need to download latest [Oracle JDBC driver](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html) - either ojdbc7.jar or ojdbc6.jar for Java 7, ojdbc6.jar for Java 6 or ojdbc5.jar for Java 5. And copy this file to one of these locations:
+
+  * in `./lib` directory of Rails application
+  * in some directory which is in `PATH`
+  * in `JRUBY_HOME/lib` directory
+  * or include path to JDBC driver jar file in Java `CLASSPATH`
+
+After specifying necessary gems in Gemfile run
+
+    bundle install
+
+to install the adapter (or later run `bundle update` to force updating to latest version).
 
 ### Rails 3
 
