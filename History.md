@@ -1,3 +1,53 @@
+## 1.5.0.beta
+
+* Enhancements and major changes
+ * Support Rails 4.0
+ * Desupport Rails 3.2 and lower version. To support Rails 3.2, use Version 1.4.3
+ * Support refactored remove_column [#172] 
+ * Bumped jeweler, ruby-plsql and ruby-oci8 version [#176]
+ * Support _field_changed? and drop field_changed? [#182 #254]
+ * Unit test sets default_timezone = :local [#184]
+ * Create indexes automatically for references and belongs_to [#183]
+ * Use arel nodes instead of raw sql [#198]
+ * Clear index cache when any table dropped [#200]
+ * Drop session store support [#219]
+ * Support "activerecord-deprecated_finders" [#210]
+ * Ensure disconnecting or reconnecting resets the transaction state [#220]
+ * Support for specifying transaction isolation level [#226]
+ * Dump schema uses ruby 1.9 style hash [#229]
+ * Rename the partial_updates config to partial_writes [#234]
+ * Raise an ArgumentError when passing an invalid option to add_index [#242]
+ * Deprecate passing a string as third argument of add_index [#242]
+ * Clear index cache when remove_column executed [#269]
+ * Rename update method to update_record, create method to create_record [#273]
+ * Support allowed_index_name_length method [#285]
+ * Rename indexes when a table or column is renamed [#286]
+ * Support reset_pk_sequence! [#287]
+ * Split OracleEnhancedColumnDumper from OracleEnhancedSchemaDumper [#292]
+ * Prepared statements can be disabled [#295]
+ * Use the index name explicitly provided in a migration when reverting [#296]
+ * Deprecate #connection in favour of accessing it via the class [#297]
+ * Support SchemaCreation [#298]
+ * Add support for foreign key creation in create_table [#317]
+ * Add virtual columns support for rail4 branch [#329]
+ * Support columns_for_distinct method [#340]
+ * Support also ojdbc6.jar for Java 1.7 [#350]
+
+* Bug Fix
+ * Address ArgumentError: wrong number of arguments (5 for 3) [#166]
+ * Address NoMethodError: undefined method `column_types' [#173]
+ * Schema dumper removes table_name_prefix and table_name_suffix [#191]
+ * Add clear_logger to address ArgumentError: wrong number of arguments (1 for 2) [#193]
+ * Use Relation#to_a as Relation#all is deprecated in Rails [#203]
+ * Address Address test_integer_zero_to_integer_zero_not_marked_as_changed failure [#207]
+ * Address NoMethodError undefined method `default_string' [#221]
+ * Address you can't redefine the primary key column 'id'. To define a custom primary key, pass { id: false } to create_table [#238]
+ * Remove unnecessary DEPRECATION WARNING [#255]
+ * Assigning "0.0" to a nullable numeric column does not make it dirty [#293]
+
+* Known Issues
+ * Oracle Text features are not fully supported with Oracle 12c [#331]
+
 ### 1.4.3 / 2013-10-24
 
 * No changes since 1.4.3.rc2
