@@ -1,4 +1,4 @@
-## 1.5.0.rc1 / 2013-10-28
+## 1.5.0.beta1 / 2013-10-28
 
 * Enhancements and major changes
  * Support Rails 4.0
