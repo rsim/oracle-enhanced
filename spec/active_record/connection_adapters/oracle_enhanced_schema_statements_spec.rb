@@ -53,6 +53,15 @@ describe "OracleEnhancedAdapter schema definition" do
     end
   end
 
+  describe "default sequence name" do
+
+    it "should return sequence name without truncating too much" do
+      seq_name_length = ActiveRecord::Base.connection.sequence_name_length
+      tname = "#{DATABASE_USER}" + "." +"a"*(seq_name_length - DATABASE_USER.length) + "z"*(DATABASE_USER).length
+      ActiveRecord::Base.connection.default_sequence_name(tname).should match (/z_seq$/)
+    end
+  end
+
   describe "sequence creation parameters" do
 
     def create_test_employees_table(sequence_start_value = nil)
