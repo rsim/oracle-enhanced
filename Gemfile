@@ -9,18 +9,7 @@ group :development do
     gem 'activerecord', "=#{ENV['RAILS_GEM_VERSION']}"
     gem 'actionpack', "=#{ENV['RAILS_GEM_VERSION']}"
     gem 'activesupport', "=#{ENV['RAILS_GEM_VERSION']}"
-    case ENV['RAILS_GEM_VERSION']
-    when /^2.0/
-      gem 'composite_primary_keys', '=0.9.93'
-    when /^2.1/
-      gem 'composite_primary_keys', '=1.0.8'
-    when /^2.2/
-      gem 'composite_primary_keys', '=2.2.2'
-    when /^2.3.3/
-      gem 'composite_primary_keys', '=2.3.2'
-    when /^3/
-      gem 'railties', "=#{ENV['RAILS_GEM_VERSION']}"
-    end
+    gem 'railties', "=#{ENV['RAILS_GEM_VERSION']}"
   else
     %w(activerecord activemodel activesupport actionpack railties).each do |gem_name|
       if ENV['RAILS_GEM_PATH']
@@ -41,10 +30,9 @@ group :development do
     else
       gem "journey", :git => "git://github.com/rails/journey"
     end
-
-    gem "activerecord-deprecated_finders"
   end
 
+  gem "activerecord-deprecated_finders"
   gem 'ruby-plsql', '>=0.5.0'
 
   platforms :ruby do
