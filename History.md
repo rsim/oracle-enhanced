@@ -1,3 +1,8 @@
+## 1.5.0.rc1 / 2013-10-31
+
+* Update README and HISTORY
+* No other changes since 1.5.0.beta1
+
 ## 1.5.0.beta1 / 2013-10-28
 
 * Enhancements and major changes
@@ -33,6 +38,7 @@
  * Split OracleEnhancedColumnDumper from OracleEnhancedSchemaDumper [#292]
  * Unit test sets default_timezone = :local [#184]
  * Support reset_pk_sequence! [#287]
+ * Remove unnecessary pendings in unit tests [#358]
 
 * Bug Fix
  * Address ArgumentError: wrong number of arguments (5 for 3) [#166]
@@ -45,6 +51,8 @@
  * Address you can't redefine the primary key column 'id'. To define a custom primary key, pass { id: false } to create_table [#238]
  * Remove unnecessary DEPRECATION WARNING [#255]
  * Assigning "0.0" to a nullable numeric column does not make it dirty [#293]
+ * Address `rake spec` abort [#353]
+ * Correct activerecord-deprecated_finders not loaded if ENV['RAILS_GEM_VERSION'] set [#353]
 
 * Known Issues
  * Oracle Text features are not fully supported with Oracle 12c [#331]
