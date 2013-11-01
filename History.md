@@ -1,3 +1,8 @@
+## 1.5.0 / 2013-11-01
+
+* Enhancements
+ * Add license in gemspec and Rakefile [#361]
+
 ## 1.5.0.rc1 / 2013-10-31
 
 * Update README and HISTORY
