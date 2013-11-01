@@ -22,6 +22,7 @@ EOS
   gem.homepage = "http://github.com/rsim/oracle-enhanced"
   gem.authors = ["Raimonds Simanovskis"]
   gem.extra_rdoc_files = ['README.md']
+  gem.license = 'MIT'
 end
 Jeweler::RubygemsDotOrgTasks.new
 
