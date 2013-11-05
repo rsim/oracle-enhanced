@@ -369,11 +369,7 @@ describe "OracleEnhancedAdapter schema dump" do
     before(:each) do
       if @oracle11g_or_higher
         class ::TestName < ActiveRecord::Base
-          if self.respond_to?(:table_name=)
-            self.table_name = "test_names"
-          else
-            set_table_name "test_names"
-          end
+          self.table_name = "test_names"
         end
       end
     end
