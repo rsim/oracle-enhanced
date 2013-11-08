@@ -950,20 +950,6 @@ module ActiveRecord
         # there is no RELEASE SAVEPOINT statement in Oracle
       end
 
-      def add_limit_offset!(sql, options) #:nodoc:
-        # added to_i for limit and offset to protect from SQL injection
-        offset = (options[:offset] || 0).to_i
-        limit = options[:limit]
-        limit = limit.is_a?(String) && limit.blank? ? nil : limit && limit.to_i
-        if limit && offset > 0
-          sql.replace "SELECT * FROM (SELECT raw_sql_.*, ROWNUM raw_rnum_ FROM (#{sql}) raw_sql_ WHERE ROWNUM <= #{offset+limit}) WHERE raw_rnum_ > #{offset}"
-        elsif limit
-          sql.replace "SELECT * FROM (#{sql}) WHERE ROWNUM <= #{limit}"
-        elsif offset > 0
-          sql.replace "SELECT * FROM (SELECT raw_sql_.*, ROWNUM raw_rnum_ FROM (#{sql}) raw_sql_) WHERE raw_rnum_ > #{offset}"
-        end
-      end
-
       @@do_not_prefetch_primary_key = {}
 
       # Returns true for Oracle adapter (since Oracle requires primary key
