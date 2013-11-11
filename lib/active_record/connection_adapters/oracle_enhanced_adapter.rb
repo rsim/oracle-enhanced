@@ -736,7 +736,10 @@ module ActiveRecord
       end
 
       def exec_query(sql, name = 'SQL', binds = [])
-        log(sql, name, binds) do
+        type_casted_binds = binds.map { |col, val|
+          [col, type_cast(val, col)]
+        }
+        log(sql, name, type_casted_binds) do
           cursor = nil
           cached = false
           if binds.empty?
