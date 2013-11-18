@@ -10,7 +10,7 @@ module ActiveRecord #:nodoc:
           "CREATE SEQUENCE \"#{seq}\""
         end
         select_values("SELECT table_name FROM all_tables t
-                    WHERE owner = SYS_CONTEXT('userenv', 'session_user') AND secondary = 'N'
+                    WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
                       AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
                       AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
                     ORDER BY 1").each do |table_name|
@@ -77,7 +77,7 @@ module ActiveRecord #:nodoc:
               ON a.constraint_name = c.constraint_name
            WHERE c.table_name = '#{table.upcase}'
              AND c.constraint_type = 'P'
-             AND c.owner = SYS_CONTEXT('userenv', 'session_user')
+             AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
         pks.each do |row|
           opts[:name] = row['constraint_name']
@@ -95,7 +95,7 @@ module ActiveRecord #:nodoc:
               ON a.constraint_name = c.constraint_name
            WHERE c.table_name = '#{table.upcase}'
              AND c.constraint_type = 'U'
-             AND c.owner = SYS_CONTEXT('userenv', 'session_user')
+             AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
         uks.each do |uk|
           keys[uk['constraint_name']] ||= []
@@ -123,7 +123,7 @@ module ActiveRecord #:nodoc:
       end
 
       def structure_dump_fk_constraints #:nodoc:
-        fks = select_all("SELECT table_name FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |table|
+        fks = select_all("SELECT table_name FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1").map do |table|
           if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?
             foreign_keys.map do |fk|
               sql = "ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} "
@@ -147,14 +147,14 @@ module ActiveRecord #:nodoc:
                      FROM all_source
                     WHERE type IN ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
                       AND name NOT LIKE 'BIN$%'
-                      AND owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY type").each do |source|
+                      AND owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY type").each do |source|
           ddl = "CREATE OR REPLACE   \n"
           lines = select_all(%Q{
                   SELECT text
                     FROM all_source
                    WHERE name = '#{source['name']}'
                      AND type = '#{source['type']}'
-                     AND owner = SYS_CONTEXT('userenv', 'session_user')
+                     AND owner = SYS_CONTEXT('userenv', 'current_schema')
                    ORDER BY line
                 }).map do |row|
             ddl << row['text']
@@ -171,7 +171,7 @@ module ActiveRecord #:nodoc:
         # export synonyms
         select_all("SELECT owner, synonym_name, table_name, table_owner
                       FROM all_synonyms
-                     WHERE owner = SYS_CONTEXT('userenv', 'session_user') ").each do |synonym|
+                     WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ").each do |synonym|
           structure << "CREATE OR REPLACE #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']}"
           structure << " FOR #{synonym['table_owner']}.#{synonym['table_name']}"
         end
@@ -184,7 +184,7 @@ module ActiveRecord #:nodoc:
           "DROP SEQUENCE \"#{seq}\""
         end
         select_values("SELECT table_name from all_tables t
-                    WHERE owner = SYS_CONTEXT('userenv', 'session_user') AND secondary = 'N'
+                    WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
                       AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
                       AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
                     ORDER BY 1").each do |table|
@@ -196,7 +196,7 @@ module ActiveRecord #:nodoc:
       def temp_table_drop #:nodoc:
         join_with_statement_token(select_values(
                   "SELECT table_name FROM all_tables
-                    WHERE owner = SYS_CONTEXT('userenv', 'session_user') AND secondary = 'N' AND temporary = 'Y' ORDER BY 1").map do |table|
+                    WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N' AND temporary = 'Y' ORDER BY 1").map do |table|
           "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS"
         end)
       end
