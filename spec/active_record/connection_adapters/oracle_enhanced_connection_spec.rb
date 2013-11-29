@@ -329,6 +329,17 @@ describe "OracleEnhancedConnection" do
       @conn.describe("all_tables").should == ["SYS", "ALL_TABLES"]
     end
 
+    if defined?(OCI8)
+      context "OCI8 adapter" do
+
+        it "should not fallback to SELECT-based logic when querying non-existant table information" do
+          @conn.should_not_receive(:select_one)
+          @conn.describe("non_existant") rescue ActiveRecord::ConnectionAdapters::OracleEnhancedConnectionException
+        end
+
+      end
+    end
+
   end
 
 end
