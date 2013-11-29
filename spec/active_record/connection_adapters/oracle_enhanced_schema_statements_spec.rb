@@ -1067,6 +1067,14 @@ end
       TestPost.columns_hash['title'].should be_nil
       TestPost.columns_hash['content'].should be_nil
     end
+
+    it "should ignore type and options parameter and remove column" do
+      schema_define do
+        remove_column :test_posts, :title, :string, {}
+      end
+      TestPost.reset_column_information
+      TestPost.columns_hash['title'].should be_nil
+    end
   end
 
   describe 'virtual columns in create_table' do
