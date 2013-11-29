@@ -165,7 +165,7 @@ module ActiveRecord #:nodoc:
 
         # export views 
         select_all("SELECT view_name, text FROM user_views ORDER BY view_name ASC").each do |view|
-          structure << "CREATE OR REPLACE VIEW #{view['view_name']} AS\n #{view['text']}"
+          structure << "CREATE OR REPLACE FORCE VIEW #{view['view_name']} AS\n #{view['text']}"
         end
 
         # export synonyms
