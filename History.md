@@ -1,3 +1,17 @@
+## 1.5.1 / 2013-11-30
+
+* Enhancements
+ * Removed set_table_name set_primary_key set_sequence_name from unit tests [#364]
+ * Update README to support assignment methods [#365]
+ * Remove add_limit_offset! method [#369]
+ * Update Gemfile to use `bundle config --local` [#370]
+ * `describe` does not try super when no datbase link and ORA-4043 returned [#375]
+ * Support `remove_columns` [#377]
+ * Dump views in alphabetical order and add `FORCE` option [#378]
+
+* Bug Fix
+ * Fixed reverting add_column fails with v1.5.0 [#373]
+
 ## 1.5.0 / 2013-11-01
 
 * Enhancements
