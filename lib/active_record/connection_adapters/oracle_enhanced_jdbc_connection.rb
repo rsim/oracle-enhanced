@@ -9,7 +9,7 @@ begin
     %w(ojdbc5.jar)
   elsif java_version =~ /^1.6/
     %w(ojdbc6.jar)
-  elsif java_version =~ /^1.7/
+  elsif java_version >= '1.7'
     # Oracle 11g client ojdbc6.jar is also compatible with Java 1.7
     # Oracle 12c client provides new ojdbc7.jar
     %w(ojdbc7.jar ojdbc6.jar)
@@ -26,6 +26,7 @@ begin
       # check any compatible JDBC driver in the priority order
       ojdbc_jars.any? do |ojdbc_jar|
         if File.exists?(file_path = File.join(dir, ojdbc_jar))
+          puts "WARNING: JDK #{java_version} is not officially supported by #{ojdbc_jar}" if java_version >= '1.8'
           require file_path
           true
         end
@@ -43,7 +44,7 @@ begin
 
 rescue LoadError, NameError
   # JDBC driver is unavailable.
-  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars.join(' or ') || "Oracle JDBC"} library."
+  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars ? ojdbc_jars.join(' or ') : "Oracle JDBC"} library."
 end
 
 
