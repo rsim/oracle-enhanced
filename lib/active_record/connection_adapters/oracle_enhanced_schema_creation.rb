@@ -72,6 +72,12 @@ module ActiveRecord
           end
         end
 
+        # This method does not exist in SchemaCreation at Rails 4.0
+        # It can be removed only when Oracle enhanced adapter supports Rails 4.1 and higher
+        def options_include_default?(options)
+          options.include?(:default) && !(options[:null] == false && options[:default].nil?)
+        end
+
       end
       
       def schema_creation
