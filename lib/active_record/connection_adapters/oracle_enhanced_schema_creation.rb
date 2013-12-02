@@ -48,35 +48,42 @@ module ActiveRecord
           @conn.foreign_key_definition(to_table, options)
         end
 
+        def add_column_options!(sql, options)
+          type = options[:type] || ((column = options[:column]) && column.type)
+          type = type && type.to_sym
+          # handle case of defaults for CLOB columns, which would otherwise get "quoted" incorrectly
+          if options_include_default?(options)
+            if type == :text
+              sql << " DEFAULT #{@conn.quote(options[:default])}"
+            else
+              # from abstract adapter
+              sql << " DEFAULT #{@conn.quote(options[:default], options[:column])}"
+            end
+          end
+          # must explicitly add NULL or NOT NULL to allow change_column to work on migrations
+          if options[:null] == false
+            sql << " NOT NULL"
+          elsif options[:null] == true
+            sql << " NULL" unless type == :primary_key
+          end
+          # add AS expression for virtual columns
+          if options[:as].present?
+            sql << " AS (#{options[:as]})"
+          end
+        end
+
+        # This method does not exist in SchemaCreation at Rails 4.0
+        # It can be removed only when Oracle enhanced adapter supports Rails 4.1 and higher
+        def options_include_default?(options)
+          options.include?(:default) && !(options[:null] == false && options[:default].nil?)
+        end
+
       end
       
       def schema_creation
           SchemaCreation.new self
       end
-    end
 
-    def add_column_options!(sql, options)
-      type = options[:type] || ((column = options[:column]) && column.type)
-      type = type && type.to_sym
-      # handle case of defaults for CLOB columns, which would otherwise get "quoted" incorrectly
-      if options_include_default?(options)
-        if type == :text
-          sql << " DEFAULT #{quote(options[:default])}"
-        else
-          # from abstract adapter
-          sql << " DEFAULT #{quote(options[:default], options[:column])}"
-        end
-      end
-      # must explicitly add NULL or NOT NULL to allow change_column to work on migrations
-      if options[:null] == false
-        sql << " NOT NULL"
-      elsif options[:null] == true
-        sql << " NULL" unless type == :primary_key
-      end
-      # add AS expression for virtual columns
-      if options[:as].present?
-        sql << " AS (#{options[:as]})"
-      end
     end
   end
 end
