@@ -10,38 +10,12 @@ module ActiveRecord
       :tablespace, :columns) #:nodoc:
     end
 
-    module OracleEnhancedColumnDefinition
-       def self.included(base) #:nodoc:
-        base.class_eval do
-          #alias_method_chain :to_sql, :virtual_columns
-          #alias to_s :to_sql
-        end
-       end
-
-      def to_sql_with_virtual_columns
-        if type == :virtual
-          sql_type = base.type_to_sql(default[:type], limit, precision, scale) if default[:type]
-          "#{base.quote_column_name(name)} #{sql_type} AS (#{default[:as]})"
-        else
-          to_sql_without_virtual_columns
-        end
-      end
-
-      def lob?
-        ['CLOB', 'BLOB'].include?(sql_type)
-      end
-    end
-
     module OracleEnhancedSchemaDefinitions #:nodoc:
       def self.included(base)
         base::TableDefinition.class_eval do
           include OracleEnhancedTableDefinition
         end
 
-        base::ColumnDefinition.class_eval do
-          include OracleEnhancedColumnDefinition
-        end
-        
         # Available starting from ActiveRecord 2.1
         base::Table.class_eval do
           include OracleEnhancedTable
