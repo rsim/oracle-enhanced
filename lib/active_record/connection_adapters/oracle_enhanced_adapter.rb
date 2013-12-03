@@ -1407,21 +1407,6 @@ module ActiveRecord
         select_value("SELECT temporary FROM user_tables WHERE table_name = '#{table_name.upcase}'") == 'Y'
       end
 
-      # ORDER BY clause for the passed order option.
-      #
-      # Uses column aliases as defined by #distinct.
-      #
-      # In Rails 3.x this method is moved to Arel
-      def add_order_by_for_association_limiting!(sql, options) #:nodoc:
-        return sql if options[:order].blank?
-
-        order = options[:order].split(',').collect { |s| s.strip }.reject(&:blank?)
-        order.map! {|s| $1 if s =~ / (.*)/}
-        order = order.zip((0...order.size).to_a).map { |s,i| "alias_#{i}__ #{s}" }.join(', ')
-
-        sql << " ORDER BY #{order}"
-      end
-
       # construct additional wrapper subquery if select.offset is used to avoid generation of invalid subquery
       # ... IN ( SELECT * FROM ( SELECT raw_sql_.*, rownum raw_rnum_ FROM ( ... ) raw_sql_ ) WHERE raw_rnum_ > ... )
       def join_to_update(update, select) #:nodoc:
