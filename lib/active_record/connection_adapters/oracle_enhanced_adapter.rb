@@ -586,7 +586,13 @@ module ActiveRecord
       def quote(value, column = nil) #:nodoc:
         if value && column
           case column.type
-          when :text, :binary
+          when :text
+            if value.empty?
+              %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'clob' }()}
+            else
+              super
+            end
+          when :binary
             %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
           # NLS_DATE_FORMAT independent TIMESTAMP support
           when :timestamp
