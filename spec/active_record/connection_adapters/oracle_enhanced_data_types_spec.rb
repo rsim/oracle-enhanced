@@ -1048,19 +1048,6 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @employee.reload
     @employee.comments.should == "initial serialized data"
   end
-
-  it "should not replace text query string with empty_clob()" do
-    employee = TestEmployee.arel_table
-    matcher = employee[:comments].matches("%foo%")
-    TestEmployee.where(matcher).to_sql.should_not =~ /empty_clob/
-    TestEmployee.where(matcher).to_sql.should =~ /%foo%/
-  end
-
-  it "should replace empty text query string with empty_clob()" do
-    employee = TestEmployee.arel_table
-    matcher = employee[:comments].matches("")
-    TestEmployee.where(matcher).to_sql.should =~ /empty_clob/
-  end
 end
 
 describe "OracleEnhancedAdapter handling of BLOB columns" do
