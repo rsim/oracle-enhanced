@@ -941,15 +941,15 @@ module ActiveRecord
         @connection.autocommit = true
       end
 
-      def create_savepoint #:nodoc:
+      def create_savepoint(name = current_savepoint_name) #:nodoc:
         execute("SAVEPOINT #{current_savepoint_name}")
       end
 
-      def rollback_to_savepoint #:nodoc:
+      def rollback_to_savepoint(name = current_savepoint_name) #:nodoc:
         execute("ROLLBACK TO #{current_savepoint_name}")
       end
 
-      def release_savepoint #:nodoc:
+      def release_savepoint(name = current_savepoint_name) #:nodoc:
         # there is no RELEASE SAVEPOINT statement in Oracle
       end
 
