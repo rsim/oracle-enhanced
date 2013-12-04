@@ -89,11 +89,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
       class ::TestEmployee < ActiveRecord::Base
-        if self.respond_to?(:primary_key=)
-          self.primary_key = "employee_id"
-        else
-          set_primary_key "employee_id"
-        end
+        self.primary_key = "employee_id"
       end
     end
     
@@ -569,11 +565,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
   describe "/ TIMESTAMP WITH TIME ZONE values from ActiveRecord model" do
     before(:all) do
       class ::TestEmployee < ActiveRecord::Base
-        if self.respond_to?(:primary_key=)
-          self.primary_key = "employee_id"
-        else
-          set_primary_key "employee_id"
-        end
+        self.primary_key = "employee_id"
       end
     end
 
@@ -655,11 +647,7 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
     class ::TestEmployee < ActiveRecord::Base
-      if self.respond_to?(:primary_key=)
-        self.primary_key = "employee_id"
-      else
-        set_primary_key "employee_id"
-      end
+      self.primary_key = "employee_id"
     end
     @today = Date.new(2008,6,28)
     @now = Time.local(2008,6,28,13,34,33)
@@ -744,11 +732,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
     class ::TestEmployee < ActiveRecord::Base
-      if self.respond_to?(:primary_key=)
-        self.primary_key = "employee_id"
-      else
-        set_primary_key "employee_id"
-      end
+      self.primary_key = "employee_id"
     end
     @today = Date.new(2008,6,28)
     @today_iso = "2008-06-28"
@@ -918,11 +902,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       serialize :comments
     end
     class ::TestEmployeeReadOnlyClob < ActiveRecord::Base
-      if self.respond_to?(:table_name=)
-        self.table_name = "test_employees"
-      else
-        set_table_name = "test_employees"
-      end
+      self.table_name = "test_employees"
       attr_readonly :comments
     end
   end
@@ -1097,11 +1077,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
 
   before(:each) do
     class ::TestEmployee < ActiveRecord::Base
-      if self.respond_to?(:primary_key=)
-        self.primary_key = "employee_id"
-      else
-        set_primary_key "employee_id"
-      end
+      self.primary_key = "employee_id"
     end
   end
   
@@ -1227,11 +1203,7 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
 
   before(:each) do
     class ::TestEmployee < ActiveRecord::Base
-      if self.respond_to?(:primary_key=)
-        self.primary_key = "employee_id"
-      else
-        set_primary_key "employee_id"
-      end
+      self.primary_key = "employee_id"
     end
   end
 

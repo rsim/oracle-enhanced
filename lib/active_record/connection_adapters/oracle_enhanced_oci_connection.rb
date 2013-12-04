@@ -210,15 +210,19 @@ module ActiveRecord
       def write_lob(lob, value, is_binary = false)
         lob.write value
       end
-      
+
       def describe(name)
         # fall back to SELECT based describe if using database link
         return super if name.to_s.include?('@')
         quoted_name = OracleEnhancedAdapter.valid_table_name?(name) ? name : "\"#{name}\""
         @raw_connection.describe(quoted_name)
       rescue OCIException => e
-        # fall back to SELECT which can handle synonyms to database links
-        super
+        if e.code == 4043
+          raise OracleEnhancedConnectionException, %Q{"DESC #{name}" failed; does it exist?}
+        else
+          # fall back to SELECT which can handle synonyms to database links
+          super
+        end
       end
 
       # Return OCIError error code

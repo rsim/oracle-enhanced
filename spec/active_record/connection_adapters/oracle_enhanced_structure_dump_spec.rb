@@ -20,11 +20,7 @@ describe "OracleEnhancedAdapter structure dump" do
       end
       class ::TestPost < ActiveRecord::Base
       end
-      if TestPost.respond_to?(:table_name=)
-        TestPost.table_name = "test_posts"
-      else
-        TestPost.set_table_name "test_posts"
-      end
+      TestPost.table_name = "test_posts"
     end
   
     after(:each) do
@@ -41,6 +37,8 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute "ALTER TABLE foos drop column baz_id" rescue nil
       @conn.execute "ALTER TABLE test_posts drop column fooz_id" rescue nil
       @conn.execute "ALTER TABLE test_posts drop column baz_id" rescue nil
+      @conn.execute "DROP VIEW test_posts_view_z" rescue nil
+      @conn.execute "DROP VIEW test_posts_view_a" rescue nil
     end
   
     it "should dump single primary key" do
@@ -141,6 +139,13 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
       dump.should =~ /CREATE OR REPLACE TYPE TEST_TYPE/
+    end
+
+    it "should dump views" do
+      @conn.execute "create or replace VIEW test_posts_view_z as select * from test_posts"
+      @conn.execute "create or replace VIEW test_posts_view_a as select * from test_posts_view_z"
+      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
+      dump.should =~ /CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_A.*CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_Z/
     end
   
     it "should dump virtual columns" do
