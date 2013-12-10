@@ -79,7 +79,7 @@ namespace :db do
   end
 
   namespace :test do
-    redefine_task :clone_structure => [ "db:structure:dump", "db:test:purge" ] do |existing_actions|
+    redefine_task :clone_structure => [ "db:structure:dump", "db:test:purge", "db:test:load_structure" ] do |existing_actions|
       abcs = ActiveRecord::Base.configurations
       rails_env = defined?(Rails.env) ? Rails.env : RAILS_ENV
       if abcs[rails_env]['adapter'] == 'oracle_enhanced' && abcs['test']['adapter'] == 'oracle_enhanced'
