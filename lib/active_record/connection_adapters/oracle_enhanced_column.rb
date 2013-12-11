@@ -10,8 +10,12 @@ module ActiveRecord
         @virtual = virtual
         @virtual_column_data_default = default.inspect if virtual
         @returning_id = returning_id
-        default = nil if virtual
-        super(name, default, sql_type, null)
+        if virtual
+          default_value = nil
+        else
+          default_value = self.class.extract_value_from_default(default)
+        end
+        super(name, default_value, sql_type, null)
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
         @nchar = true if @type == :string && sql_type[0,1] == 'N'
@@ -111,6 +115,15 @@ module ActiveRecord
           :datetime
         else
           super
+        end
+      end
+
+      def self.extract_value_from_default(default)
+        case default
+          when String
+            default.gsub(/''/, "'")
+          else
+            default
         end
       end
 
