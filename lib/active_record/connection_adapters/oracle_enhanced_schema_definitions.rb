@@ -34,8 +34,6 @@ module ActiveRecord
       def self.included(base) #:nodoc:
         base.class_eval do
           alias_method_chain :references, :foreign_keys
-          #alias_method_chain :to_sql, :foreign_keys
-
           alias_method_chain :column, :virtual_columns
         end
       end
@@ -114,16 +112,6 @@ module ActiveRecord
         else
           raise ArgumentError, "this ActiveRecord adapter is not supporting foreign_key definition"
         end
-      end
-    
-      def to_sql_with_foreign_keys #:nodoc:
-        sql = to_sql_without_foreign_keys
-        sql << ', ' << (foreign_keys * ', ') unless foreign_keys.blank?
-        sql
-      end
-
-      def lob_columns
-        columns.select(&:lob?)
       end
     
       def foreign_keys
