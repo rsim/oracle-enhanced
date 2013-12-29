@@ -1539,9 +1539,6 @@ require 'active_record/connection_adapters/oracle_enhanced_schema_dumper'
 # Implementation of structure dump
 require 'active_record/connection_adapters/oracle_enhanced_structure_dump'
 
-# Add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
-require 'active_record/connection_adapters/oracle_enhanced_core_ext'
-
 require 'active_record/connection_adapters/oracle_enhanced_version'
 
 module ActiveRecord
