@@ -192,6 +192,8 @@ describe "OracleEnhancedAdapter context index" do
     end
 
     after(:each) do
+      @conn.remove_context_index :posts, name: 'post_and_comments_index' rescue nil
+      @conn.remove_context_index :posts, index_column: :all_text rescue nil
       Post.destroy_all
     end
 
@@ -210,7 +212,6 @@ describe "OracleEnhancedAdapter context index" do
       ["aaa", "bbb", "ccc", "ddd", "eee", "fff"].each do |word|
         Post.contains(:all_text, word).to_a.should == [@post]
       end
-      @conn.remove_context_index :posts, name: 'post_and_comments_index'
     end
 
     it "should create multiple table index with specified main index column (when subquery has newlines)" do
@@ -232,7 +233,6 @@ describe "OracleEnhancedAdapter context index" do
       ["aaa", "bbb", "ccc", "ddd", "eee", "fff"].each do |word|
         Post.contains(:all_text, word).to_a.should == [@post]
       end
-      @conn.remove_context_index :posts, name: 'post_and_comments_index'
     end
 
     it "should find by search term within specified field" do
@@ -252,7 +252,6 @@ describe "OracleEnhancedAdapter context index" do
       Post.contains(:all_text, "ccc within comment_body").to_a.should be_empty
       Post.contains(:all_text, "ddd within comment_body").to_a.should == [@post]
       Post.contains(:all_text, "ddd within comment_author").to_a.should be_empty
-      @conn.remove_context_index :posts, index_column: :all_text
     end
 
   end
