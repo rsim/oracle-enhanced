@@ -174,6 +174,8 @@ describe "OracleEnhancedAdapter context index" do
   describe "on multiple tables" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
+      @oracle12c = !! @conn.select_value(
+                      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) = 12")
       create_tables
       class ::Post < ActiveRecord::Base
         has_many :comments, dependent: :destroy
@@ -198,6 +200,7 @@ describe "OracleEnhancedAdapter context index" do
     end
 
     it "should create multiple table index with specified main index column" do
+      pending "It always fails when Oracle 12c 12.1.0 used." if @oracle12c
       @conn.add_context_index :posts,
         [:title, :body,
         # specify aliases always with AS keyword
@@ -215,6 +218,7 @@ describe "OracleEnhancedAdapter context index" do
     end
 
     it "should create multiple table index with specified main index column (when subquery has newlines)" do
+      pending "It always fails when Oracle 12c 12.1.0 used." if @oracle12c
       @conn.add_context_index :posts,
         [:title, :body,
          # specify aliases always with AS keyword
