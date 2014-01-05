@@ -382,7 +382,11 @@ class OCI8 #:nodoc:
     def describe(name)
       info = describe_table(name.to_s)
       raise %Q{"DESC #{name}" failed} if info.nil?
-      [info.obj_schema, info.obj_name]
+      if info.respond_to? :obj_link and info.obj_link
+        [info.obj_schema, info.obj_name, '@' + info.obj_link]
+      else
+        [info.obj_schema, info.obj_name]
+      end
     end
   else
     # ruby-oci8 1.0.x or lower
