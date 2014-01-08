@@ -1335,6 +1335,13 @@ module ActiveRecord
       def pk_and_sequence_for_without_cache(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
+        seqs = select_values(<<-SQL.strip.gsub(/\s+/, ' '), 'Sequence')
+          select us.sequence_name
+          from all_sequences#{db_link} us
+          where us.sequence_owner = '#{owner}'
+          and us.sequence_name = '#{desc_table_name}_SEQ'
+        SQL
+
         # changed back from user_constraints to all_constraints for consistency
         pks = select_values(<<-SQL.strip.gsub(/\s+/, ' '), 'Primary Key')
           SELECT cc.column_name
@@ -1347,7 +1354,8 @@ module ActiveRecord
         SQL
 
         # only support single column keys
-        pks.size == 1 ? [oracle_downcase(pks.first), nil] : nil
+        pks.size == 1 ? [oracle_downcase(pks.first),
+                         oracle_downcase(seqs.first)] : nil
       end
 
       # Returns just a table's primary key
@@ -1397,8 +1405,8 @@ module ActiveRecord
           s = s.to_sql unless s.is_a?(String)
           # remove any ASC/DESC modifiers
           s.gsub(/\s+(ASC|DESC)\s*?/i, '')
-          }.reject(&:blank?).map.with_index { |column,i| 
-            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns} ORDER BY #{column}) AS alias_#{i}__" 
+          }.reject(&:blank?).map.with_index { |column,i|
+            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns} ORDER BY #{column}) AS alias_#{i}__"
           }
           [super, *order_columns].join(', ')
       end

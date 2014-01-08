@@ -10,6 +10,25 @@ describe "OracleEnhancedAdapter schema definition" do
       "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
   end
 
+  describe 'option to create sequence when adding a column' do
+    before do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        create_table :keyboards, :force => true, :id  => false do |t|
+          t.string      :name
+        end
+        add_column :keyboards, :id, :primary_key
+      end
+      class ::Keyboard < ActiveRecord::Base; end
+    end
+
+    it 'creates a sequence when adding a column with create_sequence = true' do
+      _, sequence_name = ActiveRecord::Base.connection.pk_and_sequence_for_without_cache(:keyboards)
+
+      sequence_name.should == Keyboard.sequence_name
+    end
+  end
+
   describe "table and sequence creation with non-default primary key" do
 
     before(:all) do

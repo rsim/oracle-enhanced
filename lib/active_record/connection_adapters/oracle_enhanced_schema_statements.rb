@@ -278,6 +278,8 @@ module ActiveRecord
         add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name) if type
 
         execute(add_column_sql)
+
+        create_sequence_and_trigger(table_name, options) if type && type.to_sym == :primary_key
       ensure
         clear_table_columns_cache(table_name)
       end
