@@ -1,3 +1,24 @@
+## 1.5.2 / 2014-01-24
+
+* Enhancements
+ * Supports Rails 4.1.0.beta1
+ * Support Rails 4 Database Tasks [#404]
+ * Create sequence when add primary_key column [#406]
+ * Move `SchemaCreation` to its own file [#381]
+ * Remove unused OracleEnhancedColumnDefinition [#382]
+ * Log bind variables after they were type casted [#385]
+ * Remove add_order_by_for_association_limiting! [#388]
+ * Support named savepoints [#389]
+ * Support self.extract_value_from_default [#395]
+ * Remove oracle_enhanced_core_ext.rb [#397]
+ * Remove unused to_sql_with_foreign_keys and lob_columns [#398]
+ * Remove ruby-oci8 v1 code [#405]
+
+* Bug Fix
+  * Move add_column_options! into SchemaCreation class [#384]
+  * Add options_include_default! [#384]
+  * Use OCI8::Metadata::Base#obj_link [#399]
+
 ## 1.5.1 / 2013-11-30
 
 * Enhancements
