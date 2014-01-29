@@ -342,4 +342,43 @@ describe "OracleEnhancedAdapter structure dump" do
       drop.should_not =~ /DROP TABLE "?FULL_DROP_TEST"? CASCADE CONSTRAINTS/i
     end
   end
+
+  describe "used by non oracle adapter" do
+    before(:all) do
+      @sqlite3dumpfile = 'awesome-file.sql'
+      @sqlite3database = 'db_create.sqlite3'
+      @sqlite3config = {
+        'adapter'  => 'sqlite3' ,
+        'database' => @sqlite3database
+      }
+      ActiveRecord::Base.establish_connection(@sqlite3config)
+      @sqlite3conn = ActiveRecord::Base.connection
+    end
+
+    after(:all) do
+      FileUtils.rm_f(@sqlite3dumpfile)
+      FileUtils.rm_f(@sqlite3database)
+    end
+    before(:each) do
+      @sqlite3conn.create_table :test_posts, :force => true do |t|
+        t.string      :title
+        t.string      :foo
+      end
+      class ::TestPost < ActiveRecord::Base
+      end
+      TestPost.table_name = "test_posts"
+    end
+
+    after(:each) do
+      @sqlite3conn.drop_table :test_posts rescue nil
+    end
+  
+    it "should dump sqlite3 dump file" do
+      ActiveRecord::Tasks::DatabaseTasks.structure_dump(@sqlite3config, @sqlite3dumpfile, '/rails/root')
+      contents = File.read(@sqlite3dumpfile)
+      contents.should =~  /CREATE TABLE "test_posts"/
+    end
+  
+  end
+
 end
