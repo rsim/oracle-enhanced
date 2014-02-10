@@ -801,7 +801,7 @@ module ActiveRecord
 
       # Returns an array of arrays containing the field values.
       # Order is the same as that returned by #columns.
-      def select_rows(sql, name = nil)
+      def select_rows(sql, name = nil, binds = [])
         # last parameter indicates to return also column list
         result = columns = nil
         log(sql, name) do
