@@ -86,7 +86,10 @@ module ActiveRecord
             @raw_connection = @raw_connection.innermost_delegate
           elsif @raw_connection.respond_to?(:getUnderlyingConnection)
             @pooled_connection = @raw_connection
-            @raw_connection = @raw_connection.underlying_connection            
+            @raw_connection = @raw_connection.underlying_connection
+          elsif @raw_connection.respond_to?(:unwrap)
+            @pooled_connection = @raw_connection
+            @raw_connection = @raw_connection.unwrap(Java::oracle.jdbc.OracleConnection.java_class)
           end
 
           config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
