@@ -317,6 +317,18 @@ module ActiveRecord
         add_column_options!(change_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
 
         change_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name]) if type
+        
+        # ORA-22858: invalid alteration of datatype -> http://ora-22858.ora-code.com/
+        if type
+          if ['text', 'binary'].include?(type.to_s)
+            tmp_column_name = (column_name.to_s+"_tmp").to_sym
+            add_column(table_name, tmp_column_name, type, options)
+            execute("UPDATE #{quote_table_name(table_name)} SET #{quote_column_name(tmp_column_name)}=#{quote_column_name(column_name)}")
+            remove_column(table_name, column_name, nil, {})
+            rename_column(table_name, tmp_column_name, column_name)
+            return
+          end
+        end
 
         execute(change_column_sql)
       ensure
