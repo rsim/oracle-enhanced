@@ -761,7 +761,7 @@ module ActiveRecord
 
           cursor.exec
 
-          if name == 'EXPLAIN'
+          if name == 'EXPLAIN' and sql =~ /^EXPLAIN/
             res = true
           else
             columns = cursor.get_col_names.map do |col_name|
@@ -802,12 +802,7 @@ module ActiveRecord
       # Returns an array of arrays containing the field values.
       # Order is the same as that returned by #columns.
       def select_rows(sql, name = nil, binds = [])
-        # last parameter indicates to return also column list
-        result = columns = nil
-        log(sql, name) do
-          result, columns = @connection.select(sql, name, true)
-        end
-        result.map{ |v| columns.map{|c| v[c]} }
+        exec_query(sql, name, binds).rows
       end
 
       # Executes an INSERT statement and returns the new record's ID
