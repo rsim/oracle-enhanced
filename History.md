@@ -1,3 +1,12 @@
+## 1.5.3 / 2014-03-04
+
+* Enhancements
+ * Supports Rails 4.1.0.rc1
+ * Support rails/rails#13886 by chainging select_rows arguments [#415]
+
+* Bug Fix
+  * Fix ORA-01008: not all variables bound [#422]
+
 ## 1.5.2 / 2014-01-24
 
 * Enhancements
