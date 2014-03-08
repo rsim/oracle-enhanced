@@ -21,3 +21,7 @@ group :development do
     gem 'ruby-oci8',    github: 'kubo/ruby-oci8'
   end
 end
+
+group :test do
+  gem 'sqlite3'
+end
