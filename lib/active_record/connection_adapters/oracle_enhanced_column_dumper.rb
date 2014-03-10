@@ -2,29 +2,23 @@ module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhancedColumnDumper #:nodoc:
 
-      def self.oracle_enhanced_adapter?
-        # return original method if not using 'OracleEnhanced'
-        if (rails_env = defined?(Rails.env) ? Rails.env : (defined?(RAILS_ENV) ? RAILS_ENV : nil)) &&
-              ActiveRecord::Base.configurations[rails_env] &&
-              ActiveRecord::Base.configurations[rails_env]['adapter'] != 'oracle_enhanced'
-          return false
-        else
-          return true
-        end
-      end
-
-      if oracle_enhanced_adapter?
-        def self.included(base) #:nodoc:
-          base.class_eval do
-            private
-            alias_method_chain :column_spec,            :oracle_enhanced
-            alias_method_chain :prepare_column_options, :oracle_enhanced
-            alias_method_chain :migration_keys,         :oracle_enhanced
-          end
+      def self.included(base) #:nodoc:
+        base.class_eval do
+          private
+          alias_method_chain :column_spec,            :oracle_enhanced
+          alias_method_chain :prepare_column_options, :oracle_enhanced
+          alias_method_chain :migration_keys,         :oracle_enhanced
         end
       end
 
       def column_spec_with_oracle_enhanced(column, types)
+        # return original method if not using 'OracleEnhanced'
+        if (rails_env = defined?(Rails.env) ? Rails.env : (defined?(RAILS_ENV) ? RAILS_ENV : nil)) &&
+              ActiveRecord::Base.configurations[rails_env] &&
+              ActiveRecord::Base.configurations[rails_env]['adapter'] != 'oracle_enhanced'
+          return column_spec_with_oracle_enhanced(column, types)
+        end
+        
         spec = prepare_column_options(column, types)
         (spec.keys - [:name, :type]).each do |k|
           key_s = (k == :virtual_type ? "type: " : "#{k.to_s}: ")
