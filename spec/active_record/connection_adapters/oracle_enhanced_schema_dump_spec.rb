@@ -251,6 +251,26 @@ describe "OracleEnhancedAdapter schema dump" do
       dump = standard_dump
       dump.rindex("create_table").should < dump.index("add_foreign_key")
     end
+ 
+    it "should include primary_key when reference column name is not 'id'" do
+      schema_define do
+        create_table :test_posts, force: true, :primary_key => 'baz_id' do |t|
+          t.string :title
+        end
+        create_table :test_comments, force: true do |t|
+          t.string :body, limit: 4000
+          t.integer :baz_id
+        end
+      end
+
+      @conn.execute <<-SQL
+        ALTER TABLE TEST_COMMENTS
+        ADD CONSTRAINT TEST_COMMENTS_BAZ_ID_FK FOREIGN KEY (baz_id) REFERENCES test_posts(baz_id)
+      SQL
+
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", column: "baz_id", primary_key: "baz_id", name: "test_comments_baz_id_fk"/
+    end
+    
   end
 
   describe "synonyms" do
