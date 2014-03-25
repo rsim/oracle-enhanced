@@ -1,3 +1,13 @@
+## 1.5.4 / 2014-03-25
+
+* Enhancements
+ * Support Rails 4.1.0.rc2
+ * Allow Java 8 to run with jruby [#383]
+
+* Bug Fix
+  * Fix db:schema:dump when foreign key column name is not 'id' [#409]
+  * Fix schema dump works when non Oracle adapter used [#428]
+
 ## 1.5.3 / 2014-03-04
 
 * Enhancements
