@@ -98,7 +98,7 @@ module ActiveRecord #:nodoc:
 
     # Creates a record with custom create method
     # and returns its id.
-    def create_record
+    def _create_record
       # check if class has custom create method
       if self.class.custom_create_method
         # run before/after callbacks defined in model
@@ -133,7 +133,7 @@ module ActiveRecord #:nodoc:
 
     # Updates the associated record with custom update method
     # Returns the number of affected rows.
-    def update_record(attribute_names = @attributes.keys)
+    def _update_record(attribute_names = @attributes.keys)
       # check if class has custom update method
       if self.class.custom_update_method
         # run before/after callbacks defined in model
@@ -187,5 +187,8 @@ module ActiveRecord #:nodoc:
     def log_custom_method(*args)
       self.class.connection.send(:log, *args) { yield }
     end
+
+    alias_method :update_record, :_update_record if private_method_defined?(:_update_record)
+    alias_method :create_record, :_create_record if private_method_defined?(:_create_record)
   end
 end
