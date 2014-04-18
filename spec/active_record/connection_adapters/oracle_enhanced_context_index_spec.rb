@@ -381,6 +381,9 @@ describe "OracleEnhancedAdapter context index" do
 
     describe "with table prefix and suffix" do
       before(:all) do
+        @conn = ActiveRecord::Base.connection
+        @oracle12c = !! @conn.select_value(
+                        "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) = 12")
         ActiveRecord::Base.table_name_prefix = 'xxx_'
         ActiveRecord::Base.table_name_suffix = '_xxx'
         create_tables
@@ -405,6 +408,7 @@ describe "OracleEnhancedAdapter context index" do
       end
 
       it "should dump definition of multiple table index with options" do
+        pending "It always fails when Oracle 12c 12.1.0 used." if @oracle12c
         options = {
           name: 'xxx_post_and_comments_i',
           index_column: :all_text, index_column_trigger_on: :updated_at,
