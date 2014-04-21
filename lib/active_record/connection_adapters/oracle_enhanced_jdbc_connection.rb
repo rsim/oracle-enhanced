@@ -27,6 +27,7 @@ begin
       ojdbc_jars.any? do |ojdbc_jar|
         if File.exists?(file_path = File.join(dir, ojdbc_jar))
           puts "WARNING: JDK #{java_version} is not officially supported by #{ojdbc_jar}" if java_version >= '1.8'
+          puts "See http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-faq-090281.html#01_03 for supported versions"
           require file_path
           true
         end
