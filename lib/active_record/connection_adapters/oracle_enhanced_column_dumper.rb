@@ -39,15 +39,23 @@ module ActiveRecord #:nodoc:
         return prepare_column_options_without_oracle_enhanced(column, types) unless oracle_enhanced_adapter?
 
         spec = {}
+
         spec[:name]      = column.name.inspect
         spec[:type]      = column.virtual? ? 'virtual' : column.type.to_s
-        spec[:virtual_type] = column.type.inspect if column.virtual? && column.sql_type != 'NUMBER'
         spec[:limit]     = column.limit.inspect if column.limit != types[column.type][:limit] && column.type != :decimal
         spec[:precision] = column.precision.inspect if !column.precision.nil?
         spec[:scale]     = column.scale.inspect if !column.scale.nil?
         spec[:null]      = 'false' if !column.null
         spec[:as]        = column.virtual_column_data_default if column.virtual?
         spec[:default]   = default_string(column.default) if column.has_default? && !column.virtual?
+
+        if column.virtual?
+          # Supports backwards compatibility with older OracleEnhancedAdapter versions where 'NUMBER' virtual column type is not included in dump
+          if column.sql_type != "NUMBER" || ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.number_datatype_coercion != :decimal
+            spec[:virtual_type] = column.type.inspect
+          end
+        end
+
         spec
       end
 

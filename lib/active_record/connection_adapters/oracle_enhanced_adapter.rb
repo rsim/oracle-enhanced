@@ -271,6 +271,13 @@ module ActiveRecord
       cattr_accessor :emulate_dates_by_column_name
       self.emulate_dates_by_column_name = false
 
+      ##
+      # :singleton-method:
+      # Specify how `NUMBER` datatype columns, without precision and scale, are handled in Rails world.
+      # Default is :decimal and other valid option is :float. Be wary of setting it to other values.
+      cattr_accessor :number_datatype_coercion
+      self.number_datatype_coercion = :decimal
+
       # Check column name to identify if it is Date (and not Time) column.
       # Is used if +emulate_dates_by_column_name+ option is set to +true+.
       # Override this method definition in initializer file if different Date column recognition is needed.
@@ -305,7 +312,7 @@ module ActiveRecord
       # Is used if +emulate_integers_by_column_name+ option is set to +true+.
       # Override this method definition in initializer file if different Integer column recognition is needed.
       def self.is_integer_column?(name, table_name = nil)
-        name =~ /(^|_)id$/i
+        !!(name =~ /(^|_)id$/i)
       end
 
       ##
@@ -420,6 +427,8 @@ module ActiveRecord
         true
       end
 
+      NUMBER_MAX_PRECISION = 38
+
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         :nls_calendar            => nil,
@@ -443,10 +452,10 @@ module ActiveRecord
 
       #:stopdoc:
       NATIVE_DATABASE_TYPES = {
-        :primary_key => "NUMBER(38) NOT NULL PRIMARY KEY",
+        :primary_key => "NUMBER(#{NUMBER_MAX_PRECISION}) NOT NULL PRIMARY KEY",
         :string      => { :name => "VARCHAR2", :limit => 255 },
         :text        => { :name => "CLOB" },
-        :integer     => { :name => "NUMBER", :limit => 38 },
+        :integer     => { :name => "NUMBER", :limit => NUMBER_MAX_PRECISION },
         :float       => { :name => "NUMBER" },
         :decimal     => { :name => "DECIMAL" },
         :datetime    => { :name => "DATE" },
@@ -1260,7 +1269,7 @@ module ActiveRecord
         end.map do |row|
           limit, scale = row['limit'], row['scale']
           if limit || scale
-            row['sql_type'] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
+            row['sql_type'] += "(#{(limit || NUMBER_MAX_PRECISION).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
           end
 
           if row['sql_type_owner']

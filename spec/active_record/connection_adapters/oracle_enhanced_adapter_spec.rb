@@ -686,4 +686,29 @@ describe "OracleEnhancedAdapter" do
       explain.should include("INDEX UNIQUE SCAN")
     end
   end if ENV['RAILS_GEM_VERSION'] >= '3.2'
+
+  describe ".is_integer_column?" do
+    before(:all) do
+      @adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
+    end
+
+    it "should return TrueClass or FalseClass" do
+      @adapter.is_integer_column?("adapter_id").should be_a TrueClass
+      @adapter.is_integer_column?("").should be_a FalseClass
+    end
+
+    it "should return true if name is 'id'" do
+      @adapter.is_integer_column?("id").should be_true
+    end
+
+    it "should return true if name ends with '_id'" do
+      @adapter.is_integer_column?("_id").should be_true
+      @adapter.is_integer_column?("foo_id").should be_true
+    end
+
+    it "should return false if name is 'something_else'" do
+      @adapter.is_integer_column?("something_else").should be_false
+    end
+  end
+
 end
