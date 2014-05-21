@@ -619,7 +619,7 @@ describe "OracleEnhancedAdapter schema dump" do
             number2 = TestNumber.new(value: value_exceeding_max_precision)
             lambda do
               number2.save!
-            end.should raise_error() { |e| e.message.should =~ /ORA-01438.*"VALUE"/m }
+            end.should raise_error() { |e| e.message.should =~ /ORA-01438/ }
           end
         end
       end # context (:decimal)
