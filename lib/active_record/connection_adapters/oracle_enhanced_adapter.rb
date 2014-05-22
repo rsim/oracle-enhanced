@@ -737,7 +737,7 @@ module ActiveRecord
       end
 
       def substitute_at(column, index)
-        Arel.sql(":a#{index + 1}")
+        Arel::Nodes::BindParam.new (":a#{index + 1}")
       end
 
       def clear_cache!
