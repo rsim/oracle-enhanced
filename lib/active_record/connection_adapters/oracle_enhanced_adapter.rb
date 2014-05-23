@@ -396,6 +396,7 @@ module ActiveRecord
         @enable_dbms_output = false
         if config.fetch(:prepared_statements) { true }
           @visitor = Arel::Visitors::Oracle.new self
+          @prepared_statements = true
         else
           @visitor = unprepared_visitor
         end
@@ -751,7 +752,7 @@ module ActiveRecord
         log(sql, name, type_casted_binds) do
           cursor = nil
           cached = false
-          if binds.empty?
+          if without_prepared_statement?(binds)
             cursor = @connection.prepare(sql)
           else
             unless @statements.key? sql
@@ -843,22 +844,29 @@ module ActiveRecord
 
       # New method in ActiveRecord 3.1
       def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
-        log(sql, name, binds) do
+        type_casted_binds = binds.map { |col, val|
+          [col, type_cast(val, col)]
+        }
+        log(sql, name, type_casted_binds) do
           returning_id_col = returning_id_index = nil
-          cursor = if @statements.key?(sql)
-            @statements[sql]
+          if without_prepared_statement?(binds)
+            cursor = @connection.prepare(sql)
           else
-            @statements[sql] = @connection.prepare(sql)
-          end
+            unless @statements.key? (sql)
+              @statements[sql] = @connection.prepare(sql)
+            end
 
-          binds.each_with_index do |bind, i|
-            col, val = bind
-            if col.returning_id?
-              returning_id_col = [col]
-              returning_id_index = i + 1
-              cursor.bind_returning_param(returning_id_index, Integer)
-            else
-              cursor.bind_param(i + 1, type_cast(val, col), col)
+            cursor = @statements[sql]
+
+            binds.each_with_index do |bind, i|
+              col, val = bind
+              if col.returning_id?
+                returning_id_col = [col]
+                returning_id_index = i + 1
+                cursor.bind_returning_param(returning_id_index, Integer)
+              else
+                cursor.bind_param(i + 1, type_cast(val, col), col)
+              end
             end
           end
 
@@ -877,7 +885,7 @@ module ActiveRecord
       def exec_update(sql, name, binds)
         log(sql, name, binds) do
           cached = false
-          if binds.empty?
+          if without_prepared_statement?(binds)
             cursor = @connection.prepare(sql)
           else
             cursor = if @statements.key?(sql)
