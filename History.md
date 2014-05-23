@@ -1,3 +1,17 @@
+## 1.5.5 / 2014-05-23
+
+* Enhancements
+ * Oracle NUMBER datatype can be handled as Rails :float datatype [#418]
+   - Default NUMBER datatype handled as :decimal to keep compatibility
+   - Configured by setting `self.number_datatype_coercion = :float` 
+ * Add link to supported Oracle database version, JDK and Oracle JDBC Driver version [#438]
+ * Support `without_prepared_statements?` to handle `unprepared_statement` [#447]
+
+* Bug Fix
+  * Associations with name `record` do not work correctly since Rails 4 [#435]
+  * Skip another Oracle Text test when Oracle 12c used [#437]
+  * Tag bind params with a bind param object [#444]
+
 ## 1.5.4 / 2014-03-25
 
 * Enhancements
