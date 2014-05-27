@@ -623,7 +623,7 @@ module ActiveRecord
         #
         # It does not construct DISTINCT clause. Just return column names for distinct.
         order_columns = orders.reject(&:blank?).map { |s|
-            s = s.to_sql unless s.is_a?(String)
+            s = s.to_sql.gsub(/\`/, '') unless s.is_a?(String)
             # remove any ASC/DESC modifiers
             s.gsub(/\s+(ASC|DESC)\s*?/i, "")
           }.reject(&:blank?).map.with_index { |column, i|
