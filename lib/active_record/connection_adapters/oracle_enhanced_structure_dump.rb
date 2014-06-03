@@ -172,8 +172,8 @@ module ActiveRecord #:nodoc:
         select_all("SELECT owner, synonym_name, table_name, table_owner
                       FROM all_synonyms
                      WHERE owner = SYS_CONTEXT('userenv', 'session_user') ").each do |synonym|
-          structure << "CREATE OR REPLACE #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']}"
-          structure << " FOR #{synonym['table_owner']}.#{synonym['table_name']}"
+          structure << "CREATE OR REPLACE #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']}
+			FOR #{synonym['table_owner']}.#{synonym['table_name']}"
         end
 
         join_with_statement_token(structure)
