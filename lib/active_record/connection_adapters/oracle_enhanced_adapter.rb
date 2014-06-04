@@ -384,21 +384,18 @@ module ActiveRecord
         end
       end
 
-      class BindSubstitution < Arel::Visitors::Oracle #:nodoc:
-        include Arel::Visitors::BindVisitor
-      end
-
       def initialize(connection, logger, config) #:nodoc:
         super(connection, logger)
         @quoted_column_names, @quoted_table_names = {}, {}
         @config = config
         @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
-        if config.fetch(:prepared_statements) { true }
-          @visitor = Arel::Visitors::Oracle.new self
+        @visitor = Arel::Visitors::Oracle.new self
+
+        if self.class.type_cast_config_to_boolean(config.fetch(:prepared_statements) { true })
           @prepared_statements = true
         else
-          @visitor = unprepared_visitor
+          @prepared_statements = false
         end
       end
 
@@ -1050,8 +1047,10 @@ module ActiveRecord
             row['data_default'] = nil if row['data_default'] =~ /^(null|empty_[bc]lob\(\))$/i
           end
 
+          cast_type = lookup_cast_type(row['sql_type'])
           OracleEnhancedColumn.new(oracle_downcase(row['name']),
                            row['data_default'],
+                           cast_type,
                            row['sql_type'],
                            row['nullable'] == 'Y',
                            # pass table name for table specific column definitions
@@ -1200,6 +1199,13 @@ module ActiveRecord
 
       protected
 
+      def initialize_type_map(m)
+        super
+        # oracle
+        m.register_type %r(date)i,       Type::DateTime.new
+        m.alias_type %r(NUMBER\(1\))i, 'boolean' if OracleEnhancedAdapter.emulate_booleans
+      end
+
       def translate_exception(exception, message) #:nodoc:
         case @connection.error_code(exception)
         when 1
@@ -1212,6 +1218,10 @@ module ActiveRecord
       end
 
       private
+
+      def select(sql, name = nil, binds = [])
+        exec_query(sql, name, binds)
+      end
 
       def oracle_downcase(column_name)
         @connection.oracle_downcase(column_name)
