@@ -105,6 +105,11 @@ module ActiveRecord
         when :delete
           sql << " ON DELETE CASCADE"
         end
+
+        if options[:deferred]
+          sql << " INITIALLY DEFERRED #{options[:deferred].upcase}"
+        end
+
         sql
       end
 
