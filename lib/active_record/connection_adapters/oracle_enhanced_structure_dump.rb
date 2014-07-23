@@ -61,7 +61,7 @@ module ActiveRecord #:nodoc:
           col << "(#{column['data_precision'].to_i}"
           col << ",#{column['data_scale'].to_i}" if !column['data_scale'].nil?
           col << ')'
-        elsif column['data_type'].include?('CHAR')
+        elsif column['data_type'].include?('CHAR') || column['data_type'] == 'RAW'
           length = column['char_used'] == 'C' ? column['char_length'].to_i : column['data_length'].to_i
           col <<  "(#{length})"
         end
