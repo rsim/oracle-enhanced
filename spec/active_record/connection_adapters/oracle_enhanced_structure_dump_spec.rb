@@ -161,6 +161,18 @@ describe "OracleEnhancedAdapter structure dump" do
       dump.should =~ /\"?ID_PLUS\"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
     end
 
+    it "should dump RAW virtual columns" do
+      @conn.execute <<-SQL
+        CREATE TABLE bars (
+          id          NUMBER(38,0) NOT NULL,
+          super       RAW(255) GENERATED ALWAYS AS \( HEXTORAW\(ID\) \) VIRTUAL,
+          PRIMARY KEY (ID)
+        )
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump
+      dump.should =~ /CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/
+    end
+
     it "should dump unique keys" do
       @conn.execute <<-SQL
         ALTER TABLE test_posts
@@ -199,6 +211,19 @@ describe "OracleEnhancedAdapter structure dump" do
       dump.should =~ /CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID\"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i
       dump.should =~ /CREATE  INDEX "?IX_TEST_POSTS_FUNCTION\"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i
     end
+
+    it "should dump RAW columns" do
+      @conn.execute <<-SQL
+        CREATE TABLE bars (
+          id          NUMBER(38,0) NOT NULL,
+          super       RAW(255),
+          PRIMARY KEY (ID)
+        )
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump
+      dump.should =~ /CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\)/
+    end
+
   end
   describe "temporary tables" do
     after(:all) do
