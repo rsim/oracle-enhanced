@@ -223,9 +223,10 @@ You can also access remote tables over database link using
 
 ### Custom create, update and delete methods
 
-If you have legacy schema and you are not allowed to do direct INSERTs, UPDATEs and DELETEs in legacy schema tables and need to use existing PL/SQL procedures for create, updated, delete operations then you should add `ruby-plsql` gem to your application and then define custom create, update and delete methods, see example:
+If you have legacy schema and you are not allowed to do direct INSERTs, UPDATEs and DELETEs in legacy schema tables and need to use existing PL/SQL procedures for create, updated, delete operations then you should add `ruby-plsql` gem to your application, include `ActiveRecord::OracleEnhancedProcedures` in your model and then define custom create, update and delete methods, see example:
 
     class Employee < ActiveRecord::Base
+      include ActiveRecord::OracleEnhancedProcedures
       # when defining create method then return ID of new record that will be assigned to id attribute of new object
       set_create_method do
         plsql.employees_pkg.create_employee(
