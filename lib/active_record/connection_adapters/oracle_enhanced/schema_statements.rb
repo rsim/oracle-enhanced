@@ -103,11 +103,8 @@ module ActiveRecord
           if new_name.to_s.length > table_name_length
             raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{table_name_length} characters"
           end
-          if "#{new_name}_seq".to_s.length > sequence_name_length
-            raise ArgumentError, "New sequence name '#{new_name}_seq' is too long; the limit is #{sequence_name_length} characters"
-          end
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
-          execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{quote_table_name("#{new_name}_seq")}" rescue nil
+          execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{default_sequence_name(new_name)}" rescue nil
 
           rename_table_indexes(table_name, new_name)
         end
