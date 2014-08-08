@@ -426,10 +426,10 @@ describe "OracleEnhancedAdapter schema definition" do
       end.should raise_error
     end
 
-    it "should raise error when new sequence name length is too long" do
+    it "should not raise error when new sequence name length is too long" do
       lambda do
         @conn.rename_table("test_employees","a"*27)
-      end.should raise_error
+      end.should_not raise_error
     end
 
     it "should rename table when table has no primary key and sequence" do
