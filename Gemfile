@@ -14,6 +14,9 @@ group :development do
   gem 'arel',           github: 'rails/arel'
   gem 'journey',        github: 'rails/journey'
 
+  gem 'rack',           github: 'rack/rack'
+  gem 'i18n',           github: 'svenfuchs/i18n'
+
   gem 'activerecord-deprecated_finders'
   gem 'ruby-plsql', '>=0.5.0'
 
