@@ -95,7 +95,8 @@ module ActiveRecord
           references_sql = quote_column_name(options[:primary_key] || references || "id")
         end
 
-        table_name = ActiveRecord::Migrator.proper_table_name(to_table)
+        table_name = to_table
+        # TODO: Needs support `table_name_prefix` and `table_name_suffix`
 
         sql = "FOREIGN KEY (#{columns_sql}) REFERENCES #{quote_table_name(table_name)}(#{references_sql})"
 
