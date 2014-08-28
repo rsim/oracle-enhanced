@@ -240,7 +240,6 @@ module ActiveRecord #:nodoc:
 
       def execute_structure_dump(string)
         string.split(STATEMENT_TOKEN).each do |ddl|
-          ddl.chop! if ddl[-1,1] == ';'
           execute(ddl) unless ddl.blank?
         end
       end
