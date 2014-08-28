@@ -625,7 +625,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should clear older cursors when statement limit is reached" do
-      pk = TestPost.columns.find { |c| c.primary }
+      pk = TestPost.columns_hash[TestPost.primary_key]
       sub = @conn.substitute_at(pk, 0)
       binds = [[pk, 1]]
 
@@ -638,7 +638,7 @@ describe "OracleEnhancedAdapter" do
 
     it "should cache UPDATE statements with bind variables" do
       lambda {
-        pk = TestPost.columns.find { |c| c.primary }
+        pk = TestPost.columns_hash[TestPost.primary_key]
         sub = @conn.substitute_at(pk, 0)
         binds = [[pk, 1]]
         @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
@@ -679,7 +679,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should explain query with binds" do
-      pk = TestPost.columns.find { |c| c.primary }
+      pk = TestPost.columns_hash[TestPost.primary_key]
       sub = @conn.substitute_at(pk, 0)
       explain = TestPost.where(TestPost.arel_table[pk.name].eq(sub)).bind([pk, 1]).explain
       explain.should include("Cost")
