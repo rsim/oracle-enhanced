@@ -1197,6 +1197,10 @@ module ActiveRecord
         end
       end
 
+      def new_column(name, default, cast_type, sql_type = nil, null = true, table_name = nil, forced_column_type = nil, virtual=false, returning_id=false)
+        ActiveRecord::ConnectionAdapters::OracleEnhancedColumn.new(name, default, cast_type, sql_type = nil, null = true, table_name = nil, forced_column_type = nil, virtual=false, returning_id=false)
+      end
+
       protected
 
       def initialize_type_map(m)

@@ -19,7 +19,8 @@ module ActiveRecord
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
         @nchar = true if @cast_type == :string && sql_type[0,1] == 'N'
-        @object_type = sql_type.include? '.'
+        # TODO: Need to investigate when `sql_type` becomes nil
+        @object_type = sql_type.include? '.' unless sql_type.nil?
       end
 
       def type_cast(value) #:nodoc:
