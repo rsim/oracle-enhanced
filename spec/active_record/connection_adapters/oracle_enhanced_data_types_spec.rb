@@ -67,21 +67,21 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
-    column.type_cast(Time.now).class.should == Time
+    column.type_cast_from_database(Time.now).class.should == Time
   end
 
   it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
-    column.type_cast(Time.now).class.should == Date
+    column.type_cast_from_database(Time.now).class.should == Date
   end
 
   it "should typecast DateTime value to Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
-    column.type_cast(DateTime.new(1900,1,1)).class.should == Date
+    column.type_cast_from_database(DateTime.new(1900,1,1)).class.should == Date
   end
 
   describe "/ DATE values from ActiveRecord model" do
@@ -295,14 +295,14 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
     columns = @conn.columns('test2_employees')
     column = columns.detect{|c| c.name == "job_id"}
-    column.type_cast(1.0).class.should == BigDecimal
+    column.type_cast_from_database(1.0).class.should == BigDecimal
   end
 
   it "should return Fixnum value from NUMBER column if column name ends with '_id' and emulate_integers_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
     columns = @conn.columns('test2_employees')
     column = columns.detect{|c| c.name == "job_id"}
-    column.type_cast(1.0).class.should == Fixnum
+    column.type_cast_from_database(1.0).class.should == Fixnum
   end
 
   describe "/ NUMBER values from ActiveRecord model" do
@@ -452,7 +452,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     columns = @conn.columns('test3_employees')
     %w(has_email has_phone active_flag manager_yn).each do |col|
       column = columns.detect{|c| c.name == col}
-      column.type_cast("Y").class.should == String
+      column.type_cast_from_database("Y").class.should == String
     end
   end
   
@@ -461,8 +461,8 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     columns = @conn.columns('test3_employees')
     %w(has_email has_phone active_flag manager_yn).each do |col|
       column = columns.detect{|c| c.name == col}
-      column.type_cast("Y").class.should == TrueClass
-      column.type_cast("N").class.should == FalseClass
+      column.type_cast_from_database("Y").class.should == TrueClass
+      column.type_cast_from_database("N").class.should == FalseClass
     end
   end
 
