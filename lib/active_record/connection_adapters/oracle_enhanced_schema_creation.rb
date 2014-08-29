@@ -54,10 +54,9 @@ module ActiveRecord
           # handle case of defaults for CLOB columns, which would otherwise get "quoted" incorrectly
           if options_include_default?(options)
             if type == :text
-              sql << " DEFAULT #{@conn.quote(options[:default])}"
+              sql << " DEFAULT #{quote_value(options[:default])}"
             else
-              # from abstract adapter
-              sql << " DEFAULT #{@conn.quote(options[:default], options[:column])}"
+              sql << " DEFAULT #{quote_value(options[:default], options[:column])}"
             end
           end
           # must explicitly add NULL or NOT NULL to allow change_column to work on migrations
