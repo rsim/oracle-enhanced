@@ -473,7 +473,7 @@ describe "OracleEnhancedAdapter" do
         t.string      :title
         # cannot update LOBs over database link
         t.string      :body
-        t.timestamps
+        t.timestamps null: true
       end
       @db_link_username = SYSTEM_CONNECTION_PARAMS[:username]
       @db_link_password = SYSTEM_CONNECTION_PARAMS[:password]
