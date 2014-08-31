@@ -7,6 +7,8 @@ module ActiveRecord #:nodoc:
           private
           alias_method_chain :tables, :oracle_enhanced
           alias_method_chain :indexes, :oracle_enhanced
+          alias_method_chain :indexes, :oracle_enhanced
+          alias_method_chain :foreign_keys, :oracle_enhanced
         end
       end
 
@@ -56,7 +58,7 @@ module ActiveRecord #:nodoc:
         end
       end
 
-      def foreign_keys(table_name, stream)
+      def foreign_keys_with_oracle_enhanced(table_name, stream)
         if @connection.respond_to?(:foreign_keys) && (foreign_keys = @connection.foreign_keys(table_name)).any?
           add_foreign_key_statements = foreign_keys.map do |foreign_key|
             statement_parts = [ ('add_foreign_key ' + foreign_key.from_table.inspect) ]
