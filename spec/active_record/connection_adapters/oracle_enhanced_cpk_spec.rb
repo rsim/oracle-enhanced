@@ -67,12 +67,12 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
           t.string  :type_category, :limit => 15, :null => false  
           t.date    :date_value, :null => false
           t.text    :results, :null => false
-          t.timestamps
+          t.timestamps null: true
         end
         create_table :non_cpk_write_lobs_test, :force => true do |t|
           t.date    :date_value, :null => false
           t.text    :results, :null => false
-          t.timestamps
+          t.timestamps null: true
         end
       end
       class ::CpkWriteLobsTest < ActiveRecord::Base

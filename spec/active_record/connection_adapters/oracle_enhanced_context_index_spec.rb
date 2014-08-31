@@ -11,7 +11,7 @@ describe "OracleEnhancedAdapter context index" do
         t.string :title
         t.text :body
         t.integer :comments_count
-        t.timestamps
+        t.timestamps null: true
         t.string :all_text, limit: 2 # will be used for multi-column index
       end
     end
@@ -23,7 +23,7 @@ describe "OracleEnhancedAdapter context index" do
         t.integer :post_id
         t.string :author
         t.text :body
-        t.timestamps
+        t.timestamps null: true
       end
     end
   end
