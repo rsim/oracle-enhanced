@@ -15,6 +15,11 @@ module ActiveRecord
         else
           default_value = self.class.extract_value_from_default(default)
         end
+        # TODO: Consider to extract to another method
+        if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
+          cast_type = ActiveRecord::Type::Integer.new
+        end
+
         super(name, default_value, cast_type, sql_type, null)
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
