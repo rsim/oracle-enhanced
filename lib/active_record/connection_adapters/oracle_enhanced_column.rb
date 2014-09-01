@@ -20,6 +20,9 @@ module ActiveRecord
           cast_type = ActiveRecord::Type::Integer.new
         end
 
+        if OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(name, table_name)
+          cast_type = ActiveRecord::Type::Date.new
+        end
         super(name, default_value, cast_type, sql_type, null)
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
