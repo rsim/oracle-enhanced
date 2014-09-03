@@ -193,6 +193,10 @@ If you want to put Oracle enhanced adapter on top of existing schema tables then
       # set which columns should be ignored in ActiveRecord
       ignore_table_columns :attribute1, :attribute2
     end
+    
+Rails >= 3.2 syntax:
+
+    self.table_name = "hr.hr_employees"
 
 You can also access remote tables over database link using
 
