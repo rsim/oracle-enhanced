@@ -425,6 +425,10 @@ module ActiveRecord
         true
       end
 
+      def supports_views?
+        true
+      end
+
       NUMBER_MAX_PRECISION = 38
 
       #:stopdoc:
