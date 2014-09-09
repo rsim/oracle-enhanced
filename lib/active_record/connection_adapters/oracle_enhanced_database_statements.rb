@@ -215,11 +215,11 @@ module ActiveRecord
       end
 
       def create_savepoint(name = current_savepoint_name) #:nodoc:
-        execute("SAVEPOINT #{current_savepoint_name}")
+        execute("SAVEPOINT #{name}")
       end
 
       def rollback_to_savepoint(name = current_savepoint_name) #:nodoc:
-        execute("ROLLBACK TO #{current_savepoint_name}")
+        execute("ROLLBACK TO #{name}")
       end
 
       def release_savepoint(name = current_savepoint_name) #:nodoc:
