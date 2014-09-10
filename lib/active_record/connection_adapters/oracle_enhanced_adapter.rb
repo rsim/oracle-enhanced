@@ -1051,7 +1051,12 @@ module ActiveRecord
             row['data_default'] = nil if row['data_default'] =~ /^(null|empty_[bc]lob\(\))$/i
           end
 
-          cast_type = lookup_cast_type(row['sql_type'])
+          # TODO: It is just for `set_date_columns` now. Needs to be generic
+          if get_type_for_column(table_name, oracle_downcase(row['name']))
+            cast_type = Type::Date.new
+          else
+            cast_type = lookup_cast_type(row['sql_type'])
+          end
           OracleEnhancedColumn.new(oracle_downcase(row['name']),
                            row['data_default'],
                            cast_type,
