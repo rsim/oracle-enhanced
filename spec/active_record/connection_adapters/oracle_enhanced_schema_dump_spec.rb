@@ -22,7 +22,7 @@ describe "OracleEnhancedAdapter schema dump" do
     schema_define do
       create_table :test_posts, options do |t|
         t.string :title
-        t.timestamps
+        t.timestamps null: true
       end
       add_index :test_posts, :title
     end
