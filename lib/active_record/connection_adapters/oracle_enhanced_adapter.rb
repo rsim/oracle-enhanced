@@ -390,7 +390,11 @@ module ActiveRecord
         @config = config
         @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
-        @visitor = Arel::Visitors::Oracle.new self
+        if supports_fetch_first_n_rows_and_offset?
+          @visitor = Arel::Visitors::Oracle12.new self
+        else
+          @visitor = Arel::Visitors::Oracle.new self
+        end
 
         if self.class.type_cast_config_to_boolean(config.fetch(:prepared_statements) { true })
           @prepared_statements = true
@@ -423,6 +427,14 @@ module ActiveRecord
 
       def supports_views?
         true
+      end
+
+      def supports_fetch_first_n_rows_and_offset?
+        if @connection.database_version == [12,1]
+          true
+        else
+          false
+        end
       end
 
       NUMBER_MAX_PRECISION = 38

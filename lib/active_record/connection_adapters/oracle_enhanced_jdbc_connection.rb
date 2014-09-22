@@ -317,6 +317,10 @@ module ActiveRecord
         Cursor.new(self, @raw_connection.prepareStatement(sql))
       end
 
+      def database_version
+        @database_version ||= (md = raw_connection.getMetaData) && [md.getDatabaseMajorVersion, md.getDatabaseMinorVersion]
+      end
+
       class Cursor
         def initialize(connection, raw_statement)
           @connection = connection

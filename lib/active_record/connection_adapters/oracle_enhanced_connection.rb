@@ -98,6 +98,10 @@ module ActiveRecord
         result.map { |r| r.values.first }
       end
 
+      # Returns array with major and minor version of database (e.g. [12, 1])
+      def database_version
+        raise NoMethodError, "Not implemented for this raw driver"
+      end
     end
     
     class OracleEnhancedConnectionException < StandardError #:nodoc:
