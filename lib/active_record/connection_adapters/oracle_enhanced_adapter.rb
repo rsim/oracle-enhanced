@@ -402,10 +402,6 @@ module ActiveRecord
         end
       end
 
-      def self.visitor_for(pool) # :nodoc:
-        Arel::Visitors::Oracle.new(pool)
-      end
-
       ADAPTER_NAME = 'OracleEnhanced'.freeze
 
       def adapter_name #:nodoc:
