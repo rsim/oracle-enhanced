@@ -1212,6 +1212,7 @@ module ActiveRecord
         super
         # oracle
         register_class_with_limit m, %r(date)i, Type::DateTime
+        register_class_with_limit m, %r(raw)i,  Type::Raw
         m.alias_type %r(NUMBER\(1\))i, 'boolean' if OracleEnhancedAdapter.emulate_booleans
       end
 
@@ -1336,3 +1337,6 @@ require 'active_record/connection_adapters/oracle_enhanced_schema_creation'
 
 # Moved DatabaseStetements
 require 'active_record/connection_adapters/oracle_enhanced_database_statements'
+
+# Add Type:Raw
+require 'active_record/type/raw'
