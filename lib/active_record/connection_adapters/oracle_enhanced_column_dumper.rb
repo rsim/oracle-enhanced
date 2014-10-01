@@ -47,7 +47,8 @@ module ActiveRecord #:nodoc:
         spec[:scale]     = column.scale.inspect if !column.scale.nil?
         spec[:null]      = 'false' if !column.null
         spec[:as]        = column.virtual_column_data_default if column.virtual?
-        spec[:default]   = default_string(column.default) if column.has_default? && !column.virtual?
+        spec[:default]   = schema_default(column) if column.has_default? && !column.virtual?
+        spec.delete(:default) if spec[:default].nil?
 
         if column.virtual?
           # Supports backwards compatibility with older OracleEnhancedAdapter versions where 'NUMBER' virtual column type is not included in dump
