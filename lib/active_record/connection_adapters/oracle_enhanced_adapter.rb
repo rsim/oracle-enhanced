@@ -1211,7 +1211,7 @@ module ActiveRecord
       def initialize_type_map(m)
         super
         # oracle
-        m.register_type %r(date)i,       Type::DateTime.new
+        register_class_with_limit m, %r(date)i, Type::DateTime
         m.alias_type %r(NUMBER\(1\))i, 'boolean' if OracleEnhancedAdapter.emulate_booleans
       end
 
