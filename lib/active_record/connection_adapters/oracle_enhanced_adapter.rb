@@ -327,9 +327,9 @@ module ActiveRecord
       # Check column name to identify if it is boolean (and not String) column.
       # Is used if +emulate_booleans_from_strings+ option is set to +true+.
       # Override this method definition in initializer file if different boolean column recognition is needed.
-      def self.is_boolean_column?(name, field_type, table_name = nil)
-        return true if ["CHAR(1)","VARCHAR2(1)"].include?(field_type)
-        field_type =~ /^VARCHAR2/ && (name =~ /_flag$/i || name =~ /_yn$/i)
+      def self.is_boolean_column?(name, sql_type, table_name = nil)
+        return true if ["CHAR(1)","VARCHAR2(1)"].include?(sql_type)
+        sql_type =~ /^VARCHAR2/ && (name =~ /_flag$/i || name =~ /_yn$/i)
       end
 
       # How boolean value should be quoted to String.
