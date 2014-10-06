@@ -1213,6 +1213,15 @@ module ActiveRecord
         # oracle
         register_class_with_limit m, %r(date)i, Type::DateTime
         register_class_with_limit m, %r(raw)i,  Type::Raw
+        m.register_type(%r(NUMBER)i) do |sql_type|
+          scale = extract_scale(sql_type)
+          precision = extract_precision(sql_type)
+          if scale == 0
+            Type::Integer.new(precision: precision)
+          else
+            Type::Decimal.new(precision: precision, scale: scale)
+          end
+        end
         m.alias_type %r(NUMBER\(1\))i, 'boolean' if OracleEnhancedAdapter.emulate_booleans
       end
 
