@@ -1219,7 +1219,11 @@ module ActiveRecord
           if scale == 0
             Type::Integer.new(precision: precision)
           else
-            Type::Decimal.new(precision: precision, scale: scale)
+            if OracleEnhancedAdapter.number_datatype_coercion == :decimal
+              Type::Decimal.new(precision: precision, scale: scale)
+            elsif OracleEnhancedAdapter.number_datatype_coercion == :float
+              Type::Float.new(precision: precision, scale: scale)
+            end
           end
         end
         m.alias_type %r(NUMBER\(1\))i, 'boolean' if OracleEnhancedAdapter.emulate_booleans
