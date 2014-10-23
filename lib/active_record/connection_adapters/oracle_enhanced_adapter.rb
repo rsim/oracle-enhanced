@@ -271,6 +271,13 @@ module ActiveRecord
       cattr_accessor :emulate_dates_by_column_name
       self.emulate_dates_by_column_name = false
 
+      ##
+      # :singleton-method:
+      # Specify how `NUMBER` datatype columns, without precision and scale, are handled in Rails world.
+      # Default is :decimal and other valid option is :float. Be wary of setting it to other values.
+      cattr_accessor :number_datatype_coercion
+      self.number_datatype_coercion = :decimal
+
       # Check column name to identify if it is Date (and not Time) column.
       # Is used if +emulate_dates_by_column_name+ option is set to +true+.
       # Override this method definition in initializer file if different Date column recognition is needed.
@@ -305,7 +312,7 @@ module ActiveRecord
       # Is used if +emulate_integers_by_column_name+ option is set to +true+.
       # Override this method definition in initializer file if different Integer column recognition is needed.
       def self.is_integer_column?(name, table_name = nil)
-        name =~ /(^|_)id$/i
+        !!(name =~ /(^|_)id$/i)
       end
 
       ##
@@ -389,6 +396,7 @@ module ActiveRecord
         @enable_dbms_output = false
         if config.fetch(:prepared_statements) { true }
           @visitor = Arel::Visitors::Oracle.new self
+          @prepared_statements = true
         else
           @visitor = unprepared_visitor
         end
@@ -420,6 +428,8 @@ module ActiveRecord
         true
       end
 
+      NUMBER_MAX_PRECISION = 38
+
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         :nls_calendar            => nil,
@@ -443,10 +453,10 @@ module ActiveRecord
 
       #:stopdoc:
       NATIVE_DATABASE_TYPES = {
-        :primary_key => "NUMBER(38) NOT NULL PRIMARY KEY",
+        :primary_key => "NUMBER(#{NUMBER_MAX_PRECISION}) NOT NULL PRIMARY KEY",
         :string      => { :name => "VARCHAR2", :limit => 255 },
         :text        => { :name => "CLOB" },
-        :integer     => { :name => "NUMBER", :limit => 38 },
+        :integer     => { :name => "NUMBER", :limit => NUMBER_MAX_PRECISION },
         :float       => { :name => "NUMBER" },
         :decimal     => { :name => "DECIMAL" },
         :datetime    => { :name => "DATE" },
@@ -728,7 +738,7 @@ module ActiveRecord
       end
 
       def substitute_at(column, index)
-        Arel.sql(":a#{index + 1}")
+        Arel::Nodes::BindParam.new (":a#{index + 1}")
       end
 
       def clear_cache!
@@ -736,10 +746,13 @@ module ActiveRecord
       end
 
       def exec_query(sql, name = 'SQL', binds = [])
-        log(sql, name, binds) do
+        type_casted_binds = binds.map { |col, val|
+          [col, type_cast(val, col)]
+        }
+        log(sql, name, type_casted_binds) do
           cursor = nil
           cached = false
-          if binds.empty?
+          if without_prepared_statement?(binds)
             cursor = @connection.prepare(sql)
           else
             unless @statements.key? sql
@@ -758,7 +771,7 @@ module ActiveRecord
 
           cursor.exec
 
-          if name == 'EXPLAIN'
+          if name == 'EXPLAIN' and sql =~ /^EXPLAIN/
             res = true
           else
             columns = cursor.get_col_names.map do |col_name|
@@ -798,13 +811,8 @@ module ActiveRecord
 
       # Returns an array of arrays containing the field values.
       # Order is the same as that returned by #columns.
-      def select_rows(sql, name = nil)
-        # last parameter indicates to return also column list
-        result = columns = nil
-        log(sql, name) do
-          result, columns = @connection.select(sql, name, true)
-        end
-        result.map{ |v| columns.map{|c| v[c]} }
+      def select_rows(sql, name = nil, binds = [])
+        exec_query(sql, name, binds).rows
       end
 
       # Executes an INSERT statement and returns the new record's ID
@@ -836,22 +844,29 @@ module ActiveRecord
 
       # New method in ActiveRecord 3.1
       def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
-        log(sql, name, binds) do
+        type_casted_binds = binds.map { |col, val|
+          [col, type_cast(val, col)]
+        }
+        log(sql, name, type_casted_binds) do
           returning_id_col = returning_id_index = nil
-          cursor = if @statements.key?(sql)
-            @statements[sql]
+          if without_prepared_statement?(binds)
+            cursor = @connection.prepare(sql)
           else
-            @statements[sql] = @connection.prepare(sql)
-          end
+            unless @statements.key? (sql)
+              @statements[sql] = @connection.prepare(sql)
+            end
 
-          binds.each_with_index do |bind, i|
-            col, val = bind
-            if col.returning_id?
-              returning_id_col = [col]
-              returning_id_index = i + 1
-              cursor.bind_returning_param(returning_id_index, Integer)
-            else
-              cursor.bind_param(i + 1, type_cast(val, col), col)
+            cursor = @statements[sql]
+
+            binds.each_with_index do |bind, i|
+              col, val = bind
+              if col.returning_id?
+                returning_id_col = [col]
+                returning_id_index = i + 1
+                cursor.bind_returning_param(returning_id_index, Integer)
+              else
+                cursor.bind_param(i + 1, type_cast(val, col), col)
+              end
             end
           end
 
@@ -870,7 +885,7 @@ module ActiveRecord
       def exec_update(sql, name, binds)
         log(sql, name, binds) do
           cached = false
-          if binds.empty?
+          if without_prepared_statement?(binds)
             cursor = @connection.prepare(sql)
           else
             cursor = if @statements.key?(sql)
@@ -938,15 +953,15 @@ module ActiveRecord
         @connection.autocommit = true
       end
 
-      def create_savepoint #:nodoc:
+      def create_savepoint(name = current_savepoint_name) #:nodoc:
         execute("SAVEPOINT #{current_savepoint_name}")
       end
 
-      def rollback_to_savepoint #:nodoc:
+      def rollback_to_savepoint(name = current_savepoint_name) #:nodoc:
         execute("ROLLBACK TO #{current_savepoint_name}")
       end
 
-      def release_savepoint #:nodoc:
+      def release_savepoint(name = current_savepoint_name) #:nodoc:
         # there is no RELEASE SAVEPOINT statement in Oracle
       end
 
@@ -1267,7 +1282,7 @@ module ActiveRecord
         end.map do |row|
           limit, scale = row['limit'], row['scale']
           if limit || scale
-            row['sql_type'] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
+            row['sql_type'] += "(#{(limit || NUMBER_MAX_PRECISION).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
           end
 
           if row['sql_type_owner']
@@ -1337,6 +1352,13 @@ module ActiveRecord
       def pk_and_sequence_for_without_cache(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
+        seqs = select_values(<<-SQL.strip.gsub(/\s+/, ' '), 'Sequence')
+          select us.sequence_name
+          from all_sequences#{db_link} us
+          where us.sequence_owner = '#{owner}'
+          and us.sequence_name = '#{desc_table_name}_SEQ'
+        SQL
+
         # changed back from user_constraints to all_constraints for consistency
         pks = select_values(<<-SQL.strip.gsub(/\s+/, ' '), 'Primary Key')
           SELECT cc.column_name
@@ -1349,7 +1371,8 @@ module ActiveRecord
         SQL
 
         # only support single column keys
-        pks.size == 1 ? [oracle_downcase(pks.first), nil] : nil
+        pks.size == 1 ? [oracle_downcase(pks.first),
+                         oracle_downcase(seqs.first)] : nil
       end
 
       # Returns just a table's primary key
@@ -1399,29 +1422,14 @@ module ActiveRecord
           s = s.to_sql unless s.is_a?(String)
           # remove any ASC/DESC modifiers
           s.gsub(/\s+(ASC|DESC)\s*?/i, '')
-          }.reject(&:blank?).map.with_index { |column,i| 
-            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns} ORDER BY #{column}) AS alias_#{i}__" 
+          }.reject(&:blank?).map.with_index { |column,i|
+            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns} ORDER BY #{column}) AS alias_#{i}__"
           }
           [super, *order_columns].join(', ')
       end
 
       def temporary_table?(table_name) #:nodoc:
         select_value("SELECT temporary FROM user_tables WHERE table_name = '#{table_name.upcase}'") == 'Y'
-      end
-
-      # ORDER BY clause for the passed order option.
-      #
-      # Uses column aliases as defined by #distinct.
-      #
-      # In Rails 3.x this method is moved to Arel
-      def add_order_by_for_association_limiting!(sql, options) #:nodoc:
-        return sql if options[:order].blank?
-
-        order = options[:order].split(',').collect { |s| s.strip }.reject(&:blank?)
-        order.map! {|s| $1 if s =~ / (.*)/}
-        order = order.zip((0...order.size).to_a).map { |s,i| "alias_#{i}__ #{s}" }.join(', ')
-
-        sql << " ORDER BY #{order}"
       end
 
       # construct additional wrapper subquery if select.offset is used to avoid generation of invalid subquery
@@ -1556,9 +1564,6 @@ require 'active_record/connection_adapters/oracle_enhanced_schema_dumper'
 # Implementation of structure dump
 require 'active_record/connection_adapters/oracle_enhanced_structure_dump'
 
-# Add BigDecimal#to_d, Fixnum#to_d and Bignum#to_d methods if not already present
-require 'active_record/connection_adapters/oracle_enhanced_core_ext'
-
 require 'active_record/connection_adapters/oracle_enhanced_version'
 
 module ActiveRecord
@@ -1568,85 +1573,5 @@ end
 # Patches and enhancements for column dumper
 require 'active_record/connection_adapters/oracle_enhanced_column_dumper'
 
-module ActiveRecord
-  module ConnectionAdapters
-    class OracleEnhancedAdapter < AbstractAdapter
-      class SchemaCreation < AbstractAdapter::SchemaCreation
-        private
-
-        def visit_ColumnDefinition(o)
-          if o.type.to_sym == :virtual
-            sql_type = type_to_sql(o.default[:type], o.limit, o.precision, o.scale) if o.default[:type]
-            "#{quote_column_name(o.name)} #{sql_type} AS (#{o.default[:as]})"
-          else
-            super
-          end
-        end
-
-        def visit_TableDefinition(o)
-          tablespace = tablespace_for(:table, o.options[:tablespace])
-          create_sql = "CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE "
-          create_sql << "#{quote_table_name(o.name)} ("
-          create_sql << o.columns.map { |c| accept c }.join(', ')
-          create_sql << ")"
-          unless o.temporary
-            create_sql << " ORGANIZATION #{o.options[:organization]}" if o.options[:organization]
-            create_sql << "#{tablespace}"
-          end
-          create_sql << " #{o.options[:options]}"
-          create_sql
-        end
-
-        def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
-          tablespace_sql = ''
-          if tablespace = (tablespace_option || default_tablespace_for(obj_type))
-            tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
-              " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
-            else
-              " TABLESPACE #{tablespace}"
-            end
-          end
-          tablespace_sql
-        end
-
-        def default_tablespace_for(type)
-          (ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[type] || 
-           ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[native_database_types[type][:name]]) rescue nil
-        end
-
-        def foreign_key_definition(to_table, options = {})
-          @conn.foreign_key_definition(to_table, options)
-        end
-
-      end
-      
-      def schema_creation
-          SchemaCreation.new self
-      end
-    end
-
-    def add_column_options!(sql, options)
-      type = options[:type] || ((column = options[:column]) && column.type)
-      type = type && type.to_sym
-      # handle case of defaults for CLOB columns, which would otherwise get "quoted" incorrectly
-      if options_include_default?(options)
-        if type == :text
-          sql << " DEFAULT #{quote(options[:default])}"
-        else
-          # from abstract adapter
-          sql << " DEFAULT #{quote(options[:default], options[:column])}"
-        end
-      end
-      # must explicitly add NULL or NOT NULL to allow change_column to work on migrations
-      if options[:null] == false
-        sql << " NOT NULL"
-      elsif options[:null] == true
-        sql << " NULL" unless type == :primary_key
-      end
-      # add AS expression for virtual columns
-      if options[:as].present?
-        sql << " AS (#{options[:as]})"
-      end
-    end
-  end
-end
+# Moved SchemaCreation class
+require 'active_record/connection_adapters/oracle_enhanced_schema_creation'

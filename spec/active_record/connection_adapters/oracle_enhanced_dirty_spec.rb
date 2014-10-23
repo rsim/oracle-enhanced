@@ -16,6 +16,7 @@ if ActiveRecord::Base.method_defined?(:changed?)
           last_name     VARCHAR2(25),
           job_id        NUMBER(6,0) NULL,
           salary        NUMBER(8,2),
+          pto_per_hour  NUMBER,
           comments      CLOB,
           hire_date     DATE
         )
@@ -27,7 +28,7 @@ if ActiveRecord::Base.method_defined?(:changed?)
       class TestEmployee < ActiveRecord::Base
       end
     end
-  
+
     after(:all) do
       Object.send(:remove_const, "TestEmployee")
       @conn.execute "DROP TABLE test_employees"
@@ -59,6 +60,16 @@ if ActiveRecord::Base.method_defined?(:changed?)
       @employee.should_not be_changed
       @employee.reload
       @employee.salary = ''
+      @employee.should_not be_changed
+    end
+
+    it "should not mark empty float (stored as NULL) as changed when reassigning it" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.stub(:number_datatype_coercion) { :float }
+      @employee = TestEmployee.create!(:pto_per_hour => '')
+      @employee.pto_per_hour = ''
+      @employee.should_not be_changed
+      @employee.reload
+      @employee.pto_per_hour = ''
       @employee.should_not be_changed
     end
 
@@ -111,7 +122,7 @@ if ActiveRecord::Base.method_defined?(:changed?)
       @employee = TestEmployee.new
       @employee.job_id = 0
       @employee.save!.should be_true
-      
+
       @employee.should_not be_changed
 
       @employee.job_id = '0'

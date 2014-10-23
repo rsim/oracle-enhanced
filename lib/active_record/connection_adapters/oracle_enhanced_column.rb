@@ -10,8 +10,12 @@ module ActiveRecord
         @virtual = virtual
         @virtual_column_data_default = default.inspect if virtual
         @returning_id = returning_id
-        default = nil if virtual
-        super(name, default, sql_type, null)
+        if virtual
+          default_value = nil
+        else
+          default_value = self.class.extract_value_from_default(default)
+        end
+        super(name, default_value, sql_type, null)
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
         @nchar = true if @type == :string && sql_type[0,1] == 'N'
@@ -19,9 +23,24 @@ module ActiveRecord
       end
 
       def type_cast(value) #:nodoc:
-        return OracleEnhancedColumn::string_to_raw(value) if type == :raw
-        return guess_date_or_time(value) if type == :datetime && OracleEnhancedAdapter.emulate_dates
-        super
+        case type
+        when :raw
+          OracleEnhancedColumn.string_to_raw(value)
+        when :datetime
+          OracleEnhancedAdapter.emulate_dates ? guess_date_or_time(value) : super
+        when :float
+          !value.nil? ? self.class.value_to_decimal(value) : super
+        else
+          super
+        end
+      end
+
+      def type_cast_code(var_name)
+        type == :float ? "#{self.class.name}.value_to_decimal(#{var_name})" : super
+      end
+
+      def klass
+        type == :float ? BigDecimal : super
       end
 
       def virtual?
@@ -81,12 +100,14 @@ module ActiveRecord
         forced_column_type ||
         case field_type
         when /decimal|numeric|number/i
-          if OracleEnhancedAdapter.emulate_booleans && field_type == 'NUMBER(1)'
+          if OracleEnhancedAdapter.emulate_booleans && field_type.upcase == "NUMBER(1)"
             :boolean
           elsif extract_scale(field_type) == 0 ||
                 # if column name is ID or ends with _ID
                 OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
             :integer
+          elsif field_type.upcase == "NUMBER"
+            OracleEnhancedAdapter.number_datatype_coercion
           else
             :decimal
           end
@@ -111,6 +132,15 @@ module ActiveRecord
           :datetime
         else
           super
+        end
+      end
+
+      def self.extract_value_from_default(default)
+        case default
+          when String
+            default.gsub(/''/, "'")
+          else
+            default
         end
       end
 
