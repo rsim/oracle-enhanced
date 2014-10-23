@@ -35,6 +35,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "lib/active_record/connection_adapters/oracle_enhanced_connection.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_context_index.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_cpk.rb",
+    "lib/active_record/connection_adapters/oracle_enhanced_database_tasks.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_dirty.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_jdbc_connection.rb",
     "lib/active_record/connection_adapters/oracle_enhanced_oci_connection.rb",
