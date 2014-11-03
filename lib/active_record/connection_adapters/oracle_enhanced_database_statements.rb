@@ -10,7 +10,7 @@ module ActiveRecord
         log(sql, name) { @connection.exec(sql) }
       end
 
-      def substitute_at(column, index)
+      def substitute_at(column, index = 0)
         Arel::Nodes::BindParam.new (":a#{index + 1}")
       end
 
