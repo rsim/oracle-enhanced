@@ -1275,7 +1275,9 @@ module ActiveRecord
 
       def select(sql, name = nil, binds = [])
         if ActiveRecord.const_defined?(:Result)
-          exec_query(sql, name, binds).to_a
+          @connection.with_retry do
+            exec_query(sql, name, binds).to_a
+          end
         else
           log(sql, name) do
             @connection.select(sql, name, false)
