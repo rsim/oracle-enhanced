@@ -626,7 +626,7 @@ describe "OracleEnhancedAdapter" do
 
     it "should clear older cursors when statement limit is reached" do
       pk = TestPost.columns_hash[TestPost.primary_key]
-      sub = @conn.substitute_at(pk, 0)
+      sub = @conn.substitute_at(pk, 0).to_sql
       binds = [[pk, 1]]
 
       lambda {
@@ -639,7 +639,7 @@ describe "OracleEnhancedAdapter" do
     it "should cache UPDATE statements with bind variables" do
       lambda {
         pk = TestPost.columns_hash[TestPost.primary_key]
-        sub = @conn.substitute_at(pk, 0)
+        sub = @conn.substitute_at(pk, 0).to_sql
         binds = [[pk, 1]]
         @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
       }.should change(@statements, :length).by(+1)
