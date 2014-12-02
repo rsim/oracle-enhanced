@@ -179,11 +179,11 @@ If you want to put Oracle enhanced adapter on top of existing schema tables then
 
     class Employee < ActiveRecord::Base
       # specify schema and table name
-      self.table_name "hr.hr_employees"
+      self.table_name = "hr.hr_employees"
       # specify primary key name
-      self.primary_key "employee_id"
+      self.primary_key = "employee_id"
       # specify sequence name
-      self.sequence_name "hr.hr_employee_s"
+      self.sequence_name = "hr.hr_employee_s"
       # set which DATE columns should be converted to Ruby Date
       set_date_columns :hired_on, :birth_date_on
       # set which DATE columns should be converted to Ruby Time
