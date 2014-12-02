@@ -29,7 +29,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
@@ -92,7 +92,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
         self.primary_key = "employee_id"
       end
     end
-    
+
     def create_test_employee(params={})
       @today = params[:today] || Date.new(2008,8,19)
       @now = params[:now] || Time.local(2008,8,19,17,03,59)
@@ -317,7 +317,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
-    
+
     def create_employee2
       @employee2 = Test2Employee.create(
         :first_name => "First",
@@ -328,7 +328,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       )
       @employee2.reload
     end
-    
+
     it "should return BigDecimal value from NUMBER column if emulate_integers_by_column_name is false" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
       create_employee2
@@ -413,7 +413,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test3_employees"
     @conn.execute "DROP SEQUENCE test3_employees_seq"
@@ -437,7 +437,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       column.type.should == :boolean
     end
   end
-  
+
   it "should set VARCHAR2 column type as string if column name does not contain 'flag' or 'yn' and emulate_booleans_from_strings is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
     columns = @conn.columns('test3_employees')
@@ -446,7 +446,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       column.type.should == :string
     end
   end
-  
+
   it "should return string value from VARCHAR2 boolean column if emulate_booleans_from_strings is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
     columns = @conn.columns('test3_employees')
@@ -455,7 +455,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       column.type_cast("Y").class.should == String
     end
   end
-  
+
   it "should return boolean value from VARCHAR2 boolean column if emulate_booleans_from_strings is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
     columns = @conn.columns('test3_employees')
@@ -484,20 +484,20 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     columns.detect{|c| c.name == 'has_phone'}.default.should be_true
     columns.detect{|c| c.name == 'manager_yn'}.default.should be_false
   end
-  
+
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do
     before(:each) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
       class ::Test3Employee < ActiveRecord::Base
       end
     end
-    
+
     after(:each) do
       Object.send(:remove_const, "Test3Employee")
       @conn.clear_types_for_columns
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
-    
+
     def create_employee3(params={})
       @employee3 = Test3Employee.create(
         {
@@ -511,7 +511,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       )
       @employee3.reload
     end
-    
+
     it "should return String value from VARCHAR2 boolean column if emulate_booleans_from_strings is false" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
       create_employee3
@@ -519,7 +519,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
         @employee3.send(col.to_sym).class.should == String
       end
     end
-  
+
     it "should return boolean value from VARCHAR2 boolean column if emulate_booleans_from_strings is true" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
       create_employee3
@@ -532,7 +532,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
         @employee3.send((col+"_before_type_cast").to_sym).should == "N"
       end
     end
-      
+
     it "should return string value from VARCHAR2 column if it is not boolean column and emulate_booleans_from_strings is true" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
       create_employee3
@@ -594,7 +594,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
@@ -680,7 +680,7 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
     # @conn.execute %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'}
     @conn.execute %q{alter session set nls_timestamp_format = 'DD-MON-YYYY HH24:MI:SS'}
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
@@ -697,10 +697,10 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
   end
 
   after(:each) do
-    Object.send(:remove_const, "TestEmployee")    
+    Object.send(:remove_const, "TestEmployee")
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
-  
+
   def create_test_employee
     @employee = TestEmployee.create(
       :first_name => "First",
@@ -709,7 +709,7 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
       :created_at => @now,
       :created_at_ts => @now
     )
-    @employee.reload    
+    @employee.reload
   end
 
   it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
@@ -789,7 +789,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     @nls_with_tz_time_format = "%d.%m.%Y %H:%M:%S%Z"
     @now_with_tz = Time.parse @now_nls_with_tz
   end
-  
+
   after(:all) do
     Object.send(:remove_const, "TestEmployee")
     @conn.execute "DROP TABLE test_employees"
@@ -800,7 +800,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   before(:each) do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
   end
-  
+
   it "should assign ISO string to date column" do
     @employee = TestEmployee.create(
       :first_name => "First",
@@ -937,6 +937,19 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       CREATE SEQUENCE test2_employees_seq  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
+    @conn.execute <<-SQL
+      CREATE TABLE test_serialize_employees (
+        id            NUMBER(6,0) PRIMARY KEY,
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25)
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test_serialize_employees_seq  MINVALUE 1
+        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
+    SQL
+    ActiveRecord::Base.connection.add_column(:test_serialize_employees, :comments, :text)
+
     @char_data = (0..127).to_a.pack("C*") * 800
     @char_data2 = ((1..127).to_a.pack("C*") + "\0") * 800
 
@@ -948,6 +961,10 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       self.table_name = "test_employees"
       attr_readonly :comments
     end
+    class ::TestSerializeEmployee < ActiveRecord::Base
+      serialize :comments
+      attr_readonly :comments
+    end
   end
 
   after(:all) do
@@ -955,9 +972,12 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @conn.execute "DROP SEQUENCE test_employees_seq"
     @conn.execute "DROP TABLE test2_employees"
     @conn.execute "DROP SEQUENCE test2_employees_seq"
+    @conn.execute "DROP TABLE test_serialize_employees"
+    @conn.execute "DROP SEQUENCE test_serialize_employees_seq"
     Object.send(:remove_const, "TestEmployee")
     Object.send(:remove_const, "Test2Employee")
     Object.send(:remove_const, "TestEmployeeReadOnlyClob")
+    Object.send(:remove_const, "TestSerializeEmployee")
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
 
@@ -967,6 +987,8 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       :last_name => "Last"
     )
     @employee.should be_valid
+    @employee.reload
+    @employee.comments.should be_nil
   end
 
   it "should accept Symbol value for CLOB column" do
@@ -988,6 +1010,23 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @employee.save.should == true
     @employee.reload
     @employee.comments.should == 'initial'
+  end
+
+  it "should work for serialized readonly CLOB columns", serialized: true do
+    @employee = TestSerializeEmployee.new(
+      :first_name => "First",
+      :comments => nil
+    )
+    @employee.comments.should be_nil
+    @employee.save.should == true
+    @employee.should be_valid
+    @employee.reload
+    @employee.comments.should be_nil
+    @employee.comments = {}
+    @employee.save.should == true
+    @employee.reload
+    #should not set readonly
+    @employee.comments.should be_nil
   end
 
 
@@ -1112,7 +1151,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     @binary_data = "\0\1\2\3\4\5\6\7\8\9"*10000
     @binary_data2 = "\1\2\3\4\5\6\7\8\9\0"*10000
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
@@ -1123,12 +1162,12 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
       self.primary_key = "employee_id"
     end
   end
-  
+
   after(:each) do
     Object.send(:remove_const, "TestEmployee")
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
-  
+
   it "should create record with BLOB data" do
     @employee = TestEmployee.create!(
       :first_name => "First",
@@ -1138,7 +1177,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     @employee.reload
     @employee.binary_data.should == @binary_data
   end
-  
+
   it "should update record with BLOB data" do
     @employee = TestEmployee.create!(
       :first_name => "First",
