@@ -24,6 +24,7 @@ module ActiveRecord
           connection.execute "GRANT unlimited tablespace TO #{@config['username']}"
           connection.execute "GRANT create session TO #{@config['username']}"
           connection.execute "GRANT create table TO #{@config['username']}"
+          connection.execute "GRANT create view TO #{@config['username']}"
           connection.execute "GRANT create sequence TO #{@config['username']}"
         end
 
@@ -58,4 +59,3 @@ module ActiveRecord
 end
 
 ActiveRecord::Tasks::DatabaseTasks.register_task(/(oci|oracle)/, ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::DatabaseTasks)
-
