@@ -34,6 +34,7 @@ if defined?(create_database) == 'method'
       ActiveRecord::Base.connection.execute "GRANT unlimited tablespace TO #{config['username']}"
       ActiveRecord::Base.connection.execute "GRANT create session TO #{config['username']}"
       ActiveRecord::Base.connection.execute "GRANT create table TO #{config['username']}"
+      ActiveRecord::Base.connection.execute "GRANT create view TO #{config['username']}"
       ActiveRecord::Base.connection.execute "GRANT create sequence TO #{config['username']}"
     else
       create_database_without_oracle_enhanced(config)
