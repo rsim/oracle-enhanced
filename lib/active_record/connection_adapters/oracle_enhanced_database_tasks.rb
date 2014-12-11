@@ -11,8 +11,10 @@ module ActiveRecord
         end
 
         def create
-          print "Please provide the SYSTEM password for your Oracle installation\n>"
-          system_password = $stdin.gets.strip
+          system_password = ENV.fetch('ORACLE_SYSTEM_PASSWORD') {
+            print "Please provide the SYSTEM password for your Oracle installation\n>"
+            $stdin.gets.strip
+          }
           establish_connection(@config.merge('username' => 'SYSTEM', 'password' => system_password))
           begin
             connection.execute "CREATE USER #{@config['username']} IDENTIFIED BY #{@config['password']}"
