@@ -12,7 +12,7 @@ module ActiveRecord
 
         def create
           system_password = ENV.fetch('ORACLE_SYSTEM_PASSWORD') {
-            print "Please provide the SYSTEM password for your Oracle installation\n>"
+            print "Please provide the SYSTEM password for your Oracle installation (set ORACLE_SYSTEM_PASSWORD to avoid this prompt)\n>"
             $stdin.gets.strip
           }
           establish_connection(@config.merge('username' => 'SYSTEM', 'password' => system_password))
