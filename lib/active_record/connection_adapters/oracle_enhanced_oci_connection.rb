@@ -2,9 +2,10 @@ require 'delegate'
 
 begin
   require "oci8"
-rescue LoadError
+rescue LoadError => error
   # OCI8 driver is unavailable.
-  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load ruby-oci8 library. Please install ruby-oci8 gem."
+  message = error.message && !error.message.empty? ? "MESSAGE: #{error.message}" : ""
+  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load ruby-oci8 library. Try to install ruby-oci8 gem. #{message}"
 end
 
 # check ruby-oci8 version
