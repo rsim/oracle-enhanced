@@ -1048,8 +1048,11 @@ module ActiveRecord
           end
 
           # TODO: It is just for `set_date_columns` now. Needs to be generic
-          if get_type_for_column(table_name, oracle_downcase(row['name']))
+          case get_type_for_column(table_name, oracle_downcase(row['name']))
+          when :date
             cast_type = Type::Date.new
+          when :integer
+            cast_type = Type::Integer.new
           else
             cast_type = lookup_cast_type(row['sql_type'])
           end
