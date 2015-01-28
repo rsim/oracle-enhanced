@@ -1285,12 +1285,8 @@ module ActiveRecord
       end
 
       protected
-      def log(sql, name, binds = nil) #:nodoc:
-        if binds
-          super sql, name, binds
-        else
-          super sql, name
-        end
+      def log(sql, name = "SQL", binds = [], statement_name = nil) #:nodoc:
+        super
       ensure
         log_dbms_output if dbms_output_enabled?
       end
