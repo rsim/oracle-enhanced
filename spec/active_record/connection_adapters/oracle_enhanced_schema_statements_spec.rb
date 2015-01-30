@@ -385,6 +385,18 @@ describe "OracleEnhancedAdapter schema definition" do
 
   end
 
+  describe "drop tables" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+    end
+
+    it "should drop table with :if_exists option no raise error" do
+      lambda do
+        @conn.drop_table("nonexistent_table", if_exists: true)
+      end.should_not raise_error
+    end
+  end
+
   describe "rename tables and sequences" do
     before(:each) do
       @conn = ActiveRecord::Base.connection
