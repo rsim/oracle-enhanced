@@ -1224,7 +1224,12 @@ module ActiveRecord
           scale = extract_scale(sql_type)
           precision = extract_precision(sql_type)
           if scale == 0
-            Type::Integer.new(precision: precision)
+            limit = case 
+            when precision <= 9 then 4
+            when precision <= 19 then 8
+            else 16
+            end
+            Type::Integer.new(precision: precision, limit: limit)
           else
             Type::Decimal.new(precision: precision, scale: scale)
           end
