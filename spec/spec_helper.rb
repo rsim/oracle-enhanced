@@ -1,8 +1,17 @@
-require 'rubygems'
+require "rubygems"
 require "bundler"
+require "yaml"
 Bundler.setup(:default, :development)
 
 $:.unshift(File.expand_path('../../lib', __FILE__))
+config_path = File.expand_path('../spec_config.yaml', __FILE__)
+if File.exist?(config_path)
+  puts "==> Loading config from #{config_path}"
+  config = YAML.load_file(config_path)
+else
+  puts "==> Loading config from ENV or use default"
+  config = {"rails" => {}, "database" => {}}
+end
 
 require 'rspec'
 
@@ -13,7 +22,7 @@ elsif RUBY_ENGINE == 'jruby'
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
 end
 
-ENV['RAILS_GEM_VERSION'] ||= '4.0-master'
+ENV['RAILS_GEM_VERSION'] ||= config["rails"]["gem_version"] || '4.0-master'
 NO_COMPOSITE_PRIMARY_KEYS = true
 
 puts "==> Selected Rails version #{ENV['RAILS_GEM_VERSION']}"
@@ -111,12 +120,12 @@ module SchemaSpecHelper
   end
 end
 
-DATABASE_NAME = ENV['DATABASE_NAME'] || 'orcl'
-DATABASE_HOST = ENV['DATABASE_HOST']
-DATABASE_PORT = ENV['DATABASE_PORT']
-DATABASE_USER = ENV['DATABASE_USER'] || 'oracle_enhanced'
-DATABASE_PASSWORD = ENV['DATABASE_PASSWORD'] || 'oracle_enhanced'
-DATABASE_SYS_PASSWORD = ENV['DATABASE_SYS_PASSWORD'] || 'admin'
+DATABASE_NAME         = config["database"]["name"]         || ENV['DATABASE_NAME']         || 'orcl'
+DATABASE_HOST         = config["database"]["host"]         || ENV['DATABASE_HOST']         || "127.0.0.1"
+DATABASE_PORT         = config["database"]["port"]         || ENV['DATABASE_PORT']         || 1521
+DATABASE_USER         = config["database"]["user"]         || ENV['DATABASE_USER']         || 'oracle_enhanced'
+DATABASE_PASSWORD     = config["database"]["password"]     || ENV['DATABASE_PASSWORD']     || 'oracle_enhanced'
+DATABASE_SYS_PASSWORD = config["database"]["sys_password"] || ENV['DATABASE_SYS_PASSWORD'] || 'admin'
 
 CONNECTION_PARAMS = {
   :adapter => "oracle_enhanced",
@@ -150,7 +159,7 @@ DATABASE_NON_DEFAULT_TABLESPACE = ENV['DATABASE_NON_DEFAULT_TABLESPACE'] || "SYS
 
 # set default time zone in TZ environment variable
 # which will be used to set session time zone
-ENV['TZ'] ||= 'Europe/Riga'
+ENV['TZ'] ||= config["timezone"] || 'Europe/Riga'
 
 # ActiveRecord::Base.logger = Logger.new(STDOUT)
 
