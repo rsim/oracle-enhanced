@@ -16,7 +16,7 @@ end
 ENV['RAILS_GEM_VERSION'] ||= '4.0-master'
 NO_COMPOSITE_PRIMARY_KEYS = true
 
-puts "==> Running specs with Rails version #{ENV['RAILS_GEM_VERSION']}"
+puts "==> Selected Rails version #{ENV['RAILS_GEM_VERSION']}"
 
 require 'active_record'
 
@@ -31,6 +31,8 @@ require 'logger'
 
 require 'active_record/connection_adapters/oracle_enhanced_adapter'
 require 'ruby-plsql'
+
+puts "==> Effective ActiveRecord version #{ActiveRecord::VERSION::STRING}"
 
 module LoggerSpecHelper
   def set_logger
