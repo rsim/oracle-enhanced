@@ -1142,21 +1142,31 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
   end
 
   it "should store serializable ruby data structures" do
-    ruby_data = {"arbitrary" => ["ruby", :data, 123]}
+    ruby_data1 = {"arbitrary1" => ["ruby", :data, 123]}
+    ruby_data2 = {"arbitrary2" => ["ruby", :data, 123]}
     @employee = Test2Employee.create!(
-      :comments => ruby_data
+      :comments => ruby_data1
     )
     @employee.reload
-    @employee.comments.should == ruby_data
+    @employee.comments.should == ruby_data1
+    @employee.comments = ruby_data2
+    @employee.save
+    @employee.reload
+    @employee.comments.should == ruby_data2
   end
 
   it "should be able to use a custom serializer" do
-    ruby_data = %w[some words as test data]
+    ruby_data1 = %w[some words as test data1]
+    ruby_data2 = %w[some words as test data2]
     @employee = Test3Employee.create!(
-      :comments => ruby_data
+      :comments => ruby_data1
     )
     @employee.reload
-    @employee.comments.should == ruby_data
+    @employee.comments.should == ruby_data1
+    @employee.comments = ruby_data2
+    @employee.save
+    @employee.reload
+    @employee.comments.should == ruby_data2
   end
 
   it "should keep unchanged serialized data when other columns changed" do
