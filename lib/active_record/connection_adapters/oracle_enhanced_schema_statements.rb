@@ -272,6 +272,7 @@ module ActiveRecord
         if type.to_sym == :virtual
           type = options[:type]
         end
+        type = aliased_types(type.to_s, type)
         add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} "
         add_column_sql << type_to_sql(type, options[:limit], options[:precision], options[:scale]) if type
 
@@ -284,6 +285,10 @@ module ActiveRecord
         create_sequence_and_trigger(table_name, options) if type && type.to_sym == :primary_key
       ensure
         clear_table_columns_cache(table_name)
+      end
+
+      def aliased_types(name, fallback)
+        fallback
       end
 
       def change_column_default(table_name, column_name, default) #:nodoc:

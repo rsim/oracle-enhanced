@@ -1227,6 +1227,8 @@ module ActiveRecord
         # oracle
         register_class_with_limit m, %r(date)i, Type::DateTime
         register_class_with_limit m, %r(raw)i,  Type::Raw
+        register_class_with_limit m, %r(timestamp)i,      Type::Timestamp
+
         m.register_type(%r(NUMBER)i) do |sql_type|
           scale = extract_scale(sql_type)
           precision = extract_precision(sql_type)
@@ -1363,3 +1365,6 @@ require 'active_record/connection_adapters/oracle_enhanced_database_statements'
 
 # Add Type:Raw
 require 'active_record/type/raw'
+
+# Add Type:Timestamp
+require 'active_record/type/timestamp'
