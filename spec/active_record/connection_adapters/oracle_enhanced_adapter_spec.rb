@@ -461,6 +461,9 @@ describe "OracleEnhancedAdapter" do
       @conn.tables.should include("CamelCase")
     end
 
+    it "properly quotes database links" do
+      @conn.quote_table_name('asdf@some.link').should eq('"ASDF"@"SOME.LINK"')
+    end
   end
 
   describe "access table over database link" do
