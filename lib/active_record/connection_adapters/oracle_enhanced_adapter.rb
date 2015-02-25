@@ -131,7 +131,7 @@ module ActiveRecord
 
     def record_changed_lobs
       @changed_lob_columns = self.class.lob_columns.select do |col|
-        (self.class.serialized_attributes.keys.include?(col.name) || self.send(:"#{col.name}_changed?")) && !self.class.readonly_attributes.to_a.include?(col.name)
+        self.attribute_changed?(col.name) && !self.class.readonly_attributes.to_a.include?(col.name)
       end
     end
   end
