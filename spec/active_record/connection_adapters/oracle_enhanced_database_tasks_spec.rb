@@ -56,13 +56,17 @@ describe "Oracle Enhanced adapter database tasks" do
 
     describe "structure" do
       let(:temp_file) { Tempfile.new(["oracle_enhanced", ".sql"]).path }
-      before { ActiveRecord::SchemaMigration.create_table }
+      before do
+        ActiveRecord::SchemaMigration.create_table
+        ActiveRecord::Base.connection.execute "INSERT INTO schema_migrations (version) VALUES ('20150101010000')"
+      end
 
       describe "structure_dump" do
         before { ActiveRecord::Tasks::DatabaseTasks.structure_dump(config, temp_file) }
-        it "dumps the database structure to a file" do
+        it "dumps the database structure to a file without the schema information" do
           contents = File.read(temp_file)
           contents.should include('CREATE TABLE "TEST_POSTS"')
+          contents.should_not include('INSERT INTO schema_migrations')
         end
       end
 
