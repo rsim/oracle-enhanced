@@ -1,0 +1,10 @@
+rails:
+  gem_version: '4.0-master'
+database:
+  name:         'orcl'
+  host:         '127.0.0.1'
+  port:         1521
+  user:         'oracle_enhanced'
+  password:     'oracle_enhanced'
+  sys_password: 'admin'
+timezone: 'Europe/Riga'

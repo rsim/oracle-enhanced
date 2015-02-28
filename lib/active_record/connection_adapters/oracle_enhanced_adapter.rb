@@ -131,7 +131,7 @@ module ActiveRecord
 
     def record_changed_lobs
       @changed_lob_columns = self.class.lob_columns.select do |col|
-        (self.class.serialized_attributes.keys.include?(col.name) || self.send(:"#{col.name}_changed?")) && !self.class.readonly_attributes.to_a.include?(col.name)
+        self.attribute_changed?(col.name) && !self.class.readonly_attributes.to_a.include?(col.name)
       end
     end
   end
@@ -1047,8 +1047,11 @@ module ActiveRecord
           end
 
           # TODO: It is just for `set_date_columns` now. Needs to be generic
-          if get_type_for_column(table_name, oracle_downcase(row['name']))
+          case get_type_for_column(table_name, oracle_downcase(row['name']))
+          when :date
             cast_type = Type::Date.new
+          when :integer
+            cast_type = Type::Integer.new
           else
             cast_type = lookup_cast_type(row['sql_type'])
           end
@@ -1281,12 +1284,8 @@ module ActiveRecord
       end
 
       protected
-      def log(sql, name, binds = nil) #:nodoc:
-        if binds
-          super sql, name, binds
-        else
-          super sql, name
-        end
+      def log(sql, name = "SQL", binds = [], statement_name = nil) #:nodoc:
+        super
       ensure
         log_dbms_output if dbms_output_enabled?
       end
