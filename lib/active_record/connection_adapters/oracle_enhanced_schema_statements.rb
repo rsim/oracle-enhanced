@@ -117,6 +117,8 @@ module ActiveRecord
         super(name)
         seq_name = options[:sequence_name] || default_sequence_name(name)
         execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
+      rescue ActiveRecord::StatementInvalid => e
+        raise e unless options[:if_exists]
       ensure
         clear_table_columns_cache(name)
         self.all_schema_indexes = nil
