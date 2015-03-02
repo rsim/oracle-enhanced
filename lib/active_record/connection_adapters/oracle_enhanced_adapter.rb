@@ -552,6 +552,18 @@ module ActiveRecord
         end
       end
 
+      # Used only for quoting database links as the naming rules for links
+      # differ from the rules for column names. Specifically, link names may
+      # include periods.
+      def quote_database_link(name)
+        case name
+        when NONQUOTED_DATABASE_LINK
+          %Q("#{name.upcase}")
+        else
+          name
+        end
+      end
+
       # Names must be from 1 to 30 bytes long with these exceptions:
       # * Names of databases are limited to 8 bytes.
       # * Names of database links can be as long as 128 bytes.
@@ -580,8 +592,8 @@ module ActiveRecord
       end
 
       def quote_table_name(name) #:nodoc:
-        name = name.to_s
-        @quoted_table_names[name] ||= name.split('.').map{|n| n.split('@').map{|m| quote_column_name(m)}.join('@')}.join('.')
+        name, link = name.to_s.split('@')
+        @quoted_table_names[name] ||= [name.split('.').map{|n| quote_column_name(n)}.join('.'), quote_database_link(link)].compact.join('@')
       end
 
       def quote_string(s) #:nodoc:
