@@ -7,7 +7,6 @@ module ActiveRecord #:nodoc:
           private
           alias_method_chain :tables, :oracle_enhanced
           alias_method_chain :indexes, :oracle_enhanced
-          alias_method_chain :indexes, :oracle_enhanced
           alias_method_chain :foreign_keys, :oracle_enhanced
         end
       end
