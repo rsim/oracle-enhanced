@@ -147,6 +147,11 @@ if ActiveRecord::Base.method_defined?(:changed?)
       end
     end
 
+    it "should be able to handle attributes which are not backed by a column" do
+      TestEmployee.create!(:comments => "initial")
+      @employee = TestEmployee.select("#{TestEmployee.quoted_table_name}.*, 24 ranking").first
+      expect { @employee.ranking = 25 }.to_not raise_error
+    end
   end
 
 end

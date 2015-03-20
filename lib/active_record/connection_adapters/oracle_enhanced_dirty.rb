@@ -9,15 +9,19 @@ module ActiveRecord #:nodoc:
           new_value = read_attribute(attr)
           raw_value = read_attribute_before_type_cast(attr)
 
-          if column = column_for_attribute(attr)
+          if self.class.columns_hash.include?(attr.to_s)
+            column = column_for_attribute(attr)
+
             # Oracle stores empty string '' as NULL
             # therefore need to convert empty string value to nil if old value is nil
             if column.type == :string && column.null && old_value.nil?
               new_value = nil if new_value == ''
             end
-          end
 
-          column_for_attribute(attr).changed?(old_value, new_value, raw_value)
+            column.changed?(old_value, new_value, raw_value)
+          else
+            new_value != old_value
+          end
         end
 
         def non_zero?(value)
