@@ -1,3 +1,28 @@
+## 1.5.6 / 2015-03-30
+
+* Enhancements
+ * Support Rails 4.1.10 [#530]
+ * Remove warning message when JDK 8 is used [#525]
+ * Support RAW column types [#471]
+ * Properly quote database links [#556]
+ * Grant create view privilege to db user [#528]
+ * Read SYSTEM password from ENV ORACLE_SYSTEM_PASSWORD optionally [#529]
+ * Show original error message when loading ruby-oci8 library fails [#532]
+ * Update README that `OracleEnhancedProcedures` is not auto loaded [#474]
+ * Fix legacy schema support syntax [#507]
+ * Peform all unit test when tested with Oracle 12c [#465]
+ * Add `:if_exists` option to `drop_table` [#541]
+ * Extract OracleEnhancedDatabaseStatements [#449]
+ * Removed self.visitor_for(pool) method [#501]
+
+* Bug Fix
+ * Fix serialized readonly lobs [#515]
+ * Do not dump schema information during structure dump [#558]
+ * Structure dump generates correct create or replace synonym [#453]
+ * Procedures and functions are created correctly by removing semi-colon [#456]
+ * Show support matrix of Java and JDBC Driver only when java_version >= '1.8' [#455]
+ * Update Gemfile dependencies so specs can run [#472]
+
 ## 1.5.5 / 2014-05-23
 
 * Enhancements
