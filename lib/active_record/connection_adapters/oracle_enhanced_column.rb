@@ -4,6 +4,9 @@ module ActiveRecord
 
       attr_reader :table_name, :forced_column_type, :nchar, :virtual_column_data_default, :returning_id #:nodoc:
 
+      FALSE_VALUES << 'N'
+      TRUE_VALUES << 'Y'
+
       def initialize(name, default, cast_type, sql_type = nil, null = true, table_name = nil, forced_column_type = nil, virtual=false, returning_id=false) #:nodoc:
         @table_name = table_name
         @forced_column_type = forced_column_type
