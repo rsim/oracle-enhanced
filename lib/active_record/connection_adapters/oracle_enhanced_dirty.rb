@@ -17,7 +17,6 @@ module ActiveRecord #:nodoc:
             if column.type == :string && column.null && old_value.nil?
               new_value = nil if new_value == ''
             end
-
             column.changed?(old_value, new_value, raw_value)
           else
             new_value != old_value
@@ -26,8 +25,8 @@ module ActiveRecord #:nodoc:
 
         def non_zero?(value)
           value !~ /\A0+(\.0+)?\z/
-        end
-
+        end 
+        
       end
 
     end
