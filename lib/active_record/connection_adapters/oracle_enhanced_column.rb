@@ -41,24 +41,9 @@ module ActiveRecord
       end
 
       def type_cast(value) #:nodoc:
-        case type
-        when :raw
-          OracleEnhancedColumn.string_to_raw(value)
-        when :datetime
-          OracleEnhancedAdapter.emulate_dates ? guess_date_or_time(value) : super
-        when :float
-          !value.nil? ? self.class.value_to_decimal(value) : super
-        else
-          super
-        end
-      end
-
-      def type_cast_code(var_name)
-        type == :float ? "#{self.class.name}.value_to_decimal(#{var_name})" : super
-      end
-
-      def klass
-        type == :float ? BigDecimal : super
+        return OracleEnhancedColumn::string_to_raw(value) if type == :raw
+        return guess_date_or_time(value) if type == :datetime && OracleEnhancedAdapter.emulate_dates
+        super
       end
 
       def virtual?
