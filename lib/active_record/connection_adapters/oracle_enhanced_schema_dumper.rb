@@ -58,6 +58,12 @@ module ActiveRecord #:nodoc:
       end
 
       def foreign_keys_with_oracle_enhanced(table_name, stream)
+        # return original method if not using oracle_enhanced
+        if (rails_env = defined?(Rails.env) ? Rails.env : (defined?(RAILS_ENV) ? RAILS_ENV : nil)) &&
+              ActiveRecord::Base.configurations[rails_env] &&
+              ActiveRecord::Base.configurations[rails_env]['adapter'] != 'oracle_enhanced'
+          return foreign_keys_without_oracle_enhanced(table_name, stream)
+        end
         if @connection.respond_to?(:foreign_keys) && (foreign_keys = @connection.foreign_keys(table_name)).any?
           add_foreign_key_statements = foreign_keys.map do |foreign_key|
             statement_parts = [ ('add_foreign_key ' + foreign_key.from_table.inspect) ]
