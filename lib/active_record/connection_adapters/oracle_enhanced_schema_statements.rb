@@ -113,14 +113,14 @@ module ActiveRecord
         rename_table_indexes(table_name, new_name)
       end
 
-      def drop_table(name, options = {}) #:nodoc:
-        super(name)
-        seq_name = options[:sequence_name] || default_sequence_name(name)
+      def drop_table(table_name, options = {}) #:nodoc:
+        execute "DROP TABLE #{quote_table_name(table_name)}#{' CASCADE CONSTRAINTS' if options[:force] == :cascade}"
+        seq_name = options[:sequence_name] || default_sequence_name(table_name)
         execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
       rescue ActiveRecord::StatementInvalid => e
         raise e unless options[:if_exists]
       ensure
-        clear_table_columns_cache(name)
+        clear_table_columns_cache(table_name)
         self.all_schema_indexes = nil
       end
 
