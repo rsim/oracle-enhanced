@@ -454,7 +454,8 @@ module ActiveRecord
         :date        => { :name => "DATE" },
         :binary      => { :name => "BLOB" },
         :boolean     => { :name => "NUMBER", :limit => 1 },
-        :raw         => { :name => "RAW", :limit => 2000 }
+        :raw         => { :name => "RAW", :limit => 2000 },
+        :bigint      => { :name => "NUMBER", :limit => 8 }
       }
       # if emulate_booleans_from_strings then store booleans in VARCHAR2
       NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS = NATIVE_DATABASE_TYPES.dup.merge(
