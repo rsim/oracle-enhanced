@@ -42,7 +42,6 @@ module ActiveRecord
 
       def self.included(base) #:nodoc:
         base.class_eval do
-          alias_method_chain :references, :foreign_keys
           alias_method_chain :column, :virtual_columns
         end
       end
@@ -85,7 +84,7 @@ module ActiveRecord
       # 
       # Note: No foreign key is created if :polymorphic => true is used.
       # Note: If no name is specified, the database driver creates one for you!
-      def references_with_foreign_keys(*args)
+      def references(*args)
         options = args.extract_options!
         index_options = options[:index]
         fk_options = options.delete(:foreign_key)
@@ -98,7 +97,7 @@ module ActiveRecord
           end
         end
 
-        references_without_foreign_keys(*(args << options))
+        super(*(args << options))
       end
   
       # Defines a foreign key for the table. +to_table+ can be a single Symbol, or
@@ -129,11 +128,6 @@ module ActiveRecord
     end
 
     module OracleEnhancedTable
-      def self.included(base) #:nodoc:
-        base.class_eval do
-          alias_method_chain :references, :foreign_keys
-        end
-      end
 
       # Adds a new foreign key to the table. +to_table+ can be a single Symbol, or
       # an Array of Symbols. See SchemaStatements#add_foreign_key
@@ -180,13 +174,13 @@ module ActiveRecord
       #  t.references(:goat, :foreign_key => {:dependent => :delete})
       # 
       # Note: No foreign key is created if :polymorphic => true is used.
-      def references_with_foreign_keys(*args)
+      def references(*args)
         options = args.extract_options!
         polymorphic = options[:polymorphic]
         index_options = options[:index]
         fk_options = options.delete(:foreign_key)
 
-        references_without_foreign_keys(*(args << options))
+        super(*(args << options))
         # references_without_foreign_keys adds {:type => :integer}
         args.extract_options!
         if fk_options && !polymorphic
