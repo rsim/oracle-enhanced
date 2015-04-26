@@ -9,7 +9,7 @@ module ActiveRecord
       end
     end
 
-    class OracleEnhancedForeignKeyDefinition < Struct.new(:from_table, :to_table, :options) #:nodoc:
+    class OracleEnhancedForeignKeyDefinition < ForeignKeyDefinition
     end
 
     class OracleEnhancedSynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
