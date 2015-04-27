@@ -30,9 +30,9 @@
 # portions Copyright 2005 Graham Jenkins
 
 require 'active_record/connection_adapters/abstract_adapter'
-require 'active_record/connection_adapters/oracle_enhanced_connection'
+require 'active_record/connection_adapters/oracle_enhanced/connection'
 
-require 'active_record/connection_adapters/oracle_enhanced_column'
+require 'active_record/connection_adapters/oracle_enhanced/column'
 
 require 'digest/sha1'
 
@@ -1324,41 +1324,41 @@ module ActiveRecord
 end
 
 # Implementation of standard schema definition statements and extensions for schema definition
-require 'active_record/connection_adapters/oracle_enhanced_schema_statements'
-require 'active_record/connection_adapters/oracle_enhanced_schema_statements_ext'
+require 'active_record/connection_adapters/oracle_enhanced/schema_statements'
+require 'active_record/connection_adapters/oracle_enhanced/schema_statements_ext'
 
 # Extensions for schema definition
-require 'active_record/connection_adapters/oracle_enhanced_schema_definitions'
+require 'active_record/connection_adapters/oracle_enhanced/schema_definitions'
 
 # Extensions for context index definition
-require 'active_record/connection_adapters/oracle_enhanced_context_index'
+require 'active_record/connection_adapters/oracle_enhanced/context_index'
 
 # Load additional methods for composite_primary_keys support
-require 'active_record/connection_adapters/oracle_enhanced_cpk'
+require 'active_record/connection_adapters/oracle_enhanced/cpk'
 
 # Load patch for dirty tracking methods
-require 'active_record/connection_adapters/oracle_enhanced_dirty'
+require 'active_record/connection_adapters/oracle_enhanced/dirty'
 
 # Patches and enhancements for schema dumper
-require 'active_record/connection_adapters/oracle_enhanced_schema_dumper'
+require 'active_record/connection_adapters/oracle_enhanced/schema_dumper'
 
 # Implementation of structure dump
-require 'active_record/connection_adapters/oracle_enhanced_structure_dump'
+require 'active_record/connection_adapters/oracle_enhanced/structure_dump'
 
-require 'active_record/connection_adapters/oracle_enhanced_version'
+require 'active_record/connection_adapters/oracle_enhanced/version'
 
 module ActiveRecord
-  autoload :OracleEnhancedProcedures, 'active_record/connection_adapters/oracle_enhanced_procedures'
+  autoload :OracleEnhancedProcedures, 'active_record/connection_adapters/oracle_enhanced/procedures'
 end
 
 # Patches and enhancements for column dumper
-require 'active_record/connection_adapters/oracle_enhanced_column_dumper'
+require 'active_record/connection_adapters/oracle_enhanced/column_dumper'
 
 # Moved SchemaCreation class
-require 'active_record/connection_adapters/oracle_enhanced_schema_creation'
+require 'active_record/connection_adapters/oracle_enhanced/schema_creation'
 
 # Moved DatabaseStetements
-require 'active_record/connection_adapters/oracle_enhanced_database_statements'
+require 'active_record/connection_adapters/oracle_enhanced/database_statements'
 
 # Add Type:Raw
 require 'active_record/type/raw'
