@@ -31,6 +31,7 @@
 
 require 'active_record/connection_adapters/abstract_adapter'
 require 'active_record/connection_adapters/oracle_enhanced/connection'
+require 'active_record/connection_adapters/oracle_enhanced/database_statements'
 
 require 'active_record/connection_adapters/oracle_enhanced/column'
 
@@ -218,6 +219,8 @@ module ActiveRecord
     # * <tt>:nls_time_tz_format</tt>
     #
     class OracleEnhancedAdapter < AbstractAdapter
+      # TODO: Use relative
+      include ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseStatements
 
       ##
       # :singleton-method:
