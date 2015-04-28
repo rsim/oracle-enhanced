@@ -222,6 +222,10 @@ module ActiveRecord
       # TODO: Use relative
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseStatements
 
+      def schema_creation
+        OracleEnhanced::SchemaCreation.new self
+      end
+
       ##
       # :singleton-method:
       # By default, the OracleEnhancedAdapter will consider all columns of type <tt>NUMBER(1)</tt>
