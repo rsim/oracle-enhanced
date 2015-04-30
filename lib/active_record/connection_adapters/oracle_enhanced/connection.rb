@@ -109,11 +109,11 @@ end
 # if MRI or YARV
 if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
   ORACLE_ENHANCED_CONNECTION = :oci
-  require 'active_record/connection_adapters/oracle_enhanced_oci_connection'
+  require 'active_record/connection_adapters/oracle_enhanced/oci_connection'
 # if JRuby
 elsif RUBY_ENGINE == 'jruby'
   ORACLE_ENHANCED_CONNECTION = :jdbc
-  require 'active_record/connection_adapters/oracle_enhanced_jdbc_connection'
+  require 'active_record/connection_adapters/oracle_enhanced/jdbc_connection'
 else
   raise "Unsupported Ruby engine #{RUBY_ENGINE}"
 end

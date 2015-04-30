@@ -1,6 +1,6 @@
 module ActiveRecord
   module ConnectionAdapters
-    class OracleEnhancedAdapter < AbstractAdapter
+    module OracleEnhanced
       class SchemaCreation < AbstractAdapter::SchemaCreation
         private
 
@@ -78,11 +78,6 @@ module ActiveRecord
         end
 
       end
-      
-      def schema_creation
-          SchemaCreation.new self
-      end
-
     end
   end
 end
