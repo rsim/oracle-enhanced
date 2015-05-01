@@ -5,7 +5,7 @@ if defined?(::Rails::Railtie)
     module ConnectionAdapters
       class OracleEnhancedRailtie < ::Rails::Railtie
         rake_tasks do
-          load 'active_record/connection_adapters/oracle_enhanced_database_tasks.rb'
+          load 'active_record/connection_adapters/oracle_enhanced/database_tasks.rb'
         end
 
         ActiveSupport.on_load(:active_record) do
