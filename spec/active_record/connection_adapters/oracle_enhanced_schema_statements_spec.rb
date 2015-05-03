@@ -414,6 +414,16 @@ describe "OracleEnhancedAdapter schema definition" do
             t.string    :first_name
             t.string    :last_name
           end
+
+          create_table  :test_employees_very_long_table do |t|
+            t.string    :first_name
+            t.string    :last_name
+          end
+
+          create_table  :test_employees_non_default_seq, :sequence_name => 'test_employees_s' do |t|
+            t.string    :first_name
+            t.string    :last_name
+          end
         end
     end
 
@@ -423,12 +433,33 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :new_test_employees rescue nil
         drop_table :test_employees_no_pkey rescue nil
         drop_table :new_test_employees_no_pkey rescue nil
+        drop_table :test_employees_very_long_table rescue nil
+        drop_table :test_employees_non_default_seq, :sequence_name => 'test_employees_s' rescue nil
+        drop_table :new_test_employees_non_def_seq, :sequence_name => 'new_test_employees_s' rescue nil
       end
     end
 
     it "should rename table name with new one" do
       lambda do
         @conn.rename_table("test_employees","new_test_employees")
+      end.should_not raise_error
+    end
+
+    it "should rename very long table name to new one" do
+      lambda do
+        @conn.rename_table("test_employees_very_long_table","new_test_employees")
+      end.should_not raise_error
+    end
+
+    it "should rename table name with non default seq to new one" do
+      lambda do
+        @conn.rename_table("test_employees_non_default_seq","new_test_employees", {:sequence_name => 'test_employees_s'})
+      end.should_not raise_error
+    end
+
+    it "should rename table name to new one with non default seq" do
+      lambda do
+        @conn.rename_table("test_employees","new_test_employees_non_def_seq", {:new_sequence_name => 'new_test_employees_s'})
       end.should_not raise_error
     end
 
@@ -441,7 +472,7 @@ describe "OracleEnhancedAdapter schema definition" do
     it "should raise error when new sequence name length is too long" do
       lambda do
         @conn.rename_table("test_employees","a"*27)
-      end.should raise_error
+      end.should_not raise_error
     end
 
     it "should rename table when table has no primary key and sequence" do
