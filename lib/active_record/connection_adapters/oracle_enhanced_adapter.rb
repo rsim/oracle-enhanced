@@ -673,22 +673,26 @@ module ActiveRecord
 
       # Cast a +value+ to a type that the database understands.
       def type_cast(value, column)
-        case value
-        when true, false
-          if emulate_booleans_from_strings || column && column.type == :string
-            self.class.boolean_to_string(value)
-          else
-            value ? 1 : 0
-          end
-        when Date, Time
-          if value.acts_like?(:time)
-            zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
-            value.respond_to?(zone_conversion_method) ? value.send(zone_conversion_method) : value
-          else
-            value
-          end
-        else
+        if column && column.cast_type.is_a?(Type::Serialized)
           super
+        else
+          case value
+          when true, false
+            if emulate_booleans_from_strings || column && column.type == :string
+              self.class.boolean_to_string(value)
+            else
+              value ? 1 : 0
+            end
+          when Date, Time
+            if value.acts_like?(:time)
+              zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
+              value.respond_to?(zone_conversion_method) ? value.send(zone_conversion_method) : value
+            else
+              value
+            end
+          else
+            super
+          end
         end
       end
 
