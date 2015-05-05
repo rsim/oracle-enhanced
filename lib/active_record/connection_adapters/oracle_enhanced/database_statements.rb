@@ -205,7 +205,7 @@ module ActiveRecord
           @connection.autocommit = true
         end
 
-        def rollback_db_transaction #:nodoc:
+        def exec_rollback_db_transaction #:nodoc:
           @connection.rollback
         ensure
           @connection.autocommit = true
@@ -215,7 +215,7 @@ module ActiveRecord
           execute("SAVEPOINT #{name}")
         end
 
-        def rollback_to_savepoint(name = current_savepoint_name) #:nodoc:
+        def exec_rollback_to_savepoint(name = current_savepoint_name) #:nodoc:
           execute("ROLLBACK TO #{name}")
         end
 
