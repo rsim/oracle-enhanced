@@ -173,7 +173,7 @@ module ActiveRecord #:nodoc:
           else
             tbl.print ", id: false"
           end
-          tbl.print ", force: true"
+          tbl.print ", force: :cascade"
           tbl.puts " do |t|"
 
           # then dump all non-primary key columns
