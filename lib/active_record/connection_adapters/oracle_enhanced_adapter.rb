@@ -1067,25 +1067,55 @@ module ActiveRecord
             row['data_default'] = nil if row['data_default'] =~ /^(null|empty_[bc]lob\(\))$/i
           end
 
-          # TODO: It is just for `set_date_columns` now. Needs to be generic
-          case get_type_for_column(table_name, oracle_downcase(row['name']))
-          when :date
-            cast_type = Type::Date.new
-          when :integer
-            cast_type = Type::Integer.new
+          # TODO: Consider to extract another method such as `get_cast_type`
+          case row['sql_type'] 
+          when /decimal|numeric|number/i
+            if get_type_for_column(table_name, oracle_downcase(row['name'])) == :integer
+              cast_type = Type::Integer.new
+            elsif OracleEnhancedAdapter.emulate_booleans && row['sql_type'].upcase == "NUMBER(1)"
+              cast_type = Type::Boolean.new
+            elsif OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(row['name'], table_name)
+              cast_type = Type::Integer.new
+            else
+              cast_type = lookup_cast_type(row['sql_type'])
+            end
+          when /char/i
+            if get_type_for_column(table_name, oracle_downcase(row['name'])) == :string
+              cast_type = Type::String.new
+            elsif get_type_for_column(table_name, oracle_downcase(row['name'])) == :boolean
+              cast_type = Type::Boolean.new
+            elsif OracleEnhancedAdapter.emulate_booleans_from_strings && OracleEnhancedAdapter.is_boolean_column?(row['name'], row['sql_type'], table_name)
+              cast_type = Type::Boolean.new
+            else
+              cast_type = lookup_cast_type(row['sql_type'])
+            end
+          when /date/i
+            if get_type_for_column(table_name, oracle_downcase(row['name'])) == :date
+              cast_type = Type::Date.new
+            elsif get_type_for_column(table_name, oracle_downcase(row['name'])) == :datetime
+              cast_type = Type::DateTime.new
+            elsif OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(row['name'], table_name)
+              cast_type = Type::Date.new
+            else
+              cast_type = lookup_cast_type(row['sql_type'])
+            end
           else
             cast_type = lookup_cast_type(row['sql_type'])
           end
-          OracleEnhancedColumn.new(oracle_downcase(row['name']),
+
+          new_column(oracle_downcase(row['name']),
                            row['data_default'],
                            cast_type,
                            row['sql_type'],
                            row['nullable'] == 'Y',
-                           # pass table name for table specific column definitions
                            table_name,
-                           # pass column type if specified in class definition
-                           get_type_for_column(table_name, oracle_downcase(row['name'])), is_virtual)
+                           is_virtual,
+                           false )
         end
+      end
+
+      def new_column(name, default, cast_type, sql_type = nil, null = true, table_name = nil, virtual=false, returning_id=false)
+        OracleEnhancedColumn.new(name, default, cast_type, sql_type, null, table_name, virtual, returning_id)
       end
 
       # used just in tests to clear column cache
@@ -1225,10 +1255,6 @@ module ActiveRecord
         end
       end
 
-      def new_column(name, default, cast_type, sql_type = nil, null = true, table_name = nil, forced_column_type = nil, virtual=false, returning_id=false)
-        ActiveRecord::ConnectionAdapters::OracleEnhancedColumn.new(name, default, cast_type, sql_type = nil, null = true, table_name = nil, forced_column_type = nil, virtual=false, returning_id=false)
-      end
-
       protected
 
       def initialize_type_map(m)
@@ -1252,7 +1278,6 @@ module ActiveRecord
             Type::Decimal.new(precision: precision, scale: scale)
           end
         end
-        m.alias_type %r(NUMBER\(1\))i, 'boolean' if OracleEnhancedAdapter.emulate_booleans
       end
 
       def translate_exception(exception, message) #:nodoc:
