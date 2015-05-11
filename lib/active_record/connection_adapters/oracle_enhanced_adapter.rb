@@ -1065,6 +1065,8 @@ module ActiveRecord
             # match newlines.
             row['data_default'].sub!(/^'(.*)'$/m, '\1')
             row['data_default'] = nil if row['data_default'] =~ /^(null|empty_[bc]lob\(\))$/i
+            # TODO: Needs better fix to fallback "N" to false
+            row['data_default'] = false if row['data_default'] == "N"
           end
 
           # TODO: Consider to extract another method such as `get_cast_type`
