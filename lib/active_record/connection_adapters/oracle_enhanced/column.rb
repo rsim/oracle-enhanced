@@ -2,14 +2,13 @@ module ActiveRecord
   module ConnectionAdapters #:nodoc:
     class OracleEnhancedColumn < Column
 
-      attr_reader :table_name, :forced_column_type, :nchar, :virtual_column_data_default, :returning_id #:nodoc:
+      attr_reader :table_name, :nchar, :virtual_column_data_default, :returning_id #:nodoc:
 
       FALSE_VALUES << 'N'
       TRUE_VALUES << 'Y'
 
-      def initialize(name, default, cast_type, sql_type = nil, null = true, table_name = nil, forced_column_type = nil, virtual=false, returning_id=false) #:nodoc:
+      def initialize(name, default, cast_type, sql_type = nil, null = true, table_name = nil, virtual=false, returning_id=false) #:nodoc:
         @table_name = table_name
-        @forced_column_type = forced_column_type
         @virtual = virtual
         @virtual_column_data_default = default.inspect if virtual
         @returning_id = returning_id
@@ -17,18 +16,6 @@ module ActiveRecord
           default_value = nil
         else
           default_value = self.class.extract_value_from_default(default)
-        end
-        # TODO: Consider to extract to another method
-        if OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(name, table_name)
-          cast_type = ActiveRecord::Type::Integer.new
-        end
-
-        if OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(name, table_name)
-          cast_type = ActiveRecord::Type::Date.new
-        end
-
-        if OracleEnhancedAdapter.emulate_booleans_from_strings && OracleEnhancedAdapter.is_boolean_column?(name, sql_type, table_name)
-          cast_type = ActiveRecord::Type::Boolean.new
         end
         super(name, default_value, cast_type, sql_type, null)
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
