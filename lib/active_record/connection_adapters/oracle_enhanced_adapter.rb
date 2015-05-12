@@ -459,7 +459,7 @@ module ActiveRecord
         :string      => { :name => "VARCHAR2", :limit => 255 },
         :text        => { :name => "CLOB" },
         :integer     => { :name => "NUMBER", :limit => 38 },
-        :float       => { :name => "NUMBER" },
+        :float       => { :name => "BINARY_FLOAT" },
         :decimal     => { :name => "DECIMAL" },
         :datetime    => { :name => "DATE" },
         # changed to native TIMESTAMP type
