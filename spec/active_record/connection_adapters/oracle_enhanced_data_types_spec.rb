@@ -1401,3 +1401,45 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
   end
 
 end
+
+describe "OracleEnhancedAdapter handling of BINARY_FLOAT columns" do
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+    @conn.execute "DROP TABLE test2_employees" rescue nil
+    @conn.execute <<-SQL
+      CREATE TABLE test2_employees (
+        id            NUMBER PRIMARY KEY,
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        email         VARCHAR2(25),
+        phone_number  VARCHAR2(20),
+        hire_date     DATE,
+        job_id        NUMBER,
+        salary        NUMBER,
+        commission_pct  NUMBER(2,2),
+        hourly_rate   BINARY_FLOAT,
+        manager_id    NUMBER(6),
+        is_manager    NUMBER(1),
+        department_id NUMBER(4,0),
+        created_at    DATE
+      )
+    SQL
+    @conn.execute "DROP SEQUENCE test2_employees_seq" rescue nil
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test2_employees_seq  MINVALUE 1
+        INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
+    SQL
+  end
+  
+  after(:all) do
+    @conn.execute "DROP TABLE test2_employees"
+    @conn.execute "DROP SEQUENCE test2_employees_seq"
+  end
+
+  it "should set BINARY_FLOAT column type as float" do
+    columns = @conn.columns('test2_employees')
+    column = columns.detect{|c| c.name == "hourly_rate"}
+    column.type.should == :float
+  end
+end
