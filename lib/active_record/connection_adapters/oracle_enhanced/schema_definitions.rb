@@ -15,8 +15,20 @@ module ActiveRecord
     class OracleEnhancedSynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
     end
 
-    class OracleEnhancedIndexDefinition < Struct.new(:table, :name, :unique, :type, :parameters, :statement_parameters,
-      :tablespace, :columns) #:nodoc:
+    class OracleEnhancedIndexDefinition < IndexDefinition
+      attr_accessor :table, :name, :unique, :type, :parameters, :statement_parameters, :tablespace, :columns
+
+      def initialize(table, name, unique, type, parameters, statement_parameters, tablespace, columns)
+        @table = table
+        @name = name
+        @unique = unique
+        @type = type
+        @parameters = parameters
+        @statement_parameters = statement_parameters
+        @tablespace = tablespace
+        @columns = columns
+        super(table, name, unique, columns, nil, nil, nil, nil)
+      end
     end
 
     module OracleEnhancedSchemaDefinitions #:nodoc:
