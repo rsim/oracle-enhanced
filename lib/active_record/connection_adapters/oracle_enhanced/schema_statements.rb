@@ -154,32 +154,25 @@ module ActiveRecord
           end
         end
 
-        # clear cached indexes when adding new index
         def add_index(table_name, column_name, options = {}) #:nodoc:
+          index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, options)
+          execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
+        ensure
+          self.all_schema_indexes = nil
+        end
+
+        def add_index_options(table_name, column_name, options = {}) #:nodoc:
           column_names = Array(column_name)
           index_name   = index_name(table_name, column: column_names)
 
-          if Hash === options # legacy support, since this param was a string
-            options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options, :using)
+          options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options, :using)
 
-            index_type = options[:unique] ? "UNIQUE" : ""
-            index_name = options[:name].to_s if options.key?(:name)
-            tablespace = tablespace_for(:index, options[:tablespace])
-            max_index_length = options.fetch(:internal, false) ? index_name_length : allowed_index_name_length
-            additional_options = options[:options]
-          else
-            if options
-              message = "Passing a string as third argument of `add_index` is deprecated and will" +
-                " be removed in Rails 4.1." +
-                " Use add_index(#{table_name.inspect}, #{column_name.inspect}, unique: true) instead"
-
-              ActiveSupport::Deprecation.warn message
-            end
-
-            index_type = options
-            additional_options = nil
-            max_index_length = allowed_index_name_length
-          end
+          index_type = options[:unique] ? "UNIQUE" : ""
+          index_name = options[:name].to_s if options.key?(:name)
+          tablespace = tablespace_for(:index, options[:tablespace])
+          max_index_length = options.fetch(:internal, false) ? index_name_length : allowed_index_name_length
+          #TODO: This option is used for NOLOGGING, needs better argumetn name
+          index_options = options[:options]
 
           if index_name.to_s.length > max_index_length
             raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' is too long; the limit is #{max_index_length} characters"
@@ -187,11 +180,9 @@ module ActiveRecord
           if index_name_exists?(table_name, index_name, false)
             raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' already exists"
           end
-          quoted_column_names = column_names.map { |e| quote_column_name_or_expression(e) }.join(", ")
 
-          execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{additional_options}"
-        ensure
-          self.all_schema_indexes = nil
+          quoted_column_names = column_names.map { |e| quote_column_name_or_expression(e) }.join(", ")
+           [index_name, index_type, quoted_column_names, tablespace, index_options]
         end
 
         # Remove the given index from the table.
