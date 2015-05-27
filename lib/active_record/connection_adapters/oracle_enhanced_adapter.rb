@@ -1077,11 +1077,11 @@ module ActiveRecord
           case row['sql_type'] 
           when /decimal|numeric|number/i
             if get_type_for_column(table_name, oracle_downcase(row['name'])) == :integer
-              cast_type = Type::Integer.new
+              cast_type = ActiveRecord::OracleEnhanced::Type::Integer.new
             elsif OracleEnhancedAdapter.emulate_booleans && row['sql_type'].upcase == "NUMBER(1)"
               cast_type = Type::Boolean.new
             elsif OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(row['name'], table_name)
-              cast_type = Type::Integer.new
+              cast_type = ActiveRecord::OracleEnhanced::Type::Integer.new
             else
               cast_type = lookup_cast_type(row['sql_type'])
             end
@@ -1273,16 +1273,19 @@ module ActiveRecord
         m.register_type(%r(NUMBER)i) do |sql_type|
           scale = extract_scale(sql_type)
           precision = extract_precision(sql_type)
+          limit = extract_limit(sql_type)
           if scale == 0
-            limit = case 
-            when precision <= 9 then 4
-            when precision <= 19 then 8
-            else 16
-            end
-            Type::Integer.new(precision: precision, limit: limit)
+            ActiveRecord::OracleEnhanced::Type::Integer.new(precision: precision, limit: limit)
           else
             Type::Decimal.new(precision: precision, scale: scale)
           end
+        end
+      end
+
+      def extract_limit(sql_type) #:nodoc:
+        case sql_type
+        when /\((.*)\)/
+          $1.to_i
         end
       end
 
@@ -1409,3 +1412,6 @@ require 'active_record/oracle_enhanced/type/raw'
 
 # Add Type:Timestamp
 require 'active_record/oracle_enhanced/type/timestamp'
+
+# Add OracleEnhanced::Type::Integer
+require 'active_record/oracle_enhanced/type/integer'
