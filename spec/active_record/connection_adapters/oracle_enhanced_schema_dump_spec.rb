@@ -453,4 +453,24 @@ describe "OracleEnhancedAdapter schema dump" do
       end
     end
   end
+
+  describe ":float datatype" do
+    before(:each) do
+      schema_define do
+        create_table :test_floats, force: true do |t|
+          t.float :hourly_rate
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_floats
+      end
+    end
+
+    it "should dump float type correctly" do
+      standard_dump.should =~ /t\.float "hourly_rate"$/
+    end
+  end
 end
