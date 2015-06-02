@@ -134,12 +134,6 @@ module ActiveRecord #:nodoc:
         join_with_statement_token(fks)
       end
 
-      def dump_schema_information #:nodoc:
-        sm_table = ActiveRecord::Migrator.schema_migrations_table_name
-        migrated = select_values("SELECT version FROM #{sm_table} ORDER BY version")
-        join_with_statement_token(migrated.map{|v| "INSERT INTO #{sm_table} (version) VALUES ('#{v}')" })
-      end
-
       # Extract all stored procedures, packages, synonyms and views.
       def structure_dump_db_stored_code #:nodoc:
         structure = []
