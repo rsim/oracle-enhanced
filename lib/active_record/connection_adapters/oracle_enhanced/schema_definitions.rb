@@ -12,10 +12,12 @@ module ActiveRecord
     class OracleEnhancedForeignKeyDefinition < ForeignKeyDefinition
     end
 
-    class OracleEnhancedSynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
-    end
 
     module OracleEnhanced
+    
+      class SynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
+      end
+
       class IndexDefinition < ActiveRecord::ConnectionAdapters::IndexDefinition
         attr_accessor :table, :name, :unique, :type, :parameters, :statement_parameters, :tablespace, :columns
   
