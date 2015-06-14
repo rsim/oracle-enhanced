@@ -40,17 +40,17 @@ module ActiveRecord
         #     t.string      :last_name, :comment => “Surname”
         #   end
 
-        def create_table(name, options = {})
+        def create_table(table_name, options = {})
           create_sequence = options[:id] != false
           column_comments = {}
           temporary = options.delete(:temporary)
           additional_options = options
-          table_definition = create_table_definition name, temporary, additional_options
-          table_definition.primary_key(options[:primary_key] || Base.get_primary_key(name.to_s.singularize)) unless options[:id] == false
+          td = create_table_definition table_name, temporary, additional_options
+          td.primary_key(options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)) unless options[:id] == false
 
           # store that primary key was defined in create_table block
           unless create_sequence
-            class << table_definition
+            class << td
               attr_accessor :create_sequence
               def primary_key(*args)
                 self.create_sequence = true
@@ -60,7 +60,7 @@ module ActiveRecord
           end
 
           # store column comments
-          class << table_definition
+          class << td
             attr_accessor :column_comments
             def column(name, type, options = {})
               if options[:comment]
@@ -71,28 +71,28 @@ module ActiveRecord
             end
           end
 
-          yield table_definition if block_given?
-          create_sequence = create_sequence || table_definition.create_sequence
-          column_comments = table_definition.column_comments if table_definition.column_comments
+          yield td if block_given?
+          create_sequence = create_sequence || td.create_sequence
+          column_comments = td.column_comments if td.column_comments
           tablespace = tablespace_for(:table, options[:tablespace])
 
-          if options[:force] && table_exists?(name)
-            drop_table(name, options)
+          if options[:force] && table_exists?(table_name)
+            drop_table(table_name, options)
           end
 
-          execute schema_creation.accept table_definition
+          execute schema_creation.accept td
 
-          create_sequence_and_trigger(name, options) if create_sequence
+          create_sequence_and_trigger(table_name, options) if create_sequence
 
-          add_table_comment name, options[:comment]
+          add_table_comment table_name, options[:comment]
           column_comments.each do |column_name, comment|
-            add_comment name, column_name, comment
+            add_comment table_name, column_name, comment
           end
-          table_definition.indexes.each_pair { |c,o| add_index name, c, o }
+          td.indexes.each_pair { |c,o| add_index table_name, c, o }
 
-          unless table_definition.foreign_keys.nil?
-            table_definition.foreign_keys.each do |foreign_key|
-              add_foreign_key(table_definition.name, foreign_key.to_table, foreign_key.options)
+          unless td.foreign_keys.nil?
+            td.foreign_keys.each do |foreign_key|
+              add_foreign_key(td.table_name, foreign_key.to_table, foreign_key.options)
             end
           end
         end
