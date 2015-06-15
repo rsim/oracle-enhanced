@@ -339,7 +339,7 @@ module ActiveRecord
         end
 
         def remove_column(table_name, column_name, type = nil, options = {}) #:nodoc:
-          execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)}"
+          execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)} CASCADE CONSTRAINTS"
         ensure
           clear_table_columns_cache(table_name)
           self.all_schema_indexes = nil
