@@ -806,7 +806,7 @@ module ActiveRecord
         if is_with_cpk
           id = klass.primary_key.map {|pk| attributes[pk.to_s] }
         else
-          id = quote(attributes[klass.primary_key])
+          id = quote(attributes[klass.primary_key.to_s]) #fix or else it can't find it if attributes are quoted and this is a symbol
         end
         columns.each do |col|
           value = attributes[col.name]
