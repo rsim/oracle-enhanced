@@ -44,10 +44,6 @@ module ActiveRecord
            ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[native_database_types[type][:name]]) rescue nil
         end
 
-        def foreign_key_definition(to_table, options = {})
-          @conn.foreign_key_definition(to_table, options)
-        end
-
         def add_column_options!(sql, options)
           type = options[:type] || ((column = options[:column]) && column.type)
           type = type && type.to_sym
@@ -68,6 +64,23 @@ module ActiveRecord
           # add AS expression for virtual columns
           if options[:as].present?
             sql << " AS (#{options[:as]})"
+          end
+        end
+
+        def action_sql(action, dependency)
+          if action == 'UPDATE'
+            raise ArgumentError, <<-MSG.strip_heredoc
+              '#{action}' is not supported by Oracle
+            MSG
+          end
+          case dependency
+          when :nullify then "ON #{action} SET NULL"
+          when :cascade  then "ON #{action} CASCADE"
+          else
+            raise ArgumentError, <<-MSG.strip_heredoc
+              '#{dependency}' is not supported for #{action}
+              Supported values are: :nullify, :cascade
+            MSG
           end
         end
 

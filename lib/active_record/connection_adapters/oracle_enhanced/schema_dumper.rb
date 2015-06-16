@@ -58,42 +58,7 @@ module ActiveRecord #:nodoc:
       end
 
       def foreign_keys_with_oracle_enhanced(table_name, stream)
-        # return original method if not using oracle_enhanced
-        if (rails_env = defined?(Rails.env) ? Rails.env : (defined?(RAILS_ENV) ? RAILS_ENV : nil)) &&
-              ActiveRecord::Base.configurations[rails_env] &&
-              ActiveRecord::Base.configurations[rails_env]['adapter'] != 'oracle_enhanced'
-          return foreign_keys_without_oracle_enhanced(table_name, stream)
-        end
-        if @connection.respond_to?(:foreign_keys) && (foreign_keys = @connection.foreign_keys(table_name)).any?
-          add_foreign_key_statements = foreign_keys.map do |foreign_key|
-            statement_parts = [ ('add_foreign_key ' + foreign_key.from_table.inspect) ]
-            statement_parts << foreign_key.to_table.inspect
-
-            if foreign_key.options[:columns].size == 1
-              column = foreign_key.options[:columns].first
-              if column != "#{foreign_key.to_table.singularize}_id"
-                statement_parts << ('column: ' + column.inspect)
-              end
-
-              if foreign_key.options[:references].first != 'id'
-                statement_parts << ('primary_key: ' + foreign_key.options[:references].first.inspect)
-              end
-            else
-              statement_parts << ('columns: ' + foreign_key.options[:columns].inspect)
-            end
-
-            statement_parts << ('name: ' + foreign_key.options[:name].inspect)
-            
-            unless foreign_key.options[:dependent].blank?
-              statement_parts << ('dependent: ' + foreign_key.options[:dependent].inspect)
-            end
-
-            '  ' + statement_parts.join(', ')
-          end
-
-          stream.puts add_foreign_key_statements.sort.join("\n")
-          stream.puts
-        end
+        return foreign_keys_without_oracle_enhanced(table_name, stream)
       end
 
       def synonyms(stream)
