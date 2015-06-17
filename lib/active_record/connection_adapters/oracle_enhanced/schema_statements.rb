@@ -469,6 +469,10 @@ module ActiveRecord
 
         private
 
+        def create_alter_table(name)
+          OracleEnhanced::AlterTable.new create_table_definition(name, false, {})
+        end 
+
         def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
           tablespace_sql = ''
           if tablespace = (tablespace_option || default_tablespace_for(obj_type))

@@ -12,6 +12,13 @@ module ActiveRecord
     module OracleEnhanced
 
       class ForeignKeyDefinition < ActiveRecord::ConnectionAdapters::ForeignKeyDefinition
+        def name
+          if options[:name].length > OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH
+            'c'+Digest::SHA1.hexdigest(options[:name])[0,OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH-1]
+          else
+            options[:name]
+          end
+        end
       end
 
       class SynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
@@ -61,6 +68,12 @@ module ActiveRecord
           super(name, type, options)
         end
 
+      end
+
+      class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable
+        def add_foreign_key(to_table, options)
+          @foreign_key_adds << OracleEnhanced::ForeignKeyDefinition.new(name, to_table, options)
+        end
       end
     end
   end
