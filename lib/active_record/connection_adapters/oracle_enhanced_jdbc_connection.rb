@@ -146,8 +146,11 @@ module ActiveRecord
           # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
         end
 
-        cursor_sharing = config[:cursor_sharing] || 'force'
-        exec "alter session set cursor_sharing = #{cursor_sharing}"
+        # Check if it's an ASM instance as cursor sharing can't be set on ASM
+      	if select("select value from v$parameter where name='instance_type'")[0]['value'] != 'asm'
+          cursor_sharing = config[:cursor_sharing] || 'force'
+          exec "alter session set cursor_sharing = #{cursor_sharing}"
+        end
 
         # Initialize NLS parameters
         OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS.each do |key, default_value|
