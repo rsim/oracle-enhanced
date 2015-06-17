@@ -75,6 +75,18 @@ module ActiveRecord
           @foreign_key_adds << OracleEnhanced::ForeignKeyDefinition.new(name, to_table, options)
         end
       end
+
+      class Table < ActiveRecord::ConnectionAdapters::Table
+        def foreign_key(to_table, options = {})
+          to_table = to_table.to_s.pluralize if ActiveRecord::Base.pluralize_table_names
+          @base.add_foreign_key(@name, to_table, options)
+        end
+
+        def remove_foreign_key(options = {})
+          @base.remove_foreign_key(@name, options)
+        end
+      end
+
     end
   end
 end

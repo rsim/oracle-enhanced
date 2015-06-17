@@ -158,6 +158,10 @@ module ActiveRecord
           end
         end
 
+        def update_table_definition(table_name, base) #:nodoc:
+          OracleEnhanced::Table.new(table_name, base)
+        end
+
         def add_index(table_name, column_name, options = {}) #:nodoc:
           index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
