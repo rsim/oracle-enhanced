@@ -720,6 +720,21 @@ end
       TestComment.find_by_id(c.id).test_post_id.should be_nil
     end
 
+    it "should add foreign key with deferrable" do
+      @conn = ActiveRecord::Base.connection
+
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, :deferred => 'deferrable'
+      end
+
+      rs = @conn.exec_query <<-SQL
+        select count(*) from USER_CONSTRAINTS
+        where UPPER(table_name) = UPPER('test_comments')
+        and DEFERRABLE='DEFERRABLE'
+      SQL
+      expect(rs.rows.first.first).to eq(1)
+    end
+
     it "should add a composite foreign key" do
       schema_define do
         add_column :test_posts, :baz_id, :integer
