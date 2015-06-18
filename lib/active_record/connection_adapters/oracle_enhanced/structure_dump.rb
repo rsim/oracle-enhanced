@@ -134,6 +134,34 @@ module ActiveRecord #:nodoc:
         join_with_statement_token(fks)
       end
 
+      def foreign_key_definition(to_table, options = {}) #:nodoc:
+        columns = Array(options[:column] || options[:columns])
+
+        if columns.size > 1
+          # composite foreign key
+          columns_sql = columns.map {|c| quote_column_name(c)}.join(',')
+          references = options[:references] || columns
+          references_sql = references.map {|c| quote_column_name(c)}.join(',')
+        else
+          columns_sql = quote_column_name(columns.first || "#{to_table.to_s.singularize}_id")
+          references = options[:references] ? options[:references].first : nil
+          references_sql = quote_column_name(options[:primary_key] || references || "id")
+        end
+
+        table_name = to_table
+
+        sql = "FOREIGN KEY (#{columns_sql}) REFERENCES #{quote_table_name(table_name)}(#{references_sql})"
+
+        case options[:dependent]
+        when :nullify
+          sql << " ON DELETE SET NULL"
+        when :delete
+          sql << " ON DELETE CASCADE"
+        end
+        sql
+      end
+
+
       # Extract all stored procedures, packages, synonyms and views.
       def structure_dump_db_stored_code #:nodoc:
         structure = []
