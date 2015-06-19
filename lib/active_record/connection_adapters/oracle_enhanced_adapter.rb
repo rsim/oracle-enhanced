@@ -30,9 +30,13 @@
 # portions Copyright 2005 Graham Jenkins
 
 require 'active_record/connection_adapters/abstract_adapter'
-require 'active_record/connection_adapters/oracle_enhanced_connection'
+require 'active_record/connection_adapters/oracle_enhanced/connection'
+require 'active_record/connection_adapters/oracle_enhanced/database_statements'
+require 'active_record/connection_adapters/oracle_enhanced/schema_statements'
+require 'active_record/connection_adapters/oracle_enhanced/column_dumper'
+require 'active_record/connection_adapters/oracle_enhanced/context_index'
 
-require 'active_record/connection_adapters/oracle_enhanced_column'
+require 'active_record/connection_adapters/oracle_enhanced/column'
 
 require 'digest/sha1'
 
@@ -131,7 +135,7 @@ module ActiveRecord
 
     def record_changed_lobs
       @changed_lob_columns = self.class.lob_columns.select do |col|
-        (self.class.serialized_attributes.keys.include?(col.name) || self.send(:"#{col.name}_changed?")) && !self.class.readonly_attributes.to_a.include?(col.name)
+        self.attribute_changed?(col.name) && !self.class.readonly_attributes.to_a.include?(col.name)
       end
     end
   end
@@ -218,6 +222,15 @@ module ActiveRecord
     # * <tt>:nls_time_tz_format</tt>
     #
     class OracleEnhancedAdapter < AbstractAdapter
+      # TODO: Use relative
+      include ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseStatements
+      include ActiveRecord::ConnectionAdapters::OracleEnhanced::SchemaStatements
+      include ActiveRecord::ConnectionAdapters::OracleEnhanced::ColumnDumper
+      include ActiveRecord::ConnectionAdapters::OracleEnhanced::ContextIndex
+
+      def schema_creation
+        OracleEnhanced::SchemaCreation.new self
+      end
 
       ##
       # :singleton-method:
@@ -270,13 +283,6 @@ module ActiveRecord
       cattr_accessor :emulate_dates_by_column_name
       self.emulate_dates_by_column_name = false
 
-      ##
-      # :singleton-method:
-      # Specify how `NUMBER` datatype columns, without precision and scale, are handled in Rails world.
-      # Default is :decimal and other valid option is :float. Be wary of setting it to other values.
-      cattr_accessor :number_datatype_coercion
-      self.number_datatype_coercion = :decimal
-
       # Check column name to identify if it is Date (and not Time) column.
       # Is used if +emulate_dates_by_column_name+ option is set to +true+.
       # Override this method definition in initializer file if different Date column recognition is needed.
@@ -311,7 +317,7 @@ module ActiveRecord
       # Is used if +emulate_integers_by_column_name+ option is set to +true+.
       # Override this method definition in initializer file if different Integer column recognition is needed.
       def self.is_integer_column?(name, table_name = nil)
-        !!(name =~ /(^|_)id$/i)
+        name =~ /(^|_)id$/i
       end
 
       ##
@@ -326,9 +332,9 @@ module ActiveRecord
       # Check column name to identify if it is boolean (and not String) column.
       # Is used if +emulate_booleans_from_strings+ option is set to +true+.
       # Override this method definition in initializer file if different boolean column recognition is needed.
-      def self.is_boolean_column?(name, field_type, table_name = nil)
-        return true if ["CHAR(1)","VARCHAR2(1)"].include?(field_type)
-        field_type =~ /^VARCHAR2/ && (name =~ /_flag$/i || name =~ /_yn$/i)
+      def self.is_boolean_column?(name, sql_type, table_name = nil)
+        return true if ["CHAR(1)","VARCHAR2(1)"].include?(sql_type)
+        sql_type =~ /^VARCHAR2/ && (name =~ /_flag$/i || name =~ /_yn$/i)
       end
 
       # How boolean value should be quoted to String.
@@ -383,21 +389,18 @@ module ActiveRecord
         end
       end
 
-      class BindSubstitution < Arel::Visitors::Oracle #:nodoc:
-        include Arel::Visitors::BindVisitor
-      end
-
       def initialize(connection, logger, config) #:nodoc:
         super(connection, logger)
         @quoted_column_names, @quoted_table_names = {}, {}
         @config = config
         @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
-        if config.fetch(:prepared_statements) { true }
-          @visitor = Arel::Visitors::Oracle.new self
+        @visitor = Arel::Visitors::Oracle.new self
+
+        if self.class.type_cast_config_to_boolean(config.fetch(:prepared_statements) { true })
           @prepared_statements = true
         else
-          @visitor = unprepared_visitor
+          @prepared_statements = false
         end
       end
 
@@ -423,7 +426,13 @@ module ActiveRecord
         true
       end
 
-      NUMBER_MAX_PRECISION = 38
+      def supports_foreign_keys?
+        true
+      end
+
+      def supports_views?
+        true
+      end
 
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
@@ -448,11 +457,11 @@ module ActiveRecord
 
       #:stopdoc:
       NATIVE_DATABASE_TYPES = {
-        :primary_key => "NUMBER(#{NUMBER_MAX_PRECISION}) NOT NULL PRIMARY KEY",
+        :primary_key => "NUMBER(38) NOT NULL PRIMARY KEY",
         :string      => { :name => "VARCHAR2", :limit => 255 },
         :text        => { :name => "CLOB" },
-        :integer     => { :name => "NUMBER", :limit => NUMBER_MAX_PRECISION },
-        :float       => { :name => "NUMBER" },
+        :integer     => { :name => "NUMBER", :limit => 38 },
+        :float       => { :name => "BINARY_FLOAT" },
         :decimal     => { :name => "DECIMAL" },
         :datetime    => { :name => "DATE" },
         # changed to native TIMESTAMP type
@@ -462,7 +471,8 @@ module ActiveRecord
         :date        => { :name => "DATE" },
         :binary      => { :name => "BLOB" },
         :boolean     => { :name => "NUMBER", :limit => 1 },
-        :raw         => { :name => "RAW", :limit => 2000 }
+        :raw         => { :name => "RAW", :limit => 2000 },
+        :bigint      => { :name => "NUMBER", :limit => 19 }
       }
       # if emulate_booleans_from_strings then store booleans in VARCHAR2
       NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS = NATIVE_DATABASE_TYPES.dup.merge(
@@ -667,22 +677,26 @@ module ActiveRecord
 
       # Cast a +value+ to a type that the database understands.
       def type_cast(value, column)
-        case value
-        when true, false
-          if emulate_booleans_from_strings || column && column.type == :string
-            self.class.boolean_to_string(value)
-          else
-            value ? 1 : 0
-          end
-        when Date, Time
-          if value.acts_like?(:time)
-            zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
-            value.respond_to?(zone_conversion_method) ? value.send(zone_conversion_method) : value
-          else
-            value
-          end
-        else
+        if column && column.cast_type.is_a?(Type::Serialized)
           super
+        else
+          case value
+          when true, false
+            if emulate_booleans_from_strings || column && column.type == :string
+              self.class.boolean_to_string(value)
+            else
+              value ? 1 : 0
+            end
+          when Date, Time
+            if value.acts_like?(:time)
+              zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
+              value.respond_to?(zone_conversion_method) ? value.send(zone_conversion_method) : value
+            else
+              value
+            end
+          else
+            super
+          end
         end
       end
 
@@ -812,7 +826,7 @@ module ActiveRecord
           value = attributes[col.name]
           # changed sequence of next two lines - should check if value is nil before converting to yaml
           next if value.nil?  || (value == '')
-          value = value.to_yaml if col.text? && klass.serialized_attributes[col.name]
+          value = value.to_yaml if value.is_a?(String) && klass.serialized_attributes[col.name]
           uncached do
             sql = is_with_cpk ? "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{klass.composite_where_clause(id)} FOR UPDATE" :
               "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE"
@@ -906,7 +920,7 @@ module ActiveRecord
                   statement_parameters = $1
                 end
               end
-              all_schema_indexes << OracleEnhancedIndexDefinition.new(row['table_name'], row['index_name'],
+              all_schema_indexes << OracleEnhanced::IndexDefinition.new(row['table_name'], row['index_name'],
                 row['uniqueness'] == "UNIQUE", row['index_type'] == 'DOMAIN' ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
                 row['parameters'], statement_parameters,
                 row['tablespace_name'] == default_tablespace_name ? nil : row['tablespace_name'], [])
@@ -1038,7 +1052,7 @@ module ActiveRecord
         end.map do |row|
           limit, scale = row['limit'], row['scale']
           if limit || scale
-            row['sql_type'] += "(#{(limit || NUMBER_MAX_PRECISION).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
+            row['sql_type'] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
           end
 
           if row['sql_type_owner']
@@ -1055,17 +1069,59 @@ module ActiveRecord
             # match newlines.
             row['data_default'].sub!(/^'(.*)'$/m, '\1')
             row['data_default'] = nil if row['data_default'] =~ /^(null|empty_[bc]lob\(\))$/i
+            # TODO: Needs better fix to fallback "N" to false
+            row['data_default'] = false if row['data_default'] == "N"
           end
 
-          OracleEnhancedColumn.new(oracle_downcase(row['name']),
+          # TODO: Consider to extract another method such as `get_cast_type`
+          case row['sql_type'] 
+          when /decimal|numeric|number/i
+            if get_type_for_column(table_name, oracle_downcase(row['name'])) == :integer
+              cast_type = ActiveRecord::OracleEnhanced::Type::Integer.new
+            elsif OracleEnhancedAdapter.emulate_booleans && row['sql_type'].upcase == "NUMBER(1)"
+              cast_type = Type::Boolean.new
+            elsif OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(row['name'], table_name)
+              cast_type = ActiveRecord::OracleEnhanced::Type::Integer.new
+            else
+              cast_type = lookup_cast_type(row['sql_type'])
+            end
+          when /char/i
+            if get_type_for_column(table_name, oracle_downcase(row['name'])) == :string
+              cast_type = Type::String.new
+            elsif get_type_for_column(table_name, oracle_downcase(row['name'])) == :boolean
+              cast_type = Type::Boolean.new
+            elsif OracleEnhancedAdapter.emulate_booleans_from_strings && OracleEnhancedAdapter.is_boolean_column?(row['name'], row['sql_type'], table_name)
+              cast_type = Type::Boolean.new
+            else
+              cast_type = lookup_cast_type(row['sql_type'])
+            end
+          when /date/i
+            if get_type_for_column(table_name, oracle_downcase(row['name'])) == :date
+              cast_type = Type::Date.new
+            elsif get_type_for_column(table_name, oracle_downcase(row['name'])) == :datetime
+              cast_type = Type::DateTime.new
+            elsif OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(row['name'], table_name)
+              cast_type = Type::Date.new
+            else
+              cast_type = lookup_cast_type(row['sql_type'])
+            end
+          else
+            cast_type = lookup_cast_type(row['sql_type'])
+          end
+
+          new_column(oracle_downcase(row['name']),
                            row['data_default'],
+                           cast_type,
                            row['sql_type'],
                            row['nullable'] == 'Y',
-                           # pass table name for table specific column definitions
                            table_name,
-                           # pass column type if specified in class definition
-                           get_type_for_column(table_name, oracle_downcase(row['name'])), is_virtual)
+                           is_virtual,
+                           false )
         end
+      end
+
+      def new_column(name, default, cast_type, sql_type = nil, null = true, table_name = nil, virtual=false, returning_id=false)
+        OracleEnhancedColumn.new(name, default, cast_type, sql_type, null, table_name, virtual, returning_id)
       end
 
       # used just in tests to clear column cache
@@ -1207,6 +1263,34 @@ module ActiveRecord
 
       protected
 
+      def initialize_type_map(m)
+        super
+        # oracle
+        register_class_with_limit m, %r(date)i,           Type::DateTime
+        register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
+        register_class_with_limit m, %r(timestamp)i,      ActiveRecord::OracleEnhanced::Type::Timestamp
+
+        m.register_type(%r(NUMBER)i) do |sql_type|
+          scale = extract_scale(sql_type)
+          precision = extract_precision(sql_type)
+          limit = extract_limit(sql_type)
+          if scale == 0
+            ActiveRecord::OracleEnhanced::Type::Integer.new(precision: precision, limit: limit)
+          else
+            Type::Decimal.new(precision: precision, scale: scale)
+          end
+        end
+      end
+
+      def extract_limit(sql_type) #:nodoc:
+        case sql_type
+        when /^bigint/i
+          19
+        when /\((.*)\)/
+          $1.to_i
+        end
+      end
+
       def translate_exception(exception, message) #:nodoc:
         case @connection.error_code(exception)
         when 1
@@ -1219,6 +1303,10 @@ module ActiveRecord
       end
 
       private
+
+      def select(sql, name = nil, binds = [])
+        exec_query(sql, name, binds)
+      end
 
       def oracle_downcase(column_name)
         @connection.oracle_downcase(column_name)
@@ -1256,12 +1344,8 @@ module ActiveRecord
       end
 
       protected
-      def log(sql, name, binds = nil) #:nodoc:
-        if binds
-          super sql, name, binds
-        else
-          super sql, name
-        end
+      def log(sql, name = "SQL", binds = [], statement_name = nil) #:nodoc:
+        super
       ensure
         log_dbms_output if dbms_output_enabled?
       end
@@ -1289,38 +1373,47 @@ module ActiveRecord
 end
 
 # Implementation of standard schema definition statements and extensions for schema definition
-require 'active_record/connection_adapters/oracle_enhanced_schema_statements'
-require 'active_record/connection_adapters/oracle_enhanced_schema_statements_ext'
+require 'active_record/connection_adapters/oracle_enhanced/schema_statements'
+require 'active_record/connection_adapters/oracle_enhanced/schema_statements_ext'
 
 # Extensions for schema definition
-require 'active_record/connection_adapters/oracle_enhanced_schema_definitions'
+require 'active_record/connection_adapters/oracle_enhanced/schema_definitions'
 
 # Extensions for context index definition
-require 'active_record/connection_adapters/oracle_enhanced_context_index'
+require 'active_record/connection_adapters/oracle_enhanced/context_index'
 
 # Load additional methods for composite_primary_keys support
-require 'active_record/connection_adapters/oracle_enhanced_cpk'
+require 'active_record/connection_adapters/oracle_enhanced/cpk'
 
 # Load patch for dirty tracking methods
-require 'active_record/connection_adapters/oracle_enhanced_dirty'
+require 'active_record/connection_adapters/oracle_enhanced/dirty'
 
 # Patches and enhancements for schema dumper
-require 'active_record/connection_adapters/oracle_enhanced_schema_dumper'
+require 'active_record/connection_adapters/oracle_enhanced/schema_dumper'
 
 # Implementation of structure dump
-require 'active_record/connection_adapters/oracle_enhanced_structure_dump'
+require 'active_record/connection_adapters/oracle_enhanced/structure_dump'
 
-require 'active_record/connection_adapters/oracle_enhanced_version'
+require 'active_record/connection_adapters/oracle_enhanced/version'
 
 module ActiveRecord
-  autoload :OracleEnhancedProcedures, 'active_record/connection_adapters/oracle_enhanced_procedures'
+  autoload :OracleEnhancedProcedures, 'active_record/connection_adapters/oracle_enhanced/procedures'
 end
 
 # Patches and enhancements for column dumper
-require 'active_record/connection_adapters/oracle_enhanced_column_dumper'
+require 'active_record/connection_adapters/oracle_enhanced/column_dumper'
 
 # Moved SchemaCreation class
-require 'active_record/connection_adapters/oracle_enhanced_schema_creation'
+require 'active_record/connection_adapters/oracle_enhanced/schema_creation'
 
 # Moved DatabaseStetements
-require 'active_record/connection_adapters/oracle_enhanced_database_statements'
+require 'active_record/connection_adapters/oracle_enhanced/database_statements'
+
+# Add Type:Raw
+require 'active_record/oracle_enhanced/type/raw'
+
+# Add Type:Timestamp
+require 'active_record/oracle_enhanced/type/timestamp'
+
+# Add OracleEnhanced::Type::Integer
+require 'active_record/oracle_enhanced/type/integer'

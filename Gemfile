@@ -11,7 +11,7 @@ group :development do
   gem 'actionpack',     github: 'rails/rails'
   gem 'railties',       github: 'rails/rails'
 
-  gem 'arel',           github: 'rails/arel'
+  gem 'arel',           github: 'rails/arel', branch: '6-0-stable'
   gem 'journey',        github: 'rails/journey'
 
   gem 'activerecord-deprecated_finders'

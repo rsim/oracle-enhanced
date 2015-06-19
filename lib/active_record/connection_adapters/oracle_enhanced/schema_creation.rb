@@ -1,6 +1,6 @@
 module ActiveRecord
   module ConnectionAdapters
-    class OracleEnhancedAdapter < AbstractAdapter
+    module OracleEnhanced
       class SchemaCreation < AbstractAdapter::SchemaCreation
         private
 
@@ -44,10 +44,6 @@ module ActiveRecord
            ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[native_database_types[type][:name]]) rescue nil
         end
 
-        def foreign_key_definition(to_table, options = {})
-          @conn.foreign_key_definition(to_table, options)
-        end
-
         def add_column_options!(sql, options)
           type = options[:type] || ((column = options[:column]) && column.type)
           type = type && type.to_sym
@@ -56,8 +52,7 @@ module ActiveRecord
             if type == :text
               sql << " DEFAULT #{@conn.quote(options[:default])}"
             else
-              # from abstract adapter
-              sql << " DEFAULT #{@conn.quote(options[:default], options[:column])}"
+              sql << " DEFAULT #{quote_value(options[:default], options[:column])}"
             end
           end
           # must explicitly add NULL or NOT NULL to allow change_column to work on migrations
@@ -72,18 +67,24 @@ module ActiveRecord
           end
         end
 
-        # This method does not exist in SchemaCreation at Rails 4.0
-        # It can be removed only when Oracle enhanced adapter supports Rails 4.1 and higher
-        def options_include_default?(options)
-          options.include?(:default) && !(options[:null] == false && options[:default].nil?)
+        def action_sql(action, dependency)
+          if action == 'UPDATE'
+            raise ArgumentError, <<-MSG.strip_heredoc
+              '#{action}' is not supported by Oracle
+            MSG
+          end
+          case dependency
+          when :nullify then "ON #{action} SET NULL"
+          when :cascade  then "ON #{action} CASCADE"
+          else
+            raise ArgumentError, <<-MSG.strip_heredoc
+              '#{dependency}' is not supported for #{action}
+              Supported values are: :nullify, :cascade
+            MSG
+          end
         end
 
       end
-      
-      def schema_creation
-          SchemaCreation.new self
-      end
-
     end
   end
 end

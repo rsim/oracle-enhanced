@@ -9,3 +9,4 @@ log
 tmp
 sqlnet.log
 Gemfile.lock
+/spec/spec_config.yaml

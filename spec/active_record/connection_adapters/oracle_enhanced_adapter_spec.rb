@@ -476,7 +476,7 @@ describe "OracleEnhancedAdapter" do
         t.string      :title
         # cannot update LOBs over database link
         t.string      :body
-        t.timestamps
+        t.timestamps null: true
       end
       @db_link_username = SYSTEM_CONNECTION_PARAMS[:username]
       @db_link_password = SYSTEM_CONNECTION_PARAMS[:password]
@@ -628,8 +628,8 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should clear older cursors when statement limit is reached" do
-      pk = TestPost.columns.find { |c| c.primary }
-      sub = @conn.substitute_at(pk, 0)
+      pk = TestPost.columns_hash[TestPost.primary_key]
+      sub = @conn.substitute_at(pk, 0).to_sql
       binds = [[pk, 1]]
 
       lambda {
@@ -641,8 +641,8 @@ describe "OracleEnhancedAdapter" do
 
     it "should cache UPDATE statements with bind variables" do
       lambda {
-        pk = TestPost.columns.find { |c| c.primary }
-        sub = @conn.substitute_at(pk, 0)
+        pk = TestPost.columns_hash[TestPost.primary_key]
+        sub = @conn.substitute_at(pk, 0).to_sql
         binds = [[pk, 1]]
         @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
       }.should change(@statements, :length).by(+1)
@@ -682,36 +682,11 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should explain query with binds" do
-      pk = TestPost.columns.find { |c| c.primary }
+      pk = TestPost.columns_hash[TestPost.primary_key]
       sub = @conn.substitute_at(pk, 0)
       explain = TestPost.where(TestPost.arel_table[pk.name].eq(sub)).bind([pk, 1]).explain
       explain.should include("Cost")
       explain.should include("INDEX UNIQUE SCAN")
     end
   end if ENV['RAILS_GEM_VERSION'] >= '3.2'
-
-  describe ".is_integer_column?" do
-    before(:all) do
-      @adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
-    end
-
-    it "should return TrueClass or FalseClass" do
-      @adapter.is_integer_column?("adapter_id").should be_a TrueClass
-      @adapter.is_integer_column?("").should be_a FalseClass
-    end
-
-    it "should return true if name is 'id'" do
-      @adapter.is_integer_column?("id").should be_true
-    end
-
-    it "should return true if name ends with '_id'" do
-      @adapter.is_integer_column?("_id").should be_true
-      @adapter.is_integer_column?("foo_id").should be_true
-    end
-
-    it "should return false if name is 'something_else'" do
-      @adapter.is_integer_column?("something_else").should be_false
-    end
-  end
-
 end
