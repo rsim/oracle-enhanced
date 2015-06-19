@@ -895,6 +895,18 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
     @conn.execute <<-SQL
+      CREATE TABLE test3_employees (
+        id            NUMBER(6,0) PRIMARY KEY,
+        first_name    VARCHAR2(20),
+        last_name     VARCHAR2(25),
+        comments      CLOB
+      )
+    SQL
+    @conn.execute <<-SQL
+      CREATE SEQUENCE test3_employees_seq  MINVALUE 1
+        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
+    SQL
+    @conn.execute <<-SQL
       CREATE TABLE test_serialize_employees (
         id            NUMBER(6,0) PRIMARY KEY,
         first_name    VARCHAR2(20),
@@ -914,6 +926,16 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     class ::Test2Employee < ActiveRecord::Base
       serialize :comments
     end
+    @custom_serializer = Class.new do
+      def self.dump(obj)
+        obj.join(",")
+      end
+      def self.load(obj)
+        obj.split(",")
+      end
+    end
+    class ::Test3Employee < ActiveRecord::Base; end
+    ::Test3Employee.serialize :comments, @custom_serializer
     class ::TestEmployeeReadOnlyClob < ActiveRecord::Base
       self.table_name = "test_employees"
       attr_readonly :comments
@@ -1074,6 +1096,34 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @employee.save!
     @employee.reload
     @employee.comments.should == @char_data
+  end
+
+  it "should store serializable ruby data structures" do
+    ruby_data1 = {"arbitrary1" => ["ruby", :data, 123]}
+    ruby_data2 = {"arbitrary2" => ["ruby", :data, 123]}
+    @employee = Test2Employee.create!(
+      :comments => ruby_data1
+    )
+    @employee.reload
+    @employee.comments.should == ruby_data1
+    @employee.comments = ruby_data2
+    @employee.save
+    @employee.reload
+    @employee.comments.should == ruby_data2
+  end
+
+  it "should be able to use a custom serializer" do
+    ruby_data1 = %w[some words as test data1]
+    ruby_data2 = %w[some words as test data2]
+    @employee = Test3Employee.create!(
+      :comments => ruby_data1
+    )
+    @employee.reload
+    @employee.comments.should == ruby_data1
+    @employee.comments = ruby_data2
+    @employee.save
+    @employee.reload
+    @employee.comments.should == ruby_data2
   end
 
   it "should keep unchanged serialized data when other columns changed" do
