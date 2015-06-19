@@ -399,6 +399,12 @@ module ActiveRecord
         end
 
         def add_foreign_key(from_table, to_table, options = {})
+          case options[:dependent]  
+          when :delete then options[:on_delete] = :cascade
+          when :nullify then options[:on_delete] = :nullify
+          else
+          end
+
           super
         end
 
