@@ -187,14 +187,14 @@ describe "OracleEnhancedAdapter schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts, dependent: :delete
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", name: "test_comments_test_post_id_fk", dependent: :delete/
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", on_delete: :cascade/
     end
 
     it "should include foreign key with nullify dependency in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts, dependent: :nullify
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", name: "test_comments_test_post_id_fk", dependent: :nullify/
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", on_delete: :nullify/
     end
 
     it "should not include foreign keys on ignored table names in schema dump" do
