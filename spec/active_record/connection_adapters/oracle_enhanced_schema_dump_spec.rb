@@ -226,6 +226,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should include composite foreign keys" do
+      pending "Composite foreign keys are not supported in this version"
       schema_define do
         add_column :test_posts, :baz_id, :integer
         add_column :test_posts, :fooz_id, :integer
