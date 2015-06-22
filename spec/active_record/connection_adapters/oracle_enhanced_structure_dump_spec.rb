@@ -92,6 +92,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     
     it "should dump composite foreign keys" do
+      pending "Composite foreign keys are not supported in this version"
       @conn.add_column :foos, :fooz_id, :integer
       @conn.add_column :foos, :baz_id, :integer
       
