@@ -180,7 +180,7 @@ describe "OracleEnhancedAdapter schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", name: "test_comments_test_post_id_fk"/
+      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts"/
     end
 
     it "should include foreign key with delete dependency in schema dump" do
