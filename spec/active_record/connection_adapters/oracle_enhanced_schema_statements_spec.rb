@@ -680,7 +680,8 @@ end
       end
       lambda do
         TestComment.create(:body => "test", :test_post_id => 1)
-      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TES_COM_TES_POS_ID_FOR_KEY/}
+      end.should raise_error() {|e| e.message.should =~
+        /ORA-02291.*\.C#{Digest::SHA1.hexdigest("test_comments_test_post_id_foreign_key")[0,29].upcase}/}
     end
 
     it "should add foreign key with very long name which is shortened" do
