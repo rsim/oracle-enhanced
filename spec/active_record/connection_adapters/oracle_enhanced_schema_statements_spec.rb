@@ -627,12 +627,14 @@ end
     end
 
     it "should add foreign key" do
+      fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_test_post_id_fk").first(10)}"
+
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
       lambda do
         TestComment.create(:body => "test", :test_post_id => 1)
-      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TEST_COMMENTS_TEST_POST_ID_FK/}
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.#{fk_name}/i}
     end
 
     context "with table_name_prefix" do
@@ -692,12 +694,14 @@ end
     end
 
     it "should add foreign key with column" do
+      fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_post_id_fk").first(10)}"
+
       schema_define do
         add_foreign_key :test_comments, :test_posts, :column => "post_id"
       end
       lambda do
         TestComment.create(:body => "test", :post_id => 1)
-      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TEST_COMMENTS_POST_ID_FK/}
+      end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.#{fk_name}/i}
     end
 
     it "should add foreign key with delete dependency" do
