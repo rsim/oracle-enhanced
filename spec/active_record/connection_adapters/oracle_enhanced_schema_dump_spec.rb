@@ -406,7 +406,7 @@ describe "OracleEnhancedAdapter schema dump" do
     it 'should dump correctly' do
       standard_dump.should =~ /t\.virtual "full_name",(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\"",(\s*)type: :string/
       standard_dump.should =~ /t\.virtual "short_name",(\s*)limit: 300,(\s*)as:(.*),(\s*)type: :string/
-      standard_dump.should =~ /t\.virtual "full_name_length",(\s*)precision: 38,(\s*)scale: 0,(\s*)as:(.*),(\s*)type: :integer/
+      standard_dump.should =~ /t\.virtual "full_name_length",(\s*)precision: 38,(\s*)as:(.*),(\s*)type: :integer/
       standard_dump.should =~ /t\.virtual "name_ratio",(\s*)as:(.*)\"$/ # no :type
       standard_dump.should =~ /t\.virtual "abbrev_name",(\s*)limit: 100,(\s*)as:(.*),(\s*)type: :string/
       standard_dump.should =~ /t\.virtual "field_with_leading_space",(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '",(\s*)type: :string/
