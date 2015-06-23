@@ -14,6 +14,7 @@ module ActiveRecord
       class ForeignKeyDefinition < ActiveRecord::ConnectionAdapters::ForeignKeyDefinition
         def name
           if options[:name].length > OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH
+            ActiveSupport::Deprecation.warn "Foreign key name #{options[:name]} is too long. It will not get shorten in later version of Oracle enhanced adapter"
             'c'+Digest::SHA1.hexdigest(options[:name])[0,OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH-1]
           else
             options[:name]
