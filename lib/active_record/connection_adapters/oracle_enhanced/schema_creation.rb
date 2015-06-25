@@ -52,7 +52,7 @@ module ActiveRecord
             if type == :text
               sql << " DEFAULT #{@conn.quote(options[:default])}"
             else
-              sql << " DEFAULT #{quote_value(options[:default], options[:column])}"
+              sql << " DEFAULT #{@conn.quote(options[:default], options[:column])}"
             end
           end
           # must explicitly add NULL or NOT NULL to allow change_column to work on migrations
