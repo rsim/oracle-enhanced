@@ -641,13 +641,14 @@ end
       let(:table_name_prefix) { 'xxx_' }
 
       it "should use table_name_prefix for foreign table" do
+        fk_name = "fk_rails_#{Digest::SHA256.hexdigest("xxx_test_comments_test_post_id_fk").first(10)}"
         schema_define do
           add_foreign_key :test_comments, :test_posts
         end
 
         lambda do
           TestComment.create(:body => "test", :test_post_id => 1)
-        end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.XXX_TES_COM_TES_POS_ID_FK/}
+        end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.#{fk_name}/i}
       end
     end
 
@@ -655,13 +656,14 @@ end
       let(:table_name_suffix) { '_xxx' }
 
       it "should use table_name_suffix for foreign table" do
+        fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_xxx_test_post_id_fk").first(10)}"
         schema_define do
           add_foreign_key :test_comments, :test_posts
         end
 
         lambda do
           TestComment.create(:body => "test", :test_post_id => 1)
-        end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.TES_COM_XXX_TES_POS_ID_FK/}
+        end.should raise_error() {|e| e.message.should =~ /ORA-02291.*\.#{fk_name}/i}
       end
     end
 
