@@ -1,5 +1,25 @@
-## 1.6.0.beta 1 / 2016-06-19
-* Enhancements and bug fix
+## 1.6.0 / 2015-06-25
+
+* Changes and bug fixes since 1.6.0.beta1
+
+ * Add deprecation warnings for Oracle enhanced specific foreign key methods [#631]
+ * Skip composite foreign key tests not supported in this version [#632]
+ * Do not dump default foreign key name [#633]
+ * Schema dump uses `:on_delete` option instead of `:dependent` [#634]
+ * Use Rails foreign key name in rspec unit tests [#635]
+ * Add deprecate warning if foreign key name length is longer than 30 byte [#636]
+ * Foreign key name longer than 30 byte will be shortened using Digest::SHA1.hexdigest [#637]
+ * Schema dumper for :integer will not dump :precision 0 [#638]
+ * Update foreign key names for add_foreign_key with table_name_prefix [#643]
+
+* Known Issues since 1.6.0.beta1
+ * table_name_prefix and table_name_suffix changes column names which cause ORA-00904 [#639]
+ * custom methods should rollback record when exception is raised in after_create callback fails [#640]
+ * custom methods for create, update and destroy should log create record fails [#641]
+
+## 1.6.0.beta 1 / 2015-06-19
+
+* Enhancements
  * Support Rails 4.2
  * Support Rails native foreign key syntax [#488, #618]
 
