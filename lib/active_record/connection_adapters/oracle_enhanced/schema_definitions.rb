@@ -41,6 +41,10 @@ module ActiveRecord
         end
       end
 
+      class ColumnDefinition < ActiveRecord::ConnectionAdapters::ColumnDefinition
+
+      end
+
       class TableDefinition < ActiveRecord::ConnectionAdapters::TableDefinition
 
         def raw(name, options={})
@@ -67,6 +71,11 @@ module ActiveRecord
             options[:default] = default
           end
           super(name, type, options)
+        end
+
+        private
+        def create_column_definition(name, type)
+          OracleEnhanced::ColumnDefinition.new name, type
         end
 
       end
