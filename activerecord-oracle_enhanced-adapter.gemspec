@@ -94,7 +94,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_development_dependency(%q<jeweler>, ["~> 2.0"])
       s.add_development_dependency(%q<rspec>, ["~> 2.4"])
-      s.add_development_dependency(%q<activerecord>, [">= 0"])
+      s.add_development_dependency(%q<activerecord>, ["~> 4.2.1"])
       s.add_development_dependency(%q<activemodel>, [">= 0"])
       s.add_development_dependency(%q<activesupport>, [">= 0"])
       s.add_development_dependency(%q<actionpack>, [">= 0"])
@@ -106,7 +106,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     else
       s.add_dependency(%q<jeweler>, ["~> 2.0"])
       s.add_dependency(%q<rspec>, ["~> 2.4"])
-      s.add_dependency(%q<activerecord>, [">= 0"])
+      s.add_dependency(%q<activerecord>, ["~> 4.2.1"])
       s.add_dependency(%q<activemodel>, [">= 0"])
       s.add_dependency(%q<activesupport>, [">= 0"])
       s.add_dependency(%q<actionpack>, [">= 0"])
@@ -120,7 +120,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     s.add_dependency(%q<jeweler>, ["~> 2.0"])
     s.add_dependency(%q<rspec>, ["~> 2.4"])
     s.add_dependency(%q<activerecord>, [">= 0"])
-    s.add_dependency(%q<activemodel>, [">= 0"])
+    s.add_dependency(%q<activemodel>, ["~> 4.2.1"])
     s.add_dependency(%q<activesupport>, [">= 0"])
     s.add_dependency(%q<actionpack>, [">= 0"])
     s.add_dependency(%q<railties>, [">= 0"])
