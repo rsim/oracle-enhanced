@@ -29,7 +29,7 @@ If you would like to use latest adapter version from github then specify
 gem 'activerecord-oracle_enhanced-adapter', :git => 'git://github.com/rsim/oracle-enhanced.git'
 ```
 
-If you are using CRuby 1.9.3 or 2.0 then you need to install ruby-oci8 gem as well as Oracle client, e.g. [Oracle Instant Client](http://www.oracle.com/technetwork/database/features/instant-client/index-097480.html). Include in Gemfile also ruby-oci8:
+If you are using CRuby >= 1.9.3 then you need to install ruby-oci8 gem as well as Oracle client, e.g. [Oracle Instant Client](http://www.oracle.com/technetwork/database/features/instant-client/index-097480.html). Include in Gemfile also ruby-oci8:
 
 ```ruby
 gem 'ruby-oci8', '~> 2.1.0'
