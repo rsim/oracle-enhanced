@@ -1109,10 +1109,10 @@ module ActiveRecord
             cast_type = lookup_cast_type(row['sql_type'])
           end
 
+          type_metadata = fetch_type_metadata(row['sql_type'])
           new_column(oracle_downcase(row['name']),
                            row['data_default'],
-                           cast_type,
-                           row['sql_type'],
+                           type_metadata,
                            row['nullable'] == 'Y',
                            table_name,
                            is_virtual,
@@ -1120,8 +1120,8 @@ module ActiveRecord
         end
       end
 
-      def new_column(name, default, cast_type, sql_type = nil, null = true, table_name = nil, virtual=false, returning_id=false)
-        OracleEnhancedColumn.new(name, default, cast_type, sql_type, null, table_name, virtual, returning_id)
+      def new_column(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual=false, returning_id=false)
+        OracleEnhancedColumn.new(name, default, sql_type_metadata, null, table_name, virtual, returning_id)
       end
 
       # used just in tests to clear column cache

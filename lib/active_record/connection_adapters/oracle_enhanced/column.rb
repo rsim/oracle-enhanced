@@ -6,7 +6,7 @@ module ActiveRecord
 
       FALSE_VALUES << 'N'
 
-      def initialize(name, default, cast_type, sql_type = nil, null = true, table_name = nil, virtual=false, returning_id=false) #:nodoc:
+      def initialize(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual=false, returning_id=false) #:nodoc:
         @table_name = table_name
         @virtual = virtual
         @virtual_column_data_default = default.inspect if virtual
@@ -16,12 +16,12 @@ module ActiveRecord
         else
           default_value = self.class.extract_value_from_default(default)
         end
-        super(name, default_value, cast_type, sql_type, null)
+        super(name, default_value, sql_type_metadata, null)
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
-        if sql_type 
-          @nchar = true if cast_type.class == ActiveRecord::Type::String && sql_type[0,1] == 'N'
-          @object_type = sql_type.include? '.'
+        if sql_type_metadata
+          @nchar = true if sql_type_metadata.type == :string && sql_type_metadata.sql_type[0,1] == 'N'
+          @object_type = sql_type_metadata.sql_type.include? '.'
         end
         # TODO: Need to investigate when `sql_type` becomes nil
       end
