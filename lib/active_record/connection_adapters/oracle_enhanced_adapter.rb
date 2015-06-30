@@ -826,7 +826,7 @@ module ActiveRecord
           value = attributes[col.name]
           # changed sequence of next two lines - should check if value is nil before converting to yaml
           next if value.nil?  || (value == '')
-          value = value.to_yaml if value.is_a?(String) && klass.serialized_attributes[col.name]
+          value = value.to_yaml if klass.serialized_attributes[col.name]
           uncached do
             sql = is_with_cpk ? "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{klass.composite_where_clause(id)} FOR UPDATE" :
               "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE"
