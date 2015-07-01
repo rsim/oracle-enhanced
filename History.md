@@ -1,3 +1,13 @@
+## 1.6.1 / 2015-07-01
+
+* Changes and bug fixes since 1.6.0
+
+ * Oracle enhanced adapter v1.6 requires ActiveRecord 4.2.1 or higher, 
+   ActiveRecord 4.2.0 is not supported.[#651, #652]
+ * Fix serialized value becomes from yaml to string once saved [#655, #657]
+ * Update Ruby version in readme [#654]
+ * Update unit test matcher to skip sql statements to get `table` metadata [#653] 
+
 ## 1.6.0 / 2015-06-25
 
 * Changes and bug fixes since 1.6.0.beta1
