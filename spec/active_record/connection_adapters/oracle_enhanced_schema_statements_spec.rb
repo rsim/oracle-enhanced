@@ -1368,6 +1368,13 @@ end
       @would_execute_sql.should =~ /CREATE +INDEX .* ON .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/
     end
 
+    it "should create unique function index but not create unique constraints" do
+      schema_define do
+        add_index :keyboards, 'lower(name)', unique: true, name: :index_keyboards_on_lower_name
+      end
+      @would_execute_sql.should_not =~ /ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\(.*\)\)/
+    end
+
     describe "#initialize_schema_migrations_table" do
       # In Rails 2.3 to 3.2.x the index name for the migrations
       # table is hard-coded. We can modify the index name here

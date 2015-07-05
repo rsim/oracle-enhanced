@@ -166,7 +166,9 @@ module ActiveRecord
           index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
           if index_type == 'UNIQUE'
-            execute "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(index_name)} #{index_type} (#{quoted_column_names})"
+            unless quoted_column_names =~ /\(.*\)/
+              execute "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(index_name)} #{index_type} (#{quoted_column_names})"
+            end
           end
         ensure
           self.all_schema_indexes = nil
