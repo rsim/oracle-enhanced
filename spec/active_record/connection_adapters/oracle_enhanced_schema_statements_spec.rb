@@ -795,6 +795,45 @@ end
 
   end
 
+  describe "lob in table definition" do
+    before do
+      class ::TestPost < ActiveRecord::Base
+      end
+    end
+    it 'should use default tablespace for clobs' do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:blob] = nil
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.text :test_clob
+          t.binary :test_blob
+        end
+      end
+      TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'").should == DATABASE_NON_DEFAULT_TABLESPACE
+      TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'").should_not == DATABASE_NON_DEFAULT_TABLESPACE
+    end
+
+    it 'should use default tablespace for blobs' do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:blob] = DATABASE_NON_DEFAULT_TABLESPACE
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = nil
+      schema_define do
+        create_table :test_posts, :force => true do |t|
+          t.text :test_clob
+          t.binary :test_blob
+        end
+      end
+      TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'").should == DATABASE_NON_DEFAULT_TABLESPACE
+      TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'").should_not == DATABASE_NON_DEFAULT_TABLESPACE
+    end
+
+    after do
+      Object.send(:remove_const, "TestPost")
+      schema_define do
+        drop_table :test_posts rescue nil
+      end
+    end
+  end
+
   describe "foreign key in table definition" do
     before(:each) do
       schema_define do
