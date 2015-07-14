@@ -5,38 +5,36 @@ module ActiveRecord
         private
 
         def visit_ColumnDefinition(o)
-          if o.type.to_sym == :virtual
-            sql_type = type_to_sql(o.default[:type], o.limit, o.precision, o.scale) if o.default[:type]
-            "#{quote_column_name(o.name)} #{sql_type} AS (#{o.default[:as]})"
-          else
-            super
+          case
+            when o.type.to_sym == :virtual
+              sql_type = type_to_sql(o.default[:type], o.limit, o.precision, o.scale) if o.default[:type]
+              return "#{quote_column_name(o.name)} #{sql_type} AS (#{o.default[:as]})"
+            when [:blob, :clob].include?(sql_type = type_to_sql(o.type.to_sym,  o.limit, o.precision, o.scale).downcase.to_sym)
+              if (tablespace = default_tablespace_for(sql_type))
+                @lob_tablespaces ||= {}
+                @lob_tablespaces[o.name] = tablespace
+              end
           end
+          super
         end
 
         def visit_TableDefinition(o)
-          tablespace = tablespace_for(:table, o.options[:tablespace])
           create_sql = "CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE "
           create_sql << "#{quote_table_name(o.name)} ("
           create_sql << o.columns.map { |c| accept c }.join(', ')
           create_sql << ")"
+
           unless o.temporary
+            @lob_tablespaces.each do |lob_column, tablespace|
+              create_sql << " LOB (#{quote_column_name(lob_column)}) STORE AS (TABLESPACE #{tablespace}) \n"
+            end if @lob_tablespaces
             create_sql << " ORGANIZATION #{o.options[:organization]}" if o.options[:organization]
-            create_sql << "#{tablespace}"
+            if (tablespace = o.options[:tablespace] || default_tablespace_for(:table))
+              create_sql << " TABLESPACE #{tablespace}"
+            end
           end
           create_sql << " #{o.options[:options]}"
           create_sql
-        end
-
-        def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
-          tablespace_sql = ''
-          if tablespace = (tablespace_option || default_tablespace_for(obj_type))
-            tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
-              " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
-            else
-              " TABLESPACE #{tablespace}"
-            end
-          end
-          tablespace_sql
         end
 
         def default_tablespace_for(type)
