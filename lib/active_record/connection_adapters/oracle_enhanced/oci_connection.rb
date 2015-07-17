@@ -267,6 +267,10 @@ module ActiveRecord
         end
       end
 
+      def database_version
+        @database_version ||= (version = raw_connection.oracle_server_version) && [version.major, version.minor]
+      end
+
       private
 
       def date_without_time?(value)
