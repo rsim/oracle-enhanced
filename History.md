@@ -1,3 +1,12 @@
+## 1.6.2 / 2015-07-20
+
+* Changes and bug fixes since 1.6.1
+
+ * Oracle enhanced adapter v1.6 requires ActiveRecord 4.2.1 or higher,
+   ActiveRecord 4.2.0 is not supported.[#672]
+ * Unique constraints not created when function unique index created [#662, #663]
+ * create_table should use default tablespace values for lobs [#668]
+
 ## 1.6.1 / 2015-07-01
 
 * Changes and bug fixes since 1.6.0
