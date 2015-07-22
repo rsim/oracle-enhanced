@@ -5,12 +5,12 @@
 
 Gem::Specification.new do |s|
   s.name = %q{activerecord-oracle_enhanced-adapter}
-  s.version = "1.6.1"
+  s.version = "1.6.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.license = 'MIT'
   s.authors = [%q{Raimonds Simanovskis}]
-  s.date = %q{2015-07-01}
+  s.date = %q{2015-07-20}
   s.description = %q{Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 }
@@ -119,8 +119,8 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   else
     s.add_dependency(%q<jeweler>, ["~> 2.0"])
     s.add_dependency(%q<rspec>, ["~> 2.4"])
-    s.add_dependency(%q<activerecord>, [">= 0"])
-    s.add_dependency(%q<activemodel>, ["~> 4.2.1"])
+    s.add_dependency(%q<activerecord>, ["~> 4.2.1"])
+    s.add_dependency(%q<activemodel>, [">= 0"])
     s.add_dependency(%q<activesupport>, [">= 0"])
     s.add_dependency(%q<actionpack>, [">= 0"])
     s.add_dependency(%q<railties>, [">= 0"])
