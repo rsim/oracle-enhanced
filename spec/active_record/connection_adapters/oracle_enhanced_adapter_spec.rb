@@ -689,4 +689,60 @@ describe "OracleEnhancedAdapter" do
       explain.should include("INDEX UNIQUE SCAN")
     end
   end if ENV['RAILS_GEM_VERSION'] >= '3.2'
+
+  describe "using offset and limit" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+      @conn.execute "DROP TABLE test_employees" rescue nil
+      @conn.execute <<-SQL
+        CREATE TABLE test_employees (
+          id            NUMBER PRIMARY KEY,
+          sort_order    NUMBER(38,0),
+          first_name    VARCHAR2(20),
+          last_name     VARCHAR2(25),
+          updated_at    DATE,
+          created_at    DATE
+        )
+      SQL
+      @conn.execute "DROP SEQUENCE test_employees_seq" rescue nil
+      @conn.execute <<-SQL
+        CREATE SEQUENCE test_employees_seq  MINVALUE 1
+          INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER NOCYCLE
+      SQL
+      @employee = Class.new(ActiveRecord::Base) do
+        self.table_name = :test_employees
+      end
+      i = 0
+      @employee.create!(sort_order: i+=1, first_name: 'Peter',   last_name: 'Parker')
+      @employee.create!(sort_order: i+=1, first_name: 'Tony',    last_name: 'Stark')
+      @employee.create!(sort_order: i+=1, first_name: 'Steven',  last_name: 'Rogers')
+      @employee.create!(sort_order: i+=1, first_name: 'Bruce',   last_name: 'Banner')
+      @employee.create!(sort_order: i+=1, first_name: 'Natasha', last_name: 'Romanova')
+    end
+
+    after(:all) do
+      @conn.execute "DROP TABLE test_employees"
+      @conn.execute "DROP SEQUENCE test_employees_seq"
+    end
+
+    after(:each) do
+      ActiveRecord::Base.connection.clear_ignored_table_columns
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should return n records with limit(n)" do
+      @employee.limit(3).to_a.size.should be(3)
+    end
+
+    it "should return less than n records with limit(n) if there exist less than n records" do
+      @employee.limit(10).to_a.size.should be(5)
+    end
+
+    it "should return the records starting from offset n with offset(n)" do
+      expect(@employee.order(:sort_order).first.first_name.should).to eq("Peter")
+      expect(@employee.order(:sort_order).offset(0).first.first_name.should).to eq("Peter")
+      expect(@employee.order(:sort_order).offset(1).first.first_name.should).to eq("Tony")
+      expect(@employee.order(:sort_order).offset(4).first.first_name.should).to eq("Natasha")
+    end
+  end
 end
