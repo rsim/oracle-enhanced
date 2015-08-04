@@ -32,9 +32,9 @@ module ActiveRecord
 
               cursor = @statements[sql]
 
-              binds.each_with_index do |bind, i|
+              type_casted_binds.each_with_index do |bind, i|
                 col, val = bind
-                cursor.bind_param(i + 1, type_cast(val, col), col)
+                cursor.bind_param(i + 1, val, col)
               end
 
               cached = true
@@ -129,14 +129,14 @@ module ActiveRecord
 
               cursor = @statements[sql]
 
-              binds.each_with_index do |bind, i|
+              type_casted_binds.each_with_index do |bind, i|
                 col, val = bind
                 if col.returning_id?
                   returning_id_col = [col]
                   returning_id_index = i + 1
                   cursor.bind_returning_param(returning_id_index, Integer)
                 else
-                  cursor.bind_param(i + 1, type_cast(val, col), col)
+                  cursor.bind_param(i + 1, val, col)
                 end
               end
             end
@@ -154,7 +154,10 @@ module ActiveRecord
 
         # New method in ActiveRecord 3.1
         def exec_update(sql, name, binds)
-          log(sql, name, binds) do
+          type_casted_binds = binds.map { |col, val|
+            [col, type_cast(val, col)]
+          }
+          log(sql, name, type_casted_binds) do
             cached = false
             if without_prepared_statement?(binds)
               cursor = @connection.prepare(sql)
@@ -165,9 +168,9 @@ module ActiveRecord
                 @statements[sql] = @connection.prepare(sql)
               end
 
-              binds.each_with_index do |bind, i|
+              type_casted_binds.each_with_index do |bind, i|
                 col, val = bind
-                cursor.bind_param(i + 1, type_cast(val, col), col)
+                cursor.bind_param(i + 1, val, col)
               end
               cached = true
             end
