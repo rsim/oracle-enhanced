@@ -22,6 +22,15 @@ module ActiveRecord
         create_primary_key_trigger(table_name, options)
       end
 
+      def table_definition_tablespace
+        # TODO: Support specifying an :index_tablespace option in create_table?
+        tablespace_sql = ''
+        if tablespace = default_tablespace_for(:index)
+          tablespace_sql << " USING INDEX TABLESPACE #{tablespace}"
+        end
+        tablespace_sql
+      end
+      
       # Add synonym to existing table or view or sequence. Can be used to create local synonym to
       # remote table in other schema or in other database
       # Examples:
@@ -50,7 +59,7 @@ module ActiveRecord
 
       # get synonyms for schema dump
       def synonyms #:nodoc:
-        select_all("SELECT synonym_name, table_owner, table_name, db_link FROM user_synonyms").collect do |row|
+        select_all("SELECT synonym_name, table_owner, table_name, db_link FROM all_synonyms WHERE owner = SYS_CONTEXT('userenv', 'current_schema')").collect do |row|
           OracleEnhanced::SynonymDefinition.new(oracle_downcase(row['synonym_name']),
             oracle_downcase(row['table_owner']), oracle_downcase(row['table_name']), oracle_downcase(row['db_link']))
         end
