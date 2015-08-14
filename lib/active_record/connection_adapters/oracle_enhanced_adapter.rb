@@ -862,7 +862,7 @@ module ActiveRecord
 
       # Will return true if database object exists (to be able to use also views and synonyms for ActiveRecord models)
       def table_exists?(table_name)
-        (owner, table_name, db_link) = @connection.describe(table_name)
+        (_owner, table_name, _db_link) = @connection.describe(table_name)
         true
       rescue
         false
