@@ -280,7 +280,7 @@ module ActiveRecord #:nodoc:
                AND table_name = '#{table.upcase}'
           SQL
         # feature not supported previous to 11g
-        rescue ActiveRecord::StatementInvalid => e
+        rescue ActiveRecord::StatementInvalid => _e
           []
         end
       end
