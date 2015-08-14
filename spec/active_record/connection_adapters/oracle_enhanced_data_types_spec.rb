@@ -1076,6 +1076,20 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @employee.comments.should == @char_data
   end
 
+  it "should store serializable ruby data structures" do
+    ruby_data1 = {"arbitrary1" => ["ruby", :data, 123]}
+    ruby_data2 = {"arbitrary2" => ["ruby", :data, 123]}
+    @employee = Test2Employee.create!(
+      :comments => ruby_data1
+    )
+    @employee.reload
+    @employee.comments.should == ruby_data1
+    @employee.comments = ruby_data2
+    @employee.save
+    @employee.reload
+    @employee.comments.should == ruby_data2
+  end
+
   it "should keep unchanged serialized data when other columns changed" do
     @employee = Test2Employee.create!(
       :first_name => "First",
