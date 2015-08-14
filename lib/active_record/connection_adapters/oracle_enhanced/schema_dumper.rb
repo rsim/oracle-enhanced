@@ -50,7 +50,7 @@ module ActiveRecord #:nodoc:
 
       def primary_key_trigger(table_name, stream)
         if @connection.respond_to?(:has_primary_key_trigger?) && @connection.has_primary_key_trigger?(table_name)
-          pk, pk_seq = @connection.pk_and_sequence_for(table_name)
+          pk, _pk_seq = @connection.pk_and_sequence_for(table_name)
           stream.print "  add_primary_key_trigger #{table_name.inspect}"
           stream.print ", primary_key: \"#{pk}\"" if pk != 'id'
           stream.print "\n\n"
@@ -121,7 +121,7 @@ module ActiveRecord #:nodoc:
 
           # first dump primary key column
           if @connection.respond_to?(:pk_and_sequence_for)
-            pk, pk_seq = @connection.pk_and_sequence_for(table)
+            pk, _pk_seq = @connection.pk_and_sequence_for(table)
           elsif @connection.respond_to?(:primary_key)
             pk = @connection.primary_key(table)
           end
