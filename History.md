@@ -1,3 +1,12 @@
+## 1.6.3 / 2015-08-14
+
+* Changes and bug fixes since 1.6.2
+ * Set sequence name automatically when new table name is longer than 26 bytes[#676]
+ * Add minimal specs for ActiveRecord::Base.limit() and .order()[#679]
+ * Use type_casted_binds [#681]
+ * Use type_cast_for_database to serialize correctly [#688]
+ * Suppress deprecated message for serialized_attributes [#688, #548, #687]
+
 ## 1.6.2 / 2015-07-20
 
 * Changes and bug fixes since 1.6.1
