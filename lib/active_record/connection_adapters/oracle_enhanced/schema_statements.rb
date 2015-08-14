@@ -74,7 +74,6 @@ module ActiveRecord
           yield td if block_given?
           create_sequence = create_sequence || td.create_sequence
           column_comments = td.column_comments if td.column_comments
-          tablespace = tablespace_for(:table, options[:tablespace])
 
           if options[:force] && table_exists?(table_name)
             drop_table(table_name, options)
