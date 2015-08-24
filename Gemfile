@@ -6,14 +6,8 @@ group :development do
   gem 'rdoc'
 
   gem 'activerecord',   github: 'rails/rails'
-  gem 'activemodel',    github: 'rails/rails'
-  gem 'activesupport',  github: 'rails/rails'
-  gem 'actionpack',     github: 'rails/rails'
-  gem 'railties',       github: 'rails/rails'
   gem 'rack',           github: 'rack/rack'
-
   gem 'arel',           github: 'rails/arel', branch: 'master'
-  gem 'journey',        github: 'rails/journey'
 
   gem 'ruby-plsql', '>=0.5.0'
 

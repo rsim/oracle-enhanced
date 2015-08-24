@@ -29,7 +29,6 @@ puts "==> Selected Rails version #{ENV['RAILS_GEM_VERSION']}"
 
 require 'active_record'
 
-require 'action_dispatch'
 require 'active_support/core_ext/module/attribute_accessors'
 require 'active_support/core_ext/class/attribute_accessors'
 
