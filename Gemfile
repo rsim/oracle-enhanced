@@ -15,7 +15,6 @@ group :development do
   gem 'arel',           github: 'rails/arel', branch: 'master'
   gem 'journey',        github: 'rails/journey'
 
-  gem 'activerecord-deprecated_finders'
   gem 'ruby-plsql', '>=0.5.0'
 
   platforms :ruby do
