@@ -10,6 +10,7 @@ group :development do
   gem 'activesupport',  github: 'rails/rails'
   gem 'actionpack',     github: 'rails/rails'
   gem 'railties',       github: 'rails/rails'
+  gem 'rack',           github: 'rack/rack'
 
   gem 'arel',           github: 'rails/arel', branch: 'master'
   gem 'journey',        github: 'rails/journey'
