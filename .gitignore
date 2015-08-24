@@ -1,5 +1,6 @@
 .bundle
 .rvmrc
+.rbenv-gemsets
 .svn
 .DS_Store
 coverage
