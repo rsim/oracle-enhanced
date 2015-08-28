@@ -13,7 +13,6 @@ group :development do
   gem 'rack',           github: 'rack/rack'
 
   gem 'arel',           github: 'rails/arel', branch: 'master'
-  gem 'journey',        github: 'rails/journey'
 
   gem 'ruby-plsql', '>=0.5.0'
 
