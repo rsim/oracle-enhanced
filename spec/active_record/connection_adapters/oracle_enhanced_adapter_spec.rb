@@ -600,7 +600,7 @@ describe "OracleEnhancedAdapter" do
       posts.size.should == @ids.size
     end
 
-  end if ENV['RAILS_GEM_VERSION'] >= '3.1'
+  end
 
   describe "with statement pool" do
     before(:all) do
@@ -654,7 +654,7 @@ describe "OracleEnhancedAdapter" do
         @conn.exec_update("UPDATE test_posts SET id = 1", "SQL", binds)
       }.should_not change(@statements, :length)
     end
-  end if ENV['RAILS_GEM_VERSION'] >= '3.1'
+  end
 
   describe "explain" do
     before(:all) do
@@ -688,7 +688,7 @@ describe "OracleEnhancedAdapter" do
       explain.should include("Cost")
       explain.should include("INDEX UNIQUE SCAN")
     end
-  end if ENV['RAILS_GEM_VERSION'] >= '3.2'
+  end
 
   describe "using offset and limit" do
     before(:all) do

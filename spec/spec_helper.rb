@@ -22,10 +22,7 @@ elsif RUBY_ENGINE == 'jruby'
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
 end
 
-ENV['RAILS_GEM_VERSION'] ||= config["rails"]["gem_version"] || 'master'
 NO_COMPOSITE_PRIMARY_KEYS = true
-
-puts "==> Selected Rails version #{ENV['RAILS_GEM_VERSION']}"
 
 require 'active_record'
 
