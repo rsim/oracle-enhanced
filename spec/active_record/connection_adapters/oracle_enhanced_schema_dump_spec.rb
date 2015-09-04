@@ -43,12 +43,12 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should not include ignored table names in schema dump" do
       create_test_posts_table
-      standard_dump(ignore_tables: %w(test_posts)).should_not =~ /create_table "test_posts"/
+      expect(standard_dump(ignore_tables: %w(test_posts))).not_to match(/create_table "test_posts"/)
     end
 
     it "should not include ignored table regexes in schema dump" do
       create_test_posts_table
-      standard_dump(ignore_tables: [ /test_posts/i ]).should_not =~ /create_table "test_posts"/
+      expect(standard_dump(ignore_tables: [ /test_posts/i ])).not_to match(/create_table "test_posts"/)
     end
 
   end
@@ -70,7 +70,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should be able to dump default values using special characters" do
-      standard_dump.should =~ /t.string \"special_c\", default: "\\n"/
+      expect(standard_dump).to match(/t.string \"special_c\", default: "\\n"/)
     end
   end
   describe "table prefixes and suffixes" do
@@ -84,37 +84,37 @@ describe "OracleEnhancedAdapter schema dump" do
     it "should remove table prefix in schema dump" do
       ActiveRecord::Base.table_name_prefix = 'xxx_'
       create_test_posts_table
-      standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
+      expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
     end
 
     it "should remove table prefix with $ sign in schema dump" do
       ActiveRecord::Base.table_name_prefix = 'xxx$'
       create_test_posts_table
-      standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
+      expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
     end
 
     it "should remove table suffix in schema dump" do
       ActiveRecord::Base.table_name_suffix = '_xxx'
       create_test_posts_table
-      standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
+      expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
     end
 
     it "should remove table suffix with $ sign in schema dump" do
       ActiveRecord::Base.table_name_suffix = '$xxx'
       create_test_posts_table
-      standard_dump.should =~ /create_table "test_posts".*add_index "test_posts"/m
+      expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
     end
 
     it "should not include schema_migrations table with prefix in schema dump" do
       ActiveRecord::Base.table_name_prefix = 'xxx_'
       @conn.initialize_schema_migrations_table
-      standard_dump.should_not =~ /schema_migrations/
+      expect(standard_dump).not_to match(/schema_migrations/)
     end
 
     it "should not include schema_migrations table with suffix in schema dump" do
       ActiveRecord::Base.table_name_suffix = '_xxx'
       @conn.initialize_schema_migrations_table
-      standard_dump.should_not =~ /schema_migrations/
+      expect(standard_dump).not_to match(/schema_migrations/)
     end
 
   end
@@ -126,7 +126,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should include non-default primary key in schema dump" do
       create_test_posts_table(primary_key: 'post_id')
-      standard_dump.should =~ /create_table "test_posts", primary_key: "post_id"/
+      expect(standard_dump).to match(/create_table "test_posts", primary_key: "post_id"/)
     end
 
   end
@@ -140,12 +140,12 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should include primary key trigger in schema dump" do
       create_test_posts_table(primary_key_trigger: true)
-      standard_dump.should =~ /create_table "test_posts".*add_primary_key_trigger "test_posts"/m
+      expect(standard_dump).to match(/create_table "test_posts".*add_primary_key_trigger "test_posts"/m)
     end
 
     it "should include primary key trigger with non-default primary key in schema dump" do
       create_test_posts_table(primary_key_trigger: true, primary_key: 'post_id')
-      standard_dump.should =~ /create_table "test_posts", primary_key: "post_id".*add_primary_key_trigger "test_posts", primary_key: "post_id"/m
+      expect(standard_dump).to match(/create_table "test_posts", primary_key: "post_id".*add_primary_key_trigger "test_posts", primary_key: "post_id"/m)
     end
 
   end
@@ -180,53 +180,53 @@ describe "OracleEnhancedAdapter schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts"/
+      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts"/)
     end
 
     it "should include foreign key with delete dependency in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts, dependent: :delete
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", on_delete: :cascade/
+      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", on_delete: :cascade/)
     end
 
     it "should include foreign key with nullify dependency in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts, dependent: :nullify
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", on_delete: :nullify/
+      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", on_delete: :nullify/)
     end
 
     it "should not include foreign keys on ignored table names in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump(ignore_tables: %w(test_comments)).should_not =~ /add_foreign_key "test_comments"/
+      expect(standard_dump(ignore_tables: %w(test_comments))).not_to match(/add_foreign_key "test_comments"/)
     end
 
     it "should not include foreign keys on ignored table regexes in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump(ignore_tables: [ /test_comments/i ]).should_not =~ /add_foreign_key "test_comments"/
+      expect(standard_dump(ignore_tables: [ /test_comments/i ])).not_to match(/add_foreign_key "test_comments"/)
     end
 
     it "should include foreign keys referencing ignored table names in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump(ignore_tables: %w(test_posts)).should =~ /add_foreign_key "test_comments"/
+      expect(standard_dump(ignore_tables: %w(test_posts))).to match(/add_foreign_key "test_comments"/)
     end
 
     it "should include foreign keys referencing ignored table regexes in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      standard_dump(ignore_tables: [ /test_posts/i ]).should =~ /add_foreign_key "test_comments"/
+      expect(standard_dump(ignore_tables: [ /test_posts/i ])).to match(/add_foreign_key "test_comments"/)
     end
 
     it "should include composite foreign keys" do
-      pending "Composite foreign keys are not supported in this version"
+      skip "Composite foreign keys are not supported in this version"
       schema_define do
         add_column :test_posts, :baz_id, :integer
         add_column :test_posts, :fooz_id, :integer
@@ -241,7 +241,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
         add_foreign_key :test_comments, :test_posts, columns: ["baz_id", "fooz_id"], name: 'comments_posts_baz_fooz_fk'
       end
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", columns: \["baz_id", "fooz_id"\], name: "comments_posts_baz_fooz_fk"/
+      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", columns: \["baz_id", "fooz_id"\], name: "comments_posts_baz_fooz_fk"/)
     end
     it "should include foreign keys following all tables" do
       # if foreign keys preceed declaration of all tables
@@ -250,7 +250,7 @@ describe "OracleEnhancedAdapter schema dump" do
         add_foreign_key :test_comments, :test_posts
       end
       dump = standard_dump
-      dump.rindex("create_table").should < dump.index("add_foreign_key")
+      expect(dump.rindex("create_table")).to be < dump.index("add_foreign_key")
     end
  
     it "should include primary_key when reference column name is not 'id'" do
@@ -269,7 +269,7 @@ describe "OracleEnhancedAdapter schema dump" do
         ADD CONSTRAINT TEST_COMMENTS_BAZ_ID_FK FOREIGN KEY (baz_id) REFERENCES test_posts(baz_id)
       SQL
 
-      standard_dump.should =~ /add_foreign_key "test_comments", "test_posts", column: "baz_id", primary_key: "baz_id", name: "test_comments_baz_id_fk"/
+      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", column: "baz_id", primary_key: "baz_id", name: "test_comments_baz_id_fk"/)
     end
     
   end
@@ -285,35 +285,35 @@ describe "OracleEnhancedAdapter schema dump" do
       schema_define do
         add_synonym :test_synonym, "schema_name.table_name", force: true
       end
-      standard_dump.should =~ /add_synonym "test_synonym", "schema_name.table_name", force: true/
+      expect(standard_dump).to match(/add_synonym "test_synonym", "schema_name.table_name", force: true/)
     end
 
     it "should include synonym to other database table in schema dump" do
       schema_define do
         add_synonym :test_synonym, "table_name@link_name", force: true
       end
-      standard_dump.should =~ /add_synonym "test_synonym", "table_name@link_name(\.[-A-Za-z0-9_]+)*", force: true/
+      expect(standard_dump).to match(/add_synonym "test_synonym", "table_name@link_name(\.[-A-Za-z0-9_]+)*", force: true/)
     end
 
     it "should not include ignored table names in schema dump" do
       schema_define do
         add_synonym :test_synonym, "schema_name.table_name", force: true
       end
-      standard_dump(ignore_tables: %w(test_synonym)).should_not =~ /add_synonym "test_synonym"/
+      expect(standard_dump(ignore_tables: %w(test_synonym))).not_to match(/add_synonym "test_synonym"/)
     end
 
     it "should not include ignored table regexes in schema dump" do
       schema_define do
         add_synonym :test_synonym, "schema_name.table_name", force: true
       end
-      standard_dump(ignore_tables: [ /test_synonym/i ]).should_not =~ /add_synonym "test_synonym"/
+      expect(standard_dump(ignore_tables: [ /test_synonym/i ])).not_to match(/add_synonym "test_synonym"/)
     end
 
     it "should include synonyms to ignored table regexes in schema dump" do
       schema_define do
         add_synonym :test_synonym, "schema_name.table_name", force: true
       end
-      standard_dump(ignore_tables: [ /table_name/i ]).should =~ /add_synonym "test_synonym"/
+      expect(standard_dump(ignore_tables: [ /table_name/i ])).to match(/add_synonym "test_synonym"/)
     end
 
   end
@@ -325,7 +325,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should include temporary options" do
       create_test_posts_table(temporary: true)
-      standard_dump.should =~ /create_table "test_posts", temporary: true/
+      expect(standard_dump).to match(/create_table "test_posts", temporary: true/)
     end
   end
 
@@ -336,20 +336,20 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should not specify default tablespace in add index" do
       create_test_posts_table
-      standard_dump.should =~ /add_index "test_posts", \["title"\], name: "index_test_posts_on_title"$/
+      expect(standard_dump).to match(/add_index "test_posts", \["title"\], name: "index_test_posts_on_title"$/)
     end
 
     it "should specify non-default tablespace in add index" do
       tablespace_name = @conn.default_tablespace
-      @conn.stub!(:default_tablespace).and_return('dummy')
+      allow(@conn).to receive(:default_tablespace).and_return('dummy')
       create_test_posts_table
-      standard_dump.should =~ /add_index "test_posts", \["title"\], name: "index_test_posts_on_title", tablespace: "#{tablespace_name}"$/
+      expect(standard_dump).to match(/add_index "test_posts", \["title"\], name: "index_test_posts_on_title", tablespace: "#{tablespace_name}"$/)
     end
 
     it "should create and dump function-based indexes" do
       create_test_posts_table
       @conn.add_index :test_posts, "NVL(created_at, updated_at)", name: "index_test_posts_cr_upd_at"
-      standard_dump.should =~ /add_index "test_posts", \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], name: "index_test_posts_cr_upd_at"$/
+      expect(standard_dump).to match(/add_index "test_posts", \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], name: "index_test_posts_cr_upd_at"$/)
     end
 
   end
@@ -363,7 +363,7 @@ describe "OracleEnhancedAdapter schema dump" do
     it "should not include materialized views in schema dump" do
       create_test_posts_table
       @conn.execute "CREATE MATERIALIZED VIEW test_posts_mv AS SELECT * FROM test_posts"
-      standard_dump.should_not =~ /create_table "test_posts_mv"/
+      expect(standard_dump).not_to match(/create_table "test_posts_mv"/)
     end
   end
 
@@ -383,7 +383,7 @@ describe "OracleEnhancedAdapter schema dump" do
           end
         end
       else
-        pending "Not supported in this database version"
+        skip "Not supported in this database version"
       end
     end
 
@@ -404,12 +404,12 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it 'should dump correctly' do
-      standard_dump.should =~ /t\.virtual "full_name",(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\"",(\s*)type: :string/
-      standard_dump.should =~ /t\.virtual "short_name",(\s*)limit: 300,(\s*)as:(.*),(\s*)type: :string/
-      standard_dump.should =~ /t\.virtual "full_name_length",(\s*)precision: 38,(\s*)as:(.*),(\s*)type: :integer/
-      standard_dump.should =~ /t\.virtual "name_ratio",(\s*)as:(.*)\"$/ # no :type
-      standard_dump.should =~ /t\.virtual "abbrev_name",(\s*)limit: 100,(\s*)as:(.*),(\s*)type: :string/
-      standard_dump.should =~ /t\.virtual "field_with_leading_space",(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '",(\s*)type: :string/
+      expect(standard_dump).to match(/t\.virtual "full_name",(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\"",(\s*)type: :string/)
+      expect(standard_dump).to match(/t\.virtual "short_name",(\s*)limit: 300,(\s*)as:(.*),(\s*)type: :string/)
+      expect(standard_dump).to match(/t\.virtual "full_name_length",(\s*)precision: 38,(\s*)as:(.*),(\s*)type: :integer/)
+      expect(standard_dump).to match(/t\.virtual "name_ratio",(\s*)as:(.*)\"$/) # no :type
+      expect(standard_dump).to match(/t\.virtual "abbrev_name",(\s*)limit: 100,(\s*)as:(.*),(\s*)type: :string/)
+      expect(standard_dump).to match(/t\.virtual "field_with_leading_space",(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '",(\s*)type: :string/)
     end
 
     context 'with column cache' do
@@ -422,14 +422,14 @@ describe "OracleEnhancedAdapter schema dump" do
       end
       it 'should not change column defaults after several dumps' do
         col = TestName.columns.detect{|c| c.name == 'full_name'}
-        col.should_not be_nil
-        col.virtual_column_data_default.should_not =~ /:as/
+        expect(col).not_to be_nil
+        expect(col.virtual_column_data_default).not_to match(/:as/)
 
         standard_dump
-        col.virtual_column_data_default.should_not =~ /:as/
+        expect(col.virtual_column_data_default).not_to match(/:as/)
 
         standard_dump
-        col.virtual_column_data_default.should_not =~ /:as/
+        expect(col.virtual_column_data_default).not_to match(/:as/)
       end
     end
 
@@ -449,8 +449,8 @@ describe "OracleEnhancedAdapter schema dump" do
         end
       end
       it 'should dump correctly' do
-        standard_dump.should_not =~ /add_index "test_names".+FIRST_NAME.+$/
-        standard_dump.should     =~ /add_index "test_names".+field_with_leading_space.+$/
+        expect(standard_dump).not_to match(/add_index "test_names".+FIRST_NAME.+$/)
+        expect(standard_dump).to     match(/add_index "test_names".+field_with_leading_space.+$/)
       end
     end
   end
@@ -471,7 +471,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should dump float type correctly" do
-      standard_dump.should =~ /t\.float "hourly_rate"$/
+      expect(standard_dump).to match(/t\.float "hourly_rate"$/)
     end
   end
 end

@@ -42,28 +42,28 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   it "should NOT log dbms output when dbms output is disabled" do
     @conn.disable_dbms_output
 
-    @conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a.should == [{'is_it_long'=>1}]
+    expect(@conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a).to eq([{'is_it_long'=>1}])
 
-    @logger.output(:debug).should_not match(/^DBMS_OUTPUT/)
+    expect(@logger.output(:debug)).not_to match(/^DBMS_OUTPUT/)
   end
 
   it "should log dbms output lines to the rails log" do
     @conn.enable_dbms_output
 
-    @conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a.should == [{'is_it_long'=>1}]
+    expect(@conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a).to eq([{'is_it_long'=>1}])
     
-    @logger.output(:debug).should match(/^DBMS_OUTPUT: before the if -hi there-$/)
-    @logger.output(:debug).should match(/^DBMS_OUTPUT: it is longer than 5$/)
-    @logger.output(:debug).should match(/^DBMS_OUTPUT: about to return: 1$/)
+    expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: before the if -hi there-$/)
+    expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: it is longer than 5$/)
+    expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: about to return: 1$/)
   end
 
   it "should log dbms output lines to the rails log" do
     @conn.enable_dbms_output
 
-    @conn.select_all("select more_than_five_characters_long('short') is_it_long from dual").to_a.should == [{'is_it_long'=>0}]
+    expect(@conn.select_all("select more_than_five_characters_long('short') is_it_long from dual").to_a).to eq([{'is_it_long'=>0}])
     
-    @logger.output(:debug).should match(/^DBMS_OUTPUT: before the if -short-$/)
-    @logger.output(:debug).should match(/^DBMS_OUTPUT: it is 5 or shorter$/)
-    @logger.output(:debug).should match(/^DBMS_OUTPUT: about to return: 0$/)
+    expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: before the if -short-$/)
+    expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: it is 5 or shorter$/)
+    expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: about to return: 0$/)
   end
 end
