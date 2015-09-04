@@ -16,7 +16,7 @@ Oracle enhanced adapter version 1.6 just supports Rails 4.2 and does not support
 When using Ruby on Rails version 4.2 then in Gemfile include
 
 ```ruby
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.6'
+gem 'activerecord-oracle_enhanced-adapter', '~> 1.6.0'
 ```
 
 where instead of 1.6.0 you can specify any other desired version. It is recommended to specify version with `~>` which means that use specified version or later patch versions (in this example any later 1.5.x version but not 1.6.x version). Oracle enhanced adapter maintains API backwards compatibility during patch version upgrades and therefore it is safe to always upgrade to latest patch version.
