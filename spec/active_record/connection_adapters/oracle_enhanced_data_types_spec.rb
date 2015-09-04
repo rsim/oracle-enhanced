@@ -1310,7 +1310,7 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
     @employee.binary_data = ''
     @employee.save!
     @employee.reload
-    expect(@employee.binary_data).to.nil?
+    expect(@employee.binary_data).to be_nil
   end
 
   it "should update record that has existing RAW data with different RAW data" do
@@ -1349,7 +1349,7 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
     @employee.binary_data = ''
     @employee.save!
     @employee.reload
-    expect(@employee.binary_data).to.nil?
+    expect(@employee.binary_data).to be_nil
   end
 
   it "should update record that has zero-length BLOB data with non-empty RAW data" do

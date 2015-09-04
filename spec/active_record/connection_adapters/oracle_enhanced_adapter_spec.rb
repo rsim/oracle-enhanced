@@ -739,10 +739,10 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should return the records starting from offset n with offset(n)" do
-      expect(expect(@employee.order(:sort_order).first.first_name).to).to eq("Peter")
-      expect(expect(@employee.order(:sort_order).offset(0).first.first_name).to).to eq("Peter")
-      expect(expect(@employee.order(:sort_order).offset(1).first.first_name).to).to eq("Tony")
-      expect(expect(@employee.order(:sort_order).offset(4).first.first_name).to).to eq("Natasha")
+      expect(@employee.order(:sort_order).first.first_name).to eq("Peter")
+      expect(@employee.order(:sort_order).offset(0).first.first_name).to eq("Peter")
+      expect(@employee.order(:sort_order).offset(1).first.first_name).to eq("Tony")
+      expect(@employee.order(:sort_order).offset(4).first.first_name).to eq("Natasha")
     end
   end
 end

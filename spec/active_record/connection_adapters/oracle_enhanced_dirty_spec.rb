@@ -130,7 +130,7 @@ if ActiveRecord::Base.method_defined?(:changed?)
       class << oci_conn
          def write_lob(lob, value, is_binary = false); raise "don't do this'"; end
       end
-      expect(@employee.save!).not_to raise_exception(RuntimeError, "don't do this'")
+      expect{@employee.save!}.not_to raise_exception(RuntimeError, "don't do this'")
       class << oci_conn
         remove_method :write_lob
       end
