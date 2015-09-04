@@ -43,7 +43,7 @@ describe "OracleEnhancedAdapter structure dump" do
   
     it "should dump single primary key" do
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /CONSTRAINT (.+) PRIMARY KEY \(ID\)\n/
+      expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \(ID\)\n/)
     end
   
     it "should dump composite primary keys" do
@@ -58,7 +58,7 @@ describe "OracleEnhancedAdapter structure dump" do
         add CONSTRAINT pk_id_title PRIMARY KEY (id, title)
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /CONSTRAINT (.+) PRIMARY KEY \(ID,TITLE\)\n/
+      expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \(ID,TITLE\)\n/)
     end
   
     it "should dump foreign keys" do
@@ -67,8 +67,8 @@ describe "OracleEnhancedAdapter structure dump" do
         ADD CONSTRAINT fk_test_post_foo FOREIGN KEY (foo_id) REFERENCES foos(id)
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
-      dump.split('\n').length.should == 1
-      dump.should =~ /ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOO\"? FOREIGN KEY \(\"?FOO_ID\"?\) REFERENCES \"?FOOS\"?\(\"?ID\"?\)/i
+      expect(dump.split('\n').length).to eq(1)
+      expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOO\"? FOREIGN KEY \(\"?FOO_ID\"?\) REFERENCES \"?FOOS\"?\(\"?ID\"?\)/i)
     end
     
     it "should dump foreign keys when reference column name is not 'id'" do
@@ -87,12 +87,12 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
-      dump.split('\n').length.should == 1
-      dump.should =~ /ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\)/i
+      expect(dump.split('\n').length).to eq(1)
+      expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\)/i)
     end
     
     it "should dump composite foreign keys" do
-      pending "Composite foreign keys are not supported in this version"
+      skip "Composite foreign keys are not supported in this version"
       @conn.add_column :foos, :fooz_id, :integer
       @conn.add_column :foos, :baz_id, :integer
       
@@ -110,14 +110,14 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
-      dump.split('\n').length.should == 1
-      dump.should =~ /ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOOZ_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\,\"?FOOZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\,\"?FOOZ_ID\"?\)/i
+      expect(dump.split('\n').length).to eq(1)
+      expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOOZ_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\,\"?FOOZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\,\"?FOOZ_ID\"?\)/i)
     end
   
     it "should not error when no foreign keys are present" do
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
-      dump.split('\n').length.should == 0
-      dump.should == ''
+      expect(dump.split('\n').length).to eq(0)
+      expect(dump).to eq('')
     end
   
     it "should dump triggers" do
@@ -131,7 +131,7 @@ describe "OracleEnhancedAdapter structure dump" do
         END;
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
-      dump.should =~ /CREATE OR REPLACE TRIGGER TEST_POST_TRIGGER/
+      expect(dump).to match(/CREATE OR REPLACE TRIGGER TEST_POST_TRIGGER/)
     end
   
     it "should dump types" do
@@ -139,18 +139,18 @@ describe "OracleEnhancedAdapter structure dump" do
         create or replace TYPE TEST_TYPE AS TABLE OF VARCHAR2(10);
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
-      dump.should =~ /CREATE OR REPLACE TYPE TEST_TYPE/
+      expect(dump).to match(/CREATE OR REPLACE TYPE TEST_TYPE/)
     end
 
     it "should dump views" do
       @conn.execute "create or replace VIEW test_posts_view_z as select * from test_posts"
       @conn.execute "create or replace VIEW test_posts_view_a as select * from test_posts_view_z"
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
-      dump.should =~ /CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_A.*CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_Z/
+      expect(dump).to match(/CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_A.*CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_Z/)
     end
   
     it "should dump virtual columns" do
-      pending "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @oracle11g_or_higher
       @conn.execute <<-SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
@@ -159,7 +159,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /\"?ID_PLUS\"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
+      expect(dump).to match(/\"?ID_PLUS\"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/)
     end
 
     it "should dump RAW virtual columns" do
@@ -171,7 +171,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/
+      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/)
     end
 
     it "should dump unique keys" do
@@ -180,10 +180,10 @@ describe "OracleEnhancedAdapter structure dump" do
           add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_unique_keys("test_posts")
-      dump.should == ["ALTER TABLE TEST_POSTS ADD CONSTRAINT UK_FOO_FOO_ID UNIQUE (FOO,FOO_ID)"]
+      expect(dump).to eq(["ALTER TABLE TEST_POSTS ADD CONSTRAINT UK_FOO_FOO_ID UNIQUE (FOO,FOO_ID)"])
     
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /CONSTRAINT UK_FOO_FOO_ID UNIQUE \(FOO,FOO_ID\)/
+      expect(dump).to match(/CONSTRAINT UK_FOO_FOO_ID UNIQUE \(FOO,FOO_ID\)/)
     end
   
     it "should dump indexes" do
@@ -196,9 +196,9 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /CREATE UNIQUE INDEX "?IX_TEST_POSTS_FOO_ID"? ON "?TEST_POSTS"? \("?FOO_ID"?\)/i
-      dump.should =~ /CREATE  INDEX "?IX_TEST_POSTS_FOO\"? ON "?TEST_POSTS"? \("?FOO"?\)/i
-      dump.should_not =~ /CREATE UNIQUE INDEX "?UK_TEST_POSTS_/i
+      expect(dump).to match(/CREATE UNIQUE INDEX "?IX_TEST_POSTS_FOO_ID"? ON "?TEST_POSTS"? \("?FOO_ID"?\)/i)
+      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO\"? ON "?TEST_POSTS"? \("?FOO"?\)/i)
+      expect(dump).not_to match(/CREATE UNIQUE INDEX "?UK_TEST_POSTS_/i)
     end
 
     it "should dump multi-value and function value indexes" do
@@ -209,8 +209,8 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
 
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID\"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i
-      dump.should =~ /CREATE  INDEX "?IX_TEST_POSTS_FUNCTION\"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i
+      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID\"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i)
+      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FUNCTION\"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i)
     end
 
     it "should dump RAW columns" do
@@ -222,7 +222,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\)/
+      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\)/)
     end
 
   end
@@ -235,7 +235,7 @@ describe "OracleEnhancedAdapter structure dump" do
         t.integer :post_id
       end
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /CREATE GLOBAL TEMPORARY TABLE "?TEST_COMMENTS"?/i
+      expect(dump).to match(/CREATE GLOBAL TEMPORARY TABLE "?TEST_COMMENTS"?/i)
     end
   end
 
@@ -254,7 +254,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
     it "should return the character size of nvarchar fields" do
       if /.*unq_nvarchar nvarchar2\((\d+)\).*/ =~ @conn.structure_dump
-         "#$1".should == "255"
+         expect("#$1").to eq("255")
       end
     end
   end
@@ -270,8 +270,8 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     it "should dump drop sql for just temp tables" do
       dump = @conn.temp_table_drop
-      dump.should =~ /DROP TABLE "TEMP_TBL"/
-      dump.should_not =~ /DROP TABLE "?NOT_TEMP_TBL"?/i
+      expect(dump).to match(/DROP TABLE "TEMP_TBL"/)
+      expect(dump).not_to match(/DROP TABLE "?NOT_TEMP_TBL"?/i)
     end
     after(:each) do
       @conn.drop_table :temp_tbl 
@@ -351,21 +351,21 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     it "should contain correct sql" do
       drop = @conn.full_drop
-      drop.should =~ /DROP TABLE "FULL_DROP_TEST" CASCADE CONSTRAINTS/
-      drop.should =~ /DROP SEQUENCE "FULL_DROP_TEST_SEQ"/
-      drop.should =~ /DROP VIEW "FULL_DROP_TEST_VIEW"/
-      drop.should_not =~ /DROP TABLE "?FULL_DROP_TEST_MVIEW"?/i
-      drop.should =~ /DROP MATERIALIZED VIEW "FULL_DROP_TEST_MVIEW"/
-      drop.should =~ /DROP PACKAGE "FULL_DROP_TEST_PACKAGE"/
-      drop.should =~ /DROP FUNCTION "FULL_DROP_TEST_FUNCTION"/
-      drop.should =~ /DROP PROCEDURE "FULL_DROP_TEST_PROCEDURE"/
-      drop.should =~ /DROP SYNONYM "FULL_DROP_TEST_SYNONYM"/
-      drop.should =~ /DROP TYPE "FULL_DROP_TEST_TYPE"/
+      expect(drop).to match(/DROP TABLE "FULL_DROP_TEST" CASCADE CONSTRAINTS/)
+      expect(drop).to match(/DROP SEQUENCE "FULL_DROP_TEST_SEQ"/)
+      expect(drop).to match(/DROP VIEW "FULL_DROP_TEST_VIEW"/)
+      expect(drop).not_to match(/DROP TABLE "?FULL_DROP_TEST_MVIEW"?/i)
+      expect(drop).to match(/DROP MATERIALIZED VIEW "FULL_DROP_TEST_MVIEW"/)
+      expect(drop).to match(/DROP PACKAGE "FULL_DROP_TEST_PACKAGE"/)
+      expect(drop).to match(/DROP FUNCTION "FULL_DROP_TEST_FUNCTION"/)
+      expect(drop).to match(/DROP PROCEDURE "FULL_DROP_TEST_PROCEDURE"/)
+      expect(drop).to match(/DROP SYNONYM "FULL_DROP_TEST_SYNONYM"/)
+      expect(drop).to match(/DROP TYPE "FULL_DROP_TEST_TYPE"/)
     end
     it "should not drop tables when preserve_tables is true" do
       drop = @conn.full_drop(true)
-      drop.should =~ /DROP TABLE "FULL_DROP_TEST_TEMP"/
-      drop.should_not =~ /DROP TABLE "?FULL_DROP_TEST"? CASCADE CONSTRAINTS/i
+      expect(drop).to match(/DROP TABLE "FULL_DROP_TEST_TEMP"/)
+      expect(drop).not_to match(/DROP TABLE "?FULL_DROP_TEST"? CASCADE CONSTRAINTS/i)
     end
   end
 end

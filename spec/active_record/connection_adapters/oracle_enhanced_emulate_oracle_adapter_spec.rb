@@ -11,8 +11,8 @@ describe "OracleEnhancedAdapter emulate OracleAdapter" do
 
   it "should be an OracleAdapter" do
     @conn = ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(:emulate_oracle_adapter => true))
-    ActiveRecord::Base.connection.should_not be_nil
-    ActiveRecord::Base.connection.is_a?(ActiveRecord::ConnectionAdapters::OracleAdapter).should be_true
+    expect(ActiveRecord::Base.connection).not_to be_nil
+    expect(ActiveRecord::Base.connection.is_a?(ActiveRecord::ConnectionAdapters::OracleAdapter)).to be_truthy
   end
 
   after(:all) do

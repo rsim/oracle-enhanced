@@ -166,12 +166,12 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     @employee.reload
-    @employee.first_name.should == "First"
-    @employee.last_name.should == "Last"
-    @employee.hire_date.should == @today
-    @employee.description.should == "First Last"
-    @employee.create_time.should_not be_nil
-    @employee.update_time.should_not be_nil
+    expect(@employee.first_name).to eq("First")
+    expect(@employee.last_name).to eq("Last")
+    expect(@employee.hire_date).to eq(@today)
+    expect(@employee.description).to eq("First Last")
+    expect(@employee.create_time).not_to be_nil
+    expect(@employee.update_time).not_to be_nil
   end
 
   it "should rollback record when exception is raised in after_create callback" do
@@ -183,11 +183,11 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     employees_count = TestEmployee.count
-    lambda {
+    expect {
       @employee.save
-    }.should raise_error("Make the transaction rollback")
-    @employee.id.should == nil
-    TestEmployee.count.should == employees_count
+    }.to raise_error("Make the transaction rollback")
+    expect(@employee.id).to eq(nil)
+    expect(TestEmployee.count).to eq(employees_count)
   end
 
   it "should update record" do
@@ -201,7 +201,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.first_name = "Second"
     @employee.save!
     @employee.reload
-    @employee.description.should == "Second Last"
+    expect(@employee.description).to eq("Second Last")
   end
 
   it "should rollback record when exception is raised in after_update callback" do
@@ -216,11 +216,11 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     empl_id = @employee.id
     @employee.reload
     @employee.first_name = "Second"
-    lambda {
+    expect {
       @employee.save
-    }.should raise_error("Make the transaction rollback")
+    }.to raise_error("Make the transaction rollback")
     @employee.reload
-    @employee.first_name.should == "First"
+    expect(@employee.first_name).to eq("First")
   end
 
   it "should not update record if nothing is changed and partial writes are enabled" do
@@ -233,7 +233,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.reload
     @employee.save!
     @employee.reload
-    @employee.version.should == 1
+    expect(@employee.version).to eq(1)
   end
 
   it "should update record if nothing is changed and partial writes are disabled" do
@@ -246,7 +246,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.reload
     @employee.save!
     @employee.reload
-    @employee.version.should == 2
+    expect(@employee.version).to eq(2)
   end
 
   it "should delete record" do
@@ -258,12 +258,12 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @employee.reload
     empl_id = @employee.id
     @employee.destroy
-    @employee.should be_frozen
-    TestEmployee.find_by_employee_id(empl_id).should be_nil
+    expect(@employee).to be_frozen
+    expect(TestEmployee.find_by_employee_id(empl_id)).to be_nil
   end
 
   it "should delete record and set destroyed flag" do
-    return pending("Not in this ActiveRecord version (requires >= 2.3.5)") unless TestEmployee.method_defined?(:destroyed?)
+    return skip("Not in this ActiveRecord version (requires >= 2.3.5)") unless TestEmployee.method_defined?(:destroyed?)
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -271,7 +271,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     @employee.reload
     @employee.destroy
-    @employee.should be_destroyed
+    expect(@employee).to be_destroyed
   end
 
   it "should rollback record when exception is raised in after_destroy callback" do
@@ -285,11 +285,11 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     @employee.reload
     empl_id = @employee.id
-    lambda {
+    expect {
       @employee.destroy
-    }.should raise_error("Make the transaction rollback")
-    @employee.id.should == empl_id
-    TestEmployee.find_by_employee_id(empl_id).should_not be_nil
+    }.to raise_error("Make the transaction rollback")
+    expect(@employee.id).to eq(empl_id)
+    expect(TestEmployee.find_by_employee_id(empl_id)).not_to be_nil
     clear_logger
   end
 
@@ -299,8 +299,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :last_name => "Last",
       :hire_date => @today
     )
-    @employee.created_at.should_not be_nil
-    @employee.updated_at.should_not be_nil
+    expect(@employee.created_at).not_to be_nil
+    expect(@employee.updated_at).not_to be_nil
   end
 
   it "should set timestamps when updating record" do
@@ -310,12 +310,12 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     @employee.reload
-    @employee.created_at.should be_nil
-    @employee.updated_at.should be_nil
+    expect(@employee.created_at).to be_nil
+    expect(@employee.updated_at).to be_nil
     @employee.first_name = "Second"
     @employee.save!
-    @employee.created_at.should be_nil
-    @employee.updated_at.should_not be_nil
+    expect(@employee.created_at).to be_nil
+    expect(@employee.updated_at).not_to be_nil
   end
 
   it "should log create record" do
@@ -326,7 +326,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     #TODO: dirty workaround to remove sql statement for `table` method
-    @logger.logged(:debug)[-2].should match(/^TestEmployee Create \(\d+\.\d+(ms)?\)  custom create method$/)
+    expect(@logger.logged(:debug)[-2]).to match(/^TestEmployee Create \(\d+\.\d+(ms)?\)  custom create method$/)
     clear_logger
   end
 
@@ -339,7 +339,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     set_logger
     @employee.save!
-    @logger.logged(:debug).last.should match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with employee_id=#{@employee.id}$/)
+    expect(@logger.logged(:debug).last).to match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with employee_id=#{@employee.id}$/)
     clear_logger
   end
 
@@ -351,7 +351,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     set_logger
     @employee.destroy
-    @logger.logged(:debug).last.should match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with employee_id=#{@employee.id}$/)
+    expect(@logger.logged(:debug).last).to match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with employee_id=#{@employee.id}$/)
     clear_logger
   end
 
@@ -360,8 +360,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :last_name => "Last",
       :hire_date => @today
     )
-    @employee.save.should be_false
-    @employee.errors[:first_name].should_not be_blank
+    expect(@employee.save).to be_falsey
+    expect(@employee.errors[:first_name]).not_to be_blank
   end
 
   it "should validate existing record before update" do
@@ -371,8 +371,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     @employee.first_name = nil
-    @employee.save.should be_false
-    @employee.errors[:first_name].should_not be_blank
+    expect(@employee.save).to be_falsey
+    expect(@employee.errors[:first_name]).not_to be_blank
   end
   
 end

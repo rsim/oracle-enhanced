@@ -52,11 +52,11 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
     end
 
     it "should tell ActiveRecord that count distinct is not supported" do
-      ActiveRecord::Base.connection.supports_count_distinct?.should be_false
+      expect(ActiveRecord::Base.connection.supports_count_distinct?).to be_falsey
     end
 
     it "should execute correct SQL COUNT DISTINCT statement on table with composite primary keys" do
-      lambda { JobHistory.count(:distinct => true) }.should_not raise_error
+      expect { JobHistory.count(:distinct => true) }.not_to raise_error
     end
   end
 
@@ -94,15 +94,15 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
     end
 
     it "should create new record in table with CPK and LOB" do
-      lambda {
+      expect {
         CpkWriteLobsTest.create(:type_category => 'AAA', :date_value => Date.today, :results => 'DATA '*10)
-      }.should_not raise_error
+      }.not_to raise_error
     end
     
     it "should create new record in table without CPK and with LOB" do
-      lambda {
+      expect {
         NonCpkWriteLobsTest.create(:date_value => Date.today, :results => 'DATA '*10)
-      }.should_not raise_error
+      }.not_to raise_error
     end
   end
   

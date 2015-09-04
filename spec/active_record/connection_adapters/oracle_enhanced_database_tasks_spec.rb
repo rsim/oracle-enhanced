@@ -15,7 +15,7 @@ describe "Oracle Enhanced adapter database tasks" do
     end
     it "creates user" do
       query = "SELECT COUNT(*) FROM dba_users WHERE UPPER(username) = '#{new_user_config[:username].upcase}'"
-      ActiveRecord::Base.connection.select_value(query).should == 1
+      expect(ActiveRecord::Base.connection.select_value(query)).to eq(1)
     end
     after do
       ActiveRecord::Base.connection.execute("DROP USER #{new_user_config[:username]}");
@@ -42,15 +42,15 @@ describe "Oracle Enhanced adapter database tasks" do
     describe "drop" do
       before { ActiveRecord::Tasks::DatabaseTasks.drop(config) }
       it "drops all tables" do
-        ActiveRecord::Base.connection.table_exists?(:test_posts).should be_false
+        expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_falsey
       end
     end
 
     describe "purge" do
       before { ActiveRecord::Tasks::DatabaseTasks.purge(config) }
       it "drops all tables" do
-        ActiveRecord::Base.connection.table_exists?(:test_posts).should be_false
-        ActiveRecord::Base.connection.select_value("SELECT COUNT(*) FROM RECYCLEBIN").should == 0
+        expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_falsey
+        expect(ActiveRecord::Base.connection.select_value("SELECT COUNT(*) FROM RECYCLEBIN")).to eq(0)
       end
     end
 
@@ -65,8 +65,8 @@ describe "Oracle Enhanced adapter database tasks" do
         before { ActiveRecord::Tasks::DatabaseTasks.structure_dump(config, temp_file) }
         it "dumps the database structure to a file without the schema information" do
           contents = File.read(temp_file)
-          contents.should include('CREATE TABLE "TEST_POSTS"')
-          contents.should_not include('INSERT INTO schema_migrations')
+          expect(contents).to include('CREATE TABLE "TEST_POSTS"')
+          expect(contents).not_to include('INSERT INTO schema_migrations')
         end
       end
 
@@ -77,7 +77,7 @@ describe "Oracle Enhanced adapter database tasks" do
           ActiveRecord::Tasks::DatabaseTasks.structure_load(config, temp_file)
         end
         it "loads the database structure from a file" do
-          ActiveRecord::Base.connection.table_exists?(:test_posts).should be_true
+          expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_truthy
         end
       end
 
