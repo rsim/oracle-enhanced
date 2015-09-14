@@ -423,6 +423,7 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :new_test_employees rescue nil
         drop_table :test_employees_no_pkey rescue nil
         drop_table :new_test_employees_no_pkey rescue nil
+        drop_table :aaaaaaaaaaaaaaaaaaaaaaaaaaa rescue nil
       end
     end
 
