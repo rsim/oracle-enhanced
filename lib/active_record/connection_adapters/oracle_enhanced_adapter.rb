@@ -1253,7 +1253,7 @@ module ActiveRecord
       end
 
       def temporary_table?(table_name) #:nodoc:
-        select_value("SELECT temporary FROM user_tables WHERE table_name = '#{table_name.upcase}'") == 'Y'
+        select_value("SELECT temporary FROM all_tables WHERE table_name = '#{table_name.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')") == 'Y'
       end
 
       # construct additional wrapper subquery if select.offset is used to avoid generation of invalid subquery

@@ -6,7 +6,7 @@ module ActiveRecord #:nodoc:
       STATEMENT_TOKEN = "\n\n/\n\n"
 
       def structure_dump #:nodoc:
-        structure = select_values("SELECT sequence_name FROM user_sequences ORDER BY 1").map do |seq|
+        structure = select_values("SELECT sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |seq|
           "CREATE SEQUENCE \"#{seq}\""
         end
         select_values("SELECT table_name FROM all_tables t
@@ -18,8 +18,9 @@ module ActiveRecord #:nodoc:
           ddl = "CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
           cols = select_all(%Q{
             SELECT column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
-            FROM user_tab_columns
+            FROM all_tab_columns
             WHERE table_name = '#{table_name}'
+            AND owner = SYS_CONTEXT('userenv', 'session_user')
             ORDER BY column_id
           }).map do |row|
             if(v = virtual_columns.find {|col| col['column_name'] == row['column_name']})
@@ -72,11 +73,12 @@ module ActiveRecord #:nodoc:
         opts = {:name => '', :cols => []}
         pks = select_all(<<-SQL, "Primary Keys") 
           SELECT a.constraint_name, a.column_name, a.position
-            FROM user_cons_columns a
-            JOIN user_constraints c
+            FROM all_cons_columns a
+            JOIN all_constraints c
               ON a.constraint_name = c.constraint_name
            WHERE c.table_name = '#{table.upcase}'
              AND c.constraint_type = 'P'
+             AND a.owner = c.owner
              AND c.owner = SYS_CONTEXT('userenv', 'session_user')
         SQL
         pks.each do |row|
@@ -90,11 +92,12 @@ module ActiveRecord #:nodoc:
         keys = {}
         uks = select_all(<<-SQL, "Primary Keys") 
           SELECT a.constraint_name, a.column_name, a.position
-            FROM user_cons_columns a
-            JOIN user_constraints c
+            FROM all_cons_columns a
+            JOIN all_constraints c
               ON a.constraint_name = c.constraint_name
            WHERE c.table_name = '#{table.upcase}'
              AND c.constraint_type = 'U'
+             AND a.owner = c.owner
              AND c.owner = SYS_CONTEXT('userenv', 'session_user')
         SQL
         uks.each do |uk|
@@ -186,7 +189,7 @@ module ActiveRecord #:nodoc:
         end
 
         # export views 
-        select_all("SELECT view_name, text FROM user_views ORDER BY view_name ASC").each do |view|
+        select_all("SELECT view_name, text FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY view_name ASC").each do |view|
           structure << "CREATE OR REPLACE FORCE VIEW #{view['view_name']} AS\n #{view['text']}"
         end
 
@@ -202,7 +205,7 @@ module ActiveRecord #:nodoc:
       end
 
       def structure_drop #:nodoc:
-        statements = select_values("SELECT sequence_name FROM user_sequences ORDER BY 1").map do |seq|
+        statements = select_values("SELECT sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |seq|
           "DROP SEQUENCE \"#{seq}\""
         end
         select_values("SELECT table_name from all_tables t
@@ -275,8 +278,9 @@ module ActiveRecord #:nodoc:
         begin
           select_all <<-SQL
             SELECT column_name, data_default
-              FROM user_tab_cols
+              FROM all_tab_cols
              WHERE virtual_column = 'YES'
+               AND owner = SYS_CONTEXT('userenv', 'session_user')
                AND table_name = '#{table.upcase}'
           SQL
         # feature not supported previous to 11g
@@ -288,14 +292,14 @@ module ActiveRecord #:nodoc:
       def drop_sql_for_feature(type)
         short_type = type == 'materialized view' ? 'mview' : type
         join_with_statement_token(
-        select_values("SELECT #{short_type}_name FROM user_#{short_type.tableize}").map do |name|
+        select_values("SELECT #{short_type}_name FROM all_#{short_type.tableize} where owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
           "DROP #{type.upcase} \"#{name}\""
         end)
       end
 
       def drop_sql_for_object(type)
         join_with_statement_token(
-        select_values("SELECT object_name FROM user_objects WHERE object_type = '#{type.upcase}'").map do |name|
+        select_values("SELECT object_name FROM all_objects WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
           "DROP #{type.upcase} \"#{name}\""
         end)
       end

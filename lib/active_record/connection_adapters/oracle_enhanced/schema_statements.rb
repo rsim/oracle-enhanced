@@ -391,8 +391,9 @@ module ActiveRecord
         def tablespace(table_name)
           select_value <<-SQL
             SELECT tablespace_name
-            FROM user_tables
+            FROM all_tables
             WHERE table_name='#{table_name.to_s.upcase}'
+            AND owner = SYS_CONTEXT('userenv', 'session_user')
           SQL
         end
 
@@ -423,8 +424,8 @@ module ActiveRecord
                   ,cc.column_name
                   ,c.constraint_name name
                   ,c.delete_rule
-              FROM user_constraints#{db_link} c, user_cons_columns#{db_link} cc,
-                   user_constraints#{db_link} r, user_cons_columns#{db_link} rc
+              FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc,
+                   all_constraints#{db_link} r, all_cons_columns#{db_link} rc
              WHERE c.owner = '#{owner}'
                AND c.table_name = '#{desc_table_name}'
                AND c.constraint_type = 'R'
@@ -461,9 +462,10 @@ module ActiveRecord
         def disable_referential_integrity(&block) #:nodoc:
           sql_constraints = <<-SQL
           SELECT constraint_name, owner, table_name
-            FROM user_constraints
+            FROM all_constraints
             WHERE constraint_type = 'R'
             AND status = 'ENABLED'
+            AND owner = SYS_CONTEXT('userenv', 'session_user')
           SQL
           old_constraints = select_all(sql_constraints)
           begin
