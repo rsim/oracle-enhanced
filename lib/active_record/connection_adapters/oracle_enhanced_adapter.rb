@@ -863,7 +863,7 @@ module ActiveRecord
 
       # Default tablespace name of current user
       def default_tablespace
-        select_value("SELECT LOWER(default_tablespace) FROM user_users WHERE username = SYS_CONTEXT('userenv', 'session_user')")
+        select_value("SELECT LOWER(default_tablespace) FROM user_users")
       end
 
       def tables(name = nil) #:nodoc:
