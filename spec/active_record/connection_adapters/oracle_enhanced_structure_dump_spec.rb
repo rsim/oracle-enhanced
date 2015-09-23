@@ -148,30 +148,44 @@ describe "OracleEnhancedAdapter structure dump" do
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
       dump.should =~ /CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_A.*CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_Z/
     end
-  
-    it "should dump virtual columns" do
-      pending "Not supported in this database version" unless @oracle11g_or_higher
-      @conn.execute <<-SQL
+
+    describe "virtual columns" do
+      it "should dump virtual columns" do
+        pending "Not supported in this database version" unless @oracle11g_or_higher
+        @conn.execute <<-SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
           id_plus     NUMBER GENERATED ALWAYS AS(id + 2) VIRTUAL,
           PRIMARY KEY (ID)
         )
-      SQL
-      dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /\"?ID_PLUS\"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
-    end
+        SQL
+        dump = ActiveRecord::Base.connection.structure_dump
+        dump.should =~ /\"?ID_PLUS\"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/
+      end
 
-    it "should dump RAW virtual columns" do
-      @conn.execute <<-SQL
+      it "should dump RAW virtual columns" do
+        @conn.execute <<-SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
           super       RAW(255) GENERATED ALWAYS AS \( HEXTORAW\(ID\) \) VIRTUAL,
           PRIMARY KEY (ID)
         )
-      SQL
-      dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/
+        SQL
+        dump = ActiveRecord::Base.connection.structure_dump
+        dump.should =~ /CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/
+      end
+
+      # xml type is a virtual column under the hood
+      it "should handle xmltype" do
+        pending "Not supported in this database version" unless @oracle11g_or_higher
+        @conn.execute <<-SQL
+        CREATE TABLE bars (
+          something_xml          XMLTYPE
+        )
+        SQL
+        dump = ActiveRecord::Base.connection.structure_dump
+        dump.should =~ /\"SOMETHING_XML\" XMLTYPE/
+      end
     end
 
     it "should dump unique keys" do

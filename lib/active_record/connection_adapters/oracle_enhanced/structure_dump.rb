@@ -277,6 +277,7 @@ module ActiveRecord #:nodoc:
             SELECT column_name, data_default
               FROM user_tab_cols
              WHERE virtual_column = 'YES'
+               AND data_type <> 'XMLTYPE'
                AND table_name = '#{table.upcase}'
           SQL
         # feature not supported previous to 11g
