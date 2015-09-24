@@ -4,8 +4,6 @@ module ActiveRecord
 
       attr_reader :table_name, :nchar, :virtual_column_data_default, :returning_id #:nodoc:
 
-      FALSE_VALUES << 'N'
-
       def initialize(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual=false, returning_id=false) #:nodoc:
         @table_name = table_name
         @virtual = virtual
