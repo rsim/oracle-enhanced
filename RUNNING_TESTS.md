@@ -32,10 +32,6 @@ Running tests
 
         gem install bundler
 
-* Set RAILS_GEM_VERSION to Rails version that you would like to use in oracle_enhanced tests, e.g.
-
-        export RAILS_GEM_VERSION=3.0.3
-
 * Install necessary gems with
 
         bundle install
