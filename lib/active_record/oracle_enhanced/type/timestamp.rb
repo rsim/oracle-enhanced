@@ -1,7 +1,8 @@
+#TODO Need to consider namespace change since paremt class moved to ActiveModel
 module ActiveRecord
   module OracleEnhanced
     module Type
-      class Timestamp < ActiveRecord::Type::Value # :nodoc:
+      class Timestamp < ActiveModel::Type::Value # :nodoc:
         def type
           :timestamp
         end

@@ -1,9 +1,10 @@
-require 'active_record/type/string'
+require 'active_model/type/string'
 
+#TODO Need to consider namespace change since paremt class moved to ActiveModel
 module ActiveRecord
   module OracleEnhanced
     module Type
-      class Raw < ActiveRecord::Type::String # :nodoc:
+      class Raw < ActiveModel::Type::String # :nodoc:
         def type
           :raw
         end
