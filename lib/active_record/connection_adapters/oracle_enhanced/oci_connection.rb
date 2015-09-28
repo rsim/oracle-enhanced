@@ -10,7 +10,7 @@ rescue LoadError => e
 end
 
 # check ruby-oci8 version
-required_oci8_version = [2, 0, 3]
+required_oci8_version = [2, 1, 8]
 oci8_version_ints = OCI8::VERSION.scan(/\d+/).map{|s| s.to_i}
 if (oci8_version_ints <=> required_oci8_version) < 0
   raise LoadError, "ERROR: ruby-oci8 version #{OCI8::VERSION} is too old. Please install ruby-oci8 version #{required_oci8_version.join('.')} or later."
@@ -117,11 +117,7 @@ module ActiveRecord
 
         def bind_param(position, value, column = nil)
           if column && column.object_type?
-            if @connection.raw_connection.respond_to? :get_tdo_by_typename
-              @raw_cursor.bind_param(position, value, :named_type, column.sql_type)
-            else
-              raise "Use ruby-oci8 2.1.6 or later to bind Oracle objects."
-            end
+            @raw_cursor.bind_param(position, value, :named_type, column.sql_type)
           elsif value.nil?
             @raw_cursor.bind_param(position, nil, String)
           else
