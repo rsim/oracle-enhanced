@@ -69,7 +69,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   ]
   s.homepage = %q{http://github.com/rsim/oracle-enhanced}
   s.require_paths = [%q{lib}]
-  s.rubygems_version = %q{1.8.6}
   s.summary = %q{Oracle enhanced adapter for ActiveRecord}
   s.test_files = [
     "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
