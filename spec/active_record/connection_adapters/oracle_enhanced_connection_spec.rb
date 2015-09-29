@@ -269,7 +269,11 @@ describe "OracleEnhancedConnection" do
       # @conn.auto_retry = false
       ActiveRecord::Base.connection.auto_retry = false
       kill_current_session
-      expect { @conn.exec("SELECT * FROM dual") }.to raise_error
+      if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+        expect { @conn.exec("SELECT * FROM dual") }.to raise_error(NativeException)
+      else
+        expect { @conn.exec("SELECT * FROM dual") }.to raise_error(OCIError)
+      end
     end
 
     it "should reconnect and execute SQL select if connection is lost and auto retry is enabled" do
@@ -283,7 +287,11 @@ describe "OracleEnhancedConnection" do
       # @conn.auto_retry = false
       ActiveRecord::Base.connection.auto_retry = false
       kill_current_session
-      expect { @conn.select("SELECT * FROM dual") }.to raise_error
+      if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+        expect { @conn.select("SELECT * FROM dual") }.to raise_error(NativeException)
+      else
+        expect { @conn.select("SELECT * FROM dual") }.to raise_error(OCIError)
+      end
     end
 
   end
