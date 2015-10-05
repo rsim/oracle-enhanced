@@ -5,7 +5,9 @@ module ActiveRecord #:nodoc:
       module InstanceMethods #:nodoc:
         private
 
-        def _field_changed?(attr, old_value)
+      
+        def _field_changed?(*args)
+          attr, old_value = args
           new_value = read_attribute(attr)
           raw_value = read_attribute_before_type_cast(attr)
 
