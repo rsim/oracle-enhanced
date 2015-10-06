@@ -178,6 +178,14 @@ development:
   password: secret
 ```
 
+
+If you choose to specify your database connection via the `DATABASE_URL`
+environment variable, note that the adapter name uses a dash instead of an underscore:
+
+```bash
+DATABASE_URL=oracle-enhanced://localhost/XE
+```
+
 If you deploy JRuby on Rails application in Java application server that supports JNDI connections then you can specify JNDI connection as well:
 
 ```yml
