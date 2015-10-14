@@ -332,7 +332,7 @@ module ActiveRecord
           # Add context index condition.
           def contains(column, query, options ={})
             score_label = options[:label].to_i || 1
-            where("CONTAINS(#{connection.quote_column_name(column)}, ?, #{score_label}) > 0", query).
+            where("CONTAINS(#{connection.quote_table_name(column)}, ?, #{score_label}) > 0", query).
               order("SCORE(#{score_label}) DESC")
           end
         end
