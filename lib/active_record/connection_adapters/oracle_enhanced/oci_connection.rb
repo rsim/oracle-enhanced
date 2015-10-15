@@ -41,11 +41,11 @@ module ActiveRecord
       end
 
       def auto_retry
-        @raw_connection.auto_retry if @raw_connection
+        @raw_connection.auto_retry
       end
 
       def auto_retry=(value)
-        @raw_connection.auto_retry = value if @raw_connection
+        @raw_connection.auto_retry = value
       end
 
       def logoff
@@ -376,11 +376,8 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   attr_accessor :active #:nodoc:
   alias :active? :active #:nodoc:
 
-  cattr_accessor :auto_retry
-  class << self
-    alias :auto_retry? :auto_retry #:nodoc:
-  end
-  @@auto_retry = false
+  attr_accessor :auto_retry
+  alias :auto_retry? :auto_retry
 
   def initialize(config, factory) #:nodoc:
     @active = true
@@ -425,7 +422,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   #
   # See: http://www.jiubao.org/ruby-oci8/api.en.html#label-11
   def exec(sql, *bindvars, &block) #:nodoc:
-    should_retry = self.class.auto_retry? && autocommit?
+    should_retry = self.auto_retry? && self.autocommit?
 
     begin
       @connection.exec(sql, *bindvars, &block)

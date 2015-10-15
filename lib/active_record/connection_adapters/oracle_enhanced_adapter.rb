@@ -706,12 +706,12 @@ module ActiveRecord
       # If SQL statement fails due to lost connection then reconnect
       # and retry SQL statement if autocommit mode is enabled.
       # By default this functionality is disabled.
-      attr_reader :auto_retry #:nodoc:
-      @auto_retry = false
+      def auto_retry
+        @connection.auto_retry
+      end
 
       def auto_retry=(value) #:nodoc:
-        @auto_retry = value
-        @connection.auto_retry = value if @connection
+        @connection.auto_retry = value
       end
 
       # return raw OCI8 or JDBC connection
