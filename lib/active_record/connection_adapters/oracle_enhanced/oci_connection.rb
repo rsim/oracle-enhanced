@@ -36,7 +36,7 @@ module ActiveRecord
         # ActiveRecord Oracle enhanced adapter puts OCI8EnhancedAutoRecover wrapper around OCI8
         # in this case we need to pass original OCI8 connection
         else
-          @raw_connection.instance_variable_get(:@connection)
+          @raw_connection.oci_connection
         end
       end
 
@@ -439,5 +439,8 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     end
   end
 
+  def oci_connection
+    @connection
+  end
 end
 #:startdoc:
