@@ -108,14 +108,21 @@ module ActiveRecord
       end
 
       def prepare(sql)
-        Cursor.new(self, @raw_connection.parse(sql))
+        Cursor.new(self, sql)
       end
 
       class Cursor
-        def initialize(connection, raw_cursor)
+        def initialize(connection, sql)
           @connection = connection
-          @raw_cursor = raw_cursor
+          @sql        = sql
+
+          allocate_cursor
         end
+
+        def allocate_cursor
+          @raw_cursor = @connection.raw_connection.parse(@sql)
+        end
+        private :allocate_cursor
 
         def bind_param(position, value, column = nil)
           if column && column.object_type?
