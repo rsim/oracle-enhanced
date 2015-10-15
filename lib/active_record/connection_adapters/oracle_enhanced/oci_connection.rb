@@ -99,7 +99,7 @@ module ActiveRecord
       # execute sql with RETURNING ... INTO :insert_id
       # and return :insert_id value
       def exec_with_returning(sql)
-        cursor = @raw_connection.parse(sql)
+        cursor = prepare(sql)
         cursor.bind_param(':insert_id', nil, Integer)
         cursor.exec
         cursor[':insert_id']
