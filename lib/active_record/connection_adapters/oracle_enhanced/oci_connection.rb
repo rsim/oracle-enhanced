@@ -152,10 +152,7 @@ module ActiveRecord
         def exec
           @raw_cursor.exec
         end
-
-        def exec_update
-          @raw_cursor.exec
-        end
+        alias :exec_update :exec
 
         def get_col_names
           @raw_cursor.get_col_names
