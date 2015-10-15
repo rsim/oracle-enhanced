@@ -418,13 +418,6 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     end
   end
 
-  # ORA-00028: your session has been killed
-  # ORA-01012: not logged on
-  # ORA-03113: end-of-file on communication channel
-  # ORA-03114: not connected to ORACLE
-  # ORA-03135: connection lost contact
-  LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] #:nodoc:
-
   # Adds auto-recovery functionality.
   #
   # See: http://www.jiubao.org/ruby-oci8/api.en.html#label-11
@@ -434,7 +427,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     begin
       @connection.exec(sql, *bindvars, &block)
     rescue OCIException => e
-      raise unless e.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(e.code)
+      raise unless e.lost_connection?
       @active = false
       raise unless should_retry
       should_retry = false
@@ -445,6 +438,24 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
 
   def oci_connection
     @connection
+  end
+
+  module LostConnectionError
+    # ORA-00028: your session has been killed
+    # ORA-01012: not logged on
+    # ORA-03113: end-of-file on communication channel
+    # ORA-03114: not connected to ORACLE
+    # ORA-03135: connection lost contact
+    ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] #:nodoc:
+
+    def lost_connection?
+      self.respond_to?(:code) && ERROR_CODES.include?(self.code)
+    end
+
+  end
+
+  ::OCIException.class_eval do
+    include LostConnectionError
   end
 end
 #:startdoc:
