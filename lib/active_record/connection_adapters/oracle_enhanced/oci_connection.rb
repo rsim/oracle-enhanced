@@ -449,9 +449,13 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] #:nodoc:
 
     def lost_connection?
-      self.respond_to?(:code) && ERROR_CODES.include?(self.code)
+      self.already_closed? ||
+        self.respond_to?(:code) && ERROR_CODES.include?(self.code)
     end
 
+    def already_closed?
+      self.message == 'OCI8 was already closed.'
+    end
   end
 
   ::OCIException.class_eval do
