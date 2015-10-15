@@ -177,8 +177,7 @@ module ActiveRecord
         def close
           @raw_cursor.close
         end
-
-      end
+      end # Cursor
 
       def select(sql, name = nil, return_column_names = false)
         cursor = @raw_connection.exec(sql)
