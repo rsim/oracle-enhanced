@@ -124,7 +124,16 @@ module ActiveRecord
         end
 
         def allocate_cursor
-          @raw_cursor = @connection.raw_connection.parse(@sql)
+          should_retry = @connection.should_retry?
+
+          begin
+            @raw_cursor = @connection.raw_connection.parse(@sql)
+          rescue OCIException => e
+            raise unless should_retry && e.lost_connection?
+            should_retry = false
+            @connection.reset!
+            retry
+          end
         end
         private :allocate_cursor
 
