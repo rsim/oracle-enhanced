@@ -48,6 +48,10 @@ module ActiveRecord
         @raw_connection.auto_retry = value
       end
 
+      def should_retry?
+        @raw_connection.should_retry?
+      end
+
       def logoff
         @raw_connection.logoff
         @raw_connection.active = false
@@ -422,7 +426,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   #
   # See: http://www.jiubao.org/ruby-oci8/api.en.html#label-11
   def exec(sql, *bindvars, &block) #:nodoc:
-    should_retry = self.auto_retry? && self.autocommit?
+    should_retry = self.should_retry?
 
     begin
       @connection.exec(sql, *bindvars, &block)
@@ -434,6 +438,12 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
       reset! rescue nil
       retry
     end
+  end
+
+  def should_retry?
+    self.auto_retry? && self.autocommit?
+  rescue OCIException => e
+    e.already_closed? || raise
   end
 
   def oci_connection
