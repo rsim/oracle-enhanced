@@ -19,7 +19,7 @@ When using Ruby on Rails version 4.2 then in Gemfile include
 gem 'activerecord-oracle_enhanced-adapter', '~> 1.6.0'
 ```
 
-where instead of 1.6.0 you can specify any other desired version. It is recommended to specify version with `~>` which means that use specified version or later patch versions (in this example any later 1.5.x version but not 1.6.x version). Oracle enhanced adapter maintains API backwards compatibility during patch version upgrades and therefore it is safe to always upgrade to latest patch version.
+where instead of 1.6.0 you can specify any other desired version. It is recommended to specify version with `~>` which means that use specified version or later patch versions (in this example any later 1.6.x version but not 1.7.x version). Oracle enhanced adapter maintains API backwards compatibility during patch version upgrades and therefore it is safe to always upgrade to latest patch version.
 
 ### Rails 4.0 and 4.1
 
