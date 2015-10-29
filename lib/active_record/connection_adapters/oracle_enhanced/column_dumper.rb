@@ -48,6 +48,7 @@ module ActiveRecord #:nodoc:
           spec[:null]      = 'false' if !column.null
           spec[:as]        = column.virtual_column_data_default if column.virtual?
           spec[:default]   = schema_default(column) if column.has_default? && !column.virtual?
+          spec[:comment]   = column.comment.inspect unless column.comment.nil?
           spec.delete(:default) if spec[:default].nil?
           spec
         end
@@ -57,7 +58,7 @@ module ActiveRecord #:nodoc:
           # return original method if not using 'OracleEnhanced'
           return migration_keys_without_oracle_enhanced unless oracle_enhanced_adapter?
 
-          [:name, :limit, :precision, :scale, :default, :null, :as, :virtual_type]
+          [:name, :limit, :precision, :scale, :default, :null, :as, :virtual_type, :comment]
         end
       end
     end
