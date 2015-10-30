@@ -35,6 +35,8 @@ module ActiveRecord #:nodoc:
           structure << ddl
           structure << structure_dump_indexes(table_name)
           structure << structure_dump_unique_keys(table_name)
+          structure << structure_dump_table_comments(table_name)
+          structure << structure_dump_column_comments(table_name)
         end
 
         join_with_statement_token(structure) << structure_dump_fk_constraints
@@ -135,6 +137,31 @@ module ActiveRecord #:nodoc:
           end
         end.flatten.compact
         join_with_statement_token(fks)
+      end
+
+      def structure_dump_table_comments(table_name)
+        comments = []
+        comment = table_comment(table_name)
+
+        unless comment.nil?
+          comments << "COMMENT ON TABLE #{quote_table_name(table_name)} IS '#{quote_string(comment)}'"
+        end
+
+        join_with_statement_token(comments)
+      end
+
+      def structure_dump_column_comments(table_name)
+        comments = []
+        columns = select_values("SELECT column_name FROM user_tab_columns WHERE table_name = '#{table_name}' ORDER BY column_id")
+
+        columns.each do |column|
+          comment = column_comment(table_name, column)
+          unless comment.nil?
+            comments << "COMMENT ON COLUMN #{quote_table_name(table_name)}.#{quote_column_name(column)} IS '#{quote_string(comment)}'"
+          end
+        end
+
+        join_with_statement_token(comments)
       end
 
       def foreign_key_definition(to_table, options = {}) #:nodoc:
