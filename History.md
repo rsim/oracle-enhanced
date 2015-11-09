@@ -1,3 +1,19 @@
+## 1.6.4 / 2015-11-09
+
+* Changes and bug fixes since 1.6.2
+ * Add table and column comments to structure dump and schema dump [#734]
+ * Remove `serialized_attributes` which is removed in Rails 5 [#694]
+ * fixing bundler dependency conflict with head of rails vs arel 6.0[#714]
+ * Add note to readme about adapter name when using DATABASE_URL [#728]
+ * Fixed copy/paste error in README.md [#731]
+ * Pending a test using virtual columns features introduced in 11gR1 [#733]
+ * Suppress warning: ambiguous first argument [#690]
+ * Suppress `warning: assigned but unused variable` [#691]
+ * Suppress `warning: assigned but unused variable - tablespace` [#692]
+ * Suppress `warning: assigned but unused variable - e` [#693]
+ * Ignore .rbenv-gemsets [#705]
+ * Clean up database objects after unit tests executed [#712]
+
 ## 1.6.3 / 2015-08-14
 
 * Changes and bug fixes since 1.6.2
