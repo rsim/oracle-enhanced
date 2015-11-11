@@ -121,6 +121,11 @@ module ActiveRecord #:nodoc:
             # addition to make temporary option work
             tbl.print ", temporary: true" if @connection.temporary_table?(table)
 
+            table_comments = @connection.table_comment(table)
+            unless table_comments.nil?
+              tbl.print ", comment: #{table_comments.inspect}"
+            end
+
             if columns.detect { |c| c.name == pk }
               if pk != 'id'
                 tbl.print %Q(, primary_key: "#{pk}")

@@ -474,4 +474,44 @@ describe "OracleEnhancedAdapter schema dump" do
       expect(standard_dump).to match(/t\.float "hourly_rate"$/)
     end
   end
+
+  describe "table comments" do
+    before(:each) do
+      schema_define do
+        create_table :test_table_comments, :comment => "this is a \"table comment\"!", force: true do |t|
+          t.string :blah
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_table_comments
+      end
+    end
+
+    it "should dump table comments" do
+      standard_dump.should =~ /comment: "this is a \\"table comment\\"!"/
+    end
+  end
+
+  describe "column comments" do
+    before(:each) do
+      schema_define do
+        create_table :test_column_comments, force: true do |t|
+          t.string :blah, :comment => "this is a \"column comment\"!"
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_column_comments
+      end
+    end
+
+    it "should dump column comments" do
+      standard_dump.should =~ /comment: "this is a \\"column comment\\"!"/
+    end
+  end
 end
