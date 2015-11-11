@@ -879,6 +879,10 @@ module ActiveRecord
         false
       end
 
+      def views # :nodoc:
+        select_values("SELECT LOWER(view_name) FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'session_user')")
+      end
+
       def materialized_views #:nodoc:
         select_values("SELECT LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'session_user')")
       end
