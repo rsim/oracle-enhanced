@@ -1052,7 +1052,9 @@ module ActiveRecord
         end.map do |row|
           limit, scale = row['limit'], row['scale']
           if limit || scale
-            row['sql_type'] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
+            unless row['sql_type'] == 'NUMBER' && limit.nil?
+              row['sql_type'] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
+            end
           end
 
           if row['sql_type_owner']
