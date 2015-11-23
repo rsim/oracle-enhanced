@@ -445,6 +445,12 @@ module ActiveRecord
         end
       end
 
+      def supports_datetime_with_precision?
+        #TODO: Needs to consider to return false to keep old behaviour
+        #to map :datetime as DATE
+        @connection.database_version.first >= 9
+      end
+
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         :nls_calendar            => nil,
@@ -474,7 +480,8 @@ module ActiveRecord
         :integer     => { :name => "NUMBER", :limit => 38 },
         :float       => { :name => "BINARY_FLOAT" },
         :decimal     => { :name => "DECIMAL" },
-        :datetime    => { :name => "DATE" },
+        #TODO: Needs to consider to support :datetime as DATE 
+        :datetime    => { :name => "TIMESTAMP" },
         # changed to native TIMESTAMP type
         # :timestamp   => { :name => "DATE" },
         :timestamp   => { :name => "TIMESTAMP" },
