@@ -1,6 +1,11 @@
+## 1.6.5 / 2015-12-01
+
+* Enhancement
+ * Support `schema` option to use schema objects owned by another schema[#742]
+
 ## 1.6.4 / 2015-11-09
 
-* Changes and bug fixes since 1.6.2
+* Changes and bug fixes since 1.6.3
  * Add table and column comments to structure dump and schema dump [#734]
  * Remove `serialized_attributes` which is removed in Rails 5 [#694]
  * fixing bundler dependency conflict with head of rails vs arel 6.0[#714]
