@@ -489,6 +489,23 @@ ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces =
   {:clob => 'TS_LOB', :blob => 'TS_LOB', :index => 'TS_INDEX', :table => 'TS_DATA'}
 ```
 
+### Switching to another schema
+
+There are some requirements to connect to Oracle database first and switch to another user.
+Oracle enhanced adapter supports schema: option.
+
+Note: Oracle enhanced adapter does not take care if the database user specified in username: parameter
+has appropriate privilege to select, insert, update and delete database objects owned by the schema specified in schema: parameter.
+
+```yml
+development:
+  adapter: oracle_enhanced
+  database: xe
+  username: user
+  password: secret
+  schema: tableowner
+```
+
 TROUBLESHOOTING
 ---------------
 

@@ -121,6 +121,7 @@ DATABASE_HOST         = config["database"]["host"]         || ENV['DATABASE_HOST
 DATABASE_PORT         = config["database"]["port"]         || ENV['DATABASE_PORT']         || 1521
 DATABASE_USER         = config["database"]["user"]         || ENV['DATABASE_USER']         || 'oracle_enhanced'
 DATABASE_PASSWORD     = config["database"]["password"]     || ENV['DATABASE_PASSWORD']     || 'oracle_enhanced'
+DATABASE_SCHEMA       = config["database"]["schema"]       || ENV['DATABASE_SCHEMA']       || 'oracle_enhanced_schema'
 DATABASE_SYS_PASSWORD = config["database"]["sys_password"] || ENV['DATABASE_SYS_PASSWORD'] || 'admin'
 
 CONNECTION_PARAMS = {
@@ -130,6 +131,16 @@ CONNECTION_PARAMS = {
   :port => DATABASE_PORT,
   :username => DATABASE_USER,
   :password => DATABASE_PASSWORD
+}
+
+CONNECTION_WITH_SCHEMA_PARAMS = {
+  :adapter => "oracle_enhanced",
+  :database => DATABASE_NAME,
+  :host => DATABASE_HOST,
+  :port => DATABASE_PORT,
+  :username => DATABASE_USER,
+  :password => DATABASE_PASSWORD,
+  :schema => DATABASE_SCHEMA
 }
 
 SYS_CONNECTION_PARAMS = {

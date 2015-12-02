@@ -25,7 +25,9 @@ module ActiveRecord
       def initialize(config)
         @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
         # default schema owner
-        @owner = config[:username].to_s.upcase
+        @owner = config[:schema]
+        @owner ||= config[:username]
+        @owner = @owner.to_s.upcase
       end
 
       def raw_oci_connection
@@ -306,6 +308,7 @@ module ActiveRecord
         username = config[:username] && config[:username].to_s
         password = config[:password] && config[:password].to_s
         database = config[:database] && config[:database].to_s
+        schema = config[:schema] && config[:schema].to_s
         host, port = config[:host], config[:port]
         privilege = config[:privilege] && config[:privilege].to_sym
         async = config[:allow_concurrency]
@@ -333,6 +336,7 @@ module ActiveRecord
         conn.prefetch_rows = prefetch_rows
         conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil
         conn.exec "alter session set time_zone = '#{time_zone}'" unless time_zone.blank?
+        conn.exec "alter session set current_schema = #{schema}" unless schema.blank?
 
         # Initialize NLS parameters
         OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS.each do |key, default_value|
