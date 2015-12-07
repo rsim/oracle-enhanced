@@ -16,7 +16,7 @@ module ActiveRecord
           reload_type_map
         end
 
-        def exec_query(sql, name = 'SQL', binds = [])
+        def exec_query(sql, name = 'SQL', binds = [], prepare: false)
           type_casted_binds = binds.map { |col, val|
             [col, type_cast(val, col)]
           }
