@@ -94,7 +94,7 @@ module ActiveRecord
         end
 
         def create_table_definition(name, temporary, options)
-          ActiveRecord::ConnectionAdapters::OracleEnhanced::TableDefinition.new native_database_types, name, temporary, options
+          ActiveRecord::ConnectionAdapters::OracleEnhanced::TableDefinition.new name, temporary, options
         end
 
         def rename_table(table_name, new_name) #:nodoc:
