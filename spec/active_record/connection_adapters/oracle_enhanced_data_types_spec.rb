@@ -375,6 +375,43 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
   end
 
+  before(:each) do
+    class ::Test3Employee < ActiveRecord::Base
+    end
+  end
+
+  after(:each) do
+    Object.send(:remove_const, "Test3Employee")
+    @conn.clear_types_for_columns
+    ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+  end
+
+  describe "default values in new records" do
+    context "when emulate_booleans_from_strings is false" do
+      before do
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+      end
+
+      it "are Y or N" do
+        subject = Test3Employee.new
+        expect(subject.has_phone).to eq('Y')
+        expect(subject.manager_yn).to eq('N')
+      end
+    end
+
+    context "when emulate_booleans_from_strings is true" do
+      before do
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+      end
+
+      it "are True or False" do
+        subject = Test3Employee.new
+        expect(subject.has_phone).to be_a(TrueClass)
+        expect(subject.manager_yn).to be_a(FalseClass)
+      end
+    end
+  end
+
   it "should set CHAR/VARCHAR2 column type as string if emulate_booleans_from_strings is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
     columns = @conn.columns('test3_employees')
@@ -443,12 +480,9 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do
     before(:each) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
-      class ::Test3Employee < ActiveRecord::Base
-      end
     end
 
     after(:each) do
-      Object.send(:remove_const, "Test3Employee")
       @conn.clear_types_for_columns
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
