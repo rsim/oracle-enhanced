@@ -278,7 +278,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should execute correct SQL COUNT DISTINCT statement" do
-      expect { TestEmployee.count(:employee_id, :distinct => true) }.not_to raise_error
+      expect { TestEmployee.distinct.count(:employee_id) }.not_to raise_error
     end
 
   end
