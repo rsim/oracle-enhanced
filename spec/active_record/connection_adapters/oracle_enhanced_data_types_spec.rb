@@ -474,8 +474,8 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   it "should get default value from VARCHAR2 boolean column if emulate_booleans_from_strings is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
     columns = @conn.columns('test3_employees')
-    columns.detect{|c| c.name == 'has_phone'}.default.should be_true
-    columns.detect{|c| c.name == 'manager_yn'}.default.should be_false
+    columns.detect{|c| c.name == 'has_phone'}.default.should eq 'Y'
+    columns.detect{|c| c.name == 'manager_yn'}.default.should be false
   end
 
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do

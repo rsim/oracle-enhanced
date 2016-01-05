@@ -110,7 +110,7 @@ if ActiveRecord::Base.method_defined?(:changed?)
     it "should not mark integer as changed when reassigning it" do
       @employee = TestEmployee.new
       @employee.job_id = 0
-      @employee.save!.should be_true
+      @employee.save.should be true
       
       @employee.should_not be_changed
 
@@ -122,7 +122,7 @@ if ActiveRecord::Base.method_defined?(:changed?)
       @employee = TestEmployee.create!(
           :comments => "initial"
       )
-      @employee.save!.should be_true
+      @employee.save.should be true
       @employee.reload
       @employee.comments.should == 'initial'
 

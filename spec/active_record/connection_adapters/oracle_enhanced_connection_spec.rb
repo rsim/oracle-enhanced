@@ -16,7 +16,7 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should ping active connection" do
-      @conn.ping.should be_true
+      @conn.ping.should be true
     end
 
     it "should not ping inactive connection" do

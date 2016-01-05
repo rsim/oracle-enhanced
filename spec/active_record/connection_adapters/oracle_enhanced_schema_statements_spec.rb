@@ -1069,7 +1069,7 @@ end
         end
       end
       class ::TestPost < ActiveRecord::Base; end
-      TestPost.columns_hash['title'].null.should be_false
+      TestPost.columns_hash['title'].null.should be false
     end
 
     after(:each) do
@@ -1083,7 +1083,7 @@ end
         change_column :test_posts, :title, :string, :null => true
       end
       TestPost.reset_column_information
-      TestPost.columns_hash['title'].null.should be_true
+      TestPost.columns_hash['title'].null.should be true
     end
 
     it "should add column" do
