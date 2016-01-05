@@ -1,5 +1,5 @@
-rails:
-  gem_version: '4.0-master'
+# copy this file to spec/config.yaml and set appropriate values
+# you can also use environment variables, see spec_helper.rb
 database:
   name:         'orcl'
   host:         '127.0.0.1'
@@ -7,4 +7,5 @@ database:
   user:         'oracle_enhanced'
   password:     'oracle_enhanced'
   sys_password: 'admin'
+  non_default_tablespace: 'SYSTEM'
 timezone: 'Europe/Riga'

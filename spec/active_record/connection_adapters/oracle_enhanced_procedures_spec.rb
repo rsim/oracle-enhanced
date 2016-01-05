@@ -263,7 +263,6 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   end
 
   it "should delete record and set destroyed flag" do
-    return pending("Not in this ActiveRecord version (requires >= 2.3.5)") unless TestEmployee.method_defined?(:destroyed?)
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",

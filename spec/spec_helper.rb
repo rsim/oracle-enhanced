@@ -22,10 +22,7 @@ elsif RUBY_ENGINE == 'jruby'
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
 end
 
-ENV['RAILS_GEM_VERSION'] ||= config["rails"]["gem_version"] || '4.0-master'
 NO_COMPOSITE_PRIMARY_KEYS = true
-
-puts "==> Selected Rails version #{ENV['RAILS_GEM_VERSION']}"
 
 require 'active_record'
 
@@ -166,7 +163,7 @@ SYSTEM_CONNECTION_PARAMS = {
   :password => DATABASE_SYS_PASSWORD
 }
 
-DATABASE_NON_DEFAULT_TABLESPACE = ENV['DATABASE_NON_DEFAULT_TABLESPACE'] || "SYSTEM"
+DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] || ENV['DATABASE_NON_DEFAULT_TABLESPACE'] || "SYSTEM"
 
 # set default time zone in TZ environment variable
 # which will be used to set session time zone
