@@ -149,7 +149,7 @@ describe "OracleEnhancedConnection" do
           import 'org.apache.commons.dbcp.PoolableConnectionFactory'
           import 'org.apache.commons.dbcp.DriverManagerConnectionFactory'
         rescue NameError => e
-          return pending e.message
+          return skip e.message
         end
 
         class InitialContextMock
@@ -170,7 +170,7 @@ describe "OracleEnhancedConnection" do
           end
         end
 
-        javax.naming.InitialContext.stub!(:new).and_return(InitialContextMock.new)
+        javax.naming.InitialContext.stub(:new).and_return(InitialContextMock.new)
 
         params = {}
         params[:jndi] = 'java:comp/env/jdbc/test'
@@ -185,7 +185,7 @@ describe "OracleEnhancedConnection" do
       params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST && "//#{DATABASE_HOST}#{DATABASE_PORT && ":#{DATABASE_PORT}"}/"}#{DATABASE_NAME}"
       params[:host] = nil
       params[:database] = nil
-      java.sql.DriverManager.stub!(:getConnection).and_raise('no suitable driver found')
+      java.sql.DriverManager.stub(:getConnection).and_raise('no suitable driver found')
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
       @conn.should be_active
     end

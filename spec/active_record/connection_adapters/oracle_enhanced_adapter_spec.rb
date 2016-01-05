@@ -171,7 +171,7 @@ describe "OracleEnhancedAdapter" do
       end
 
       it 'should identify virtual columns as such' do
-        pending "Not supported in this database version" unless @oracle11g_or_higher
+        skip "Not supported in this database version" unless @oracle11g_or_higher
         te = TestEmployee.connection.columns('test_employees').detect(&:virtual?)
         te.name.should == 'full_name'
       end
