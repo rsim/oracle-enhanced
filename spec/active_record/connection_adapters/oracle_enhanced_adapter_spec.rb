@@ -171,7 +171,7 @@ describe "OracleEnhancedAdapter" do
       end
 
       it 'should identify virtual columns as such' do
-        pending "Not supported in this database version" unless @oracle11g_or_higher
+        skip "Not supported in this database version" unless @oracle11g_or_higher
         te = TestEmployee.connection.columns('test_employees').detect(&:virtual?)
         te.name.should == 'full_name'
       end
@@ -274,7 +274,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should tell ActiveRecord that count distinct is supported" do
-      ActiveRecord::Base.connection.supports_count_distinct?.should be_true
+      ActiveRecord::Base.connection.supports_count_distinct?.should be true
     end
 
     it "should execute correct SQL COUNT DISTINCT statement" do
@@ -345,56 +345,56 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should be valid with letters and digits" do
-      @adapter.valid_table_name?("abc_123").should be_true
+      @adapter.valid_table_name?("abc_123").should be true
     end
 
     it "should be valid with schema name" do
-      @adapter.valid_table_name?("abc_123.def_456").should be_true
+      @adapter.valid_table_name?("abc_123.def_456").should be true
     end
 
     it "should be valid with $ in name" do
-      @adapter.valid_table_name?("sys.v$session").should be_true
+      @adapter.valid_table_name?("sys.v$session").should be true
     end
 
     it "should be valid with upcase schema name" do
-      @adapter.valid_table_name?("ABC_123.DEF_456").should be_true
+      @adapter.valid_table_name?("ABC_123.DEF_456").should be true
     end
 
     it "should be valid with irregular schema name and database links" do
-      @adapter.valid_table_name?('abc$#_123.abc$#_123@abc$#@._123').should be_true
+      @adapter.valid_table_name?('abc$#_123.abc$#_123@abc$#@._123').should be true
     end
 
     it "should not be valid with two dots in name" do
-      @adapter.valid_table_name?("abc_123.def_456.ghi_789").should be_false
+      @adapter.valid_table_name?("abc_123.def_456.ghi_789").should be false
     end
 
     it "should not be valid with invalid characters" do
-      @adapter.valid_table_name?("warehouse-things").should be_false
+      @adapter.valid_table_name?("warehouse-things").should be false
     end
 
     it "should not be valid with for camel-case" do
-      @adapter.valid_table_name?("Abc").should be_false
-      @adapter.valid_table_name?("aBc").should be_false
-      @adapter.valid_table_name?("abC").should be_false
+      @adapter.valid_table_name?("Abc").should be false
+      @adapter.valid_table_name?("aBc").should be false
+      @adapter.valid_table_name?("abC").should be false
     end
     
     it "should not be valid for names > 30 characters" do
-      @adapter.valid_table_name?("a" * 31).should be_false
+      @adapter.valid_table_name?("a" * 31).should be false
     end
     
     it "should not be valid for schema names > 30 characters" do
-      @adapter.valid_table_name?(("a" * 31) + ".validname").should be_false
+      @adapter.valid_table_name?(("a" * 31) + ".validname").should be false
     end
     
     it "should not be valid for database links > 128 characters" do
-      @adapter.valid_table_name?("name@" + "a" * 129).should be_false
+      @adapter.valid_table_name?("name@" + "a" * 129).should be false
     end
     
     it "should not be valid for names that do not begin with alphabetic characters" do
-      @adapter.valid_table_name?("1abc").should be_false
-      @adapter.valid_table_name?("_abc").should be_false
-      @adapter.valid_table_name?("abc.1xyz").should be_false
-      @adapter.valid_table_name?("abc._xyz").should be_false
+      @adapter.valid_table_name?("1abc").should be false
+      @adapter.valid_table_name?("_abc").should be false
+      @adapter.valid_table_name?("abc.1xyz").should be false
+      @adapter.valid_table_name?("abc._xyz").should be false
     end
   end
 
@@ -554,7 +554,7 @@ describe "OracleEnhancedAdapter" do
       @conn.create_table :foos, :temporary => true, :id => false do |t|
         t.integer :id
       end
-      @conn.temporary_table?("foos").should be_true
+      @conn.temporary_table?("foos").should be true
     end
   end
 
@@ -600,7 +600,7 @@ describe "OracleEnhancedAdapter" do
       posts.size.should == @ids.size
     end
 
-  end if ENV['RAILS_GEM_VERSION'] >= '3.1'
+  end
 
   describe "with statement pool" do
     before(:all) do
@@ -654,7 +654,7 @@ describe "OracleEnhancedAdapter" do
         @conn.exec_update("UPDATE test_posts SET id = 1", "SQL", binds)
       }.should_not change(@statements, :length)
     end
-  end if ENV['RAILS_GEM_VERSION'] >= '3.1'
+  end
 
   describe "explain" do
     before(:all) do
@@ -688,7 +688,7 @@ describe "OracleEnhancedAdapter" do
       explain.should include("Cost")
       explain.should include("INDEX UNIQUE SCAN")
     end
-  end if ENV['RAILS_GEM_VERSION'] >= '3.2'
+  end
 
   describe "using offset and limit" do
     before(:all) do

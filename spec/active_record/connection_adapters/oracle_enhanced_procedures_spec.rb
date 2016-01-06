@@ -186,7 +186,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     lambda {
       @employee.save
     }.should raise_error("Make the transaction rollback")
-    @employee.id.should == nil
+    @employee.new_record?.should be true
     TestEmployee.count.should == employees_count
   end
 
@@ -263,7 +263,6 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   end
 
   it "should delete record and set destroyed flag" do
-    return pending("Not in this ActiveRecord version (requires >= 2.3.5)") unless TestEmployee.method_defined?(:destroyed?)
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -360,7 +359,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :last_name => "Last",
       :hire_date => @today
     )
-    @employee.save.should be_false
+    @employee.save.should be false
     @employee.errors[:first_name].should_not be_blank
   end
 
@@ -371,7 +370,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :hire_date => @today
     )
     @employee.first_name = nil
-    @employee.save.should be_false
+    @employee.save.should be false
     @employee.errors[:first_name].should_not be_blank
   end
   

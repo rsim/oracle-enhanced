@@ -92,7 +92,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     
     it "should dump composite foreign keys" do
-      pending "Composite foreign keys are not supported in this version"
+      skip "Composite foreign keys are not supported in this version"
       @conn.add_column :foos, :fooz_id, :integer
       @conn.add_column :foos, :baz_id, :integer
       
@@ -150,7 +150,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
   
     it "should dump virtual columns" do
-      pending "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @oracle11g_or_higher
       @conn.execute <<-SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
@@ -163,7 +163,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump RAW virtual columns" do
-      pending "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @oracle11g_or_higher
       @conn.execute <<-SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,

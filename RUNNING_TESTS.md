@@ -16,7 +16,9 @@ to increase process limit and then restart the database (this will be necessary 
 Ruby versions
 -------------
 
-It is recommended to use [RVM](http://rvm.beginrescueend.com) to run tests with different Ruby implementations. oracle_enhanced is mainly tested with MRI 1.8.7 (all Rails versions) and 1.9.2 (Rails 3) and JRuby 1.6.
+oracle_enhanced is tested with MRI 2.1.x and 2.2.x, and JRuby 1.7.x and 9.0.x.x.  
+
+It is recommended to use [RVM](http://rvm.beginrescueend.com) to run tests with different Ruby implementations.
 
 Running tests
 -------------
@@ -29,19 +31,19 @@ Running tests
         SQL> CREATE USER oracle_enhanced_schema IDENTIFIED BY oracle_enhanced_schema;
         SQL> GRANT unlimited tablespace, create session, create table, create sequence, create procedure, create trigger, create view, create materialized view, create database link, create synonym, create type, ctxapp TO oracle_enhanced_schema;
 
-* If you use RVM then switch to corresponding Ruby (1.8.7, 1.9.2 or JRuby) and it is recommended to create isolated gemset for test purposes (e.g. rvm create gemset oracle_enhanced)
+* If you use RVM then switch to corresponding Ruby. It is recommended to create isolated gemsets for test purposes (e.g. rvm create gemset oracle_enhanced)
 
 * Install bundler with
 
         gem install bundler
 
-* Set RAILS_GEM_VERSION to Rails version that you would like to use in oracle_enhanced tests, e.g.
-
-        export RAILS_GEM_VERSION=3.0.3
-
 * Install necessary gems with
 
         bundle install
+        
+* Configure database credentials in one of two ways:
+    * copy spec/spec_config.yaml.template to spec/config.yaml and modify as needed
+    * set required environment variables (see DATABASE_NAME in spec_helper.rb)
 
 * Run tests with
 

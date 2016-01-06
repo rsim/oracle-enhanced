@@ -729,7 +729,7 @@ end
     end
 
     it "should add a composite foreign key" do
-      pending "Composite foreign keys are not supported in this version"
+      skip "Composite foreign keys are not supported in this version"
       schema_define do
         add_column :test_posts, :baz_id, :integer
         add_column :test_posts, :fooz_id, :integer
@@ -752,7 +752,7 @@ end
     end
 
     it "should add a composite foreign key with name" do
-      pending "Composite foreign keys are not supported in this version"
+      skip "Composite foreign keys are not supported in this version"
       schema_define do
         add_column :test_posts, :baz_id, :integer
         add_column :test_posts, :fooz_id, :integer
@@ -1069,7 +1069,7 @@ end
         end
       end
       class ::TestPost < ActiveRecord::Base; end
-      TestPost.columns_hash['title'].null.should be_false
+      TestPost.columns_hash['title'].null.should be false
     end
 
     after(:each) do
@@ -1083,7 +1083,7 @@ end
         change_column :test_posts, :title, :string, :null => true
       end
       TestPost.reset_column_information
-      TestPost.columns_hash['title'].null.should be_true
+      TestPost.columns_hash['title'].null.should be true
     end
 
     it "should add column" do
@@ -1159,7 +1159,7 @@ end
 
   describe 'virtual columns in create_table' do
     before(:each) do
-      pending "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @oracle11g_or_higher
     end
 
     it 'should create virtual column with old syntax' do
@@ -1205,7 +1205,7 @@ end
 
   describe 'virtual columns' do
     before(:each) do
-      pending "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @oracle11g_or_higher
       expr = "( numerator/NULLIF(denominator,0) )*100"
       schema_define do
         create_table :test_fractions, :force => true do |t|

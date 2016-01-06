@@ -52,7 +52,7 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
     end
 
     it "should tell ActiveRecord that count distinct is not supported" do
-      ActiveRecord::Base.connection.supports_count_distinct?.should be_false
+      ActiveRecord::Base.connection.supports_count_distinct?.should be false
     end
 
     it "should execute correct SQL COUNT DISTINCT statement on table with composite primary keys" do

@@ -226,7 +226,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should include composite foreign keys" do
-      pending "Composite foreign keys are not supported in this version"
+      skip "Composite foreign keys are not supported in this version"
       schema_define do
         add_column :test_posts, :baz_id, :integer
         add_column :test_posts, :fooz_id, :integer
@@ -341,7 +341,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should specify non-default tablespace in add index" do
       tablespace_name = @conn.default_tablespace
-      @conn.stub!(:default_tablespace).and_return('dummy')
+      @conn.stub(:default_tablespace).and_return('dummy')
       create_test_posts_table
       standard_dump.should =~ /add_index "test_posts", \["title"\], name: "index_test_posts_on_title", tablespace: "#{tablespace_name}"$/
     end
@@ -369,21 +369,18 @@ describe "OracleEnhancedAdapter schema dump" do
 
   describe 'virtual columns' do
     before(:all) do
-      if @oracle11g_or_higher
-        schema_define do
-          create_table :test_names, :force => true do |t|
-            t.string  :first_name
-            t.string  :last_name
-            t.virtual :full_name,        :as => "first_name || ', ' || last_name"
-            t.virtual :short_name,       :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
-            t.virtual :abbrev_name,      :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
-            t.virtual :name_ratio, :as=>'(LENGTH(first_name)*10/LENGTH(last_name)*10)'
-            t.column  :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
-            t.virtual :field_with_leading_space, :as => "' ' || first_name || ' '", :limit => 300, :type => :string
-          end
+      skip "Not supported in this database version" unless @oracle11g_or_higher
+      schema_define do
+        create_table :test_names, :force => true do |t|
+          t.string :first_name
+          t.string :last_name
+          t.virtual :full_name,       :as => "first_name || ', ' || last_name"
+          t.virtual :short_name,      :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
+          t.virtual :abbrev_name,     :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
+          t.virtual :name_ratio,      :as => '(LENGTH(first_name)*10/LENGTH(last_name)*10)'
+          t.column :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
+          t.virtual :field_with_leading_space, :as => "' ' || first_name || ' '", :limit => 300, :type => :string
         end
-      else
-        pending "Not supported in this database version"
       end
     end
 
