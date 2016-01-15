@@ -509,6 +509,65 @@ development:
   schema: tableowner
 ```
 
+### Timeouts
+
+By default, OCI libraries set a connect timeout of 60 seconds (as of v12.0), and do not set a data receive timeout.
+
+While this may desirable if you process queries that take several minutes to complete, it may also lead to resource exhaustion if
+connections are teared down improperly during a query, e.g. by misbehaving networking equipment that does not inform both peers of
+connection reset. In this scenario, the OCI libraries will wait indefinitely for data to arrive, thus blocking indefinitely the application
+that initiated the query.
+
+You can set a connect timeout, in seconds, using the following TNSNAMES parameters:
+
+  * `CONNECT_TIMEOUT`
+  * `TCP_CONNECT_TIMEOUT`
+
+Example setting a 5 seconds connect timeout:
+
+```yml
+development:
+  database: "(DESCRIPTION=
+    (ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))
+    (CONNECT_TIMEOUT=5)(TCP_CONNECT_TIMEOUT=5)
+    (CONNECT_DATA=(SERVICE_NAME=xe))
+  )"
+```
+You should set a timeout value dependant on your network topology, and the time needed to establish a TCP connection with your ORACLE
+server. In real-world scenarios, a value larger than 5 should be avoided.
+
+You can set receive and send timeouts, in seconds, using the following TNSNAMES parameters:
+
+  * `RECV_TIMEOUT` - the maximum time the OCI libraries should wait for data to arrive on the TCP socket. Internally, it is implemented
+    through a `setsockopt(s, SOL_SOCKET, SO_RCVTIMEO)`. You should set this value to an integer larger than the server-side execution time
+    of your longest-running query.
+  * `SEND_TIMEOUT` the maximum time the OCI libraries should wait for write operations to complete on the TCP socket. Internally, it is
+    implemented through a `setsockopt(s, SOL_SOCKET, SO_SNDTIMEO)`. Values larger than 5 are a sign of poorly performing network, and as
+    such it should be avoided.
+
+Example setting a 60 seconds receive timeout and 5 seconds send timeout:
+
+```yml
+development:
+  database: "(DESCRIPTION=
+    (ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))
+    (RECV_TIMEOUT=60)(SEND_TIMEOUT=5)
+    (CONNECT_DATA=(SERVICE_NAME=xe))
+  )"
+```
+
+Example setting the above send/recv timeout plus a 5 seconds connect timeout:
+
+```yml
+development:
+  database: "(DESCRIPTION=
+    (ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))
+    (CONNECT_TIMEOUT=5)(TCP_CONNECT_TIMEOUT=5)
+    (RECV_TIMEOUT=60)(SEND_TIMEOUT=5)
+    (CONNECT_DATA=(SERVICE_NAME=xe))
+  )"
+```
+
 TROUBLESHOOTING
 ---------------
 
@@ -554,6 +613,14 @@ When Apache with Phusion Passenger (mod_passenger or previously mod_rails) is us
 
   * Create wrapper script as described in [Phusion blog](http://blog.phusion.nl/2008/12/16/passing-environment-variables-to-ruby-from-phusion-passenger) or [RayApps::Blog](http://blog.rayapps.com/2008/05/21/using-mod_rails-with-rails-applications-on-oracle)
   * Set environment variables in the file which is used by Apache before launching Apache worker processes - on Linux it typically is envvars file (look in apachectl or apache2ctl script where it is looking for envvars file) or /System/Library/LaunchDaemons/org.apache.httpd.plist on Mac OS X. See the following [discussion thread](http://groups.google.com/group/oracle-enhanced/browse_thread/thread/c5f64106569fadd0) for more hints.
+
+### What to do if my application is stuck?
+
+If you see established TCP connections that do not exchange data, and you are unable to terminate your application using a TERM or an INT
+signal, and you are forced to use the KILL signal, then the OCI libraries may be waiting indefinitely for a network read operation to
+complete.
+
+See the **Timeouts** section above.
 
 RUNNING TESTS
 -------------
