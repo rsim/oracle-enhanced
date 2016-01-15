@@ -173,7 +173,10 @@ or you can even use Oracle specific TNS connection description:
 ```yml
 development:
   adapter: oracle_enhanced
-  database: "(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=xe)))"
+  database: "(DESCRIPTION=
+    (ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))
+    (CONNECT_DATA=(SERVICE_NAME=xe))
+  )"
   username: user
   password: secret
 ```
