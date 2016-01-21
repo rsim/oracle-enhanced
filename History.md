@@ -1,3 +1,11 @@
+## 1.6.6 / 2016-01-21
+
+* Changes and bug fixes since 1.6.5
+ * Address ORA-00904 when CONTAINS has `table_name.column_name` [#758, #664, #463]
+ * Only convert N to false when emulating booleans [#751]
+ * Clean up specs and test documentation [#756]
+ * Add JDBC Drivers to gitignore [#745]
+
 ## 1.6.5 / 2015-12-01
 
 * Enhancement
