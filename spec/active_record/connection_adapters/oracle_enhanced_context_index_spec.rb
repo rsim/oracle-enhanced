@@ -168,6 +168,14 @@ describe "OracleEnhancedAdapter context index" do
       end
       @conn.remove_context_index :posts, :title
     end
+
+    it "should use index when contains has schema_name.table_name syntax" do
+      @conn.add_context_index :posts, :title
+      @title_words.each do |word|
+        Post.contains('posts.title', word).to_a.should == [@post2, @post1]
+      end
+      @conn.remove_context_index :posts, :title
+    end
   end
 
   describe "on multiple tables" do
