@@ -341,7 +341,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "valid table names" do
     before(:all) do
-      @adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
+      @adapter = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting
     end
 
     it "should be valid with letters and digits" do
