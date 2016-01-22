@@ -38,7 +38,7 @@ module ActiveRecord
           db_link = nil
           default_owner = @owner
         end
-        real_name = OracleEnhancedAdapter.valid_table_name?(name) ? name.upcase : name
+        real_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(name) ? name.upcase : name
         if real_name.include?('.')
           table_owner, table_name = real_name.split('.')
         else

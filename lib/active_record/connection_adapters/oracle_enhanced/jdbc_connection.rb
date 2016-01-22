@@ -346,7 +346,7 @@ module ActiveRecord
             when :binary
               @raw_statement.setBlob(position, java_value)
             when :raw
-              @raw_statement.setString(position, OracleEnhancedAdapter.encode_raw(java_value))
+              @raw_statement.setString(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(java_value))
             when :decimal
               @raw_statement.setBigDecimal(position, java_value)
             else

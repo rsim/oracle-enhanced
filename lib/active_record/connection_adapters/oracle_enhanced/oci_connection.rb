@@ -132,7 +132,7 @@ module ActiveRecord
               ora_value.size = 0 if value == ''
               @raw_cursor.bind_param(position, ora_value)
             when :raw
-              @raw_cursor.bind_param(position, OracleEnhancedAdapter.encode_raw(value))
+              @raw_cursor.bind_param(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))
             when :decimal
               @raw_cursor.bind_param(position, BigDecimal.new(value.to_s))
             else
@@ -212,7 +212,7 @@ module ActiveRecord
       def describe(name)
         # fall back to SELECT based describe if using database link
         return super if name.to_s.include?('@')
-        quoted_name = OracleEnhancedAdapter.valid_table_name?(name) ? name : "\"#{name}\""
+        quoted_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(name) ? name : "\"#{name}\""
         @raw_connection.describe(quoted_name)
       rescue OCIException => e
         if e.code == 4043
