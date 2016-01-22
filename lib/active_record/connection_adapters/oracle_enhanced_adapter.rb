@@ -656,8 +656,8 @@ module ActiveRecord
             select NVL(max(#{quote_column_name(primary_key)}),0) + 1 from #{quote_table_name(table_name)}
           ", new_start_value)
 
-          execute ("DROP SEQUENCE #{quote_table_name(sequence_name)}")
-          execute ("CREATE SEQUENCE #{quote_table_name(sequence_name)} START WITH #{new_start_value}")
+          execute "DROP SEQUENCE #{quote_table_name(sequence_name)}"
+          execute "CREATE SEQUENCE #{quote_table_name(sequence_name)} START WITH #{new_start_value}"
         end
       end
 
