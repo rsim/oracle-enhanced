@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'bundler'
+require 'bundler/gem_tasks'
 begin
   Bundler.setup(:default, :development)
 rescue Bundler::BundlerError => e
@@ -9,22 +10,6 @@ rescue Bundler::BundlerError => e
 end
 
 require 'rake'
-
-require 'jeweler'
-Jeweler::Tasks.new do |gem|
-  gem.name = "activerecord-oracle_enhanced-adapter"
-  gem.summary = "Oracle enhanced adapter for ActiveRecord"
-  gem.description = <<-EOS
-Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
-This adapter is superset of original ActiveRecord Oracle adapter.
-EOS
-  gem.email = "raimonds.simanovskis@gmail.com"
-  gem.homepage = "http://github.com/rsim/oracle-enhanced"
-  gem.authors = ["Raimonds Simanovskis"]
-  gem.extra_rdoc_files = ['README.md']
-  gem.license = 'MIT'
-end
-Jeweler::RubygemsDotOrgTasks.new
 
 require 'rspec/core/rake_task'
 RSpec::Core::RakeTask.new(:spec)
