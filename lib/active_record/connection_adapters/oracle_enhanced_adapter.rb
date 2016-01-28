@@ -1056,33 +1056,6 @@ module ActiveRecord
         !pk_and_sequence_for(table_name, owner, desc_table_name, db_link).nil?
       end
 
-      # SELECT DISTINCT clause for a given set of columns and a given ORDER BY clause.
-      #
-      # Oracle requires the ORDER BY columns to be in the SELECT list for DISTINCT
-      # queries. However, with those columns included in the SELECT DISTINCT list, you
-      # won't actually get a distinct list of the column you want (presuming the column
-      # has duplicates with multiple values for the ordered-by columns. So we use the
-      # FIRST_VALUE function to get a single (first) value for each column, effectively
-      # making every row the same.
-      #
-      #   distinct("posts.id", "posts.created_at desc")
-      def distinct(columns, orders) #:nodoc:
-        # To support Rails 4.0.0 and future releases
-        # because `columns_for_distinct method introduced after Rails 4.0.0 released
-        if super.respond_to?(:columns_for_distinct)
-          super
-        else
-          order_columns = orders.map { |c|
-            c = c.to_sql unless c.is_a?(String)
-            # remove any ASC/DESC modifiers
-            c.gsub(/\s+(ASC|DESC)\s*?/i, '')
-            }.reject(&:blank?).map.with_index { |c,i|
-              "FIRST_VALUE(#{c}) OVER (PARTITION BY #{columns} ORDER BY #{c}) AS alias_#{i}__"
-            }
-            [super].concat(order_columns).join(', ')
-        end
-      end
-
       def columns_for_distinct(columns, orders) #:nodoc:
         # construct a valid columns name for DISTINCT clause,
         # ie. one that includes the ORDER BY columns, using FIRST_VALUE such that
