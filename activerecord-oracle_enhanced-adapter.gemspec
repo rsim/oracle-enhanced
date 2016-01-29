@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-
 Gem::Specification.new do |s|
   s.name = %q{activerecord-oracle_enhanced-adapter}
   s.version = "1.6.6"
