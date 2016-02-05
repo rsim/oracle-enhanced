@@ -45,16 +45,16 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should create new connection" do
-      @conn.should be_active
+      expect(@conn).to be_active
     end
 
     it "should swith to specified schema" do
-      @conn.select_value("select SYS_CONTEXT('userenv', 'current_schema') from dual").should == CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase
+      expect(@conn.select_value("select SYS_CONTEXT('userenv', 'current_schema') from dual")).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
     end
 
     it "should swith to specified schema after reset" do
       @conn.reset!
-      @conn.select_value("select SYS_CONTEXT('userenv', 'current_schema') from dual").should == CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase
+      expect(@conn.select_value("select SYS_CONTEXT('userenv', 'current_schema') from dual")).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
     end
 
   end
