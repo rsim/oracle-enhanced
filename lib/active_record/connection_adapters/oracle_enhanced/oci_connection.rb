@@ -25,6 +25,7 @@ module ActiveRecord
       def initialize(config)
         @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
         # default schema owner
+        @statements = StatementPool.new(self, config[:statement_limit] || DEFAULT_STATEMENT_LIMIT)
         @owner = config[:schema]
         @owner ||= config[:username]
         @owner = @owner.to_s.upcase
@@ -107,14 +108,23 @@ module ActiveRecord
         cursor.close rescue nil
       end
 
-      def prepare(sql)
-        Cursor.new(self, @raw_connection.parse(sql))
+      def prepare(sql, poolable=true)
+        if poolable
+          @statements[sql] ||= Cursor.new(self, @raw_connection.parse(sql), true)
+        else
+          Cursor.new(self, @raw_connection.parse(sql), false)
+        end
+      end
+
+      def clear_cache!
+        @statements.clear
       end
 
       class Cursor
-        def initialize(connection, raw_cursor)
+        def initialize(connection, raw_cursor, pooled)
           @connection = connection
           @raw_cursor = raw_cursor
+          @pooled = pooled
         end
 
         def bind_param(position, value, column = nil)
@@ -172,6 +182,10 @@ module ActiveRecord
 
         def get_returning_param(position, type)
           @raw_cursor[position]
+        end
+
+        def checkin
+          close unless @pooled
         end
 
         def close
@@ -295,6 +309,34 @@ module ActiveRecord
         rescue
           offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
           ::DateTime.civil(year, month, day, hour, min, sec, offset)
+        end
+      end
+
+      class StatementPool
+        include Enumerable
+
+        def initialize(connection, max = 300)
+          @connection = connection
+          @max        = max
+          @cache      = {}
+        end
+
+        def each(&block); @cache.each(&block); end
+        def key?(key);    @cache.key?(key); end
+        def [](key);      @cache[key]; end
+        def length;       @cache.length; end
+        def delete(key);  @cache.delete(key); end
+
+        def []=(sql, key)
+          while @max <= @cache.size
+            @cache.shift.last.close
+          end
+          @cache[sql] = key
+        end
+
+        def clear
+          @cache.values.each(&:close)
+          @cache.clear
         end
       end
 

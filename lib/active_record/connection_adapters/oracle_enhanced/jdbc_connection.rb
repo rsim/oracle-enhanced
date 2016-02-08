@@ -168,6 +168,8 @@ module ActiveRecord
           @owner = schema
         end
 
+        clear_cache!
+
         @raw_connection
       end
 
@@ -197,6 +199,10 @@ module ActiveRecord
 
       def autocommit=(value)
         @raw_connection.setAutoCommit(value)
+      end
+
+      def cache_size
+        @raw_connection.getStatementCacheSize
       end
 
       # Checks connection, returns true if active. Note that ping actively
@@ -236,8 +242,9 @@ module ActiveRecord
         begin
           yield if block_given?
         rescue NativeException => e
-          raise unless e.message =~ /^java\.sql\.SQL(Recoverable)?Exception: (Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
+          raise unless e.message =~ /^java\.sql\.SQL(Recoverable)?Exception: (Protocol violation|Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
           @active = false
+          puts "RETRY YO: #{should_retry}"
           raise unless should_retry
           should_retry = false
           reset! rescue nil
@@ -259,7 +266,7 @@ module ActiveRecord
         # it is safer for CREATE and DROP statements not to use PreparedStatement
         # as it does not allow creation of triggers with :NEW in their definition
         when /\A\s*(CREATE|DROP)/i
-          s = @raw_connection.createStatement()
+          s = @raw_connection.createStatement
           # this disables SQL92 syntax processing of {...} which can result in statement execution errors
           # if sql contains {...} in strings or comments
           s.setEscapeProcessing(false)
@@ -315,12 +322,23 @@ module ActiveRecord
         end
       end
 
-      def prepare(sql)
-        Cursor.new(self, @raw_connection.prepareStatement(sql))
+      def prepare(sql, poolable=true)
+        stmt = @raw_connection.prepareStatement(sql)
+        stmt.setPoolable(poolable)
+        Cursor.new(self, stmt)
+      end
+
+      def clear_cache!
+        @raw_connection.setImplicitCachingEnabled(false)
+        statement_limit = @config[:statement_limit] || DEFAULT_STATEMENT_LIMIT
+        if statement_limit > 0
+          @raw_connection.setImplicitCachingEnabled(true)
+          @raw_connection.setStatementCacheSize(statement_limit)
+        end
       end
 
       class Cursor
-        def initialize(connection, raw_statement)
+        def initialize(connection, raw_statement, poolable=true)
           @connection = connection
           @raw_statement = raw_statement
         end
@@ -426,6 +444,9 @@ module ActiveRecord
         def close
           @raw_statement.close
         end
+
+        # JDBC implicit statement cache manages pool so we don't have to
+        alias_method :checkin, :close
 
         private
 
