@@ -150,7 +150,7 @@ module ActiveRecord
         end
 
         # Cast a +value+ to a type that the database understands.
-        def type_cast(value, column)
+        def type_cast(value, column = nil)
           if column && column.cast_type.is_a?(Type::Serialized)
             super
           else
