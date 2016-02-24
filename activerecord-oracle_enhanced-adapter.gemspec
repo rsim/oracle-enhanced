@@ -83,7 +83,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "spec/spec_helper.rb"
   ]
   s.add_dependency(%q<rspec>, ["~> 3.3"])
-  s.add_dependency(%q<activerecord>, ["= 5.0.0.beta2"])
+  s.add_dependency(%q<activerecord>, ["= 5.0.0.beta3"])
   s.add_dependency(%q<arel>, ["~> 7.0"])
   s.add_dependency(%q<ruby-plsql>, [">= 0.5.0"])
   s.add_dependency(%q<ruby-oci8>, [">= 2.2.0"])
