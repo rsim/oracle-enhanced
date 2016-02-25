@@ -5,7 +5,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.license = 'MIT'
   s.authors = [%q{Raimonds Simanovskis}]
-  s.date = %q{2015-01-21}
+  s.date = %q{2016-01-21}
   s.description = %q{Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 }
