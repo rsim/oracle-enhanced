@@ -2,6 +2,7 @@ module ActiveRecord
   module ConnectionAdapters
     # interface independent methods
     class OracleEnhancedConnection #:nodoc:
+      DEFAULT_STATEMENT_LIMIT = 250
 
       def self.create(config)
         case ORACLE_ENHANCED_CONNECTION

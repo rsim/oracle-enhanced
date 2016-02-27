@@ -12,7 +12,7 @@ module ActiveRecord
         end
 
         def clear_cache!
-          @statements.clear
+          @connection.clear_cache!
           reload_type_map
         end
 
@@ -21,43 +21,30 @@ module ActiveRecord
             [col, type_cast(val, col)]
           }
           log(sql, name, type_casted_binds) do
-            cursor = nil
-            cached = false
-            if without_prepared_statement?(binds)
-              cursor = @connection.prepare(sql)
-            else
-              unless @statements.key? sql
-                @statements[sql] = @connection.prepare(sql)
-              end
-
-              cursor = @statements[sql]
-
-              type_casted_binds.each_with_index do |bind, i|
-                col, val = bind
-                cursor.bind_param(i + 1, val, col)
-              end
-
-              cached = true
+            cursor = @connection.prepare(sql, !without_prepared_statement?(binds))
+            type_casted_binds.each_with_index do |bind, i|
+              col, val = bind
+              cursor.bind_param(i + 1, val, col)
             end
 
-            cursor.exec
-
-            if name == 'EXPLAIN' and sql =~ /^EXPLAIN/
-              res = true
-            else
-              columns = cursor.get_col_names.map do |col_name|
-                @connection.oracle_downcase(col_name)
+            begin
+              cursor.exec
+              if name == 'EXPLAIN' and sql =~ /^EXPLAIN/
+                true
+              else
+                columns = cursor.get_col_names.map do |col_name|
+                  @connection.oracle_downcase(col_name)
+                end
+                rows = []
+                fetch_options = {:get_lob_value => (name != 'Writable Large Object')}
+                while row = cursor.fetch(fetch_options)
+                  rows << row
+                end
+                ActiveRecord::Result.new(columns, rows)
               end
-              rows = []
-              fetch_options = {:get_lob_value => (name != 'Writable Large Object')}
-              while row = cursor.fetch(fetch_options)
-                rows << row
-              end
-              res = ActiveRecord::Result.new(columns, rows)
+            ensure
+              cursor.checkin
             end
-
-            cursor.close unless cached
-            res
           end
         end
 
@@ -120,16 +107,9 @@ module ActiveRecord
           }
           log(sql, name, type_casted_binds) do
             returning_id_col = returning_id_index = nil
-            if without_prepared_statement?(binds)
-              cursor = @connection.prepare(sql)
-            else
-              unless @statements.key?(sql)
-                @statements[sql] = @connection.prepare(sql)
-              end
 
-              cursor = @statements[sql]
-
-              type_casted_binds.each_with_index do |bind, i|
+            cursor = @connection.prepare(sql, !without_prepared_statement?(binds))
+            type_casted_binds.each_with_index do |bind, i|
                 col, val = bind
                 if col.returning_id?
                   returning_id_col = [col]
@@ -139,14 +119,17 @@ module ActiveRecord
                   cursor.bind_param(i + 1, val, col)
                 end
               end
-            end
 
-            cursor.exec_update
+            begin
+              cursor.exec_update
 
-            rows = []
-            if returning_id_index
-              returning_id = cursor.get_returning_param(returning_id_index, Integer)
-              rows << [returning_id]
+              rows = []
+              if returning_id_index
+                returning_id = cursor.get_returning_param(returning_id_index, Integer)
+                rows << [returning_id]
+              end
+            ensure
+              cursor.checkin
             end
             ActiveRecord::Result.new(returning_id_col || [], rows)
           end
@@ -158,26 +141,17 @@ module ActiveRecord
             [col, type_cast(val, col)]
           }
           log(sql, name, type_casted_binds) do
-            cached = false
-            if without_prepared_statement?(binds)
-              cursor = @connection.prepare(sql)
-            else
-              cursor = if @statements.key?(sql)
-                @statements[sql]
-              else
-                @statements[sql] = @connection.prepare(sql)
-              end
-
-              type_casted_binds.each_with_index do |bind, i|
-                col, val = bind
-                cursor.bind_param(i + 1, val, col)
-              end
-              cached = true
+            cursor = @connection.prepare(sql, !without_prepared_statement?(binds))
+            type_casted_binds.each_with_index do |bind, i|
+              col, val = bind
+              cursor.bind_param(i + 1, val, col)
             end
 
-            res = cursor.exec_update
-            cursor.close unless cached
-            res
+            begin
+              cursor.exec_update
+            ensure
+              cursor.checkin
+            end
           end
         end
 

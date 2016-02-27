@@ -561,10 +561,10 @@ describe "OracleEnhancedAdapter" do
   describe "eager loading" do
     before(:all) do
       schema_define do
-        create_table :test_posts do |t|
+        create_table :test_posts, force: true do |t|
           t.string      :title
         end
-        create_table :test_comments do |t|
+        create_table :test_comments, force: true do |t|
           t.integer     :test_post_id
           t.string      :description
         end
@@ -608,11 +608,11 @@ describe "OracleEnhancedAdapter" do
       @conn = ActiveRecord::Base.connection
       schema_define do
         drop_table :test_posts rescue nil
-        create_table :test_posts
+        create_table :test_posts, force: true
       end
       class ::TestPost < ActiveRecord::Base
       end
-      @statements = @conn.instance_variable_get(:@statements)
+      @raw_connection = @conn.instance_variable_get(:@connection)
     end
 
     before(:each) do
@@ -636,7 +636,7 @@ describe "OracleEnhancedAdapter" do
         4.times do |i|
           @conn.exec_query("SELECT * FROM test_posts WHERE #{i}=#{i} AND id = #{sub}", "SQL", binds)
         end
-      }.should change(@statements, :length).by(+3)
+      }.should change(@raw_connection, :cache_size).by(+3)
     end
 
     it "should cache UPDATE statements with bind variables" do
@@ -645,14 +645,14 @@ describe "OracleEnhancedAdapter" do
         sub = @conn.substitute_at(pk, 0).to_sql
         binds = [[pk, 1]]
         @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
-      }.should change(@statements, :length).by(+1)
+      }.should change(@raw_connection, :cache_size).by(+1)
     end
 
     it "should not cache UPDATE statements without bind variables" do
       lambda {
         binds = []
         @conn.exec_update("UPDATE test_posts SET id = 1", "SQL", binds)
-      }.should_not change(@statements, :length)
+      }.should_not change(@raw_connection, :cache_size)
     end
   end
 
@@ -661,7 +661,7 @@ describe "OracleEnhancedAdapter" do
       @conn = ActiveRecord::Base.connection
       schema_define do
         drop_table :test_posts rescue nil
-        create_table :test_posts
+        create_table :test_posts, force: true
       end
       class ::TestPost < ActiveRecord::Base
       end

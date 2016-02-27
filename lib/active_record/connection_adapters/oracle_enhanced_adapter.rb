@@ -359,41 +359,10 @@ module ActiveRecord
       cattr_accessor :string_to_time_format
       self.string_to_time_format = nil
 
-      class StatementPool
-        include Enumerable
-
-        def initialize(connection, max = 300)
-          @connection = connection
-          @max        = max
-          @cache      = {}
-        end
-
-        def each(&block); @cache.each(&block); end
-        def key?(key);    @cache.key?(key); end
-        def [](key);      @cache[key]; end
-        def length;       @cache.length; end
-        def delete(key);  @cache.delete(key); end
-
-        def []=(sql, key)
-          while @max <= @cache.size
-            @cache.shift.last.close
-          end
-          @cache[sql] = key
-        end
-
-        def clear
-          @cache.values.each do |cursor|
-            cursor.close
-          end
-          @cache.clear
-        end
-      end
-
       def initialize(connection, logger, config) #:nodoc:
         super(connection, logger)
         @quoted_column_names, @quoted_table_names = {}, {}
         @config = config
-        @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
         @visitor = Arel::Visitors::Oracle.new self
 
