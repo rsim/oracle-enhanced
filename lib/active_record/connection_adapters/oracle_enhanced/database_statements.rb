@@ -248,12 +248,6 @@ module ActiveRecord
           end
         end
 
-        private
-
-        def select(sql, name = nil, binds = [])
-          exec_query(sql, name, binds)
-        end
-
       end
     end
   end
