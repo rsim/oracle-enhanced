@@ -1309,10 +1309,6 @@ module ActiveRecord
 
       private
 
-      def select(sql, name = nil, binds = [])
-        exec_query(sql, name, binds)
-      end
-
       def oracle_downcase(column_name)
         @connection.oracle_downcase(column_name)
       end
