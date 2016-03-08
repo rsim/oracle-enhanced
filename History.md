@@ -1,3 +1,11 @@
+## 1.6.7 / 2016-03-08
+
+* Changes and bug fixes since 1.6.6
+ * Support Rails 4.2.6
+ * Support t.foreign_key use the same `to_table` twice [#783]
+ * Remove "warning: (...) interpreted as grouped expression" [#765]
+ * Add documentation on setting read, write and connect timeouts [#761]
+
 ## 1.6.6 / 2016-01-21
 
 * Changes and bug fixes since 1.6.5
