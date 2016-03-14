@@ -1,0 +1,34 @@
+sudo: required
+
+env:
+  global:
+    - ORACLE_COOKIE=sqldev
+    - ORACLE_FILE=oracle11g/xe/oracle-xe-11.2.0-1.0.x86_64.rpm.zip
+    - ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe
+    - TNS_ADMIN=$ORACLE_HOME/network/admin
+    - NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+    - ORACLE_BASE=/u01/app/oracle
+    - LD_LIBRARY_PATH=$ORACLE_HOME/lib
+    - PATH=$PATH:$ORACLE_HOME/jdbc/lib
+    - DATABASE_VERSION=11.2.0.2
+    - ORACLE_SID=XE
+    - DATABASE_NAME=XE
+    - ORA_SDTZ='Europe/London' #Needed as a client parameter
+    - TZ='Europe/London'       #Needed as a DB Server parameter
+    - DATABASE_NON_DEFAULT_TABLESPACE=USERS
+
+before_install:
+  - chmod +x .travis/oracle/download.sh
+  - chmod +x .travis/oracle/install.sh
+  - chmod +x .travis/setup_accounts.sh
+
+install:
+  - .travis/oracle/download.sh
+  - .travis/oracle/install.sh
+  - .travis/setup_accounts.sh
+  - bundle install
+
+language: ruby
+rvm:
+  - 2.3.0
+  - jruby-9.0.5.0
