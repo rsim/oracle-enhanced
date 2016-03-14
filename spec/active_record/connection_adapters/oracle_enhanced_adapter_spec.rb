@@ -278,8 +278,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should execute correct SQL COUNT DISTINCT statement" do
-      skip "Relation#count does not support finder options anymore in Rails"
-      lambda { TestEmployee.count(:employee_id, :distinct => true) }.should_not raise_error
+      lambda { TestEmployee.distinct.count(:employee_id) }.should_not raise_error
     end
 
   end
