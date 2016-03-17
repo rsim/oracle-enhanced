@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/rsim/oracle-enhanced.svg?branch=master)](https://travis-ci.org/rsim/oracle-enhanced)
+
 activerecord-oracle_enhanced-adapter
 ====================================
 
