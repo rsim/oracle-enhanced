@@ -32,3 +32,5 @@ language: ruby
 rvm:
   - 2.3.0
   - jruby-9.0.5.0
+notifications:
+    email: false
