@@ -17,9 +17,8 @@ module ActiveRecord
         end
 
         def exec_query(sql, name = 'SQL', binds = [], prepare: false)
-          type_casted_binds = binds.map { |col, val|
-            [col, type_cast(val, col)]
-          }
+          type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
+
           log(sql, name, type_casted_binds) do
             cursor = nil
             cached = false
@@ -32,10 +31,7 @@ module ActiveRecord
 
               cursor = @statements[sql]
 
-              type_casted_binds.each_with_index do |bind, i|
-                col, val = bind
-                cursor.bind_param(i + 1, val, col)
-              end
+              cursor.bind_params(type_casted_binds)
 
               cached = true
             end
@@ -115,9 +111,8 @@ module ActiveRecord
 
         # New method in ActiveRecord 3.1
         def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
-          type_casted_binds = binds.map { |col, val|
-            [col, type_cast(val, col)]
-          }
+          type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
+
           log(sql, name, type_casted_binds) do
             returning_id_col = returning_id_index = nil
             if without_prepared_statement?(binds)
@@ -129,16 +124,7 @@ module ActiveRecord
 
               cursor = @statements[sql]
 
-              type_casted_binds.each_with_index do |bind, i|
-                col, val = bind
-                if col.returning_id?
-                  returning_id_col = [col]
-                  returning_id_index = i + 1
-                  cursor.bind_returning_param(returning_id_index, Integer)
-                else
-                  cursor.bind_param(i + 1, val, col)
-                end
-              end
+              cursor.bind_params(type_casted_binds)
             end
 
             cursor.exec_update
@@ -154,24 +140,21 @@ module ActiveRecord
 
         # New method in ActiveRecord 3.1
         def exec_update(sql, name, binds)
-          type_casted_binds = binds.map { |col, val|
-            [col, type_cast(val, col)]
-          }
+          type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
+
           log(sql, name, type_casted_binds) do
             cached = false
             if without_prepared_statement?(binds)
               cursor = @connection.prepare(sql)
             else
               cursor = if @statements.key?(sql)
-                @statements[sql]
-              else
-                @statements[sql] = @connection.prepare(sql)
-              end
+                         @statements[sql]
+                       else
+                         @statements[sql] = @connection.prepare(sql)
+                       end
 
-              type_casted_binds.each_with_index do |bind, i|
-                col, val = bind
-                cursor.bind_param(i + 1, val, col)
-              end
+              cursor.bind_params(type_casted_binds)
+
               cached = true
             end
 
