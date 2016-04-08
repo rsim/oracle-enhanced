@@ -1078,7 +1078,7 @@ module ActiveRecord
 
       # construct additional wrapper subquery if select.offset is used to avoid generation of invalid subquery
       # ... IN ( SELECT * FROM ( SELECT raw_sql_.*, rownum raw_rnum_ FROM ( ... ) raw_sql_ ) WHERE raw_rnum_ > ... )
-      def join_to_update(update, select) #:nodoc:
+      def join_to_update(update, select, key) #:nodoc:
         if select.offset
           subsubselect = select.clone
           subsubselect.projections = [update.key]
