@@ -85,31 +85,12 @@ module ActiveRecord
         end
 
         def quote(value, column = nil) #:nodoc:
-          if value && column
-            case column.type
-            when :text, :binary
-              %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
-            # NLS_DATE_FORMAT independent TIMESTAMP support
-            when :timestamp
-              quote_timestamp_with_to_timestamp(value)
-            # NLS_DATE_FORMAT independent DATE support
-            when :date, :time, :datetime
-              quote_date_with_to_date(value)
-            when :raw
-              quote_raw(value)
-            when :string
-              # NCHAR and NVARCHAR2 literals should be quoted with N'...'.
-              # Read directly instance variable as otherwise migrations with table column default values are failing
-              # as migrations pass ColumnDefinition object to this method.
-              # Check if instance variable is defined to avoid warnings about accessing undefined instance variable.
-              column.instance_variable_defined?('@nchar') && column.instance_variable_get('@nchar') ? 'N' << super : super
-            else
-              super
-            end
-          elsif value.acts_like?(:date)
-            quote_date_with_to_date(value)
-          elsif value.acts_like?(:time)
-            value.to_i == value.to_f ? quote_date_with_to_date(value) : quote_timestamp_with_to_timestamp(value)
+          super
+        end
+
+        def _quote(value) #:nodoc:
+          if value.is_a? ActiveModel::Type::Binary::Data
+            %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
           else
             super
           end
