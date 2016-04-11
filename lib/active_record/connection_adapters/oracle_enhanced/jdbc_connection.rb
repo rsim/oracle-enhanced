@@ -329,6 +329,18 @@ module ActiveRecord
           @raw_statement = raw_statement
         end
 
+        def bind_params( *bind_vars )
+          index = 1
+          bind_vars.flatten.each do |var|
+            if Hash === var
+              var.each { |key, val| bind_param key, val }
+            else
+              bind_param index, var
+              index += 1
+            end
+          end
+        end
+
         def bind_param(position, value, column = nil)
           col_type = column && column.type
           java_value = ruby_to_java_value(value, col_type)
