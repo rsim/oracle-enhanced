@@ -152,7 +152,7 @@ module ActiveRecord #:nodoc:
           if partial_writes?
             # Serialized attributes should always be written in case they've been
             # changed in place.
-            update_using_custom_method(changed | (attributes.keys & self.class.columns.select {|column| column.cast_type.is_a?(Type::Serialized)}))
+            update_using_custom_method(changed | (attributes.keys & self.class.columns.select {|column| column.is_a?(Type::Serialized)}))
           else
             update_using_custom_method(attribute_names)
           end
