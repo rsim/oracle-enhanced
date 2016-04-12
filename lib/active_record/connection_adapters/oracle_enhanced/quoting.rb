@@ -89,8 +89,11 @@ module ActiveRecord
         end
 
         def _quote(value) #:nodoc:
-          if value.is_a? ActiveModel::Type::Binary::Data
+          case value
+          when ActiveModel::Type::Binary::Data then
             %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
+          when Date then
+            quote_date_with_to_date(value)
           else
             super
           end
