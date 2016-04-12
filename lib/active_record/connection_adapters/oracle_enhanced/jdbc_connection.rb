@@ -342,6 +342,16 @@ module ActiveRecord
         end
 
         def bind_param(position, value, column = nil)
+          if column
+            ActiveSupport::Deprecation.warn(<<-MSG.squish)
+              *******************************************************
+              Passing a column to `bind_param` will be deprecated.
+              `type_casted_binds` should be already type casted
+              so that `bind_param` should not need to know column.
+              *******************************************************
+            MSG
+          end
+
           col_type = column && column.type
           java_value = ruby_to_java_value(value, col_type)
           case value
