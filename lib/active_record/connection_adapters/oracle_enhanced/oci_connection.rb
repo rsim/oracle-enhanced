@@ -130,6 +130,16 @@ module ActiveRecord
         end
 
         def bind_param(position, value, column = nil)
+          if column
+            ActiveSupport::Deprecation.warn(<<-MSG.squish)
+              *******************************************************
+              Passing a column to `bind_param` will be deprecated.
+              `type_casted_binds` should be already type casted
+              so that `bind_param` should not need to know column.
+              *******************************************************
+            MSG
+          end
+
           if column && column.object_type?
             @raw_cursor.bind_param(position, value, :named_type, column.sql_type)
           elsif value.nil?
