@@ -13,5 +13,6 @@ group :development do
 
   platforms :ruby do
     gem 'ruby-oci8',    github: 'kubo/ruby-oci8'
+    gem 'byebug'
   end
 end
