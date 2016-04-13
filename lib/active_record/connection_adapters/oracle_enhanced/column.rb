@@ -64,11 +64,6 @@ module ActiveRecord
         super
       end
 
-      # convert RAW column values back to byte strings.
-      def self.string_to_raw(string) #:nodoc:
-        string
-      end
-
       # Get column comment from schema definition.
       # Will work only if using default ActiveRecord connection.
       def comment
