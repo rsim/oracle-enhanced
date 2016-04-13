@@ -5,7 +5,6 @@ module ActiveRecord
       attr_reader :table_name, :nchar, :virtual_column_data_default, :returning_id #:nodoc:
 
       def initialize(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual=false, returning_id=false) #:nodoc:
-        @table_name = table_name
         @virtual = virtual
         @virtual_column_data_default = default.inspect if virtual
         @returning_id = returning_id
@@ -15,6 +14,7 @@ module ActiveRecord
           default_value = self.class.extract_value_from_default(default)
         end
         super(name, default_value, sql_type_metadata, null)
+        @table_name = table_name
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
         if sql_type_metadata

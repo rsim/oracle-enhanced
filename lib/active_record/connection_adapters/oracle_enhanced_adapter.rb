@@ -1083,6 +1083,10 @@ module ActiveRecord
         super
       end
 
+      def valid_type?(type)
+        !native_database_types[type].nil?
+      end
+
       protected
 
       def initialize_type_map(m)

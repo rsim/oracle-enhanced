@@ -745,4 +745,28 @@ describe "OracleEnhancedAdapter" do
       expect(@employee.order(:sort_order).offset(4).first.first_name).to eq("Natasha")
     end
   end
+
+  describe "valid_type?" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+      @conn.execute <<-SQL
+        CREATE TABLE test_employees (
+          first_name    VARCHAR2(20)
+       )
+      SQL
+    end
+
+    after(:all) do
+      @conn.execute "DROP TABLE test_employees"
+    end
+
+    it "returns true when passed a valid type" do
+      column = @conn.columns('test_employees').find { |col| col.name == 'first_name' }
+      expect(@conn.valid_type?(column.type)).to be true
+    end
+
+    it "returns false when passed an invalid type" do
+      expect(@conn.valid_type?(:foobar)).to be false
+    end
+  end
 end
