@@ -24,12 +24,6 @@ module ActiveRecord
         # TODO: Need to investigate when `sql_type` becomes nil
       end
 
-      def type_cast(value) #:nodoc:
-        return OracleEnhancedColumn::string_to_raw(value) if type == :raw
-        return guess_date_or_time(value) if type == :datetime && OracleEnhancedAdapter.emulate_dates
-        super
-      end
-
       def virtual?
         @virtual
       end
