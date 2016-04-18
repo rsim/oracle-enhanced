@@ -489,7 +489,7 @@ module ActiveRecord
         # changed to native TIMESTAMP type
         # :timestamp   => { :name => "DATE" },
         :timestamp   => { :name => "TIMESTAMP" },
-        :time        => { :name => "DATE" },
+        :time        => { :name => "TIMESTAMP" },
         :date        => { :name => "DATE" },
         :binary      => { :name => "BLOB" },
         :boolean     => { :name => "NUMBER", :limit => 1 },
