@@ -455,6 +455,10 @@ module ActiveRecord
         @connection.database_version.first >= 9
       end
 
+      def supports_comments?
+        true
+      end
+
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         :nls_calendar            => nil,
