@@ -19,7 +19,7 @@ module ActiveRecord
         def exec_query(sql, name = 'SQL', binds = [], prepare: false)
           type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
 
-          log(sql, name, type_casted_binds) do
+          log(sql, name, binds) do
             cursor = nil
             cached = false
             if without_prepared_statement?(binds)
@@ -107,7 +107,7 @@ module ActiveRecord
         def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
           type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
 
-          log(sql, name, type_casted_binds) do
+          log(sql, name, binds) do
             returning_id_col = returning_id_index = nil
             if without_prepared_statement?(binds)
               cursor = @connection.prepare(sql)
@@ -136,7 +136,7 @@ module ActiveRecord
         def exec_update(sql, name, binds)
           type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
 
-          log(sql, name, type_casted_binds) do
+          log(sql, name, binds) do
             cached = false
             if without_prepared_statement?(binds)
               cursor = @connection.prepare(sql)
