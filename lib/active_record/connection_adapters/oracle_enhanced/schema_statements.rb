@@ -39,12 +39,10 @@ module ActiveRecord
         #     t.string      :last_name, :comment => “Surname”
         #   end
 
-        def create_table(table_name, options = {})
+        def create_table(table_name, comment: nil, **options)
           create_sequence = options[:id] != false
           column_comments = {}
-          temporary = options.delete(:temporary)
-          additional_options = options
-          td = create_table_definition table_name, temporary, additional_options
+          td = create_table_definition table_name, options[:temporary], options[:options], options[:as], options[:tablespace], options[:organization], comment: comment
           td.primary_key(options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)) unless options[:id] == false
 
           # store that primary key was defined in create_table block
@@ -93,8 +91,8 @@ module ActiveRecord
           end
         end
 
-        def create_table_definition(name, temporary, options)
-          ActiveRecord::ConnectionAdapters::OracleEnhanced::TableDefinition.new name, temporary, options
+        def create_table_definition(*args)
+          ActiveRecord::ConnectionAdapters::OracleEnhanced::TableDefinition.new(*args)
         end
 
         def rename_table(table_name, new_name) #:nodoc:
@@ -173,7 +171,7 @@ module ActiveRecord
           column_names = Array(column_name)
           index_name   = index_name(table_name, column: column_names)
 
-          options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options, :using)
+          options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options, :using, :comment)
 
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name].to_s if options.key?(:name)
