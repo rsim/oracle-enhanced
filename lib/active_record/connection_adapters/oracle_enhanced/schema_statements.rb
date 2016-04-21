@@ -41,7 +41,6 @@ module ActiveRecord
 
         def create_table(table_name, comment: nil, **options)
           create_sequence = options[:id] != false
-          column_comments = {}
           td = create_table_definition table_name, options[:temporary], options[:options], options[:as], options[:tablespace], options[:organization], comment: comment
           td.primary_key(options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)) unless options[:id] == false
 
@@ -56,21 +55,8 @@ module ActiveRecord
             end
           end
 
-          # store column comments
-          class << td
-            attr_accessor :column_comments
-            def column(name, type, options = {})
-              if options[:comment]
-                self.column_comments ||= {}
-                self.column_comments[name] = options[:comment]
-              end
-              super(name, type, options)
-            end
-          end
-
           yield td if block_given?
           create_sequence = create_sequence || td.create_sequence
-          column_comments = td.column_comments if td.column_comments
 
           if options[:force] && table_exists?(table_name)
             drop_table(table_name, options)
@@ -80,9 +66,11 @@ module ActiveRecord
 
           create_sequence_and_trigger(table_name, options) if create_sequence
 
-          add_table_comment table_name, options[:comment]
-          column_comments.each do |column_name, comment|
-            add_comment table_name, column_name, comment
+          if supports_comments? && !supports_comments_in_create?
+            change_table_comment(table_name, comment) if comment
+            td.columns.each do |column|
+              change_column_comment(table_name, column.name, column.comment) if column.comment
+            end
           end
           td.indexes.each_pair { |c,o| add_index table_name, c, o }
 
@@ -167,11 +155,11 @@ module ActiveRecord
           self.all_schema_indexes = nil
         end
 
-        def add_index_options(table_name, column_name, options = {}) #:nodoc:
+        def add_index_options(table_name, column_name, comment: nil, **options) #:nodoc:
           column_names = Array(column_name)
           index_name   = index_name(table_name, column: column_names)
 
-          options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options, :using, :comment)
+          options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options, :using)
 
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name].to_s if options.key?(:name)
@@ -286,6 +274,7 @@ module ActiveRecord
           execute(add_column_sql)
 
           create_sequence_and_trigger(table_name, options) if type && type.to_sym == :primary_key
+          change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
         ensure
           clear_table_columns_cache(table_name)
         end
@@ -348,14 +337,14 @@ module ActiveRecord
           self.all_schema_indexes = nil
         end
 
-        def add_comment(table_name, column_name, comment) #:nodoc:
-          return if comment.blank?
-          execute "COMMENT ON COLUMN #{quote_table_name(table_name)}.#{column_name} IS '#{comment}'"
+        def change_table_comment(table_name, comment)
+          clear_cache!
+          execute "COMMENT ON TABLE #{quote_table_name(table_name)} IS #{quote(comment)}"
         end
 
-        def add_table_comment(table_name, comment) #:nodoc:
-          return if comment.blank?
-          execute "COMMENT ON TABLE #{quote_table_name(table_name)} IS '#{comment}'"
+        def change_column_comment(table_name, column_name, comment) #:nodoc:
+          clear_cache!
+          execute "COMMENT ON COLUMN #{quote_table_name(table_name)}.#{quote_column_name(column_name)} IS '#{comment}'"
         end
 
         def table_comment(table_name) #:nodoc:
@@ -368,6 +357,7 @@ module ActiveRecord
         end
 
         def column_comment(table_name, column_name) #:nodoc:
+          # TODO: it  does not exist in Abstract adapter
           (owner, table_name, db_link) = @connection.describe(table_name)
           select_value <<-SQL
             SELECT comments FROM all_col_comments#{db_link}

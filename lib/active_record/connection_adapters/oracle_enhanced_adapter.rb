@@ -96,6 +96,7 @@ module ActiveRecord
 
     # Get table comment from schema definition.
     def self.table_comment
+      #TODO: may be deprecated
       connection.table_comment(self.table_name)
     end
 
@@ -902,19 +903,25 @@ module ActiveRecord
         @@do_not_prefetch_primary_key[table_name] = nil
 
         table_cols = <<-SQL.strip.gsub(/\s+/, ' ')
-          SELECT column_name AS name, data_type AS sql_type, data_default, nullable, virtual_column, hidden_column, data_type_owner AS sql_type_owner,
-                 DECODE(data_type, 'NUMBER', data_precision,
+          SELECT cols.column_name AS name, cols.data_type AS sql_type, 
+                 cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column, 
+                 cols.data_type_owner AS sql_type_owner,
+                 DECODE(cols.data_type, 'NUMBER', data_precision,
                                    'FLOAT', data_precision,
                                    'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
                                    'RAW', DECODE(char_used, 'C', char_length, data_length),
                                    'CHAR', DECODE(char_used, 'C', char_length, data_length),
                                     NULL) AS limit,
-                 DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale
-            FROM all_tab_cols#{db_link}
-           WHERE owner      = '#{owner}'
-             AND table_name = '#{desc_table_name}'
-             AND hidden_column = 'NO'
-           ORDER BY column_id
+                 DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
+                 comments.comments as column_comment
+            FROM all_tab_cols#{db_link} cols, all_col_comments#{db_link} comments
+           WHERE cols.owner      = '#{owner}'
+             AND cols.table_name = '#{desc_table_name}'
+             AND cols.hidden_column = 'NO'
+             AND cols.owner = comments.owner
+             AND cols.table_name = comments.table_name
+             AND cols.column_name = comments.column_name
+           ORDER BY cols.column_id
         SQL
 
         # added deletion of ignored columns
@@ -987,12 +994,14 @@ module ActiveRecord
                            row['nullable'] == 'Y',
                            table_name,
                            is_virtual,
-                           false )
+                           false,
+                           row['column_comment']
+                    )
         end
       end
 
-      def new_column(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual=false, returning_id=false)
-        OracleEnhancedColumn.new(name, default, sql_type_metadata, null, table_name, virtual, returning_id)
+      def new_column(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual = false, returning_id = false,comment = nil) # :nodoc:
+        OracleEnhancedColumn.new(name, default, sql_type_metadata, null, table_name, virtual, returning_id, comment)
       end
 
       # used just in tests to clear column cache
