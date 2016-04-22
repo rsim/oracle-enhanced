@@ -26,18 +26,13 @@ module ActiveRecord
       end
 
       class IndexDefinition < ActiveRecord::ConnectionAdapters::IndexDefinition
-        attr_accessor :table, :name, :unique, :type, :parameters, :statement_parameters, :tablespace, :columns
+        attr_accessor :parameters, :statement_parameters, :tablespace
  
-        def initialize(table, name, unique, type, parameters, statement_parameters, tablespace, columns)
-          @table = table
-          @name = name
-          @unique = unique
-          @type = type
+        def initialize(table, name, unique, columns, lengths, orders, where, type, using, parameters, statement_parameters, tablespace)
           @parameters = parameters
           @statement_parameters = statement_parameters
           @tablespace = tablespace
-          @columns = columns
-          super(table, name, unique, columns, nil, nil, nil, nil)
+          super(table, name, unique, columns, lengths, orders, where, type, using)
         end
       end
 
