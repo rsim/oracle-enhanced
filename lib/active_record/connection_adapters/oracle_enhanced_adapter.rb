@@ -782,10 +782,19 @@ module ActiveRecord
                   statement_parameters = $1
                 end
               end
-              all_schema_indexes << OracleEnhanced::IndexDefinition.new(row['table_name'], row['index_name'],
-                row['uniqueness'] == "UNIQUE", row['index_type'] == 'DOMAIN' ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
-                row['parameters'], statement_parameters,
-                row['tablespace_name'] == default_tablespace_name ? nil : row['tablespace_name'], [])
+              all_schema_indexes << OracleEnhanced::IndexDefinition.new(
+                row['table_name'],
+                row['index_name'],
+                row['uniqueness'] == "UNIQUE",
+                [],
+                nil,
+                nil,
+                nil,
+                row['index_type'] == 'DOMAIN' ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
+                nil,
+                row['parameters'],
+                statement_parameters,
+                row['tablespace_name'] == default_tablespace_name ? nil : row['tablespace_name'])
               current_index = row['index_name']
             end
 
