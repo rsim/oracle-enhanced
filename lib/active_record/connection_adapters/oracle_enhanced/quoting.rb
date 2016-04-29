@@ -135,26 +135,34 @@ module ActiveRecord
 
         # Cast a +value+ to a type that the database understands.
         def type_cast(value, column = nil)
-          if column && column.cast_type.is_a?(Type::Serialized)
-            super
-          else
-            case value
-            when true, false
-              if emulate_booleans_from_strings || column && column.type == :string
-                self.class.boolean_to_string(value)
-              else
-                value ? 1 : 0
-              end
-            when Date, Time
-              if value.acts_like?(:time)
-                zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
-                value.respond_to?(zone_conversion_method) ? value.send(zone_conversion_method) : value
-              else
-                value
-              end
+          super
+        end
+
+        def _type_cast(value)
+          case value
+          when true, false
+            #if emulate_booleans_from_strings || column && column.type == :string
+            if emulate_booleans_from_strings
+              self.class.boolean_to_string(value)
             else
-              super
+              value ? 1 : 0
             end
+          when Date, Time
+            if value.acts_like?(:time)
+              zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
+              value.respond_to?(zone_conversion_method) ? value.send(zone_conversion_method) : value
+            else
+              value
+            end
+          when ActiveModel::Type::Binary::Data
+            #TODO: Needs support for CLOB and jruby
+            lob_value = value == '' ? ' ' : value
+            bind_type = OCI8::BLOB
+            ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
+            ora_value.size = 0 if value == ''
+						ora_value
+          else
+            super
           end
         end
       end

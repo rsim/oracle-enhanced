@@ -146,13 +146,6 @@ module ActiveRecord
             @raw_cursor.bind_param(position, nil, String)
           else
             case col_type = column && column.type
-            when :text, :binary
-              # ruby-oci8 cannot create CLOB/BLOB from ''
-              lob_value = value == '' ? ' ' : value
-              bind_type = col_type == :text ? OCI8::CLOB : OCI8::BLOB
-              ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
-              ora_value.size = 0 if value == ''
-              @raw_cursor.bind_param(position, ora_value)
             when :raw
               @raw_cursor.bind_param(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))
             when :decimal
