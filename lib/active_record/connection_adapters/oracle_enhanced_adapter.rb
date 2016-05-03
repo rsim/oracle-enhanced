@@ -1141,9 +1141,11 @@ module ActiveRecord
       def translate_exception(exception, message) #:nodoc:
         case @connection.error_code(exception)
         when 1
-          RecordNotUnique.new(message, exception)
+          RecordNotUnique.new(message)
         when 2291
-          InvalidForeignKey.new(message, exception)
+          InvalidForeignKey.new(message)
+        when 12899
+          ValueTooLong.new(message)
         else
           super
         end
