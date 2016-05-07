@@ -1109,6 +1109,24 @@ module ActiveRecord
         !native_database_types[type].nil?
       end
 
+      def combine_bind_parameters(
+        from_clause: [],
+        join_clause: [],
+        where_clause: [],
+        having_clause: [],
+        limit: nil,
+        offset: nil
+      ) # :nodoc:
+        result = from_clause + join_clause + where_clause + having_clause
+        if offset
+          result << offset
+        end
+        if limit
+          result << limit
+        end
+        result
+      end
+
       protected
 
       def initialize_type_map(m)
