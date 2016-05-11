@@ -472,9 +472,6 @@ module ActiveRecord
             end
             yield
           ensure
-            old_constraints.each do |constraint|
-              execute "ALTER TABLE #{constraint["table_name"]} ENABLE CONSTRAINT #{constraint["constraint_name"]}"
-            end
           end
         end
 
