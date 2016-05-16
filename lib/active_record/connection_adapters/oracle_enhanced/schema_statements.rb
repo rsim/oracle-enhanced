@@ -42,7 +42,18 @@ module ActiveRecord
         def create_table(table_name, comment: nil, **options)
           create_sequence = options[:id] != false
           td = create_table_definition table_name, options[:temporary], options[:options], options[:as], options[:tablespace], options[:organization], comment: comment
-          td.primary_key(options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)) unless options[:id] == false
+
+          if options[:id] != false && !options[:as]
+            pk = options.fetch(:primary_key) do
+              Base.get_primary_key table_name.to_s.singularize
+            end
+
+            if pk.is_a?(Array)
+              td.primary_keys pk
+            else
+              td.primary_key pk, options.fetch(:id, :primary_key), options
+            end
+          end
 
           # store that primary key was defined in create_table block
           unless create_sequence

@@ -19,10 +19,10 @@ module ActiveRecord
         end
 
         def visit_TableDefinition(o)
-          create_sql = "CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE "
-          create_sql << "#{quote_table_name(o.name)} ("
-          create_sql << o.columns.map { |c| accept c }.join(', ')
-          create_sql << ")"
+          create_sql = "CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE #{quote_table_name(o.name)} "
+          statements = o.columns.map { |c| accept c }
+          statements << accept(o.primary_keys) if o.primary_keys
+          create_sql << "(#{statements.join(', ')})" if statements.present?
 
           unless o.temporary
             @lob_tablespaces.each do |lob_column, tablespace|
@@ -34,7 +34,7 @@ module ActiveRecord
             end
           end
           add_table_options!(create_sql, table_options(o))
-          create_sql << "#{o.options}"
+          create_sql << " AS #{@conn.to_sql(o.as)}" if o.as
           create_sql
         end
 
@@ -63,6 +63,9 @@ module ActiveRecord
           # add AS expression for virtual columns
           if options[:as].present?
             sql << " AS (#{options[:as]})"
+          end
+          if options[:primary_key] == true
+            sql << " PRIMARY KEY"
           end
         end
 
