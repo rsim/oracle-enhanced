@@ -14,23 +14,12 @@ module ActiveRecord #:nodoc:
 
         private
 
-        def ignore_table?(table)
-          ['schema_migrations', ignore_tables].flatten.any? do |ignored|
-            case ignored
-            when String; remove_prefix_and_suffix(table) == ignored
-            when Regexp; remove_prefix_and_suffix(table) =~ ignored
-            else
-              raise StandardError, 'ActiveRecord::SchemaDumper.ignore_tables accepts an array of String and / or Regexp values.'
-            end
-          end
-        end
-
         def tables(stream)
           # do not include materialized views in schema dump - they should be created separately after schema creation
           sorted_tables = (@connection.tables - @connection.materialized_views).sort
           sorted_tables.each do |tbl|
             # add table prefix or suffix for schema_migrations
-            next if ignore_table? tbl
+            next if ignored? tbl
             # change table name inspect method
             tbl.extend TableInspect
             oracle_enhanced_table(tbl, stream)
@@ -40,7 +29,7 @@ module ActiveRecord #:nodoc:
           # following table definitions
           # add foreign keys if table has them
           sorted_tables.each do |tbl|
-            next if ignore_table? tbl
+            next if ignored? tbl
             foreign_keys(tbl, stream)
           end
 
@@ -61,7 +50,7 @@ module ActiveRecord #:nodoc:
           if @connection.respond_to?(:synonyms)
             syns = @connection.synonyms
             syns.each do |syn|
-              next if ignore_table? syn.name
+              next if ignored? syn.name
               table_name = syn.table_name
               table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
               table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
