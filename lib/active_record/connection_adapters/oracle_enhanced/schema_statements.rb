@@ -193,7 +193,7 @@ module ActiveRecord
         # Remove the given index from the table.
         # Gives warning if index does not exist
         def remove_index(table_name, options = {}) #:nodoc:
-          index_name = index_name(table_name, options)
+          index_name = index_name_for_remove(table_name, options)
           unless index_name_exists?(table_name, index_name, true)
             # sometimes options can be String or Array with column names
             options = {} unless options.is_a?(Hash)
@@ -205,11 +205,6 @@ module ActiveRecord
             end
             raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' does not exist"
           end
-          remove_index!(table_name, index_name)
-        end
-
-        # clear cached indexes when removing index
-        def remove_index!(table_name, index_name) #:nodoc:
           #TODO: It should execute only when index_type == "UNIQUE"
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(index_name)}" rescue nil
           execute "DROP INDEX #{quote_column_name(index_name)}"
