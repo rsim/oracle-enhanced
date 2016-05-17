@@ -1062,6 +1062,12 @@ module ActiveRecord
              AND cc.constraint_name = c.constraint_name
         SQL
 
+        warn <<-WARNING.strip_heredoc if pks.count > 1
+          WARNING: Rails does not support composite primary key.
+
+          #{table_name} has composite primary key. Composite primary key is ignored.
+        WARNING
+
         # only support single column keys
         pks.size == 1 ? [oracle_downcase(pks.first),
                          oracle_downcase(seqs.first)] : nil
