@@ -294,7 +294,8 @@ module ActiveRecord
           fallback
         end
 
-        def change_column_default(table_name, column_name, default) #:nodoc:
+        def change_column_default(table_name, column_name, default_or_changes) #:nodoc:
+          default = extract_new_default_value(default_or_changes)
           execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
         ensure
           clear_table_columns_cache(table_name)
