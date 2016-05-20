@@ -16,7 +16,7 @@ module ActiveRecord #:nodoc:
 
         def tables(stream)
           # do not include materialized views in schema dump - they should be created separately after schema creation
-          sorted_tables = (@connection.tables - @connection.materialized_views).sort
+          sorted_tables = (@connection.data_sources - @connection.materialized_views).sort
           sorted_tables.each do |tbl|
             # add table prefix or suffix for schema_migrations
             next if ignored? tbl

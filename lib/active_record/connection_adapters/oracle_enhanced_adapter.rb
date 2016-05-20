@@ -640,7 +640,7 @@ module ActiveRecord
       end
 
       def reset_pk_sequence!(table_name, primary_key = nil, sequence_name = nil) #:nodoc:
-        return nil unless table_exists?(table_name)
+        return nil unless data_source_exists?(table_name)
         unless primary_key and sequence_name
         # *Note*: Only primary key is implemented - sequence will be nil.
           primary_key, sequence_name = pk_and_sequence_for(table_name)

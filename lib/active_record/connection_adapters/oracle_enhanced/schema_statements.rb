@@ -69,7 +69,7 @@ module ActiveRecord
           yield td if block_given?
           create_sequence = create_sequence || td.create_sequence
 
-          if options[:force] && table_exists?(table_name)
+          if options[:force] && data_source_exists?(table_name)
             drop_table(table_name, options)
           end
 
@@ -124,7 +124,7 @@ module ActiveRecord
         def initialize_schema_migrations_table
           sm_table = ActiveRecord::Migrator.schema_migrations_table_name
 
-          unless table_exists?(sm_table)
+          unless data_source_exists?(sm_table)
             index_name = "#{Base.table_name_prefix}unique_schema_migrations#{Base.table_name_suffix}"
             if index_name.length > index_name_length
               truncate_to    = index_name_length - index_name.to_s.length - 1
@@ -140,7 +140,7 @@ module ActiveRecord
             # Backwards-compatibility: if we find schema_info, assume we've
             # migrated up to that point:
             si_table = Base.table_name_prefix + 'schema_info' + Base.table_name_suffix
-            if table_exists?(si_table)
+            if data_source_exists?(si_table)
               ActiveSupport::Deprecation.warn "Usage of the schema table `#{si_table}` is deprecated. Please switch to using `schema_migrations` table"
 
               old_version = select_value("SELECT version FROM #{quote_table_name(si_table)}").to_i
