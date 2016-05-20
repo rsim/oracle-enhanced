@@ -122,32 +122,7 @@ module ActiveRecord
         end
 
         def initialize_schema_migrations_table
-          sm_table = ActiveRecord::Migrator.schema_migrations_table_name
-
-          unless data_source_exists?(sm_table)
-            index_name = "#{Base.table_name_prefix}unique_schema_migrations#{Base.table_name_suffix}"
-            if index_name.length > index_name_length
-              truncate_to    = index_name_length - index_name.to_s.length - 1
-              truncated_name = "unique_schema_migrations"[0..truncate_to]
-              index_name     = "#{Base.table_name_prefix}#{truncated_name}#{Base.table_name_suffix}"
-            end
-
-            create_table(sm_table, :id => false) do |schema_migrations_table|
-              schema_migrations_table.column :version, :string, :null => false
-            end
-            add_index sm_table, :version, :unique => true, :name => index_name
-
-            # Backwards-compatibility: if we find schema_info, assume we've
-            # migrated up to that point:
-            si_table = Base.table_name_prefix + 'schema_info' + Base.table_name_suffix
-            if data_source_exists?(si_table)
-              ActiveSupport::Deprecation.warn "Usage of the schema table `#{si_table}` is deprecated. Please switch to using `schema_migrations` table"
-
-              old_version = select_value("SELECT version FROM #{quote_table_name(si_table)}").to_i
-              assume_migrated_upto_version(old_version)
-              drop_table(si_table)
-            end
-          end
+          super
         end
 
         def update_table_definition(table_name, base) #:nodoc:
