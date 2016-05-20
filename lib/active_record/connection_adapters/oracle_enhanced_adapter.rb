@@ -714,13 +714,41 @@ module ActiveRecord
       end
 
       def tables(name = nil) #:nodoc:
+        ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          #tables currently returns both tables and views.
+          This behavior is deprecated and will be changed with Rails 5.1 to only return tables.
+          Use #data_sources instead.
+        MSG
+
+        if name
+          ActiveSupport::Deprecation.warn(<<-MSG.squish)
+            Passing arguments to #tables is deprecated without replacement.
+          MSG
+        end
+
+        data_sources
+      end
+
+
+      def data_sources
         select_values(
         "SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name) FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'",
-        name)
+        'SCHEMA')
+      end
+
+      def table_exists?(table_name)
+        ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          #table_exists? currently checks both tables and views.
+          This behavior is deprecated and will be changed with Rails 5.1 to only check tables.
+          Use #data_source_exists? instead.
+        MSG
+
+        data_source_exists?(table_name)
       end
 
       # Will return true if database object exists (to be able to use also views and synonyms for ActiveRecord models)
-      def table_exists?(table_name)
+      # Needs to consider how to support synonyms in Rails 5.1
+      def data_source_exists?(table_name)
         (_owner, table_name, _db_link) = @connection.describe(table_name)
         true
       rescue
