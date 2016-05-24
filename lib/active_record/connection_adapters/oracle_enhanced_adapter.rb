@@ -1169,6 +1169,7 @@ module ActiveRecord
         register_class_with_limit m, %r(date)i,           Type::DateTime
         register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
 
+
         m.register_type(%r(NUMBER)i) do |sql_type|
           scale = extract_scale(sql_type)
           precision = extract_precision(sql_type)
@@ -1179,6 +1180,8 @@ module ActiveRecord
             Type::Decimal.new(precision: precision, scale: scale)
           end
         end
+
+        m.register_type %r(^NUMBER\(1\))i, Type::Boolean.new if OracleEnhancedAdapter.emulate_booleans
       end
 
       def extract_limit(sql_type) #:nodoc:
