@@ -1166,7 +1166,6 @@ module ActiveRecord
       def initialize_type_map(m)
         super
         # oracle
-        register_class_with_limit m, %r(date)i,           Type::DateTime
         register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
 
 
