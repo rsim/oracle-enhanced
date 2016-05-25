@@ -1108,6 +1108,22 @@ module ActiveRecord
         !pk_and_sequence_for(table_name, owner, desc_table_name, db_link).nil?
       end
 
+      def primary_keys(table_name) # :nodoc:
+        (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
+
+        pks = select_values(<<-SQL.strip_heredoc, 'Primary Keys')
+          SELECT cc.column_name
+            FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
+           WHERE c.owner = '#{owner}'
+             AND c.table_name = '#{desc_table_name}'
+             AND c.constraint_type = 'P'
+             AND cc.owner = c.owner
+             AND cc.constraint_name = c.constraint_name
+             order by cc.position
+        SQL
+        pks.map {|pk| oracle_downcase(pk)}
+      end
+
       def columns_for_distinct(columns, orders) #:nodoc:
         # construct a valid columns name for DISTINCT clause,
         # ie. one that includes the ORDER BY columns, using FIRST_VALUE such that
