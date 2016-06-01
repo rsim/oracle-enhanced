@@ -629,8 +629,8 @@ describe "OracleEnhancedAdapter" do
 
     it "should clear older cursors when statement limit is reached" do
       pk = TestPost.columns_hash[TestPost.primary_key]
-      sub = @conn.substitute_at(pk, 0).to_sql
-      binds = [[pk, 1]]
+      sub = Arel::Nodes::BindParam.new.to_sql
+      binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
 
       expect {
         4.times do |i|
@@ -642,8 +642,8 @@ describe "OracleEnhancedAdapter" do
     it "should cache UPDATE statements with bind variables" do
       expect {
         pk = TestPost.columns_hash[TestPost.primary_key]
-        sub = @conn.substitute_at(pk, 0).to_sql
-        binds = [[pk, 1]]
+        sub = Arel::Nodes::BindParam.new.to_sql
+        binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
         @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
       }.to change(@statements, :length).by(+1)
     end
@@ -683,8 +683,9 @@ describe "OracleEnhancedAdapter" do
 
     it "should explain query with binds" do
       pk = TestPost.columns_hash[TestPost.primary_key]
-      sub = @conn.substitute_at(pk, 0)
-      explain = TestPost.where(TestPost.arel_table[pk.name].eq(sub)).bind([pk, 1]).explain
+      sub = Arel::Nodes::BindParam.new.to_sql
+      binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
+      explain = @conn.explain(TestPost.where(TestPost.arel_table[pk.name].eq(sub)), binds)
       expect(explain).to include("Cost")
       expect(explain).to include("INDEX UNIQUE SCAN")
     end
