@@ -40,8 +40,6 @@ require 'active_record/connection_adapters/oracle_enhanced/quoting'
 
 require 'digest/sha1'
 
-require 'arel/visitors/bind_visitor'
-
 ActiveRecord::Base.class_eval do
   class_attribute :custom_create_method, :custom_update_method, :custom_delete_method
 end
