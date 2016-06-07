@@ -841,6 +841,10 @@ module ActiveRecord
 
       # set ignored columns for table
       def ignore_table_columns(table_name, *args) #:nodoc:
+        ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          `ignore_table_columns` will be deprecated in next version of Oracle enhanced adapter
+          since Rails 5 introduces `ignored_columns`. Use `ignored_columns` instead of `ignore_table_columns`.
+        MSG
         @@ignore_table_columns ||= {}
         @@ignore_table_columns[table_name] ||= []
         @@ignore_table_columns[table_name] += args.map{|a| a.to_s.downcase}
