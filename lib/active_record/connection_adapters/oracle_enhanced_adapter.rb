@@ -390,30 +390,25 @@ module ActiveRecord
         end
       end
 
-      def initialize(connection, logger, config) #:nodoc:
-        super(connection, logger)
+      def initialize(connection, logger = nil, config = {}) # :nodoc:
+        super(connection, logger, config)
         @quoted_column_names, @quoted_table_names = {}, {}
-        @config = config
         @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
-        if supports_fetch_first_n_rows_and_offset?
-          @visitor = Arel::Visitors::Oracle12.new self
-        else
-          @visitor = Arel::Visitors::Oracle.new self
-        end
-
-        if self.class.type_cast_config_to_boolean(config.fetch(:prepared_statements) { true })
-          @prepared_statements = true
-          @visitor.extend(DetermineIfPreparableVisitor)
-        else
-          @prepared_statements = false
-        end
       end
 
       ADAPTER_NAME = 'OracleEnhanced'.freeze
 
       def adapter_name #:nodoc:
         ADAPTER_NAME
+      end
+
+      def arel_visitor # :nodoc:
+        if supports_fetch_first_n_rows_and_offset?
+          @visitor = Arel::Visitors::Oracle12.new(self)
+        else
+          @visitor = Arel::Visitors::Oracle.new(self)
+        end
       end
 
       def supports_migrations? #:nodoc:
