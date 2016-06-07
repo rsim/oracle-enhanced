@@ -405,9 +405,9 @@ module ActiveRecord
 
       def arel_visitor # :nodoc:
         if supports_fetch_first_n_rows_and_offset?
-          @visitor = Arel::Visitors::Oracle12.new(self)
+          Arel::Visitors::Oracle12.new(self)
         else
-          @visitor = Arel::Visitors::Oracle.new(self)
+          Arel::Visitors::Oracle.new(self)
         end
       end
 
