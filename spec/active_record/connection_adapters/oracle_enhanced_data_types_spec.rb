@@ -66,21 +66,21 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
-    expect(column.type_cast_from_database(Time.now).class).to eq(Time)
+    expect(@conn.lookup_cast_type_from_column(column).cast(Time.now).class).to eq(Time)
   end
 
   it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
-    expect(column.type_cast_from_database(Time.now).class).to eq(Date)
+    expect(@conn.lookup_cast_type_from_column(column).cast(Time.now).class).to eq(Date)
   end
 
   it "should typecast DateTime value to Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
-    expect(column.type_cast_from_database(DateTime.new(1900,1,1)).class).to eq(Date)
+    expect(@conn.lookup_cast_type_from_column(column).cast(DateTime.new(1900,1,1)).class).to eq(Date)
   end
 
   describe "/ DATE values from ActiveRecord model" do
@@ -250,14 +250,14 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
     columns = @conn.columns('test2_employees')
     column = columns.detect{|c| c.name == "job_id"}
-    expect(column.type_cast_from_database(1.0).class).to eq(BigDecimal)
+    expect(@conn.lookup_cast_type_from_column(column).cast(1.0).class).to eq(BigDecimal)
   end
 
   it "should return Fixnum value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
     columns = @conn.columns('test2_employees')
     column = columns.detect{|c| c.name == "job_id"}
-    expect(column.type_cast_from_database(1.0).class).to eq(Fixnum)
+    expect(@conn.lookup_cast_type_from_column(column).cast(1.0).class).to eq(Fixnum)
   end
 
   describe "/ NUMBER values from ActiveRecord model" do
@@ -444,7 +444,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     columns = @conn.columns('test3_employees')
     %w(has_email has_phone active_flag manager_yn).each do |col|
       column = columns.detect{|c| c.name == col}
-      expect(column.type_cast_from_database("Y").class).to eq(String)
+      expect(@conn.lookup_cast_type_from_column(column).cast("Y").class).to eq(String)
     end
   end
 
@@ -453,8 +453,8 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     columns = @conn.columns('test3_employees')
     %w(has_email has_phone active_flag manager_yn).each do |col|
       column = columns.detect{|c| c.name == col}
-      expect(column.type_cast_from_database("Y").class).to eq(TrueClass)
-      expect(column.type_cast_from_database("N").class).to eq(FalseClass)
+      expect(@conn.lookup_cast_type_from_column(column).cast("Y").class).to eq(TrueClass)
+      expect(@conn.lookup_cast_type_from_column(column).cast("N").class).to eq(FalseClass)
     end
   end
 
