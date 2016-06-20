@@ -115,9 +115,16 @@ module ActiveRecord #:nodoc:
               tbl.print ", comment: #{table_comments.inspect}"
             end
 
-            if columns.detect { |c| c.name == pk }
+            pkcol = columns.detect { |c| c.name == pk }
+            if pkcol
               if pk != 'id'
                 tbl.print %Q(, primary_key: "#{pk}")
+              end
+              pkcolspec = @connection.column_spec_for_primary_key(pkcol)
+              if pkcolspec
+                pkcolspec.each do |key, value|
+                  tbl.print ", #{key}: #{value}"
+                end
               end
             else
               tbl.print ", id: false"
@@ -129,7 +136,7 @@ module ActiveRecord #:nodoc:
             column_specs = columns.map do |column|
               raise StandardError, "Unknown type '#{column.sql_type}' for column '#{column.name}'" unless @connection.valid_type?(column.type)
               next if column.name == pk
-              @connection.column_spec(column, @connection.native_database_types)
+              @connection.column_spec(column)
             end.compact
 
             # find all migration keys used in this table
@@ -152,10 +159,11 @@ module ActiveRecord #:nodoc:
 
             format_string *= ''
 
+            # dirty hack to replace virtual_type: with type:
             column_specs.each do |colspec|
               values = keys.zip(lengths).map{ |key, len| colspec.key?(key) ? colspec[key] + ", " : " " * len }
               values.unshift colspec[:type]
-              tbl.print((format_string % values).gsub(/,\s*$/, ''))
+              tbl.print((format_string % values).gsub(/,\s*$/, '').gsub(/virtual_type:/, "type:"))
               tbl.puts
             end
 
