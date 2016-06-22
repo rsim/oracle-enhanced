@@ -99,9 +99,10 @@ module ActiveRecord #:nodoc:
             tbl = StringIO.new
 
             # first dump primary key column
-            if @connection.respond_to?(:pk_and_sequence_for)
-              pk, _pk_seq = @connection.pk_and_sequence_for(table)
-            elsif @connection.respond_to?(:primary_key)
+            if @connection.respond_to?(:primary_keys)
+              pk = @connection.primary_keys(table)
+              pk = pk.first unless pk.size > 1
+            else
               pk = @connection.primary_key(table)
             end
 
@@ -115,20 +116,22 @@ module ActiveRecord #:nodoc:
               tbl.print ", comment: #{table_comments.inspect}"
             end
 
-            pkcol = columns.detect { |c| c.name == pk }
-            if pkcol
-              if pk != 'id'
-                tbl.print %Q(, primary_key: "#{pk}")
-              end
+            case pk
+            when String
+              tbl.print ", primary_key: #{pk.inspect}" unless pk == 'id'
+              pkcol = columns.detect { |c| c.name == pk }
               pkcolspec = @connection.column_spec_for_primary_key(pkcol)
-              if pkcolspec
+              if pkcolspec.present?
                 pkcolspec.each do |key, value|
                   tbl.print ", #{key}: #{value}"
                 end
               end
+            when Array
+              tbl.print ", primary_key: #{pk.inspect}"
             else
               tbl.print ", id: false"
             end
+
             tbl.print ", force: :cascade"
             tbl.puts " do |t|"
 
