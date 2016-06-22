@@ -3,15 +3,6 @@ module ActiveRecord #:nodoc:
     module OracleEnhanced #:nodoc:
       module SchemaDumper #:nodoc:
 
-        def self.included(base) #:nodoc:
-          base.class_eval do
-            private
-            alias_method_chain :tables, :oracle_enhanced
-            alias_method_chain :indexes, :oracle_enhanced
-            alias_method_chain :foreign_keys, :oracle_enhanced
-          end
-        end
-
         private
 
         def tables(stream)
@@ -22,7 +13,7 @@ module ActiveRecord #:nodoc:
             next if ignored? tbl
             # change table name inspect method
             tbl.extend TableInspect
-            oracle_enhanced_table(tbl, stream)
+            table(tbl, stream)
             # add primary key trigger if table has it
             primary_key_trigger(tbl, stream)
           end
@@ -93,7 +84,7 @@ module ActiveRecord #:nodoc:
           end
         end
 
-        def oracle_enhanced_table(table, stream)
+        def table(table, stream)
           columns = @connection.columns(table)
           begin
             tbl = StringIO.new
