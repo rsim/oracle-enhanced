@@ -83,7 +83,7 @@ module ActiveRecord
         end
 
         # Executes an INSERT statement and returns the new record's ID
-        def insert_sql(sql, name = nil, pk = nil, id_value = nil, sequence_name = nil) #:nodoc:
+        def exec_insert(sql, name = nil, pk = nil, id_value = nil, sequence_name = nil) #:nodoc:
           # if primary key value is already prefetched from sequence
           # or if there is no primary key
           if id_value || pk.nil?
@@ -96,7 +96,6 @@ module ActiveRecord
             @connection.exec_with_returning(sql_with_returning)
           end
         end
-        protected :insert_sql
 
         # Will add RETURNING clause in case of trigger generated primary keys
         def sql_for_insert(sql, pk, id_value, sequence_name, binds)
