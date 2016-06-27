@@ -162,7 +162,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       expect(@employee.hire_date.class).to eq(Date)
     end
 
-    it "should see set_date_columns values in different connection" do
+    xit "should see set_date_columns values in different connection" do
       class ::TestEmployee < ActiveRecord::Base
         set_date_columns :hire_date
       end
