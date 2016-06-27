@@ -809,6 +809,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     SQL
     class ::TestEmployee < ActiveRecord::Base
       self.primary_key = "employee_id"
+      attribute :last_login_at, :datetime
     end
     @today = Date.new(2008,6,28)
     @today_iso = "2008-06-28"
@@ -831,7 +832,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   before(:each) do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
   end
 
   it "should assign ISO string to date column" do
