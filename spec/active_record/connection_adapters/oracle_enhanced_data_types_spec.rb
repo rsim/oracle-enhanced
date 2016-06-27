@@ -720,8 +720,8 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
   end
 
   before(:each) do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
     class ::TestEmployee < ActiveRecord::Base
       self.primary_key = "employee_id"
     end
@@ -746,21 +746,27 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
   end
 
   it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+    class ::TestEmployee < ActiveRecord::Base
+      attribute :hire_date, :datetime
+    end
     create_test_employee
     expect(@employee.hire_date.class).to eq(Time)
     expect(@employee.hire_date).to eq(@today.to_time)
   end
 
   it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     create_test_employee
     expect(@employee.hire_date.class).to eq(Date)
     expect(@employee.hire_date).to eq(@today)
   end
 
   it "should return Time value from DATE column if column name does not contain 'date' and emulate_dates_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+    class ::TestEmployee < ActiveRecord::Base
+      attribute :created_at, :datetime
+    end
     create_test_employee
     expect(@employee.created_at.class).to eq(Time)
     expect(@employee.created_at).to eq(@now)
