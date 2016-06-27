@@ -78,7 +78,10 @@ module ActiveRecord
     #
     #   set_boolean_columns :is_valid, :is_completed
     def self.set_boolean_columns(*args)
-      connection.set_type_for_columns(table_name,:boolean,*args)
+      ActiveSupport::Deprecation.warn(<<-MSG.squish)
+        'set_boolean_columns` has been deprecated. Please use Rails attribute API.
+      MSG
+      # connection.set_type_for_columns(table_name,:boolean,*args)
     end
 
     # Specify which table columns should be typecasted to integer values.
@@ -98,7 +101,10 @@ module ActiveRecord
     #
     #   set_string_columns :active_flag
     def self.set_string_columns(*args)
-      connection.set_type_for_columns(table_name,:string,*args)
+      ActiveSupport::Deprecation.warn(<<-MSG.squish)
+        'set_string_columns` has been deprecated. Please use Rails attribute API.
+      MSG
+      # connection.set_type_for_columns(table_name,:string,*args)
     end
 
     # Get table comment from schema definition.
