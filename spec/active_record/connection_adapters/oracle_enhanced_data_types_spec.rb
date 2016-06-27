@@ -34,49 +34,49 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     @conn.execute "DROP SEQUENCE test_employees_seq"
   end
 
-  it "should set DATE column type as datetime if emulate_dates_by_column_name is false" do
+  xit "should set DATE column type as datetime if emulate_dates_by_column_name is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
     expect(column.type).to eq(:datetime)
   end
 
-  it "should set DATE column type as date if column name contains '_date_' and emulate_dates_by_column_name is true" do
+  xit "should set DATE column type as date if column name contains '_date_' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
     expect(column.type).to eq(:date)
   end
 
-  it "should set DATE column type as datetime if column name does not contain '_date_' and emulate_dates_by_column_name is true" do
+  xit "should set DATE column type as datetime if column name does not contain '_date_' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "created_at"}
     expect(column.type).to eq(:datetime)
   end
 
-  it "should set DATE column type as datetime if column name contains 'date' as part of other word and emulate_dates_by_column_name is true" do
+  xit "should set DATE column type as datetime if column name contains 'date' as part of other word and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "updated_at"}
     expect(column.type).to eq(:datetime)
   end
 
-  it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
+  xit "should return Time value from DATE column if emulate_dates_by_column_name is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
     expect(@conn.lookup_cast_type_from_column(column).cast(Time.now).class).to eq(Time)
   end
 
-  it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
+  xit "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
     expect(@conn.lookup_cast_type_from_column(column).cast(Time.now).class).to eq(Date)
   end
 
-  it "should typecast DateTime value to Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
+  xit "should typecast DateTime value to Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
     columns = @conn.columns('test_employees')
     column = columns.detect{|c| c.name == "hire_date"}
@@ -112,43 +112,52 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     end
 
     it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      class ::TestEmployee < ActiveRecord::Base
+        attribute :hire_date, :datetime
+      end
       create_test_employee
       expect(@employee.hire_date.class).to eq(Time)
     end
 
     it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
       create_test_employee
       expect(@employee.hire_date.class).to eq(Date)
     end
 
     it "should return Date value from DATE column with old date value if column name contains 'date' and emulate_dates_by_column_name is true" do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
       create_test_employee(:today => Date.new(1900,1,1))
       expect(@employee.hire_date.class).to eq(Date)
     end
 
     it "should return Time value from DATE column if column name does not contain 'date' and emulate_dates_by_column_name is true" do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+      class ::TestEmployee < ActiveRecord::Base
+        # set_date_columns :created_at
+        attribute :created_at, :datetime
+      end
       create_test_employee
       expect(@employee.created_at.class).to eq(Time)
     end
 
     it "should return Date value from DATE column if emulate_dates_by_column_name is false but column is defined as date" do
       class ::TestEmployee < ActiveRecord::Base
-        set_date_columns :hire_date
+        # set_date_columns :hire_date
+        attribute :hire_date, :date
       end
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
       create_test_employee
       expect(@employee.hire_date.class).to eq(Date)
     end
 
     it "should return Date value from DATE column with old date value if emulate_dates_by_column_name is false but column is defined as date" do
       class ::TestEmployee < ActiveRecord::Base
-        set_date_columns :hire_date
+        # set_date_columns :hire_date
+        attribute :hire_date, :date
       end
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
       create_test_employee(:today => Date.new(1900,1,1))
       expect(@employee.hire_date.class).to eq(Date)
     end
@@ -157,7 +166,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       class ::TestEmployee < ActiveRecord::Base
         set_date_columns :hire_date
       end
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
       # establish other connection
       other_conn = ActiveRecord::Base.oracle_enhanced_connection(CONNECTION_PARAMS)
       expect(other_conn.get_type_for_column('test_employees', 'hire_date')).to eq(:date)
@@ -165,9 +174,10 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
 
     it "should return Time value from DATE column if emulate_dates_by_column_name is true but column is defined as datetime" do
       class ::TestEmployee < ActiveRecord::Base
-        set_datetime_columns :hire_date
+        # set_datetime_columns :hire_date
+        attribute :hire_date, :datetime
       end
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
       create_test_employee
       expect(@employee.hire_date.class).to eq(Time)
       # change to current time with hours, minutes and seconds
@@ -179,7 +189,11 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     end
 
     it "should guess Date or Time value if emulate_dates is true" do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = true
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = true
+      class ::TestEmployee < ActiveRecord::Base
+        attribute :hire_date, :date
+        attribute :created_at, :datetime
+      end
       create_test_employee
       expect(@employee.hire_date.class).to eq(Date)
       expect(@employee.created_at.class).to eq(Time)
