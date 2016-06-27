@@ -87,7 +87,10 @@ module ActiveRecord
     #
     #   set_integer_columns :version_number, :object_identifier
     def self.set_integer_columns(*args)
-      connection.set_type_for_columns(table_name,:integer,*args)
+      ActiveSupport::Deprecation.warn(<<-MSG.squish)
+        'set_integer_columns` has been deprecated. Please use Rails attribute API.
+      MSG
+      # connection.set_type_for_columns(table_name,:integer,*args)
     end
 
     # Specify which table columns should be typecasted to string values.
