@@ -85,8 +85,8 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
 
   describe "/ DATE values from ActiveRecord model" do
     before(:each) do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
+      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = false
       class ::TestEmployee < ActiveRecord::Base
         self.primary_key = "employee_id"
       end
