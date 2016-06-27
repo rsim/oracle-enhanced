@@ -58,14 +58,20 @@ module ActiveRecord
     #
     #   set_date_columns :created_on, :updated_on
     def self.set_date_columns(*args)
-      connection.set_type_for_columns(table_name,:date,*args)
+      ActiveSupport::Deprecation.warn(<<-MSG.squish)
+        'set_date_columns` has been deprecated. Please use Rails attribute API.
+      MSG
+      # connection.set_type_for_columns(table_name,:date,*args)
     end
 
     # Specify which table columns should be typecasted to Time (or DateTime), e.g.:
     #
     #   set_datetime_columns :created_date, :updated_date
     def self.set_datetime_columns(*args)
-      connection.set_type_for_columns(table_name,:datetime,*args)
+      ActiveSupport::Deprecation.warn(<<-MSG.squish)
+        'set_datetime_columns` has been deprecated. Please use Rails attribute API.
+      MSG
+      # connection.set_type_for_columns(table_name,:datetime,*args)
     end
 
     # Specify which table columns should be typecasted to boolean values +true+ or +false+, e.g.:
