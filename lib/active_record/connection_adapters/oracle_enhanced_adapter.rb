@@ -976,42 +976,6 @@ module ActiveRecord
             row['data_default'] = false if (row['data_default'] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings)
           end
 
-          # TODO: Consider to extract another method such as `get_cast_type`
-          case row['sql_type'] 
-          when /decimal|numeric|number/i
-            if get_type_for_column(table_name, oracle_downcase(row['name'])) == :integer
-              cast_type = ActiveRecord::OracleEnhanced::Type::Integer.new
-            elsif OracleEnhancedAdapter.emulate_booleans && row['sql_type'].upcase == "NUMBER(1)"
-              cast_type = Type::Boolean.new
-            elsif OracleEnhancedAdapter.emulate_integers_by_column_name && OracleEnhancedAdapter.is_integer_column?(row['name'], table_name)
-              cast_type = ActiveRecord::OracleEnhanced::Type::Integer.new
-            else
-              cast_type = lookup_cast_type(row['sql_type'])
-            end
-          when /char/i
-            if get_type_for_column(table_name, oracle_downcase(row['name'])) == :string
-              cast_type = Type::String.new
-            elsif get_type_for_column(table_name, oracle_downcase(row['name'])) == :boolean
-              cast_type = Type::Boolean.new
-            elsif OracleEnhancedAdapter.emulate_booleans_from_strings && OracleEnhancedAdapter.is_boolean_column?(row['name'], row['sql_type'], table_name)
-              cast_type = Type::Boolean.new
-            else
-              cast_type = lookup_cast_type(row['sql_type'])
-            end
-          when /date/i
-            if get_type_for_column(table_name, oracle_downcase(row['name'])) == :date
-              cast_type = Type::Date.new
-            elsif get_type_for_column(table_name, oracle_downcase(row['name'])) == :datetime
-              cast_type = Type::DateTime.new
-            elsif OracleEnhancedAdapter.emulate_dates_by_column_name && OracleEnhancedAdapter.is_date_column?(row['name'], table_name)
-              cast_type = Type::Date.new
-            else
-              cast_type = lookup_cast_type(row['sql_type'])
-            end
-          else
-            cast_type = lookup_cast_type(row['sql_type'])
-          end
-
           type_metadata = fetch_type_metadata(row['sql_type'])
           new_column(oracle_downcase(row['name']),
                            row['data_default'],
