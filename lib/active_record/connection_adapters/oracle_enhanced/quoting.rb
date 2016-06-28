@@ -115,18 +115,6 @@ module ActiveRecord
           "TO_DATE('#{value}','YYYY-MM-DD HH24:MI:SS')"
         end
 
-        # Encode a string or byte array as string of hex codes
-        def self.encode_raw(value)
-          # When given a string, convert to a byte array.
-          value = value.unpack('C*') if value.is_a?(String)
-          value.map { |x| "%02X" % x }.join
-        end
-
-        # quote encoded raw value
-        def quote_raw(value) #:nodoc:
-          "'#{self.class.encode_raw(value)}'"
-        end
-
         def quote_timestamp_with_to_timestamp(value) #:nodoc:
           # add up to 9 digits of fractional seconds to inserted time
           value = "#{quoted_date(value)}" if value.acts_like?(:time)
