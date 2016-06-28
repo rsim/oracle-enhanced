@@ -1163,6 +1163,7 @@ module ActiveRecord
         # oracle
         register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
         register_class_with_limit m, %r(char)i,           ActiveRecord::OracleEnhanced::Type::String
+        register_class_with_limit m, %r(clob)i,           ActiveRecord::OracleEnhanced::Type::Text
 
         m.register_type  'NCHAR', ActiveRecord::OracleEnhanced::Type::NationalCharacterString.new
         m.alias_type %r(NVARCHAR2)i,    'NCHAR'
@@ -1314,3 +1315,6 @@ require 'active_record/oracle_enhanced/type/string'
 
 # Add OracleEnhanced::Type::NationalCharacterString
 require 'active_record/oracle_enhanced/type/national_character_string'
+
+# Add OracleEnhanced::Type::Text
+require 'active_record/oracle_enhanced/type/text'

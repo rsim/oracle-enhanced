@@ -94,6 +94,8 @@ module ActiveRecord
              "N" << "'#{quote_string(value.to_s)}'"
           when ActiveModel::Type::Binary::Data then
             %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
+          when ActiveRecord::OracleEnhanced::Type::Text::Data then
+            %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'clob' }()}
           else
             super
           end
@@ -151,14 +153,21 @@ module ActiveRecord
               value
             end
           when ActiveModel::Type::Binary::Data
-            #TODO: Needs support for CLOB and jruby
+            #TODO: Needs support for jruby
             lob_value = value == '' ? ' ' : value
             bind_type = OCI8::BLOB
             ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
             ora_value.size = 0 if value == ''
-						ora_value
+            ora_value
           when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data
             value.to_s
+          when ActiveRecord::OracleEnhanced::Type::Text::Data
+            #TODO: Needs support for jruby
+            lob_value = value.to_s == '' ? ' ' : value.to_s
+            bind_type = OCI8::CLOB
+            ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
+            ora_value.size = 0 if value.to_s == ''
+            ora_value
           else
             super
           end
