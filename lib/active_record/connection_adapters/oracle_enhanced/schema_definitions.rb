@@ -48,10 +48,6 @@ module ActiveRecord
           super(name, temporary, options, as, comment: comment)
         end
 
-        def raw(name, options={})
-          column(name, :raw, options)
-        end
-
         def virtual(* args)
           options = args.extract_options!
           column_names = args
