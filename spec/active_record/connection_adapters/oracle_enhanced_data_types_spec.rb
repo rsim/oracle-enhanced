@@ -778,16 +778,16 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
     expect(@employee.created_at_ts).to eq(@now)
   end
 
-  it "should quote Date values with TO_DATE" do
+  xit "should quote Date values with TO_DATE" do
     expect(@conn.quote(@today)).to eq("TO_DATE('#{@today.year}-#{"%02d" % @today.month}-#{"%02d" % @today.day}','YYYY-MM-DD HH24:MI:SS')")
   end
 
-  it "should quote Time values with TO_DATE" do
+  xit "should quote Time values with TO_DATE" do
     expect(@conn.quote(@now)).to eq("TO_DATE('#{@now.year}-#{"%02d" % @now.month}-#{"%02d" % @now.day} "+
                                 "#{"%02d" % @now.hour}:#{"%02d" % @now.min}:#{"%02d" % @now.sec}','YYYY-MM-DD HH24:MI:SS')")
   end
 
-  it "should quote Time values with TO_TIMESTAMP" do
+  xit "should quote Time values with TO_TIMESTAMP" do
     @ts = @now + 0.1
     expect(@conn.quote(@ts)).to eq("TO_TIMESTAMP('#{@ts.year}-#{"%02d" % @ts.month}-#{"%02d" % @ts.day} "+
                                 "#{"%02d" % @ts.hour}:#{"%02d" % @ts.min}:#{"%02d" % @ts.sec}:100000','YYYY-MM-DD HH24:MI:SS:FF6')")

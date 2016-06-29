@@ -89,11 +89,8 @@ module ActiveRecord
         end
 
         def _quote(value) #:nodoc:
-          case value
-          when ActiveModel::Type::Binary::Data then
+          if value.is_a? ActiveModel::Type::Binary::Data
             %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
-          when Date then
-            quote_date_with_to_date(value)
           else
             super
           end
@@ -110,15 +107,23 @@ module ActiveRecord
         end
 
         def quote_date_with_to_date(value) #:nodoc:
+          ActiveSupport::Deprecation.warn(<<-MSG.squish)
+            `quote_date_with_to_date` will be deprecated in future version of Oracle enhanced adapter.
+            Also this method should not be called directly. Let Abstract adapter `_quote` method handle it.
+          MSG
           # should support that composite_primary_keys gem will pass date as string
           value = quoted_date(value) if value.acts_like?(:date) || value.acts_like?(:time)
           "TO_DATE('#{value}','YYYY-MM-DD HH24:MI:SS')"
         end
 
         def quote_timestamp_with_to_timestamp(value) #:nodoc:
+          ActiveSupport::Deprecation.warn(<<-MSG.squish)
+            `quote_timestamp_with_to_timestamp` will be deprecated in future version of Oracle enhanced adapter.
+            Also this method should not be called directly. Let Abstract adapter `_quote` method handle it.
+          MSG
           # add up to 9 digits of fractional seconds to inserted time
-          value = "#{quoted_date(value)}" if value.acts_like?(:time)
-          "TO_TIMESTAMP('#{value}','YYYY-MM-DD HH24:MI:SS.FF6')"
+          value = "#{quoted_date(value)}:#{("%.6f"%value.to_f).split('.')[1]}" if value.acts_like?(:time)
+          "TO_TIMESTAMP('#{value}','YYYY-MM-DD HH24:MI:SS:FF6')"
         end
 
         # Cast a +value+ to a type that the database understands.
