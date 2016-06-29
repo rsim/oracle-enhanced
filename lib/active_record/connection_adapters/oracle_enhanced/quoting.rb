@@ -117,8 +117,8 @@ module ActiveRecord
 
         def quote_timestamp_with_to_timestamp(value) #:nodoc:
           # add up to 9 digits of fractional seconds to inserted time
-          value = "#{quoted_date(value)}" if value.acts_like?(:time)
-          "TO_TIMESTAMP('#{value}','YYYY-MM-DD HH24:MI:SS.FF6')"
+          value = "#{quoted_date(value)}:#{("%.6f"%value.to_f).split('.')[1]}" if value.acts_like?(:time)
+          "TO_TIMESTAMP('#{value}','YYYY-MM-DD HH24:MI:SS:FF6')"
         end
 
         # Cast a +value+ to a type that the database understands.
