@@ -324,8 +324,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       :last_name => "Last",
       :hire_date => @today
     )
-    #TODO: dirty workaround to remove sql statement for `table` method
-    expect(@logger.logged(:debug)[-2]).to match(/^TestEmployee Create \(\d+\.\d+(ms)?\)  custom create method$/)
+    expect(@logger.logged(:debug).last).to match(/^TestEmployee Create \(\d+\.\d+(ms)?\)  custom create method$/)
     clear_logger
   end
 
