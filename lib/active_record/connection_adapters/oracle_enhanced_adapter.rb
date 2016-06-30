@@ -1162,6 +1162,7 @@ module ActiveRecord
         super
         # oracle
         register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
+        register_class_with_limit m, %r(char)i,           ActiveRecord::OracleEnhanced::Type::String
 
 
         m.register_type(%r(NUMBER)i) do |sql_type|
@@ -1308,3 +1309,6 @@ require 'active_record/oracle_enhanced/type/raw'
 
 # Add OracleEnhanced::Type::Integer
 require 'active_record/oracle_enhanced/type/integer'
+
+# Add OracleEnhanced::Type::String
+require 'active_record/oracle_enhanced/type/string'
