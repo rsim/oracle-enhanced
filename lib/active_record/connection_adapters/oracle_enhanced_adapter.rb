@@ -1162,6 +1162,7 @@ module ActiveRecord
         super
         # oracle
         register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
+        register_class_with_limit m, %r(char)i,           ActiveRecord::OracleEnhanced::Type::String
 
 
         m.register_type(%r(NUMBER)i) do |sql_type|
@@ -1279,9 +1280,6 @@ require 'active_record/connection_adapters/oracle_enhanced/context_index'
 # Load additional methods for composite_primary_keys support
 require 'active_record/connection_adapters/oracle_enhanced/cpk'
 
-# Load patch for dirty tracking methods
-require 'active_record/connection_adapters/oracle_enhanced/dirty'
-
 # Patches and enhancements for schema dumper
 require 'active_record/connection_adapters/oracle_enhanced/schema_dumper'
 
@@ -1308,3 +1306,6 @@ require 'active_record/oracle_enhanced/type/raw'
 
 # Add OracleEnhanced::Type::Integer
 require 'active_record/oracle_enhanced/type/integer'
+
+# Add OracleEnhanced::Type::String
+require 'active_record/oracle_enhanced/type/string'
