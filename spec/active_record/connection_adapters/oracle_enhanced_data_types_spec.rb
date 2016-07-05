@@ -1481,7 +1481,7 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
 
-  it "should set nchar instance variable" do
+  xit "should set nchar instance variable" do
     columns = @conn.columns('test_items')
     %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
       column = columns.detect{|c| c.name == col}
@@ -1494,7 +1494,7 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
     columns = @conn.columns('test_items')
     %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
       column = columns.detect{|c| c.name == col}
-      expect(@conn.quote('abc', column)).to eq(column.nchar ? "N'abc'" : "'abc'")
+      expect(@conn.quote('abc', column)).to eq(column.sql_type[0,1] == 'N' ? "N'abc'" : "'abc'")
       expect(@conn.quote(nil, column)).to eq('NULL')
     end
   end

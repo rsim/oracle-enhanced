@@ -18,7 +18,6 @@ module ActiveRecord
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
         if sql_type_metadata
-          @nchar = true if sql_type_metadata.type == :string && sql_type_metadata.sql_type[0,1] == 'N'
           @object_type = sql_type_metadata.sql_type.include? '.'
         end
         # TODO: Need to investigate when `sql_type` becomes nil
