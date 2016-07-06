@@ -1164,6 +1164,8 @@ module ActiveRecord
         register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
         register_class_with_limit m, %r(char)i,           ActiveRecord::OracleEnhanced::Type::String
 
+        m.register_type  'NCHAR', ActiveRecord::OracleEnhanced::Type::NationalCharacterString.new
+        m.alias_type %r(NVARCHAR2)i,    'NCHAR'
 
         m.register_type(%r(NUMBER)i) do |sql_type|
           scale = extract_scale(sql_type)
@@ -1309,3 +1311,6 @@ require 'active_record/oracle_enhanced/type/integer'
 
 # Add OracleEnhanced::Type::String
 require 'active_record/oracle_enhanced/type/string'
+
+# Add OracleEnhanced::Type::NationalCharacterString
+require 'active_record/oracle_enhanced/type/national_character_string'

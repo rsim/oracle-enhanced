@@ -89,7 +89,10 @@ module ActiveRecord
         end
 
         def _quote(value) #:nodoc:
-          if value.is_a? ActiveModel::Type::Binary::Data
+          case value
+          when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data then
+             "N" << "'#{quote_string(value.to_s)}'"
+          when ActiveModel::Type::Binary::Data then
             %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
           else
             super
@@ -154,6 +157,8 @@ module ActiveRecord
             ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
             ora_value.size = 0 if value == ''
 						ora_value
+          when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data
+            value.to_s
           else
             super
           end

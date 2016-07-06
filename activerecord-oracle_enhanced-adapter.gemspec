@@ -44,6 +44,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "lib/active_record/connection_adapters/oracle_enhanced/structure_dump.rb",
     "lib/active_record/connection_adapters/oracle_enhanced/version.rb",
     "lib/active_record/oracle_enhanced/type/integer.rb",
+    "lib/active_record/oracle_enhanced/type/national_character_string.rb",
     "lib/active_record/oracle_enhanced/type/raw.rb",
     "lib/active_record/oracle_enhanced/type/string.rb",
     "lib/activerecord-oracle_enhanced-adapter.rb",
