@@ -54,7 +54,7 @@ module ActiveRecord
           # handle case of defaults for CLOB columns, which would otherwise get "quoted" incorrectly
           if options_include_default?(options)
             if type == :text
-              sql << " DEFAULT #{quote_default_expression(options[:default])}"
+              sql << " DEFAULT #{@conn.quote(options[:default])}"
             else
               sql << " DEFAULT #{quote_default_expression(options[:default], options[:column])}"
             end
