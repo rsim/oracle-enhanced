@@ -706,12 +706,12 @@ module ActiveRecord
       # If SQL statement fails due to lost connection then reconnect
       # and retry SQL statement if autocommit mode is enabled.
       # By default this functionality is disabled.
-      attr_reader :auto_retry #:nodoc:
-      @auto_retry = false
+      def auto_retry
+        @connection.auto_retry
+      end
 
       def auto_retry=(value) #:nodoc:
-        @auto_retry = value
-        @connection.auto_retry = value if @connection
+        @connection.auto_retry = value
       end
 
       # return raw OCI8 or JDBC connection
@@ -1079,7 +1079,7 @@ module ActiveRecord
           end
 
           # TODO: Consider to extract another method such as `get_cast_type`
-          case row['sql_type'] 
+          case row['sql_type']
           when /decimal|numeric|number/i
             if get_type_for_column(table_name, oracle_downcase(row['name'])) == :integer
               cast_type = ActiveRecord::OracleEnhanced::Type::Integer.new

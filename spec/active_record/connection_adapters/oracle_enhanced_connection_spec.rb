@@ -296,6 +296,20 @@ describe "OracleEnhancedConnection" do
       lambda { @conn.exec("SELECT * FROM dual") }.should raise_error
     end
 
+    it "should reconnect and execute SQL statement via cursors if connection is lost and auto retry is enabled" do
+      # @conn.auto_retry = true
+      ActiveRecord::Base.connection.auto_retry = true
+      kill_current_session
+      @conn.exec_with_returning("SELECT * FROM dual").should_not be_nil
+    end
+
+    it "should not reconnect and execute SQL statement via cursors if connection is lost and auto retry is disabled" do
+      # @conn.auto_retry = false
+      ActiveRecord::Base.connection.auto_retry = false
+      kill_current_session
+      lambda { @conn.exec_with_returning("SELECT * FROM dual") }.should raise_error
+    end
+
     it "should reconnect and execute SQL select if connection is lost and auto retry is enabled" do
       # @conn.auto_retry = true
       ActiveRecord::Base.connection.auto_retry = true

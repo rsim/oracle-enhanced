@@ -36,16 +36,20 @@ module ActiveRecord
         # ActiveRecord Oracle enhanced adapter puts OCI8EnhancedAutoRecover wrapper around OCI8
         # in this case we need to pass original OCI8 connection
         else
-          @raw_connection.instance_variable_get(:@connection)
+          @raw_connection.oci_connection
         end
       end
 
       def auto_retry
-        @raw_connection.auto_retry if @raw_connection
+        @raw_connection.auto_retry
       end
 
       def auto_retry=(value)
-        @raw_connection.auto_retry = value if @raw_connection
+        @raw_connection.auto_retry = value
+      end
+
+      def should_retry?
+        @raw_connection.should_retry?
       end
 
       def logoff
@@ -99,7 +103,7 @@ module ActiveRecord
       # execute sql with RETURNING ... INTO :insert_id
       # and return :insert_id value
       def exec_with_returning(sql)
-        cursor = @raw_connection.parse(sql)
+        cursor = prepare(sql)
         cursor.bind_param(':insert_id', nil, Integer)
         cursor.exec
         cursor[':insert_id']
@@ -108,14 +112,30 @@ module ActiveRecord
       end
 
       def prepare(sql)
-        Cursor.new(self, @raw_connection.parse(sql))
+        Cursor.new(self, sql)
       end
 
       class Cursor
-        def initialize(connection, raw_cursor)
+        def initialize(connection, sql)
           @connection = connection
-          @raw_cursor = raw_cursor
+          @sql        = sql
+
+          allocate_cursor
         end
+
+        def allocate_cursor
+          should_retry = @connection.should_retry?
+
+          begin
+            @raw_cursor = @connection.raw_connection.parse(@sql)
+          rescue OCIException => e
+            raise unless should_retry && e.lost_connection?
+            should_retry = false
+            @connection.reset!
+            retry
+          end
+        end
+        private :allocate_cursor
 
         def bind_param(position, value, column = nil)
           if column && column.object_type?
@@ -152,10 +172,7 @@ module ActiveRecord
         def exec
           @raw_cursor.exec
         end
-
-        def exec_update
-          @raw_cursor.exec
-        end
+        alias :exec_update :exec
 
         def get_col_names
           @raw_cursor.get_col_names
@@ -177,8 +194,7 @@ module ActiveRecord
         def close
           @raw_cursor.close
         end
-
-      end
+      end # Cursor
 
       def select(sql, name = nil, return_column_names = false)
         cursor = @raw_connection.exec(sql)
@@ -380,11 +396,8 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   attr_accessor :active #:nodoc:
   alias :active? :active #:nodoc:
 
-  cattr_accessor :auto_retry
-  class << self
-    alias :auto_retry? :auto_retry #:nodoc:
-  end
-  @@auto_retry = false
+  attr_accessor :auto_retry
+  alias :auto_retry? :auto_retry
 
   def initialize(config, factory) #:nodoc:
     @active = true
@@ -418,23 +431,16 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     end
   end
 
-  # ORA-00028: your session has been killed
-  # ORA-01012: not logged on
-  # ORA-03113: end-of-file on communication channel
-  # ORA-03114: not connected to ORACLE
-  # ORA-03135: connection lost contact
-  LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] #:nodoc:
-
   # Adds auto-recovery functionality.
   #
   # See: http://www.jiubao.org/ruby-oci8/api.en.html#label-11
   def exec(sql, *bindvars, &block) #:nodoc:
-    should_retry = self.class.auto_retry? && autocommit?
+    should_retry = self.should_retry?
 
     begin
       @connection.exec(sql, *bindvars, &block)
     rescue OCIException => e
-      raise unless e.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(e.code)
+      raise unless e.lost_connection?
       @active = false
       raise unless should_retry
       should_retry = false
@@ -443,5 +449,36 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     end
   end
 
+  def should_retry?
+    self.auto_retry? && self.autocommit?
+  rescue OCIException => e
+    e.already_closed? || raise
+  end
+
+  def oci_connection
+    @connection
+  end
+
+  module LostConnectionError
+    # ORA-00028: your session has been killed
+    # ORA-01012: not logged on
+    # ORA-03113: end-of-file on communication channel
+    # ORA-03114: not connected to ORACLE
+    # ORA-03135: connection lost contact
+    ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] #:nodoc:
+
+    def lost_connection?
+      self.already_closed? ||
+        self.respond_to?(:code) && ERROR_CODES.include?(self.code)
+    end
+
+    def already_closed?
+      self.message == 'OCI8 was already closed.'
+    end
+  end
+
+  ::OCIException.class_eval do
+    include LostConnectionError
+  end
 end
 #:startdoc:
