@@ -82,8 +82,13 @@ module ActiveRecord
           exec_query(sql, name, binds).rows
         end
 
+        # New method in ActiveRecord 3.1
         # Will add RETURNING clause in case of trigger generated primary keys
         def sql_for_insert(sql, pk, id_value, sequence_name, binds)
+          unless id_value || pk == false || pk.nil? || (defined?(CompositePrimaryKeys) && pk.kind_of?(CompositePrimaryKeys::CompositeKeys))
+            sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
+            (binds = binds.dup) << ActiveRecord::Relation::QueryAttribute.new("returning_id", nil, ActiveRecord::OracleEnhanced::Type::Integer.new)
+          end
           super
         end
 
@@ -108,8 +113,9 @@ module ActiveRecord
             cursor.exec_update
 
             rows = []
+            returning_id_index = 1 if sql =~ /:returning_id/
             if returning_id_index
-              returning_id = cursor.get_returning_param(returning_id_index, Integer)
+              returning_id = cursor.get_returning_param(returning_id_index, Integer).to_i
               rows << [returning_id]
             end
             ActiveRecord::Result.new(returning_id_col || [], rows)
