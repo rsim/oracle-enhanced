@@ -261,6 +261,8 @@ module ActiveRecord
         when Time, DateTime
           if OracleEnhancedAdapter.emulate_dates && date_without_time?(value)
             value.to_date
+          elsif OracleEnhancedAdapter.preserve_time_zone
+            value
           else
             create_time_with_default_timezone(value)
           end
