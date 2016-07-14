@@ -15,4 +15,8 @@ group :development do
     gem 'ruby-oci8',    github: 'kubo/ruby-oci8'
     gem 'byebug'
   end
+
+  platforms :jruby do
+    gem 'ruby-debug'
+  end
 end
