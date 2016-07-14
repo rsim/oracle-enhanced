@@ -250,6 +250,17 @@ module ActiveRecord
 
       ##
       # :singleton-method:
+      # Perserve time zone of records on database
+      # By default, the OracleEnhancedAdapter will convert the timezone of records to UTC or to yours local timezone. 
+      # If you wish to preserver timezone of records on database you can add the following line to your initializer file:
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.preserve_time_zone = true
+      #
+      cattr_accessor :preserve_time_zone
+      self.preserve_time_zone = false
+
+      ##
+      # :singleton-method:
       # By default, the OracleEnhancedAdapter will consider all columns of type <tt>NUMBER(1)</tt>
       # as boolean. If you wish to disable this emulation you can add the following line
       # to your initializer file:
