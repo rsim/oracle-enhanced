@@ -152,22 +152,8 @@ module ActiveRecord
             else
               value
             end
-          when ActiveModel::Type::Binary::Data
-            #TODO: Needs support for jruby
-            lob_value = value == '' ? ' ' : value
-            bind_type = OCI8::BLOB
-            ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
-            ora_value.size = 0 if value == ''
-            ora_value
           when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data
             value.to_s
-          when ActiveRecord::OracleEnhanced::Type::Text::Data
-            #TODO: Needs support for jruby
-            lob_value = value.to_s == '' ? ' ' : value.to_s
-            bind_type = OCI8::CLOB
-            ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
-            ora_value.size = 0 if value.to_s == ''
-            ora_value
           else
             super
           end
@@ -175,4 +161,14 @@ module ActiveRecord
       end
     end
   end
+end
+
+# if MRI or YARV
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
+  require 'active_record/connection_adapters/oracle_enhanced/oci_quoting'
+# if JRuby
+elsif RUBY_ENGINE == 'jruby'
+  require 'active_record/connection_adapters/oracle_enhanced/jdbc_quoting'
+else
+  raise "Unsupported Ruby engine #{RUBY_ENGINE}"
 end
