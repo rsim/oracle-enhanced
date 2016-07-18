@@ -5,11 +5,16 @@ module ActiveRecord
         def _type_cast(value)
           case value
           when ActiveModel::Type::Binary::Data
-            #TODO: may need BLOB specific handling
-            value
+            blob = Java::OracleSql::BLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::BLOB::DURATION_SESSION)
+            blob.setBytes(1, value.to_s.to_java_bytes)
+            blob
           when ActiveRecord::OracleEnhanced::Type::Text::Data
             #TODO: may need CLOB specific handling
             value.to_s
+          when Date, DateTime
+            Java::oracle.sql.DATE.new(value.strftime("%Y-%m-%d %H:%M:%S"))
+          when Time
+            Java::java.sql.Timestamp.new(value.year-1900, value.month-1, value.day, value.hour, value.min, value.sec, value.usec * 1000)
           else
             super
           end

@@ -352,32 +352,31 @@ module ActiveRecord
             MSG
           end
 
-          col_type = column && column.type
-          java_value = ruby_to_java_value(value, col_type)
           case value
           when Integer
-            @raw_statement.setLong(position, java_value)
+            @raw_statement.setLong(position, value)
           when Float
-            @raw_statement.setFloat(position, java_value)
+            @raw_statement.setFloat(position, value)
           when BigDecimal
-            @raw_statement.setBigDecimal(position, java_value)
+            @raw_statement.setBigDecimal(position, value)
+          when Java::OracleSql::BLOB
+            @raw_statement.setBlob(position, value)
+          when ActiveRecord::OracleEnhanced::Type::Text::Data
+            @raw_statement.setClob(position, value)
+          when ActiveRecord::OracleEnhanced::Type::Raw
+            @raw_statement.setString(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))
           when String
-            case col_type
-            when :text
-              @raw_statement.setClob(position, java_value)
-            when :binary
-              @raw_statement.setBlob(position, java_value)
-            when :raw
-              @raw_statement.setString(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(java_value))
-            when :decimal
-              @raw_statement.setBigDecimal(position, java_value)
-            else
-              @raw_statement.setString(position, java_value)
-            end
+            @raw_statement.setString(position, value)
+          when Java::OracleSql::DATE
+            @raw_statement.setDATE(position, value)
           when Date, DateTime
-            @raw_statement.setDATE(position, java_value)
+            # TODO: Really needed or not
+            @raw_statement.setDATE(position, value)
+          when Java::JavaSql::Timestamp
+            @raw_statement.setTimestamp(position, value)
           when Time
-            @raw_statement.setTimestamp(position, java_value)
+            # TODO: Really needed or not
+            @raw_statement.setTimestamp(position, value)
           when NilClass
             if column && column.object_type?
               @raw_statement.setNull(position, java.sql.Types::STRUCT, column.sql_type)
@@ -451,38 +450,6 @@ module ActiveRecord
 
         def close
           @raw_statement.close
-        end
-
-        private
-
-        def ruby_to_java_value(value, col_type = nil)
-          case value
-          when Fixnum, Float
-            value
-          when String
-            case col_type
-            when :text
-              clob = Java::OracleSql::CLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::CLOB::DURATION_SESSION)
-              clob.setString(1, value)
-              clob
-            when :binary
-              blob = Java::OracleSql::BLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::BLOB::DURATION_SESSION)
-              blob.setBytes(1, value.to_java_bytes)
-              blob
-            when :decimal
-              java.math.BigDecimal.new(value.to_s)
-            else
-              value
-            end
-          when BigDecimal
-            java.math.BigDecimal.new(value.to_s)
-          when Date, DateTime
-            Java::oracle.sql.DATE.new(value.strftime("%Y-%m-%d %H:%M:%S"))
-          when Time
-            Java::java.sql.Timestamp.new(value.year-1900, value.month-1, value.day, value.hour, value.min, value.sec, value.usec * 1000)
-          else
-            value
-          end
         end
 
       end
