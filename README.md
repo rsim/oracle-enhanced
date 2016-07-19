@@ -12,6 +12,15 @@ Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby o
 
 INSTALLATION
 ------------
+### Rails 5
+
+Oracle enhanced adapter Rails 5 support is still in beta release, so use with caution.
+
+```ruby
+# Use oracle as the database for Active Record
+gem 'activerecord-oracle_enhanced-adapter', '=> 1.7.0.beta1'
+```
+
 ### Rails 4.2
 
 Oracle enhanced adapter version 1.6 just supports Rails 4.2 and does not support Rails 4.1 or lower version of Rails.
