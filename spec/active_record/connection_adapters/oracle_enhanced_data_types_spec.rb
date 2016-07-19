@@ -34,55 +34,6 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     @conn.execute "DROP SEQUENCE test_employees_seq"
   end
 
-  xit "should set DATE column type as datetime if emulate_dates_by_column_name is false" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
-    columns = @conn.columns('test_employees')
-    column = columns.detect{|c| c.name == "hire_date"}
-    expect(column.type).to eq(:datetime)
-  end
-
-  xit "should set DATE column type as date if column name contains '_date_' and emulate_dates_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-    columns = @conn.columns('test_employees')
-    column = columns.detect{|c| c.name == "hire_date"}
-    expect(column.type).to eq(:date)
-  end
-
-  xit "should set DATE column type as datetime if column name does not contain '_date_' and emulate_dates_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-    columns = @conn.columns('test_employees')
-    column = columns.detect{|c| c.name == "created_at"}
-    expect(column.type).to eq(:datetime)
-  end
-
-  xit "should set DATE column type as datetime if column name contains 'date' as part of other word and emulate_dates_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-    columns = @conn.columns('test_employees')
-    column = columns.detect{|c| c.name == "updated_at"}
-    expect(column.type).to eq(:datetime)
-  end
-
-  xit "should return Time value from DATE column if emulate_dates_by_column_name is false" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
-    columns = @conn.columns('test_employees')
-    column = columns.detect{|c| c.name == "hire_date"}
-    expect(@conn.lookup_cast_type_from_column(column).cast(Time.now).class).to eq(Time)
-  end
-
-  xit "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-    columns = @conn.columns('test_employees')
-    column = columns.detect{|c| c.name == "hire_date"}
-    expect(@conn.lookup_cast_type_from_column(column).cast(Time.now).class).to eq(Date)
-  end
-
-  xit "should typecast DateTime value to Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-    columns = @conn.columns('test_employees')
-    column = columns.detect{|c| c.name == "hire_date"}
-    expect(@conn.lookup_cast_type_from_column(column).cast(DateTime.new(1900,1,1)).class).to eq(Date)
-  end
-
   describe "/ DATE values from ActiveRecord model" do
     before(:each) do
       # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
@@ -162,16 +113,6 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       expect(@employee.hire_date.class).to eq(Date)
     end
 
-    xit "should see set_date_columns values in different connection" do
-      class ::TestEmployee < ActiveRecord::Base
-        set_date_columns :hire_date
-      end
-      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = false
-      # establish other connection
-      other_conn = ActiveRecord::Base.oracle_enhanced_connection(CONNECTION_PARAMS)
-      expect(other_conn.get_type_for_column('test_employees', 'hire_date')).to eq(:date)
-    end
-
     it "should return Time value from DATE column if emulate_dates_by_column_name is true but column is defined as datetime" do
       class ::TestEmployee < ActiveRecord::Base
         # set_datetime_columns :hire_date
@@ -235,43 +176,6 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
   after(:all) do
     @conn.execute "DROP TABLE test2_employees"
     @conn.execute "DROP SEQUENCE test2_employees_seq"
-  end
-
-  xit "should set NUMBER column type as decimal if emulate_integers_by_column_name is false" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
-    columns = @conn.columns('test2_employees')
-    column = columns.detect{|c| c.name == "job_id"}
-    expect(column.type).to eq(:decimal)
-  end
-
-  xit "should set NUMBER column type as integer if emulate_integers_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
-    columns = @conn.columns('test2_employees')
-    column = columns.detect{|c| c.name == "job_id"}
-    expect(column.type).to eq(:integer)
-    column = columns.detect{|c| c.name == "id"}
-    expect(column.type).to eq(:integer)
-  end
-
-  xit "should set NUMBER column type as decimal if column name does not contain 'id' and emulate_integers_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
-    columns = @conn.columns('test2_employees')
-    column = columns.detect{|c| c.name == "salary"}
-    expect(column.type).to eq(:decimal)
-  end
-
-  xit "should return BigDecimal value from NUMBER column if emulate_integers_by_column_name is false" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
-    columns = @conn.columns('test2_employees')
-    column = columns.detect{|c| c.name == "job_id"}
-    expect(@conn.lookup_cast_type_from_column(column).cast(1.0).class).to eq(BigDecimal)
-  end
-
-  xit "should return Fixnum value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
-    columns = @conn.columns('test2_employees')
-    column = columns.detect{|c| c.name == "job_id"}
-    expect(@conn.lookup_cast_type_from_column(column).cast(1.0).class).to eq(Fixnum)
   end
 
   describe "/ NUMBER values from ActiveRecord model" do
@@ -442,69 +346,10 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     end
   end
 
-  xit "should set CHAR/VARCHAR2 column type as string if emulate_booleans_from_strings is false" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
-    columns = @conn.columns('test3_employees')
-    %w(has_email has_phone active_flag manager_yn).each do |col|
-      column = columns.detect{|c| c.name == col}
-      expect(column.type).to eq(:string)
-    end
-  end
-
-  xit "should set CHAR/VARCHAR2 column type as boolean if emulate_booleans_from_strings is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
-    columns = @conn.columns('test3_employees')
-    %w(has_email has_phone active_flag manager_yn).each do |col|
-      column = columns.detect{|c| c.name == col}
-      expect(column.type).to eq(:boolean)
-    end
-  end
-
-  xit "should set VARCHAR2 column type as string if column name does not contain 'flag' or 'yn' and emulate_booleans_from_strings is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
-    columns = @conn.columns('test3_employees')
-    %w(phone_number email).each do |col|
-      column = columns.detect{|c| c.name == col}
-      expect(column.type).to eq(:string)
-    end
-  end
-
-  xit "should return string value from VARCHAR2 boolean column if emulate_booleans_from_strings is false" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
-    columns = @conn.columns('test3_employees')
-    %w(has_email has_phone active_flag manager_yn).each do |col|
-      column = columns.detect{|c| c.name == col}
-      expect(@conn.lookup_cast_type_from_column(column).cast("Y").class).to eq(String)
-    end
-  end
-
-  xit "should return boolean value from VARCHAR2 boolean column if emulate_booleans_from_strings is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
-    columns = @conn.columns('test3_employees')
-    %w(has_email has_phone active_flag manager_yn).each do |col|
-      column = columns.detect{|c| c.name == col}
-      expect(@conn.lookup_cast_type_from_column(column).cast("Y").class).to eq(TrueClass)
-      expect(@conn.lookup_cast_type_from_column(column).cast("N").class).to eq(FalseClass)
-    end
-  end
-
-  xit "should translate boolean type to VARCHAR2(1) if emulate_booleans_from_strings is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
-    expect(ActiveRecord::Base.connection.type_to_sql(
-      :boolean, nil, nil, nil)).to eq("VARCHAR2(1)")
-  end
-
   it "should translate boolean type to NUMBER(1) if emulate_booleans_from_strings is false" do
     # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
     expect(ActiveRecord::Base.connection.type_to_sql(
       :boolean, nil, nil, nil)).to eq("NUMBER(1)")
-  end
-
-  xit "should get default value from VARCHAR2 boolean column if emulate_booleans_from_strings is true" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
-    columns = @conn.columns('test3_employees')
-    expect(columns.detect{|c| c.name == 'has_phone'}.default).to be_truthy
-    expect(columns.detect{|c| c.name == 'manager_yn'}.default).to be_falsey
   end
 
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do
@@ -780,21 +625,6 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
     create_test_employee
     expect(@employee.created_at_ts.class).to eq(Time)
     expect(@employee.created_at_ts).to eq(@now)
-  end
-
-  xit "should quote Date values with TO_DATE" do
-    expect(@conn.quote(@today)).to eq("TO_DATE('#{@today.year}-#{"%02d" % @today.month}-#{"%02d" % @today.day}','YYYY-MM-DD HH24:MI:SS')")
-  end
-
-  xit "should quote Time values with TO_DATE" do
-    expect(@conn.quote(@now)).to eq("TO_DATE('#{@now.year}-#{"%02d" % @now.month}-#{"%02d" % @now.day} "+
-                                "#{"%02d" % @now.hour}:#{"%02d" % @now.min}:#{"%02d" % @now.sec}','YYYY-MM-DD HH24:MI:SS')")
-  end
-
-  xit "should quote Time values with TO_TIMESTAMP" do
-    @ts = @now + 0.1
-    expect(@conn.quote(@ts)).to eq("TO_TIMESTAMP('#{@ts.year}-#{"%02d" % @ts.month}-#{"%02d" % @ts.day} "+
-                                "#{"%02d" % @ts.hour}:#{"%02d" % @ts.min}:#{"%02d" % @ts.sec}:100000','YYYY-MM-DD HH24:MI:SS:FF6')")
   end
 
 end
@@ -1491,15 +1321,6 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
   after(:each) do
     Object.send(:remove_const, "TestItem")
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
-  end
-
-  xit "should set nchar instance variable" do
-    columns = @conn.columns('test_items')
-    %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
-      column = columns.detect{|c| c.name == col}
-      expect(column.type).to eq(:string)
-      expect(column.nchar).to eq(col[0,1] == 'n' ? true : nil)
-    end
   end
 
   it "should quote with N prefix" do
