@@ -5,7 +5,7 @@ group :development do
   gem 'rdoc'
   gem 'rake'
 
-  gem 'activerecord',   github: 'rails/rails', branch: 'master'
+  gem 'activerecord',   github: 'rails/rails', branch: '5-0-stable'
   gem 'rack',           github: 'rack/rack', branch: 'master'
   gem 'arel',           github: 'rails/arel', branch: 'master'
 
