@@ -12,23 +12,14 @@ Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby o
 
 INSTALLATION
 ------------
-### Rails 5 - in branch rails5
+### Rails 5
 
-Rails 5 is still in pre release, so use with caution.
+Oracle enhanced adapter Rails 5 support is still in beta release, so use with caution.
 
-```bash
-#clone repo
-git clone https://github.com/rsim/oracle-enhanced.git
-cd oracle-enhanced
-git checkout rails5
-bundle config local.activerecord-oracle_enhanced-adapter [/path/to]/oracle-enhanced
-```
 ```ruby
 # Use oracle as the database for Active Record
-gem 'ruby-oci8'
-gem 'activerecord-oracle_enhanced-adapter', :github => 'activerecord-oracle_enhanced-adapter', :branch => 'rails5'
+gem 'activerecord-oracle_enhanced-adapter', '=> 1.7.0.beta1'
 ```
-
 
 ### Rails 4.2
 
