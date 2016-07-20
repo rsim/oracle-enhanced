@@ -91,29 +91,6 @@ describe "OracleEnhancedAdapter structure dump" do
       expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\)/i)
     end
     
-    it "should dump composite foreign keys" do
-      skip "Composite foreign keys are not supported in this version"
-      @conn.add_column :foos, :fooz_id, :integer
-      @conn.add_column :foos, :baz_id, :integer
-      
-      @conn.execute <<-SQL
-        ALTER TABLE FOOS 
-        ADD CONSTRAINT UK_FOOZ_BAZ UNIQUE (BAZ_ID,FOOZ_ID)
-      SQL
-      
-      @conn.add_column :test_posts, :fooz_id, :integer
-      @conn.add_column :test_posts, :baz_id, :integer
-            
-      @conn.execute <<-SQL
-        ALTER TABLE TEST_POSTS
-        ADD CONSTRAINT fk_test_post_fooz_baz FOREIGN KEY (baz_id,fooz_id) REFERENCES foos(baz_id,fooz_id)
-      SQL
-      
-      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
-      expect(dump.split('\n').length).to eq(1)
-      expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOOZ_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\,\"?FOOZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\,\"?FOOZ_ID\"?\)/i)
-    end
-  
     it "should not error when no foreign keys are present" do
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       expect(dump.split('\n').length).to eq(0)

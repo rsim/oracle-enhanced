@@ -225,24 +225,6 @@ describe "OracleEnhancedAdapter schema dump" do
       expect(standard_dump(ignore_tables: [ /test_posts/i ])).to match(/add_foreign_key "test_comments"/)
     end
 
-    it "should include composite foreign keys" do
-      skip "Composite foreign keys are not supported in this version"
-      schema_define do
-        add_column :test_posts, :baz_id, :integer
-        add_column :test_posts, :fooz_id, :integer
-
-        execute <<-SQL
-          ALTER TABLE TEST_POSTS
-          ADD CONSTRAINT UK_FOOZ_BAZ UNIQUE (BAZ_ID,FOOZ_ID)
-        SQL
-
-        add_column :test_comments, :baz_id, :integer
-        add_column :test_comments, :fooz_id, :integer
-
-        add_foreign_key :test_comments, :test_posts, columns: ["baz_id", "fooz_id"], name: 'comments_posts_baz_fooz_fk'
-      end
-      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", columns: \["baz_id", "fooz_id"\], name: "comments_posts_baz_fooz_fk"/)
-    end
     it "should include foreign keys following all tables" do
       # if foreign keys preceed declaration of all tables
       # it can cause problems when using db:test rake tasks
