@@ -1070,7 +1070,7 @@ module ActiveRecord
         SQL
 
         warn <<-WARNING.strip_heredoc if pks.count > 1
-          WARNING: Rails does not support composite primary key.
+          WARNING: Active Record does not support composite primary key.
 
           #{table_name} has composite primary key. Composite primary key is ignored.
         WARNING
