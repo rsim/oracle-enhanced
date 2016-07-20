@@ -1,14 +1,5 @@
 module ActiveRecord
   module ConnectionAdapters
-    #TODO: Overriding `aliased_types` cause another database adapter behavior changes
-    #It should be addressed by supporting `create_table_definition`
-    class TableDefinition
-      private
-      def aliased_types(name, fallback)
-        fallback
-      end
-    end
-
     module OracleEnhanced
 
       class ForeignKeyDefinition < ActiveRecord::ConnectionAdapters::ForeignKeyDefinition
