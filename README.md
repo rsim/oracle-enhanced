@@ -460,6 +460,14 @@ Post.contains(:all_text, "aaa within title")
 Post.contains(:all_text, "bbb within comment_author")
 ```
 
+Please note that `index_column` must be a real column in your database and it's value will be overriden every time your `index_column_trigger_on` columns are changed. So, _do not use columns with real data as `index_column`_.
+
+Index column can be created as:
+
+```ruby
+add_column :posts, :all_text, :string, limit: 2, comment: 'Service column for context search index'
+```
+
 ### Oracle virtual columns support
 
 Since version R11G1 Oracle database allows adding computed [Virtual Columns](http://www.oracle-base.com/articles/11g/virtual-columns-11gr1.php) to the table.
