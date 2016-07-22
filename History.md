@@ -1,3 +1,30 @@
+## 1.7.0.beta2 / 2016-07-22
+
+* Changes and bug fixes
+
+ * Support CLOB for JRuby [#926, #910, #911]
+ * Arel 7.1.0 or higher version is required [#919]
+ * Document usage of ActiveRecord Attributes API in 1.7 [#924]
+ * Add a note about usage pecularities of context_index's index_column option to README [#924]
+ * Set required_ruby_version = '>= 2.2.2' [#916]
+ * Remove ActiveRecord::ConnectionAdapters::TableDefinition#aliased_types [#921]
+ * Update warning message for composite primary keys [#923]
+ * Remove specs deprecated in Oracle enhanced adapter 1.7 [#917]
+
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : create table with primary key trigger with default primary key not returning id [#912]
+ * Rails 5 : SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', '
+    show Java::JavaSql::SQLSyntaxErrorException: / ORA-01722: invalid number [#909]
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+ - CRuby and JRuby
+ * Rails 5 : create table with primary key trigger not returning id [#907]
+ * Rails 5 : custom methods for create, update and destroy not working [#906]
+ * Rails 5 : has_and_belongs_to_many test gets ORA-01400 since primary key column "ID"
+    not included in insert statement [#856, rails/rails#25388]
+ * Rails 5 : undefined method `to_i' for #<Arel::Nodes::BindParam:0x00000002c92910> [#848, rails/arel#438]
+
 ## 1.7.0.beta1 / 2016-07-18
 
 * Major enhancements
