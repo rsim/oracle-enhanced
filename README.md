@@ -258,6 +258,43 @@ class Employee < ActiveRecord::Base
   # specify sequence name
   self.sequence_name = "hr.hr_employee_s"
 
+  # set which DATE columns should be converted to Ruby Date using ActiveRecord Attribute API
+  attribute :hired_on, :date
+  attribute :birth_date_on, :date
+
+  # set which DATE columns should be converted to Ruby Time using ActiveRecord Attribute API
+  attribute :last_login_time, :datetime
+
+  # set which VARCHAR2 columns should be converted to true and false using ActiveRecord Attribute API
+  attribute :manager, :boolean
+  attribute :active, :boolean
+
+  # set which columns should be ignored in ActiveRecord
+  ignore_table_columns :attribute1, :attribute2
+end
+```
+
+You can also access remote tables over database link using
+
+```ruby
+self.table_name "hr_employees@db_link"
+```
+
+Examples for Rails 4.x
+
+```ruby
+class Employee < ActiveRecord::Base
+  # specify schema and table name
+  self.table_name = "hr.hr_employees"
+
+  # specify primary key name
+  self.primary_key = "employee_id"
+
+  # specify sequence name
+  self.sequence_name = "hr.hr_employee_s"
+
+  # If you're using Rails 4.2 or earlier you can do this
+
   # set which DATE columns should be converted to Ruby Date
   set_date_columns :hired_on, :birth_date_on
 
@@ -270,12 +307,6 @@ class Employee < ActiveRecord::Base
   # set which columns should be ignored in ActiveRecord
   ignore_table_columns :attribute1, :attribute2
 end
-```
-
-You can also access remote tables over database link using
-
-```ruby
-self.table_name "hr_employees@db_link"
 ```
 
 Examples for Rails 3.2 and lower version of Rails
@@ -427,6 +458,14 @@ Post.contains(:all_text, 'word')
 # search in specified column
 Post.contains(:all_text, "aaa within title")
 Post.contains(:all_text, "bbb within comment_author")
+```
+
+Please note that `index_column` must be a real column in your database and it's value will be overriden every time your `index_column_trigger_on` columns are changed. So, _do not use columns with real data as `index_column`_.
+
+Index column can be created as:
+
+```ruby
+add_column :posts, :all_text, :string, limit: 2, comment: 'Service column for context search index'
 ```
 
 ### Oracle virtual columns support
