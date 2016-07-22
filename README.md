@@ -259,6 +259,7 @@ class Employee < ActiveRecord::Base
   self.sequence_name = "hr.hr_employee_s"
 
   # set which DATE columns should be converted to Ruby Date using ActiveRecord Attribute API
+  # Starting from Oracle enhanced adapter 1.7 Oracle `DATE` columns are mapped to Ruby `Date` by default.
   attribute :hired_on, :date
   attribute :birth_date_on, :date
 
