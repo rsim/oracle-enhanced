@@ -361,7 +361,7 @@ module ActiveRecord
             @raw_statement.setBigDecimal(position, value)
           when Java::OracleSql::BLOB
             @raw_statement.setBlob(position, value)
-          when ActiveRecord::OracleEnhanced::Type::Text::Data
+          when Java::OracleSql::CLOB
             @raw_statement.setClob(position, value)
           when ActiveRecord::OracleEnhanced::Type::Raw
             @raw_statement.setString(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))

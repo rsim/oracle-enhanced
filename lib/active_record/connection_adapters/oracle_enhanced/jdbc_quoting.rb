@@ -9,8 +9,9 @@ module ActiveRecord
             blob.setBytes(1, value.to_s.to_java_bytes)
             blob
           when ActiveRecord::OracleEnhanced::Type::Text::Data
-            #TODO: may need CLOB specific handling
-            value.to_s
+            clob = Java::OracleSql::CLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::CLOB::DURATION_SESSION)
+            clob.setString(1, value.to_s)
+            clob
           when Date, DateTime
             Java::oracle.sql.DATE.new(value.strftime("%Y-%m-%d %H:%M:%S"))
           when Time
