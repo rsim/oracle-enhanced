@@ -254,7 +254,9 @@ describe "OracleEnhancedConnection" do
       type_metadata = ActiveRecord::ConnectionAdapters::SqlTypeMetadata.new(sql_type: "NUMBER", type: :decimal, limit: 10, precision: nil, scale: 2)
       column = ActiveRecord::ConnectionAdapters::OracleEnhancedColumn.new('age', nil, type_metadata, false, "test_employees", false, false, nil)
       expect(column.type).to eq(:decimal)
-      cursor.bind_param(1, "1.5", column)
+      # Here 1.5 expects that this value has been type casted already
+      # it should use bind_params in the long term.
+      cursor.bind_param(1, 1.5)
       cursor.exec
       cursor.close
       cursor = @conn.prepare("SELECT age FROM test_employees")
