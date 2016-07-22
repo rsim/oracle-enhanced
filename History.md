@@ -10,6 +10,9 @@
  * Remove ActiveRecord::ConnectionAdapters::TableDefinition#aliased_types [#921]
  * Update warning message for composite primary keys [#923]
  * Remove specs deprecated in Oracle enhanced adapter 1.7 [#917]
+ * Rails 5 : has_and_belongs_to_many test gets ORA-01400 since primary key column "ID"
+    not included in insert statement [#856, rails/rails#25388, rails/rails#25578 ]
+   - This fix will be included in the next version of Rails which should be named 5.0.1
 
 * Known issues
 
@@ -21,8 +24,6 @@
  - CRuby and JRuby
  * Rails 5 : create table with primary key trigger not returning id [#907]
  * Rails 5 : custom methods for create, update and destroy not working [#906]
- * Rails 5 : has_and_belongs_to_many test gets ORA-01400 since primary key column "ID"
-    not included in insert statement [#856, rails/rails#25388]
  * Rails 5 : undefined method `to_i' for #<Arel::Nodes::BindParam:0x00000002c92910> [#848, rails/arel#438]
 
 ## 1.7.0.beta1 / 2016-07-18
