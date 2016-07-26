@@ -108,12 +108,17 @@ module ActiveRecord
               cursor = @statements[sql]
 
               cursor.bind_params(type_casted_binds)
+
+              if sql =~ /:returning_id/
+                returning_id_index = 1
+                cursor.bind_returning_param(returning_id_index, Integer) if ORACLE_ENHANCED_CONNECTION == :jdbc
+              end
+
             end
 
             cursor.exec_update
 
             rows = []
-            returning_id_index = 1 if sql =~ /:returning_id/
             if returning_id_index
               returning_id = cursor.get_returning_param(returning_id_index, Integer).to_i
               rows << [returning_id]
