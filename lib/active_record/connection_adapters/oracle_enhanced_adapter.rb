@@ -497,10 +497,7 @@ module ActiveRecord
         :integer     => { :name => "NUMBER", :limit => 38 },
         :float       => { :name => "BINARY_FLOAT" },
         :decimal     => { :name => "DECIMAL" },
-        #TODO: Needs to consider to support :datetime as DATE 
         :datetime    => { :name => "TIMESTAMP" },
-        # changed to native TIMESTAMP type
-        # :timestamp   => { :name => "DATE" },
         :timestamp   => { :name => "TIMESTAMP" },
         :time        => { :name => "TIMESTAMP" },
         :date        => { :name => "DATE" },
