@@ -142,14 +142,14 @@ module ActiveRecord
 
           if column && column.object_type?
             @raw_cursor.bind_param(position, value, :named_type, column.sql_type)
-          elsif value.nil?
-            @raw_cursor.bind_param(position, nil, String)
           else
-            case col_type = column && column.type
-            when :raw
+            case value
+            when ActiveRecord::OracleEnhanced::Type::Raw
               @raw_cursor.bind_param(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))
-            when :decimal
+            when ActiveModel::Type::Decimal
               @raw_cursor.bind_param(position, BigDecimal.new(value.to_s))
+            when NilClass
+              @raw_cursor.bind_param(position, nil, String)
             else
               @raw_cursor.bind_param(position, value)
             end
