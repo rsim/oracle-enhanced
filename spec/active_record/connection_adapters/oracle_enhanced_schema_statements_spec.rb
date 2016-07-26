@@ -72,7 +72,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
     it "should return sequence name without truncating too much" do
       seq_name_length = ActiveRecord::Base.connection.sequence_name_length
-      tname = "#{DATABASE_USER}" + "." +"a"*(seq_name_length - DATABASE_USER.length) + "z"*(DATABASE_USER).length
+      tname = "#{DATABASE_USER}" + "." + "a"*(seq_name_length - DATABASE_USER.length) + "z"*(DATABASE_USER).length
       expect(ActiveRecord::Base.connection.default_sequence_name(tname)).to match (/z_seq$/)
     end
   end
