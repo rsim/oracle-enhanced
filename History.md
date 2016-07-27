@@ -1,3 +1,25 @@
+## 1.7.0.beta4 / 2016-07-27
+
+* Changes and bug fixes
+
+ * Call `bind_returning_param` when sql has returning_id and using JRuby [#937]
+ * Remove unused `col_type` to avoid warnings [#934]
+ * Remove TODO comment since Oracle DATE type can be mapped Rails Datetime with attribute API [#935]
+ * Remove rspec from runtime dependency [#933]
+ * Rename `add_dependency` to `add_runtime_dependency` [#933]
+ * Remove warnings for + when tested with JRuby 9.1.2 [#936]
+
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : create table with primary key trigger with default primary key not returning id [#912]
+    * #937 addresses two failures reported in #912
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+ - CRuby and JRuby
+ * Rails 5 : create table with primary key trigger not returning id [#907]
+ * Rails 5 : custom methods for create, update and destroy not working [#906]
+ * Rails 5 : undefined method `to_i' for #<Arel::Nodes::BindParam:0x00000002c92910> [#848, rails/arel#438]
+
 ## 1.7.0.beta3 / 2016-07-22
 
 * Changes and bug fixes
