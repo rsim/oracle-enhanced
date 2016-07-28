@@ -438,7 +438,7 @@ describe "OracleEnhancedAdapter schema definition" do
     it "should raise error when new table name length is too long" do
       expect do
         @conn.rename_table("test_employees","a"*31)
-      end.to raise_error
+      end.to raise_error(ArgumentError)
     end
 
     it "should not raise error when new sequence name length is too long" do
@@ -542,19 +542,19 @@ describe "OracleEnhancedAdapter schema definition" do
     it "should raise error when current index name and new index name are identical" do
       expect do
         @conn.rename_index("test_employees","i_test_employees_first_name","i_test_employees_first_name")
-      end.to raise_error
+      end.to raise_error(ActiveRecord::StatementInvalid)
     end
 
     it "should raise error when new index name length is too long" do
       expect do
         @conn.rename_index("test_employees","i_test_employees_first_name","a"*31)
-      end.to raise_error
+      end.to raise_error(ArgumentError)
     end
 
     it "should raise error when current index name does not exist" do
       expect do
         @conn.rename_index("test_employees","nonexist_index_name","new_index_name")
-      end.to raise_error
+      end.to raise_error(ArgumentError)
     end
 
     it "should rename index name with new one" do
@@ -930,7 +930,7 @@ end
     it "should disable all foreign keys" do
       expect do
         @conn.execute "INSERT INTO test_comments (id, body, test_post_id) VALUES (1, 'test', 1)"
-      end.to raise_error
+      end.to raise_error(ActiveRecord::InvalidForeignKey)
       @conn.disable_referential_integrity do
         expect do
           @conn.execute "INSERT INTO test_comments (id, body, test_post_id) VALUES (2, 'test', 2)"
@@ -939,7 +939,7 @@ end
       end
       expect do
         @conn.execute "INSERT INTO test_comments (id, body, test_post_id) VALUES (3, 'test', 3)"
-      end.to raise_error
+      end.to raise_error(ActiveRecord::InvalidForeignKey)
     end
 
   end
