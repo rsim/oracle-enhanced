@@ -1,3 +1,18 @@
+## 1.7.0.beta5 / 2016-07-28
+
+* Changes and bug fixes
+
+ * Use binds.size to set returning_id_index for returning_id [#907, #912 and #939]
+
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+ - CRuby and JRuby
+ * Rails 5 : custom methods for create, update and destroy not working [#906]
+ * Rails 5 : undefined method `to_i' for #<Arel::Nodes::BindParam:0x00000002c92910> [#848, rails/arel#438]
+    * #848 reproduces when database version is 11gR2 or older, it does not reproduce with 12c
+
 ## 1.7.0.beta4 / 2016-07-27
 
 * Changes and bug fixes
