@@ -154,7 +154,7 @@ module ActiveRecord #:nodoc:
             # changed in place.
             update_using_custom_method(changed | (attributes.keys & self.class.columns.select {|column| column.is_a?(Type::Serialized)}))
           else
-            update_using_custom_method(attribute_names)
+            update_using_custom_method(attributes.keys)
           end
         end
       else
