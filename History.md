@@ -1,3 +1,21 @@
+## 1.7.0.beta7 / 2016-08-01
+
+* Changes and bug fixes
+
+ * Use OracleEnhanced::SchemaDumper#tables and #table
+   only if they have Oracle enhanced specific features [#947, #797]
+
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+ - CRuby and JRuby
+ * Rails 5 : custom methods for create record when exception is raised in after_create callback fails [#944]
+ * Rails 5 : emulate_booleans_from_strings support [#942]
+ * Rails 5 : undefined method `to_i' for #<Arel::Nodes::BindParam:0x00000002c92910> [#848, rails/arel#438]
+    * #848 reproduces when database version is 11gR2 or older, it does not reproduce with 12c
+    * One of the units test skipped when database version is 11gR2 or lower. [#946]
+
 ## 1.7.0.beta6 / 2016-07-29
 
 * Changes and bug fixes
