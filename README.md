@@ -18,7 +18,7 @@ Oracle enhanced adapter Rails 5 support is still in beta release, so use with ca
 
 ```ruby
 # Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.7.0.beta6'
+gem 'activerecord-oracle_enhanced-adapter', '~> 1.7.0.beta7'
 ```
 
 ### Rails 4.2
