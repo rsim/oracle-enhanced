@@ -86,6 +86,7 @@ module ActiveRecord #:nodoc:
         end
 
         def table(table, stream)
+          return super unless @connection.respond_to?(:temporary_table?)
           columns = @connection.columns(table)
           begin
             tbl = StringIO.new
