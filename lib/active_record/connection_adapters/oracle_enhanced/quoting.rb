@@ -106,9 +106,19 @@ module ActiveRecord
           "1"
         end
 
+        def unquoted_true #:nodoc:
+          return "#{self.class.boolean_to_string(true)}" if emulate_booleans_from_strings
+          "1".freeze
+        end
+
         def quoted_false #:nodoc:
           return "'#{self.class.boolean_to_string(false)}'" if emulate_booleans_from_strings
           "0"
+        end
+
+        def unquoted_false #:nodoc:
+          return "#{self.class.boolean_to_string(false)}" if emulate_booleans_from_strings
+          "0".freeze
         end
 
         def quote_date_with_to_date(value) #:nodoc:
@@ -138,13 +148,6 @@ module ActiveRecord
 
         def _type_cast(value)
           case value
-          when true, false
-            #if emulate_booleans_from_strings || column && column.type == :string
-            if emulate_booleans_from_strings
-              self.class.boolean_to_string(value)
-            else
-              value ? 1 : 0
-            end
           when Date, Time
             if value.acts_like?(:time)
               zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
