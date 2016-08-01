@@ -6,6 +6,7 @@ module ActiveRecord #:nodoc:
         private
 
         def tables(stream)
+          return super unless @connection.respond_to?(:materialized_views)
           # do not include materialized views in schema dump - they should be created separately after schema creation
           sorted_tables = (@connection.data_sources - @connection.materialized_views).sort
           sorted_tables.each do |tbl|
