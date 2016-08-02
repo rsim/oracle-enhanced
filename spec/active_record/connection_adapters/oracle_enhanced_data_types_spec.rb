@@ -316,7 +316,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   describe "default values in new records" do
     context "when emulate_booleans_from_strings is false" do
       before do
-        # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
       end
 
       it "are Y or N" do
@@ -328,7 +328,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
     context "when emulate_booleans_from_strings is true" do
       before do
-        #ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
       end
 
       it "are True or False" do
@@ -344,14 +344,14 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   end
 
   it "should translate boolean type to NUMBER(1) if emulate_booleans_from_strings is false" do
-    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
     expect(ActiveRecord::Base.connection.type_to_sql(
       :boolean, nil, nil, nil)).to eq("NUMBER(1)")
   end
 
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do
     before(:each) do
-      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
     end
 
     after(:each) do
@@ -373,7 +373,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     end
 
     it "should return String value from VARCHAR2 boolean column if emulate_booleans_from_strings is false" do
-      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
       create_employee3
       %w(has_email has_phone active_flag manager_yn).each do |col|
         expect(@employee3.send(col.to_sym).class).to eq(String)
@@ -400,7 +400,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     end
 
     it "should return string value from VARCHAR2 column if it is not boolean column and emulate_booleans_from_strings is true" do
-      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
       create_employee3
       expect(@employee3.first_name.class).to eq(String)
     end
@@ -426,7 +426,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     end
 
     it "should return string value from VARCHAR2 column with boolean column name but is specified in set_string_columns" do
-      # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
       # Test3Employee.set_string_columns :active_flag
       class ::Test3Employee < ActiveRecord::Base
         attribute :active_flag, :string
