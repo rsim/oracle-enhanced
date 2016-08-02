@@ -303,19 +303,27 @@ module ActiveRecord
       # Is used if +emulate_dates_by_column_name+ option is set to +true+.
       # Override this method definition in initializer file if different Date column recognition is needed.
       def self.is_date_column?(name, table_name = nil)
-        name =~ /(^|_)date(_|$)/i
+        ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          `self.is_date_column?` has been deprecated. Please use Rails attribute API.
+        MSG
+        return false
+        # name =~ /(^|_)date(_|$)/i
       end
 
       # instance method uses at first check if column type defined at class level
       def is_date_column?(name, table_name = nil) #:nodoc:
-        case get_type_for_column(table_name, name)
-        when nil
-          self.class.is_date_column?(name, table_name)
-        when :date
-          true
-        else
-          false
-        end
+        ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          `is_date_column?` has been deprecated. Please use Rails attribute API.
+        MSG
+        return false
+        #case get_type_for_column(table_name, name)
+        #when nil
+        #  self.class.is_date_column?(name, table_name)
+        #when :date
+        #  true
+        #else
+        #  false
+        #end
       end
 
       ##
