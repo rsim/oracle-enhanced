@@ -341,7 +341,10 @@ module ActiveRecord
       # Is used if +emulate_integers_by_column_name+ option is set to +true+.
       # Override this method definition in initializer file if different Integer column recognition is needed.
       def self.is_integer_column?(name, table_name = nil)
-        name =~ /(^|_)id$/i
+        ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          `is_integer_column?` has been deprecated. Please use Rails attribute API.
+        MSG
+        return false
       end
 
       ##
