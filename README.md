@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/rsim/oracle-enhanced.svg?branch=master)](https://travis-ci.org/rsim/oracle-enhanced)
-
 activerecord-oracle_enhanced-adapter
 ====================================
 
@@ -8,17 +6,18 @@ Oracle enhanced adapter for ActiveRecord
 DESCRIPTION
 -----------
 
-Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 4.0 and it is working with Oracle database versions from 10g to 12c.
+Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 5.0 and it is working with Oracle database versions from 10g to 12c.
 
 INSTALLATION
 ------------
-### Rails 5
+### Rails 5.0
 
-Oracle enhanced adapter Rails 5 support is still in beta release, so use with caution.
+Oracle enhanced adapter version 1.7 just supports Rails 5.0 and does not support Rails 4.2 or lower version of Rails.
+When using Ruby on Rails version 5.0 then in Gemfile include
 
 ```ruby
 # Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.7.0.rc1'
+gem 'activerecord-oracle_enhanced-adapter', '~> 1.7.0'
 ```
 
 ### Rails 4.2
