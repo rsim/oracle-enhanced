@@ -1,3 +1,25 @@
+## 1.7.0.rc1 / 2016-08-02
+
+* Changes and bug fixes
+
+ * Support `emulate_booleans_from_strings` in Rails 5 [#953, #942]
+ * Deprecate `self.is_boolean_column?` [#949]
+ * Deprecate `self.is_date_column?` and `is_date_column?` [#950]
+ * Deprecate `set_type_for_columns`, `set_type_for_columns` and `clear_types_for_columns` [#951]
+ * Deprecate `self.is_integer_column?` [#952]
+
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+    * Workaround: execute explain without bind or use CRuby
+ - CRuby and JRuby
+ * Rails 5 : custom methods for create record when exception is raised in after_create callback fails [#944]
+ * Rails 5 : specs need update to emulate_booleans_from_strings [#942]
+ * Rails 5 : undefined method `to_i' for #<Arel::Nodes::BindParam:0x00000002c92910> [#848, rails/arel#438]
+    * #848 reproduces when database version is 11gR2 or older, it does not reproduce with 12c
+    * One of the units test skipped when database version is 11gR2 or lower. [#946]
+
 ## 1.7.0.beta7 / 2016-08-01
 
 * Changes and bug fixes
