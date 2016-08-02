@@ -892,20 +892,22 @@ module ActiveRecord
 
       # set explicit type for specified table columns
       def set_type_for_columns(table_name, column_type, *args) #:nodoc:
-        @@table_column_type ||= {}
-        @@table_column_type[table_name] ||= {}
-        args.each do |col|
-          @@table_column_type[table_name][col.to_s.downcase] = column_type
-        end
+        ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          `set_type_for_columns` has been deprecated. Please use Rails attribute API.
+        MSG
       end
 
       def get_type_for_column(table_name, column_name) #:nodoc:
-        @@table_column_type && @@table_column_type[table_name] && @@table_column_type[table_name][column_name.to_s.downcase]
+        ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          `get_type_for_columns` has been deprecated. Please use Rails attribute API.
+        MSG
       end
 
       # used just in tests to clear column data type definitions
       def clear_types_for_columns #:nodoc:
-        @@table_column_type = nil
+        ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          `clear_types_for_columns` has been deprecated. Please use Rails attribute API.
+        MSG
       end
 
       # check if table has primary key trigger with _pkt suffix

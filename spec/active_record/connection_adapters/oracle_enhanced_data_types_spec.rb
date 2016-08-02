@@ -58,7 +58,6 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     after(:each) do
       # @employee.destroy if @employee
       Object.send(:remove_const, "TestEmployee")
-      @conn.clear_types_for_columns
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
@@ -186,7 +185,6 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
     
     after(:each) do
       Object.send(:remove_const, "Test2Employee")
-      @conn.clear_types_for_columns
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
@@ -312,7 +310,6 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
   after(:each) do
     Object.send(:remove_const, "Test3Employee")
-    @conn.clear_types_for_columns
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
   end
 
@@ -358,7 +355,6 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
     end
 
     after(:each) do
-      @conn.clear_types_for_columns
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
