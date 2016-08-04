@@ -103,7 +103,7 @@ module ActiveRecord
 
         def quoted_true #:nodoc:
           return "'#{self.class.boolean_to_string(true)}'" if emulate_booleans_from_strings
-          "1"
+          "1".freeze
         end
 
         def unquoted_true #:nodoc:
@@ -113,7 +113,7 @@ module ActiveRecord
 
         def quoted_false #:nodoc:
           return "'#{self.class.boolean_to_string(false)}'" if emulate_booleans_from_strings
-          "0"
+          "0".freeze
         end
 
         def unquoted_false #:nodoc:
