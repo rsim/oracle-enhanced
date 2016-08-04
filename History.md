@@ -1,3 +1,11 @@
+## 1.7.0 / 2016-08-04
+
+* Changes and bug fixes
+ * No changes since 1.7.0.rc1
+
+* Known issues
+ * No changes since 1.7.0.rc1
+
 ## 1.7.0.rc1 / 2016-08-02
 
 * Changes and bug fixes
