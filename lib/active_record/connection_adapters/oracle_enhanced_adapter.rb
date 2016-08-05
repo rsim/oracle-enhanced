@@ -1262,7 +1262,7 @@ module ActiveRecord
       end
 
       protected
-      def log(sql, name = "SQL", binds = [], statement_name = nil) #:nodoc:
+      def log(sql, name = "SQL", binds = [], type_casted_binds = [], statement_name = nil)
         super
       ensure
         log_dbms_output if dbms_output_enabled?
