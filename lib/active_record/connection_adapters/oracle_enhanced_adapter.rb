@@ -54,59 +54,6 @@ module ActiveRecord
       connection.ignore_table_columns(table_name,*args)
     end
 
-    # Specify which table columns should be typecasted to Date (without time), e.g.:
-    #
-    #   set_date_columns :created_on, :updated_on
-    def self.set_date_columns(*args)
-      ActiveSupport::Deprecation.warn(<<-MSG.squish)
-        'set_date_columns` has been deprecated. Please use Rails attribute API.
-      MSG
-      # connection.set_type_for_columns(table_name,:date,*args)
-    end
-
-    # Specify which table columns should be typecasted to Time (or DateTime), e.g.:
-    #
-    #   set_datetime_columns :created_date, :updated_date
-    def self.set_datetime_columns(*args)
-      ActiveSupport::Deprecation.warn(<<-MSG.squish)
-        'set_datetime_columns` has been deprecated. Please use Rails attribute API.
-      MSG
-      # connection.set_type_for_columns(table_name,:datetime,*args)
-    end
-
-    # Specify which table columns should be typecasted to boolean values +true+ or +false+, e.g.:
-    #
-    #   set_boolean_columns :is_valid, :is_completed
-    def self.set_boolean_columns(*args)
-      ActiveSupport::Deprecation.warn(<<-MSG.squish)
-        'set_boolean_columns` has been deprecated. Please use Rails attribute API.
-      MSG
-      # connection.set_type_for_columns(table_name,:boolean,*args)
-    end
-
-    # Specify which table columns should be typecasted to integer values.
-    # Might be useful to force NUMBER(1) column to be integer and not boolean, or force NUMBER column without
-    # scale to be retrieved as integer and not decimal. Example:
-    #
-    #   set_integer_columns :version_number, :object_identifier
-    def self.set_integer_columns(*args)
-      ActiveSupport::Deprecation.warn(<<-MSG.squish)
-        'set_integer_columns` has been deprecated. Please use Rails attribute API.
-      MSG
-      # connection.set_type_for_columns(table_name,:integer,*args)
-    end
-
-    # Specify which table columns should be typecasted to string values.
-    # Might be useful to specify that columns should be string even if its name matches boolean column criteria.
-    #
-    #   set_string_columns :active_flag
-    def self.set_string_columns(*args)
-      ActiveSupport::Deprecation.warn(<<-MSG.squish)
-        'set_string_columns` has been deprecated. Please use Rails attribute API.
-      MSG
-      # connection.set_type_for_columns(table_name,:string,*args)
-    end
-
     # Get table comment from schema definition.
     def self.table_comment
       #TODO: may be deprecated
@@ -889,28 +836,6 @@ module ActiveRecord
       # used just in tests to clear ignored table columns
       def clear_ignored_table_columns #:nodoc:
         @@ignore_table_columns = nil
-      end
-
-      @@table_column_type = nil #:nodoc:
-
-      # set explicit type for specified table columns
-      def set_type_for_columns(table_name, column_type, *args) #:nodoc:
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          `set_type_for_columns` has been deprecated. Please use Rails attribute API.
-        MSG
-      end
-
-      def get_type_for_column(table_name, column_name) #:nodoc:
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          `get_type_for_columns` has been deprecated. Please use Rails attribute API.
-        MSG
-      end
-
-      # used just in tests to clear column data type definitions
-      def clear_types_for_columns #:nodoc:
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          `clear_types_for_columns` has been deprecated. Please use Rails attribute API.
-        MSG
       end
 
       # check if table has primary key trigger with _pkt suffix
