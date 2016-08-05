@@ -90,6 +90,5 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   s.add_runtime_dependency(%q<arel>, ["~> 7.1.0"])
   s.add_runtime_dependency(%q<ruby-plsql>, [">= 0.5.0"])
   s.add_runtime_dependency(%q<ruby-oci8>, [">= 2.2.0"]) if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
-  s.license = 'MIT'
 end
 
