@@ -205,20 +205,6 @@ module ActiveRecord
       cattr_accessor :emulate_booleans
       self.emulate_booleans = true
 
-      ##
-      # :singleton-method:
-      # By default, the OracleEnhancedAdapter will typecast all columns of type <tt>DATE</tt>
-      # to Time or DateTime (if value is out of Time value range) value.
-      # If you wish that DATE values with hour, minutes and seconds equal to 0 are typecasted
-      # to Date then you can add the following line to your initializer file:
-      #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates = true
-      #
-      # As this option can have side effects when unnecessary typecasting is done it is recommended
-      # that Date columns are explicily defined with +set_date_columns+ method.
-      cattr_accessor :emulate_dates
-      self.emulate_dates = false
-
        ##
         # :singleton-method:
         # OracleEnhancedAdapter will use the default tablespace, but if you want specific types of
@@ -231,20 +217,6 @@ module ActiveRecord
         # over these settings.
       cattr_accessor :default_tablespaces
       self.default_tablespaces={}
-
-      ##
-      # :singleton-method:
-      # By default, the OracleEnhancedAdapter will typecast all columns of type <tt>DATE</tt>
-      # to Time or DateTime (if value is out of Time value range) value.
-      # If you wish that DATE columns with "date" in their name (e.g. "creation_date") are typecasted
-      # to Date then you can add the following line to your initializer file:
-      #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
-      #
-      # As this option can have side effects when unnecessary typecasting is done it is recommended
-      # that Date columns are explicily defined with +set_date_columns+ method.
-      cattr_accessor :emulate_dates_by_column_name
-      self.emulate_dates_by_column_name = false
 
       ##
       # :singleton-method:

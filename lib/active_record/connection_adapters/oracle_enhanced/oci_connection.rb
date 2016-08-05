@@ -270,11 +270,7 @@ module ActiveRecord
             value
           end
         when Time, DateTime
-          if OracleEnhancedAdapter.emulate_dates && date_without_time?(value)
-            value.to_date
-          else
-            create_time_with_default_timezone(value)
-          end
+          create_time_with_default_timezone(value)
         else
           value
         end
