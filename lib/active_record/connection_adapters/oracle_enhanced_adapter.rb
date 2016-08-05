@@ -333,9 +333,7 @@ module ActiveRecord
       end
 
       def supports_datetime_with_precision?
-        #TODO: Needs to consider to return false to keep old behaviour
-        #to map :datetime as DATE
-        @connection.database_version.first >= 9
+        true
       end
 
       def supports_comments?
