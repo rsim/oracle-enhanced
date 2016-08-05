@@ -246,54 +246,6 @@ module ActiveRecord
       cattr_accessor :emulate_dates_by_column_name
       self.emulate_dates_by_column_name = false
 
-      # Check column name to identify if it is Date (and not Time) column.
-      # Is used if +emulate_dates_by_column_name+ option is set to +true+.
-      # Override this method definition in initializer file if different Date column recognition is needed.
-      def self.is_date_column?(name, table_name = nil)
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          `self.is_date_column?` has been deprecated. Please use Rails attribute API.
-        MSG
-        return false
-        # name =~ /(^|_)date(_|$)/i
-      end
-
-      # instance method uses at first check if column type defined at class level
-      def is_date_column?(name, table_name = nil) #:nodoc:
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          `is_date_column?` has been deprecated. Please use Rails attribute API.
-        MSG
-        return false
-        #case get_type_for_column(table_name, name)
-        #when nil
-        #  self.class.is_date_column?(name, table_name)
-        #when :date
-        #  true
-        #else
-        #  false
-        #end
-      end
-
-      ##
-      # :singleton-method:
-      # By default, the OracleEnhancedAdapter will typecast all columns of type <tt>NUMBER</tt>
-      # (without precision or scale) to Float or BigDecimal value.
-      # If you wish that NUMBER columns with name "id" or that end with "_id" are typecasted
-      # to Integer then you can add the following line to your initializer file:
-      #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
-      cattr_accessor :emulate_integers_by_column_name
-      self.emulate_integers_by_column_name = false
-
-      # Check column name to identify if it is Integer (and not Float or BigDecimal) column.
-      # Is used if +emulate_integers_by_column_name+ option is set to +true+.
-      # Override this method definition in initializer file if different Integer column recognition is needed.
-      def self.is_integer_column?(name, table_name = nil)
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          `is_integer_column?` has been deprecated. Please use Rails attribute API.
-        MSG
-        return false
-      end
-
       ##
       # :singleton-method:
       # If you wish that CHAR(1), VARCHAR2(1) columns or VARCHAR2 columns with FLAG or YN at the end of their name
@@ -302,18 +254,6 @@ module ActiveRecord
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
       cattr_accessor :emulate_booleans_from_strings
       self.emulate_booleans_from_strings = false
-
-      # Check column name to identify if it is boolean (and not String) column.
-      # Is used if +emulate_booleans_from_strings+ option is set to +true+.
-      # Override this method definition in initializer file if different boolean column recognition is needed.
-      def self.is_boolean_column?(name, sql_type, table_name = nil)
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          `is_boolean_column?` has been deprecated. Please use Rails attribute API.
-        MSG
-        return false
-        # return true if ["CHAR(1)","VARCHAR2(1)"].include?(sql_type)
-        # sql_type =~ /^VARCHAR2/ && (name =~ /_flag$/i || name =~ /_yn$/i)
-      end
 
       # How boolean value should be quoted to String.
       # Used if +emulate_booleans_from_strings+ option is set to +true+.
