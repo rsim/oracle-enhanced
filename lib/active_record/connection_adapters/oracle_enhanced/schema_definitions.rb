@@ -50,9 +50,6 @@ module ActiveRecord
             default = {:type => options[:type]}
             if options[:as]
               default[:as] = options[:as]
-            elsif options[:default]
-              warn "[DEPRECATION] virtual column `:default` option is deprecated.  Please use `:as` instead."
-              default[:as] = options[:default]
             else
               raise "No virtual column definition found."
             end

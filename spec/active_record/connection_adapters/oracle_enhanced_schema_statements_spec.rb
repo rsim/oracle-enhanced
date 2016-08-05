@@ -1122,35 +1122,6 @@ end
       skip "Not supported in this database version" unless @oracle11g_or_higher
     end
 
-    it 'should create virtual column with old syntax' do
-      schema_define do
-        create_table :test_fractions, :force => true do |t|
-          t.integer :field1
-          t.virtual :field2, :default => 'field1 + 1'
-        end
-      end
-      class ::TestFraction < ActiveRecord::Base
-        self.table_name = "test_fractions"
-      end
-
-      TestFraction.reset_column_information
-      tf = TestFraction.columns.detect { |c| c.virtual? }
-      expect(tf).not_to be nil
-      expect(tf.name).to eq("field2")
-      expect(tf.virtual?).to be true
-      expect do
-        tf = TestFraction.new(:field1=>10)
-        expect(tf.field2).to be nil # not whatever is in DATA_DEFAULT column
-        tf.save!
-        tf.reload
-      end.not_to raise_error
-      expect(tf.field2.to_i).to eq(11)
-
-      schema_define do
-        drop_table :test_fractions
-      end
-    end
-
     it 'should raise error if column expression is not provided' do
       expect {
         schema_define do
