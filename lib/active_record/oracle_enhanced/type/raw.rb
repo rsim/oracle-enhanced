@@ -1,6 +1,5 @@
 require 'active_model/type/string'
 
-#TODO Need to consider namespace change since paremt class moved to ActiveModel
 module ActiveRecord
   module OracleEnhanced
     module Type
