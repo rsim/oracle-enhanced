@@ -121,26 +121,6 @@ module ActiveRecord
           "0".freeze
         end
 
-        def quote_date_with_to_date(value) #:nodoc:
-          ActiveSupport::Deprecation.warn(<<-MSG.squish)
-            `quote_date_with_to_date` will be deprecated in future version of Oracle enhanced adapter.
-            Also this method should not be called directly. Let Abstract adapter `_quote` method handle it.
-          MSG
-          # should support that composite_primary_keys gem will pass date as string
-          value = quoted_date(value) if value.acts_like?(:date) || value.acts_like?(:time)
-          "TO_DATE('#{value}','YYYY-MM-DD HH24:MI:SS')"
-        end
-
-        def quote_timestamp_with_to_timestamp(value) #:nodoc:
-          ActiveSupport::Deprecation.warn(<<-MSG.squish)
-            `quote_timestamp_with_to_timestamp` will be deprecated in future version of Oracle enhanced adapter.
-            Also this method should not be called directly. Let Abstract adapter `_quote` method handle it.
-          MSG
-          # add up to 9 digits of fractional seconds to inserted time
-          value = "#{quoted_date(value)}:#{("%.6f"%value.to_f).split('.')[1]}" if value.acts_like?(:time)
-          "TO_TIMESTAMP('#{value}','YYYY-MM-DD HH24:MI:SS:FF6')"
-        end
-
         # Cast a +value+ to a type that the database understands.
         def type_cast(value, column = nil)
           super
