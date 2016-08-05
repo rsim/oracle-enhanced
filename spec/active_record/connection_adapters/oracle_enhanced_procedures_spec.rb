@@ -95,7 +95,6 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       END;
     SQL
 
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_dates_by_column_name = true
   end
 
   after(:all) do
