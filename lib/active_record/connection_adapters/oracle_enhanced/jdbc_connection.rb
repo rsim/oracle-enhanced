@@ -530,11 +530,7 @@ module ActiveRecord
           if dt = rset.getDATE(i)
             d = dt.dateValue
             t = dt.timeValue
-            if OracleEnhancedAdapter.emulate_dates && t.hours == 0 && t.minutes == 0 && t.seconds == 0
-              Date.new(d.year + 1900, d.month + 1, d.date)
-            else
-              Time.send(Base.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
-            end
+            Time.send(Base.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
           else
             nil
           end
