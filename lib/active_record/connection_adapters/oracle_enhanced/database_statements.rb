@@ -93,7 +93,7 @@ module ActiveRecord
         end
 
         # New method in ActiveRecord 3.1
-        def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
+        def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil)
           type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
 
           log(sql, name, binds, type_casted_binds) do
@@ -129,7 +129,7 @@ module ActiveRecord
         end
 
         # New method in ActiveRecord 3.1
-        def exec_update(sql, name, binds)
+        def exec_update(sql, name = nil, binds = [])
           type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
 
           log(sql, name, binds, type_casted_binds) do
