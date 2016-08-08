@@ -18,5 +18,7 @@ group :development do
 
   platforms :jruby do
     gem 'ruby-debug'
+    gem 'pry'
+    gem 'pry-nav'
   end
 end
