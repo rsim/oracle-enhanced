@@ -112,14 +112,6 @@ module ActiveRecord
           self.all_schema_indexes = nil
         end
 
-        def dump_schema_information #:nodoc:
-          super
-        end
-
-        def initialize_schema_migrations_table
-          super
-        end
-
         def update_table_definition(table_name, base) #:nodoc:
           OracleEnhanced::Table.new(table_name, base)
         end
