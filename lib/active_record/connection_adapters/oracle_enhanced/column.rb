@@ -63,13 +63,6 @@ module ActiveRecord
         super
       end
 
-      # Get column comment from schema definition.
-      # Will work only if using default ActiveRecord connection.
-#      def comment
-#        #TODO: may be deprecated due to conflict with variable
-#        ActiveRecord::Base.connection.column_comment(@table_name, name)
-#      end
-      
       private
 
       def self.extract_value_from_default(default)
