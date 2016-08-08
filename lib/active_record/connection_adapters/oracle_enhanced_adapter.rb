@@ -969,14 +969,6 @@ module ActiveRecord
         select_value("SELECT temporary FROM all_tables WHERE table_name = '#{table_name.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')") == 'Y'
       end
 
-      # construct additional wrapper subquery if select.offset is used to avoid generation of invalid subquery
-      # ... IN ( SELECT * FROM ( SELECT raw_sql_.*, rownum raw_rnum_ FROM ( ... ) raw_sql_ ) WHERE raw_rnum_ > ... )
-      def join_to_update(update, select, key) #:nodoc:
-        #TODO: Need to validate if we can remove join_to_update from Oracle enhanced adapter after testing
-        # older version of Oracle 11gR2
-        super
-      end
-
       def valid_type?(type)
         !native_database_types[type].nil?
       end
