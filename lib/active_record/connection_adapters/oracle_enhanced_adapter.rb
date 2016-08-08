@@ -59,17 +59,6 @@ module ActiveRecord
       end
     end
 
-    def self.virtual_columns
-      columns.select do |column|
-        column.respond_to?(:virtual?) && column.virtual?
-      end
-    end
-
-    def arel_attributes_with_values(attribute_names)
-      virtual_column_names = self.class.virtual_columns.map(&:name)
-      super(attribute_names - virtual_column_names)
-    end
-
     # After setting large objects to empty, select the OCI8::LOB
     # and write back the data.
     before_update :record_changed_lobs
