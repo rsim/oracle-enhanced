@@ -49,7 +49,6 @@ module ActiveRecord
 
     # Get table comment from schema definition.
     def self.table_comment
-      #TODO: may be deprecated
       connection.table_comment(self.table_name)
     end
 
