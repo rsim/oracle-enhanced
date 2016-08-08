@@ -75,39 +75,22 @@ describe "OracleEnhancedAdapter" do
 
     after(:each) do
       Object.send(:remove_const, "TestEmployee")
-      ActiveRecord::Base.connection.clear_ignored_table_columns
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
     it "should ignore specified table columns" do
       class ::TestEmployee < ActiveRecord::Base
-        ignore_table_columns  :phone_number, :hire_date
+        self.ignored_columns = %w(phone_number hire_date)
       end
-      expect(TestEmployee.connection.columns('test_employees').select{|c| ['phone_number','hire_date'].include?(c.name) }).to be_empty
-    end
-
-    it "should ignore specified table columns specified in several lines" do
-      class ::TestEmployee < ActiveRecord::Base
-        ignore_table_columns  :phone_number
-        ignore_table_columns  :hire_date
-      end
-      expect(TestEmployee.connection.columns('test_employees').select{|c| ['phone_number','hire_date'].include?(c.name) }).to be_empty
+      expect(TestEmployee.new.respond_to?(:phone_number)).to be_falsey
+      expect(TestEmployee.new.respond_to?(:hire_date)).to be_falsey
     end
 
     it "should not ignore unspecified table columns" do
       class ::TestEmployee < ActiveRecord::Base
-        ignore_table_columns  :phone_number, :hire_date
+        self.ignored_columns = %w(phone_number hire_date)
       end
-      expect(TestEmployee.connection.columns('test_employees').select{|c| c.name == 'email' }).not_to be_empty
-    end
-
-    it "should ignore specified table columns in other connection" do
-      class ::TestEmployee < ActiveRecord::Base
-        ignore_table_columns  :phone_number, :hire_date
-      end
-      # establish other connection
-      other_conn = ActiveRecord::Base.oracle_enhanced_connection(CONNECTION_PARAMS)
-      expect(other_conn.columns('test_employees').select{|c| ['phone_number','hire_date'].include?(c.name) }).to be_empty
+      expect(TestEmployee.new.respond_to?(:email)).to be_truthy
     end
 
   end
@@ -729,7 +712,6 @@ describe "OracleEnhancedAdapter" do
     end
 
     after(:each) do
-      ActiveRecord::Base.connection.clear_ignored_table_columns
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 

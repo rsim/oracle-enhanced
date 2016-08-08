@@ -47,13 +47,6 @@ end
 module ActiveRecord
   class Base
 
-    # Specify table columns which should be ignored by ActiveRecord, e.g.:
-    #
-    #   ignore_table_columns :attribute1, :attribute2
-    def self.ignore_table_columns(*args)
-      connection.ignore_table_columns(table_name,*args)
-    end
-
     # Get table comment from schema definition.
     def self.table_comment
       #TODO: may be deprecated
@@ -718,30 +711,6 @@ module ActiveRecord
         all_schema_indexes.select{|i| i.table == table_name}
       end
 
-      @@ignore_table_columns = nil #:nodoc:
-
-      # set ignored columns for table
-      def ignore_table_columns(table_name, *args) #:nodoc:
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          `ignore_table_columns` will be deprecated in next version of Oracle enhanced adapter
-          since Rails 5 introduces `ignored_columns`. Use `ignored_columns` instead of `ignore_table_columns`.
-        MSG
-        @@ignore_table_columns ||= {}
-        @@ignore_table_columns[table_name] ||= []
-        @@ignore_table_columns[table_name] += args.map{|a| a.to_s.downcase}
-        @@ignore_table_columns[table_name].uniq!
-      end
-
-      def ignored_table_columns(table_name) #:nodoc:
-        @@ignore_table_columns ||= {}
-        @@ignore_table_columns[table_name]
-      end
-
-      # used just in tests to clear ignored table columns
-      def clear_ignored_table_columns #:nodoc:
-        @@ignore_table_columns = nil
-      end
-
       # check if table has primary key trigger with _pkt suffix
       def has_primary_key_trigger?(table_name, owner = nil, desc_table_name = nil, db_link = nil)
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
@@ -780,8 +749,6 @@ module ActiveRecord
 
       def columns_without_cache(table_name, name = nil) #:nodoc:
         table_name = table_name.to_s
-        # get ignored_columns by original table name
-        ignored_columns = ignored_table_columns(table_name)
 
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
@@ -811,9 +778,7 @@ module ActiveRecord
         SQL
 
         # added deletion of ignored columns
-        select_all(table_cols, name).to_a.delete_if do |row|
-          ignored_columns && ignored_columns.include?(row['name'].downcase)
-        end.map do |row|
+        select_all(table_cols, name).to_a.map do |row|
           limit, scale = row['limit'], row['scale']
           if limit || scale
             row['sql_type'] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
