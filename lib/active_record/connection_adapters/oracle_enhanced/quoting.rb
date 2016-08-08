@@ -102,22 +102,22 @@ module ActiveRecord
         end
 
         def quoted_true #:nodoc:
-          return "'#{self.class.boolean_to_string(true)}'" if emulate_booleans_from_strings
+          return "'Y'" if emulate_booleans_from_strings
           "1".freeze
         end
 
         def unquoted_true #:nodoc:
-          return "#{self.class.boolean_to_string(true)}" if emulate_booleans_from_strings
+          return "Y" if emulate_booleans_from_strings
           "1".freeze
         end
 
         def quoted_false #:nodoc:
-          return "'#{self.class.boolean_to_string(false)}'" if emulate_booleans_from_strings
+          return "'N'" if emulate_booleans_from_strings
           "0".freeze
         end
 
         def unquoted_false #:nodoc:
-          return "#{self.class.boolean_to_string(false)}" if emulate_booleans_from_strings
+          return "N" if emulate_booleans_from_strings
           "0".freeze
         end
 

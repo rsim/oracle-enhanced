@@ -227,12 +227,6 @@ module ActiveRecord
       cattr_accessor :emulate_booleans_from_strings
       self.emulate_booleans_from_strings = false
 
-      # How boolean value should be quoted to String.
-      # Used if +emulate_booleans_from_strings+ option is set to +true+.
-      def self.boolean_to_string(bool)
-        bool ? "Y" : "N"
-      end
-
       ##
       # :singleton-method:
       # Specify non-default date format that should be used when assigning string values to :date columns, e.g.:
