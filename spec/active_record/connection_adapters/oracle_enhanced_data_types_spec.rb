@@ -687,7 +687,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   it "should assign NLS string to date column" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = @nls_date_format
+  #  ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = @nls_date_format
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -711,7 +711,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   it "should assign NLS time string to date column" do
     # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = @nls_date_format
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = @nls_time_format
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = @nls_time_format
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -736,7 +736,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   it "should assign NLS time string to datetime column" do
     ActiveRecord::Base.default_timezone = :local
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = @nls_time_format
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = @nls_time_format
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -748,7 +748,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   it "should assign NLS time string with time zone to datetime column" do
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = @nls_with_tz_time_format
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = @nls_with_tz_time_format
     @employee = TestEmployee.create(
       :first_name => "First",
       :last_name => "Last",
@@ -773,7 +773,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   it "should assign NLS date string to datetime column" do
     ActiveRecord::Base.default_timezone = :local
-    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = @nls_date_format
+    # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = @nls_date_format
     # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = @nls_time_format
     @employee = TestEmployee.create(
       :first_name => "First",
