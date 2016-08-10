@@ -208,22 +208,6 @@ module ActiveRecord
       cattr_accessor :emulate_booleans_from_strings
       self.emulate_booleans_from_strings = false
 
-      ##
-      # :singleton-method:
-      # Specify non-default date format that should be used when assigning string values to :date columns, e.g.:
-      #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_date_format = “%d.%m.%Y”
-      cattr_accessor :string_to_date_format
-      self.string_to_date_format = nil
-
-      ##
-      # :singleton-method:
-      # Specify non-default time format that should be used when assigning string values to :datetime columns, e.g.:
-      #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.string_to_time_format = “%d.%m.%Y %H:%M:%S”
-      cattr_accessor :string_to_time_format
-      self.string_to_time_format = nil
-
       class StatementPool
         include Enumerable
 
