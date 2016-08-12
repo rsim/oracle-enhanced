@@ -2,17 +2,6 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
 
-      class ForeignKeyDefinition < ActiveRecord::ConnectionAdapters::ForeignKeyDefinition
-        def name
-          if options[:name].length > OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH
-            ActiveSupport::Deprecation.warn "Foreign key name #{options[:name]} is too long. It will not get shorten in later version of Oracle enhanced adapter"
-            'c'+Digest::SHA1.hexdigest(options[:name])[0,OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH-1]
-          else
-            options[:name]
-          end
-        end
-      end
-
       class SynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
       end
 
@@ -63,25 +52,6 @@ module ActiveRecord
           OracleEnhanced::ColumnDefinition.new name, type
         end
 
-      end
-
-      class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable
-        def add_foreign_key(to_table, options)
-          @foreign_key_adds << OracleEnhanced::ForeignKeyDefinition.new(name, to_table, options)
-        end
-      end
-
-      class Table < ActiveRecord::ConnectionAdapters::Table
-        def foreign_key(to_table, options = {})
-          ActiveSupport::Deprecation.warn "`foreign_key` option will be deprecated. Please use `references` option"
-          to_table = to_table.to_s.pluralize if ActiveRecord::Base.pluralize_table_names
-          @base.add_foreign_key(@name, to_table, options)
-        end
-
-        def remove_foreign_key(options = {})
-          ActiveSupport::Deprecation.warn "`remove_foreign_key` option will be deprecated. Please use `remove_references` option"
-          @base.remove_foreign_key(@name, options)
-        end
       end
 
     end

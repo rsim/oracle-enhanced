@@ -112,10 +112,6 @@ module ActiveRecord
           self.all_schema_indexes = nil
         end
 
-        def update_table_definition(table_name, base) #:nodoc:
-          OracleEnhanced::Table.new(table_name, base)
-        end
-
         def add_index(table_name, column_name, options = {}) #:nodoc:
           index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
@@ -353,10 +349,6 @@ module ActiveRecord
           SQL
         end
 
-        def remove_foreign_key(from_table, options_or_to_table = {})
-          super
-        end
-
         # get table foreign keys for schema dump
         def foreign_keys(table_name) #:nodoc:
           (owner, desc_table_name, db_link) = @connection.describe(table_name)
@@ -389,7 +381,7 @@ module ActiveRecord
               primary_key: oracle_downcase(row['references_column'])
             }
             options[:on_delete] = extract_foreign_key_action(row['delete_rule'])
-            OracleEnhanced::ForeignKeyDefinition.new(oracle_downcase(table_name), oracle_downcase(row['to_table']), options)
+            ActiveRecord::ConnectionAdapters::ForeignKeyDefinition.new(oracle_downcase(table_name), oracle_downcase(row['to_table']), options)
           end
         end
 
@@ -424,10 +416,6 @@ module ActiveRecord
         end
 
         private
-
-        def create_alter_table(name)
-          OracleEnhanced::AlterTable.new create_table_definition(name, false, {})
-        end 
 
         def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
           tablespace_sql = ''

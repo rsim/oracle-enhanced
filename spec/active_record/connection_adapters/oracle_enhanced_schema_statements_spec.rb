@@ -678,28 +678,6 @@ end
       end.to raise_error() {|e| expect(e.message).to match(/ORA-02291.*\.COMMENTS_POSTS_FK/)}
     end
 
-    it "should add foreign key with long name which is shortened" do
-      schema_define do
-        add_foreign_key :test_comments, :test_posts, :name => "test_comments_test_post_id_foreign_key"
-      end
-      expect do
-        TestComment.create(:body => "test", :test_post_id => 1)
-      end.to raise_error() {|e| expect(e.message).to match(
-        /ORA-02291.*\.C#{Digest::SHA1.hexdigest("test_comments_test_post_id_foreign_key")[0,29].upcase}/
-      )}
-    end
-
-    it "should add foreign key with very long name which is shortened" do
-      schema_define do
-        add_foreign_key :test_comments, :test_posts, :name => "long_prefix_test_comments_test_post_id_foreign_key"
-      end
-      expect do
-        TestComment.create(:body => "test", :test_post_id => 1)
-      end.to raise_error() {|e| expect(e.message).to match(
-        /ORA-02291.*\.C#{Digest::SHA1.hexdigest("long_prefix_test_comments_test_post_id_foreign_key")[0,29].upcase}/
-      )}
-    end
-
     it "should add foreign key with column" do
       fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_post_id_fk").first(10)}"
 
@@ -879,24 +857,6 @@ end
       expect do
         TestComment.create(:body => "test", :test_post_id => 1)
       end.to raise_error() {|e| expect(e.message).to match(/ORA-02291/)}
-    end
-
-    it "should remove foreign key by table name" do
-      schema_define do
-        create_table :test_comments, :force => true do |t|
-          t.string :body, :limit => 4000
-          t.references :test_post
-        end
-        change_table :test_comments do |t|
-          t.foreign_key :test_posts
-        end
-        change_table :test_comments do |t|
-          t.remove_foreign_key :test_posts
-        end
-      end
-      expect do
-        TestComment.create(:body => "test", :test_post_id => 1)
-      end.not_to raise_error
     end
 
   end
