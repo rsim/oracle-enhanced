@@ -353,19 +353,6 @@ module ActiveRecord
           SQL
         end
 
-        def add_foreign_key(from_table, to_table, options = {})
-          if options[:dependent]
-            ActiveSupport::Deprecation.warn "`:dependent` option will be deprecated. Please use `:on_delete` option"
-          end
-          case options[:dependent]  
-          when :delete then options[:on_delete] = :cascade
-          when :nullify then options[:on_delete] = :nullify
-          else
-          end
-
-          super
-        end
-
         def remove_foreign_key(from_table, options_or_to_table = {})
           super
         end

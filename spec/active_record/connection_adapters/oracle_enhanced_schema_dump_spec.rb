@@ -185,14 +185,14 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should include foreign key with delete dependency in schema dump" do
       schema_define do
-        add_foreign_key :test_comments, :test_posts, dependent: :delete
+        add_foreign_key :test_comments, :test_posts, on_delete: :cascade
       end
       expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", on_delete: :cascade/)
     end
 
     it "should include foreign key with nullify dependency in schema dump" do
       schema_define do
-        add_foreign_key :test_comments, :test_posts, dependent: :nullify
+        add_foreign_key :test_comments, :test_posts, on_delete: :nullify
       end
       expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", on_delete: :nullify/)
     end
