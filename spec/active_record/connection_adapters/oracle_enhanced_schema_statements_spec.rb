@@ -713,7 +713,7 @@ end
 
     it "should add foreign key with delete dependency" do
       schema_define do
-        add_foreign_key :test_comments, :test_posts, :dependent => :delete
+        add_foreign_key :test_comments, :test_posts, :on_delete => :cascade
       end
       p = TestPost.create(:title => "test")
       c = TestComment.create(:body => "test", :test_post => p)
@@ -723,7 +723,7 @@ end
 
     it "should add foreign key with nullify dependency" do
       schema_define do
-        add_foreign_key :test_comments, :test_posts, :dependent => :nullify
+        add_foreign_key :test_comments, :test_posts, :on_delete => :nullify
       end
       p = TestPost.create(:title => "test")
       c = TestComment.create(:body => "test", :test_post => p)
