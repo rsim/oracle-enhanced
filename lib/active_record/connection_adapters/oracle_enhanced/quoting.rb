@@ -84,10 +84,6 @@ module ActiveRecord
           s.gsub(/'/, "''")
         end
 
-        def quote(value, column = nil) #:nodoc:
-          super
-        end
-
         def _quote(value) #:nodoc:
           case value
           when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data then
