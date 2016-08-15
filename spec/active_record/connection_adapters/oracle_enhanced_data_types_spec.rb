@@ -1323,8 +1323,10 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
     columns = @conn.columns('test_items')
     %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
       column = columns.detect{|c| c.name == col}
-      expect(@conn.quote('abc', column)).to eq(column.sql_type[0,1] == 'N' ? "N'abc'" : "'abc'")
-      expect(@conn.quote(nil, column)).to eq('NULL')
+      value = @conn.type_cast_from_column(column, 'abc')
+      expect(@conn.quote(value)).to eq(column.sql_type[0,1] == 'N' ? "N'abc'" : "'abc'")
+      nilvalue = @conn.type_cast_from_column(column, nil)
+      expect(@conn.quote(nilvalue)).to eq('NULL')
     end
   end
 
