@@ -83,7 +83,7 @@ module ActiveRecord
               change_column_comment(table_name, column.name, column.comment) if column.comment
             end
           end
-          td.indexes.each_pair { |c,o| add_index table_name, c, o }
+          td.indexes.each { |c,o| add_index table_name, c, o }
 
         end
 
