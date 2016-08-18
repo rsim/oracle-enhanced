@@ -41,60 +41,6 @@ describe "OracleEnhancedAdapter" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
   
-  describe "ignore specified table columns" do
-    before(:all) do
-      @conn = ActiveRecord::Base.connection
-      @conn.execute "DROP TABLE test_employees" rescue nil
-      @conn.execute <<-SQL
-        CREATE TABLE test_employees (
-          id            NUMBER PRIMARY KEY,
-          first_name    VARCHAR2(20),
-          last_name     VARCHAR2(25),
-          email         VARCHAR2(25),
-          phone_number  VARCHAR2(20),
-          hire_date     DATE,
-          job_id        NUMBER,
-          salary        NUMBER,
-          commission_pct  NUMBER(2,2),
-          manager_id    NUMBER(6),
-          department_id NUMBER(4,0),
-          created_at    DATE
-        )
-      SQL
-      @conn.execute "DROP SEQUENCE test_employees_seq" rescue nil
-      @conn.execute <<-SQL
-        CREATE SEQUENCE test_employees_seq  MINVALUE 1
-          INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER NOCYCLE
-      SQL
-    end
-
-    after(:all) do
-      @conn.execute "DROP TABLE test_employees"
-      @conn.execute "DROP SEQUENCE test_employees_seq"
-    end
-
-    after(:each) do
-      Object.send(:remove_const, "TestEmployee")
-      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
-    end
-
-    it "should ignore specified table columns" do
-      class ::TestEmployee < ActiveRecord::Base
-        self.ignored_columns = %w(phone_number hire_date)
-      end
-      expect(TestEmployee.new.respond_to?(:phone_number)).to be_falsey
-      expect(TestEmployee.new.respond_to?(:hire_date)).to be_falsey
-    end
-
-    it "should not ignore unspecified table columns" do
-      class ::TestEmployee < ActiveRecord::Base
-        self.ignored_columns = %w(phone_number hire_date)
-      end
-      expect(TestEmployee.new.respond_to?(:email)).to be_truthy
-    end
-
-  end
-
   describe "cache table columns" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
