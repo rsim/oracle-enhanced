@@ -1195,7 +1195,7 @@ module ActiveRecord
 
         if OracleEnhancedAdapter.emulate_booleans
           if OracleEnhancedAdapter.emulate_booleans_from_strings
-            m.register_type %r(^VARCHAR2\(1\))i, Type::Boolean.new
+            m.register_type %r(^VARCHAR2\(1\))i, ActiveRecord::OracleEnhanced::Type::Boolean.new
           else
             m.register_type %r(^NUMBER\(1\))i, Type::Boolean.new
           end
@@ -1338,3 +1338,6 @@ require 'active_record/oracle_enhanced/type/national_character_string'
 
 # Add OracleEnhanced::Type::Text
 require 'active_record/oracle_enhanced/type/text'
+
+# Add OracleEnhanced::Type::Boolean
+require 'active_record/oracle_enhanced/type/boolean'
