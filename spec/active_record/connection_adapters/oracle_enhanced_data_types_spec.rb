@@ -439,6 +439,40 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
 end
 
+describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strings = true" do
+  before(:all) do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    ActiveRecord::Schema.define do
+      create_table :posts, :force => true do |t|
+        t.string  :name,        null: false
+        t.boolean :is_default, default: false
+      end
+    end
+  end
+
+  after(:all) do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+  end
+
+  before(:each) do
+    class ::Post < ActiveRecord::Base
+    end
+  end
+
+  after(:each) do
+    Object.send(:remove_const, "Post")
+    ActiveRecord::Base.clear_cache!
+  end
+
+  it "boolean should not change after reload" do
+    post = Post.create(name: 'Test 1', is_default: false)
+    expect(post.is_default).to be false
+    post.reload
+    expect(post.is_default).to be false
+  end
+end
+
 describe "OracleEnhancedAdapter timestamp with timezone support" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)

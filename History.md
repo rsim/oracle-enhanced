@@ -1,3 +1,13 @@
+## 1.7.1 / 2016-08-22
+
+* Changes and bug fixes
+ * Add `ActiveRecord::OracleEnhanced::Type::Boolean` [#985, #979]
+ * Address `create_table': undefined method `each_pair' for []:Array (NoMethodError) [#980]
+ * Deprecate `fallback_string_to_date`, `fallback_string_to_time` [#974]
+
+* Known issues
+ * No changes since 1.7.0.rc1
+
 ## 1.7.0 / 2016-08-04
 
 * Changes and bug fixes
