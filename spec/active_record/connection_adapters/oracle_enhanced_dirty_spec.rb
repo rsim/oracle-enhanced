@@ -6,32 +6,23 @@ if ActiveRecord::Base.method_defined?(:changed?)
 
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.connection
-      @conn.execute "DROP TABLE test_employees" rescue nil
-      @conn.execute "DROP SEQUENCE test_employees_seq" rescue nil
-      @conn.execute <<-SQL
-        CREATE TABLE test_employees (
-          id            NUMBER PRIMARY KEY,
-          first_name    VARCHAR2(20),
-          last_name     VARCHAR2(25),
-          job_id        NUMBER(6,0) NULL,
-          salary        NUMBER(8,2),
-          comments      CLOB,
-          hire_date     DATE
-        )
-      SQL
-      @conn.execute <<-SQL
-        CREATE SEQUENCE test_employees_seq  MINVALUE 1
-          INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
-      SQL
+      ActiveRecord::Schema.define do
+        create_table :test_employees, :force => true do |t|
+          t.string    :first_name,  limit: 20
+          t.string    :last_name,   limit: 25
+          t.integer   :job_id,      limit: 6, null: true
+          t.decimal   :salary,      precision: 8, scale:2
+          t.text      :comments
+          t.date      :hire_date
+        end
+      end
+
       class TestEmployee < ActiveRecord::Base
       end
     end
   
     after(:all) do
       Object.send(:remove_const, "TestEmployee")
-      @conn.execute "DROP TABLE test_employees"
-      @conn.execute "DROP SEQUENCE test_employees_seq"
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end  
 
