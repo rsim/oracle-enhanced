@@ -1,3 +1,12 @@
+## 1.7.2 / 2016-09-19
+
+* Changes and bug fixes
+ * Remove ruby-oci8 from runtime dependency [#992,#995]
+ * Update README to add `gem 'ruby-oci8'` explicitly for CRuby users [#992, #995]
+
+* Known issues
+ * No changes since 1.7.0.rc1
+
 ## 1.7.1 / 2016-08-22
 
 * Changes and bug fixes
