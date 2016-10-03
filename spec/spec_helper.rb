@@ -143,6 +143,16 @@ CONNECTION_WITH_SCHEMA_PARAMS = {
   :schema => DATABASE_SCHEMA
 }
 
+CONNECTION_WITH_TIMEZONE_PARAMS = {
+  :adapter => "oracle_enhanced",
+  :database => DATABASE_NAME,
+  :host => DATABASE_HOST,
+  :port => DATABASE_PORT,
+  :username => DATABASE_USER,
+  :password => DATABASE_PASSWORD,
+  :time_zone => "Europe/Riga"
+}
+
 SYS_CONNECTION_PARAMS = {
   :adapter => "oracle_enhanced",
   :database => DATABASE_NAME,

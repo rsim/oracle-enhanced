@@ -346,7 +346,11 @@ module ActiveRecord
         conn.non_blocking = true if async
         conn.prefetch_rows = prefetch_rows
         conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil
-        conn.exec "alter session set time_zone = '#{time_zone}'" unless time_zone.blank?
+        if ActiveRecord::Base.default_timezone == :local
+          conn.exec "alter session set time_zone = '#{time_zone}'" unless time_zone.blank?
+        elsif ActiveRecord::Base.default_timezone == :utc
+          conn.exec "alter session set time_zone = '+00:00'"
+        end
         conn.exec "alter session set current_schema = #{schema}" unless schema.blank?
 
         # Initialize NLS parameters

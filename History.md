@@ -1,3 +1,11 @@
+## 1.7.3 / 2016-10-03
+
+* Changes and bug fixes
+ * Respect `ActiveRecord::Base.default_timezone = :utc` rather than connection `time_zone` value [#755, #998]
+
+* Known issues
+ * No changes since 1.7.0.rc1
+
 ## 1.7.2 / 2016-09-19
 
 * Changes and bug fixes
