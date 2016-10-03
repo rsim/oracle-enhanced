@@ -110,6 +110,33 @@ describe "OracleEnhancedConnection" do
     end
   end
 
+  describe "default_timezone" do
+    before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
+      ActiveRecord::Schema.define do
+        create_table :posts, :force => true do |t|
+          t.timestamps null: false
+        end
+      end
+      class ::Post < ActiveRecord::Base
+      end
+    end
+
+    after(:all) do
+      Object.send(:remove_const, "Post")
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "should respect default_timezone = :utc than time_zone setting" do
+      # it expects that ActiveRecord::Base.default_timezone = :utc
+      ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_WITH_TIMEZONE_PARAMS)
+      post = Post.create!
+      created_at = post.created_at
+      expect(post).to eq(Post.find_by!(created_at: created_at))
+    end
+
+  end
+
   if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
 
     describe "create JDBC connection" do
