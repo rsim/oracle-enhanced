@@ -719,8 +719,6 @@ describe "OracleEnhancedAdapter" do
       @employee.create!(sort_order: i+=1, first_name: 'Steven',  last_name: 'Rogers')
       @employee.create!(sort_order: i+=1, first_name: 'Bruce',   last_name: 'Banner')
       @employee.create!(sort_order: i+=1, first_name: 'Natasha', last_name: 'Romanova')
-      @oracle11g_or_lower  = !! @conn.select_value(
-        "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) <= 11")
     end
 
     after(:all) do
@@ -742,7 +740,6 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should return the records starting from offset n with offset(n)" do
-      skip "Skipped until #848 or rails/arel#438 resolved " if @oracle11g_or_lower
       expect(@employee.order(:sort_order).first.first_name).to eq("Peter")
       expect(@employee.order(:sort_order).offset(0).first.first_name).to eq("Peter")
       expect(@employee.order(:sort_order).offset(1).first.first_name).to eq("Tony")
