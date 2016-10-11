@@ -7,7 +7,7 @@ group :development do
 
   gem 'activerecord',   github: 'rails/rails', branch: '5-0-stable'
   gem 'rack',           github: 'rack/rack', branch: 'master'
-  gem 'arel',           github: 'rails/arel', branch: 'master'
+  gem 'arel',           github: 'rails/arel', branch: '7-1-stable'
 
   gem 'ruby-plsql', '>=0.5.0'
 
