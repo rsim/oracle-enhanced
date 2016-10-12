@@ -13,6 +13,39 @@ If you are getting ORA-12520 errors when running tests then it means that Oracle
 
 to increase process limit and then restart the database (this will be necessary if Oracle XE will be used as default processes limit is 40).
 
+### Docker
+If no Oracle database with SYS and SYSTEM user access is available, try the docker approach.
+
+Install [Docker](https://docker.github.io/engine/installation/)
+
+Pull [docker-oracle-xe-11g](https://hub.docker.com/r/wnameless/oracle-xe-11g/) image from docker hub
+
+    docker pull wnameless/oracle-xe-11g
+
+Start a Oracle database docker container with mapped ports. Use port `49161` to access the database.
+
+    docker run -d -p 49160:22 -p 49161:1521 wnameless/oracle-xe-11g
+
+Check connection to the database with `sqlplus`. The user is `system`, the password is `oracle`.
+
+    sqlplus64 system/oracle@localhost:49161
+
+The oracle enhanced configuration file `spec/spec_config.yaml` should look like:
+
+```yaml
+# copy this file to spec/config.yaml and set appropriate values
+# you can also use environment variables, see spec_helper.rb
+database:
+  name:         'xe'
+  host:         'localhost'
+  port:         49161
+  user:         'oracle_enhanced'
+  password:     'oracle_enhanced'
+  sys_password: 'oracle'
+  non_default_tablespace: 'SYSTEM'
+  timezone: 'Europe/Riga'
+```
+
 Ruby versions
 -------------
 
@@ -40,7 +73,7 @@ Running tests
 * Install necessary gems with
 
         bundle install
-        
+
 * Configure database credentials in one of two ways:
     * copy spec/spec_config.yaml.template to spec/config.yaml and modify as needed
     * set required environment variables (see DATABASE_NAME in spec_helper.rb)
