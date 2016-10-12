@@ -30,7 +30,7 @@ describe "OracleEnhancedAdapter establish connection" do
     ActiveRecord::Base.connection.reconnect!
     expect(ActiveRecord::Base.connection).to be_active
   end
-  
+
 end
 
 describe "OracleEnhancedAdapter" do
@@ -40,7 +40,7 @@ describe "OracleEnhancedAdapter" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
-  
+
   describe "ignore specified table columns" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
@@ -377,19 +377,19 @@ describe "OracleEnhancedAdapter" do
       expect(@adapter.valid_table_name?("aBc")).to be_falsey
       expect(@adapter.valid_table_name?("abC")).to be_falsey
     end
-    
+
     it "should not be valid for names > 30 characters" do
       expect(@adapter.valid_table_name?("a" * 31)).to be_falsey
     end
-    
+
     it "should not be valid for schema names > 30 characters" do
       expect(@adapter.valid_table_name?(("a" * 31) + ".validname")).to be_falsey
     end
-    
+
     it "should not be valid for database links > 128 characters" do
       expect(@adapter.valid_table_name?("name@" + "a" * 129)).to be_falsey
     end
-    
+
     it "should not be valid for names that do not begin with alphabetic characters" do
       expect(@adapter.valid_table_name?("1abc")).to be_falsey
       expect(@adapter.valid_table_name?("_abc")).to be_falsey
@@ -457,7 +457,7 @@ describe "OracleEnhancedAdapter" do
 
       cc = CamelCase.create!(:name => "Foo", :foo => 2)
       expect(cc.id).not_to be_nil
-    
+
       expect(@conn.tables).to include("CamelCase")
     end
 
@@ -768,6 +768,52 @@ describe "OracleEnhancedAdapter" do
 
     it "returns false when passed an invalid type" do
       expect(@conn.valid_type?(:foobar)).to be false
+    end
+  end
+
+  describe 'serialized column' do
+    before(:all) do
+      schema_define do
+        create_table :test_serialized_columns do |t|
+          t.text :serialized
+        end
+      end
+      class ::TestSerializedColumn < ActiveRecord::Base
+        serialize :serialized, Array
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_serialized_columns
+      end
+      Object.send(:remove_const, 'TestSerializedColumn')
+      ActiveRecord::Base.table_name_prefix = nil
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    before(:each) do
+      set_logger
+    end
+
+    after(:each) do
+      clear_logger
+    end
+
+    it 'should serialize' do
+      new_value = 'new_value'
+      serialized_column = TestSerializedColumn.new
+
+      expect(serialized_column.serialized).to eq([])
+      serialized_column.serialized << new_value
+      expect(serialized_column.serialized).to eq([new_value])
+      serialized_column.save
+      expect(serialized_column.save!).to eq(true)
+
+      serialized_column.reload
+      expect(serialized_column.serialized).to eq([new_value])
+      serialized_column.serialized = []
+      expect(serialized_column.save!).to eq(true)
     end
   end
 end
