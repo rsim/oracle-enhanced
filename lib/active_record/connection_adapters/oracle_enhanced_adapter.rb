@@ -516,7 +516,7 @@ module ActiveRecord
         columns.each do |col|
           value = attributes[col.name]
           # changed sequence of next two lines - should check if value is nil before converting to yaml
-          next if value.nil?  || (value == '')
+          next if value.blank?
           if klass.attribute_types[col.name].is_a? ActiveRecord::Type::Serialized
             value = klass.attribute_types[col.name].serialize(value)
           end
@@ -728,8 +728,8 @@ module ActiveRecord
         @@do_not_prefetch_primary_key[table_name] = nil
 
         table_cols = <<-SQL.strip.gsub(/\s+/, ' ')
-          SELECT cols.column_name AS name, cols.data_type AS sql_type, 
-                 cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column, 
+          SELECT cols.column_name AS name, cols.data_type AS sql_type,
+                 cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
                  cols.data_type_owner AS sql_type_owner,
                  DECODE(cols.data_type, 'NUMBER', data_precision,
                                    'FLOAT', data_precision,
