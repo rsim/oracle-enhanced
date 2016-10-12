@@ -619,6 +619,30 @@ development:
   )"
 ```
 
+UPGRADE
+---------------
+### Upgrade Rails 4.2 or older version to Rails 5
+
+If your Oracle table columns have been created for Rails `:datetime` attributes in Rails 4.2 or earlier,
+they need to migrate to `:datetime` in Rails 5 using one of two following ways:
+
+* Rails migration code example:
+```ruby
+change_column :posts, :created_at, :datetime
+change_column :posts, :updated_at, :datetime
+```
+
+or
+
+* SQL statement example
+```sql
+ALTER TABLE "POSTS" MODIFY "CREATED_AT" TIMESTAMP
+ALTER TABLE "POSTS" MODIFY "UPDATED_AT" TIMESTAMP
+```
+
+In Rails 5 without running this migration or sql statement, 
+these attributes will be handled as Rails `:date` type.
+
 TROUBLESHOOTING
 ---------------
 
