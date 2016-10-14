@@ -405,12 +405,12 @@ module ActiveRecord
           old_constraints = select_all(sql_constraints)
           begin
             old_constraints.each do |constraint|
-              execute "ALTER TABLE #{constraint["table_name"]} DISABLE CONSTRAINT #{constraint["constraint_name"]}"
+              execute "ALTER TABLE #{quote_table_name(constraint["table_name"])} DISABLE CONSTRAINT #{quote_table_name(constraint["constraint_name"])}"
             end
             yield
           ensure
             old_constraints.each do |constraint|
-              execute "ALTER TABLE #{constraint["table_name"]} ENABLE CONSTRAINT #{constraint["constraint_name"]}"
+              execute "ALTER TABLE #{quote_table_name(constraint["table_name"])} ENABLE CONSTRAINT #{quote_table_name(constraint["constraint_name"])}"
             end
           end
         end

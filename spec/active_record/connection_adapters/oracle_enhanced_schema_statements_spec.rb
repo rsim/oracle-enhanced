@@ -845,11 +845,16 @@ end
           t.string :body, :limit => 4000
           t.references :test_post, :foreign_key => true
         end
+        create_table "test_Mixed_Comments", :force => true do |t|
+          t.string :body, :limit => 4000
+          t.references :test_post, :foreign_key => true
+        end
       end
     end
 
     after(:each) do
       schema_define do
+        drop_table "test_Mixed_Comments" rescue nil
         drop_table :test_comments rescue nil
         drop_table :test_posts rescue nil
       end
@@ -861,6 +866,7 @@ end
       end.to raise_error(ActiveRecord::InvalidForeignKey)
       @conn.disable_referential_integrity do
         expect do
+          @conn.execute "INSERT INTO \"test_Mixed_Comments\" (id, body, test_post_id) VALUES (2, 'test', 2)"
           @conn.execute "INSERT INTO test_comments (id, body, test_post_id) VALUES (2, 'test', 2)"
           @conn.execute "INSERT INTO test_posts (id, title) VALUES (2, 'test')"
         end.not_to raise_error
