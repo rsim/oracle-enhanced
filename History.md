@@ -1,3 +1,25 @@
+## 1.7.4 / 2016-10-14
+
+* Changes and bug fixes
+
+ * Bump Arel 7.1.4 or higher [#1010, #848, #946]
+ * NoMethodError: undefined method `write' for nil:NilClass for serialized column [#798, #1007]
+ * Quote table name in disable_referential_integrity [#1012, #1014]
+ * Rails 5 : undefined method `to_i' for #<Arel::Nodes::BindParam:0x00000002c92910> [#848, rails/arel#438, rails/arel#450]
+ * Add UPGRADE section : Upgrade Rails 4.2 or older version to Rails 5 [#1011, #993]
+ * add docker to RUNNING_TEST.md [#1006]
+ * Add executable test cases using Minitest or RSpec [#1002]
+
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+    * Workaround: execute explain without bind or use CRuby
+ - CRuby and JRuby
+ * Rails 5 : custom methods for create record when exception is raised in after_create callback fails [#944]
+ * Rails 5 : specs need update to emulate_booleans_from_strings [#942]
+ * #998 causes regression for `TIMESTAMP WITH LOCAL TIME ZONE` [#1001]
+
 ## 1.7.3 / 2016-10-03
 
 * Changes and bug fixes
