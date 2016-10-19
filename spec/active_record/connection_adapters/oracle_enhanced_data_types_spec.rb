@@ -508,13 +508,6 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
     ActiveRecord::Base.default_timezone = :utc
   end
 
-  it "should set TIMESTAMP columns type as datetime" do
-    skip "TIMESTAMP sql_type should be :datetime in Rails 5"
-    columns = @conn.columns('test_employees')
-    ts_columns = columns.select{|c| c.name =~ /created_at/}
-    ts_columns.each {|c| expect(c.type).to eq(:timestamp)}
-  end
-
   describe "/ TIMESTAMP WITH TIME ZONE values from ActiveRecord model" do
     before(:all) do
       class ::TestEmployee < ActiveRecord::Base
