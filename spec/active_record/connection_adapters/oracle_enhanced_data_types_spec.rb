@@ -475,7 +475,8 @@ end
 
 describe "OracleEnhancedAdapter timestamp with timezone support" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    ActiveRecord::Base.default_timezone = :local
+    ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
@@ -504,6 +505,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
   after(:all) do
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
+    ActiveRecord::Base.default_timezone = :utc
   end
 
   it "should set TIMESTAMP columns type as datetime" do
@@ -518,13 +520,11 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
       class ::TestEmployee < ActiveRecord::Base
         self.primary_key = "employee_id"
       end
-      ActiveRecord::Base.default_timezone = :local
     end
 
     after(:all) do
       Object.send(:remove_const, "TestEmployee")
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
-      ActiveRecord::Base.default_timezone = :utc
     end
 
     it "should return Time value from TIMESTAMP columns" do

@@ -299,6 +299,10 @@ module ActiveRecord
         true
       end
 
+      def supports_multi_insert?
+        false
+      end
+
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         :nls_calendar            => nil,
