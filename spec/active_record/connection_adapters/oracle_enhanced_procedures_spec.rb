@@ -185,7 +185,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     expect {
       @employee.save
     }.to raise_error("Make the transaction rollback")
-    expect(@employee.id).to eq(nil)
+    expect(@employee.new_record?).to be_truthy
     expect(TestEmployee.count).to eq(employees_count)
   end
 
