@@ -191,6 +191,12 @@ environment variable, note that the adapter name uses a dash instead of an under
 DATABASE_URL=oracle-enhanced://localhost/XE
 ```
 
+You can also specify a connection string via the `DATABASE_URL`, as long as it doesn't have any whitespace:
+
+```bash
+DATABASE_URL=oracle-enhanced://user:secret@connection-string/(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=xe)))
+```
+
 If you deploy JRuby on Rails application in Java application server that supports JNDI connections then you can specify JNDI connection as well:
 
 ```yml

@@ -317,8 +317,11 @@ module ActiveRecord
         # get session time_zone from configuration or from TZ environment variable
         time_zone = config[:time_zone] || ENV['TZ']
 
+        # using a connection string via DATABASE_URL
+        connection_string = if host == 'connection-string'
+          database
         # connection using host, port and database name
-        connection_string = if host || port
+        elsif host || port
           host ||= 'localhost'
           host = "[#{host}]" if host =~ /^[^\[].*:/  # IPv6
           port ||= 1521
@@ -329,7 +332,6 @@ module ActiveRecord
         else
           database
         end
-
         conn = OCI8.new username, password, connection_string, privilege
         conn.autocommit = true
         conn.non_blocking = true if async
