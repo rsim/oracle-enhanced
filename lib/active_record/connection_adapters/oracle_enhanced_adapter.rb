@@ -1165,11 +1165,17 @@ module ActiveRecord
         offset: nil
       ) # :nodoc:
         result = from_clause + join_clause + where_clause + having_clause
-        if offset
+        if RUBY_ENGINE == 'jruby' && !supports_fetch_first_n_rows_and_offset? && offset && limit
           result << offset
-        end
-        if limit
           result << limit
+          result << offset
+        else
+          if offset
+            result << offset
+          end
+          if limit
+            result << limit
+          end
         end
         result
       end
