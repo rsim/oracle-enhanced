@@ -750,6 +750,53 @@ end
     end
   end
 
+  describe "primary key in table definition" do
+    before do
+      @conn = ActiveRecord::Base.connection
+
+      class ::TestPost < ActiveRecord::Base
+      end
+    end
+
+    it 'should use default tablespace for primary key' do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:index] = nil
+      schema_define do
+        create_table :test_posts, :force => true
+      end
+
+      index_name = @conn.select_value(
+        "SELECT index_name FROM all_constraints
+            WHERE table_name = 'TEST_POSTS'
+            AND constraint_type = 'P'
+            AND owner = SYS_CONTEXT('userenv', 'current_schema')")
+
+      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'")).to eq('USERS')
+    end
+
+    it 'should use non default tablespace for primary key' do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:index] = DATABASE_NON_DEFAULT_TABLESPACE
+      schema_define do
+        create_table :test_posts, :force => true
+      end
+
+      index_name = @conn.select_value(
+        "SELECT index_name FROM all_constraints
+            WHERE table_name = 'TEST_POSTS'
+            AND constraint_type = 'P'
+            AND owner = SYS_CONTEXT('userenv', 'current_schema')")
+
+      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+    end
+
+    after do
+      Object.send(:remove_const, "TestPost")
+      schema_define do
+        drop_table :test_posts rescue nil
+      end
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:index] = nil
+    end
+  end
+
   describe "foreign key in table definition" do
     before(:each) do
       schema_define do
