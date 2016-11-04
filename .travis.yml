@@ -15,7 +15,6 @@ env:
     - DATABASE_NAME=XE
     - ORA_SDTZ='Europe/Riga' #Needed as a client parameter
     - TZ='Europe/Riga'       #Needed as a DB Server parameter
-    - DATABASE_NON_DEFAULT_TABLESPACE=USERS
 
 before_install:
   - chmod +x .travis/oracle/download.sh
