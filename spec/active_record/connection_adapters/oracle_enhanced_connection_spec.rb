@@ -140,7 +140,7 @@ describe "OracleEnhancedConnection" do
   describe 'with host="connection-string"' do
     let(:username) { CONNECTION_PARAMS[:username] }
     let(:password) { CONNECTION_PARAMS[:password] }
-    let(:connection_string) { '(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=xe)))' }
+    let(:connection_string) { "(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=#{DATABASE_HOST})(PORT=#{DATABASE_PORT})))(CONNECT_DATA=(SERVICE_NAME=#{DATABASE_NAME})))" }
     let(:params) { { username: username, password: password, host: 'connection-string', database: connection_string } }
 
     it 'uses the database param as the connection string' do
