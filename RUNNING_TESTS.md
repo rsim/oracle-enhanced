@@ -42,7 +42,7 @@ Running tests
         bundle install
         
 * Configure database credentials in one of two ways:
-    * copy spec/spec_config.yaml.template to spec/config.yaml and modify as needed
+    * copy spec/spec_config.yaml.template to spec/spec_config.yaml and modify as needed
     * set required environment variables (see DATABASE_NAME in spec_helper.rb)
 
 * Run tests with
