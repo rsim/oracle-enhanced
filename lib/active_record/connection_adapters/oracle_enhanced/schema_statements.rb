@@ -92,6 +92,8 @@ module ActiveRecord
           td.foreign_keys.each do |other_table_name, foreign_key_options|
             add_foreign_key(table_name, other_table_name, foreign_key_options)
           end
+
+          rebuild_primary_key_index_to_default_tablespace(table_name, options)
         end
 
         def create_table_definition(name, temporary, options)
@@ -536,6 +538,22 @@ module ActiveRecord
         def default_trigger_name(table_name)
           # truncate table name if necessary to fit in max length of identifier
           "#{table_name.to_s[0,table_name_length-4]}_pkt"
+        end
+
+        def rebuild_primary_key_index_to_default_tablespace(table_name, options)
+          tablespace = default_tablespace_for(:index)
+
+          return unless tablespace
+
+          index_name = Base.connection.select_value(
+            "SELECT index_name FROM all_constraints
+                WHERE table_name = #{quote(table_name.upcase)}
+                AND constraint_type = 'P'
+                AND owner = SYS_CONTEXT('userenv', 'current_schema')")
+
+          return unless index_name
+
+          execute("ALTER INDEX #{quote_column_name(index_name)} REBUILD TABLESPACE #{tablespace}")
         end
 
       end
