@@ -1,3 +1,23 @@
+## 1.7.5 / 2016-11-06
+
+* Changes and bug fixes
+
+ * Multi insert is not supported [#1016]
+ * Use `default_timezone = :local` to handle `TIMESTAMP WITH LOCAL TIME ZONE` [#1001, #1019]
+ * Address Rails 5 : custom methods for create record when exception is raised in `after_create` callback fails [#944, #1023]
+ * Using the gem in non-rails apps [#1026]
+ * Support connection strings in `DATABASE_URL1 [#1032, #1035]
+ * Rebuild primary key index to `default_tablespaces[:index]` [#1028]
+ * Address `Java::JavaSql::SQLException: Missing IN or OUT parameter at index:: 3:` [#1030, #1033]
+
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+    * Workaround: execute explain without bind or use CRuby
+ - CRuby and JRuby
+ * Rails 5 : specs need update to emulate_booleans_from_strings [#942]
+
 ## 1.7.4 / 2016-10-14
 
 * Changes and bug fixes
