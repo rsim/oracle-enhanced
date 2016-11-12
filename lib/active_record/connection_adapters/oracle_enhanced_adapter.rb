@@ -1109,3 +1109,6 @@ require 'active_record/oracle_enhanced/type/text'
 
 # Add OracleEnhanced::Type::Boolean
 require 'active_record/oracle_enhanced/type/boolean'
+
+# To use :boolean type for Attribute API, each type needs registered explicitly.
+ActiveRecord::Type.register(:boolean, ActiveRecord::OracleEnhanced::Type::Boolean, adapter: :oracleenhanced)
