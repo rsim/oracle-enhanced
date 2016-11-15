@@ -1,3 +1,14 @@
+## 1.7.6 / 2016-11-12
+
+* Changes and bug fixes
+  * Register `:boolean` type for Attribute API [#942, #1045]
+  * No need to set version in Gemfile anymore since rdoc 5.0.0 released [#1040]
+  * Bump MRI and JRuby version for travis [#1041, #1042, #1043]
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+
 ## 1.7.5 / 2016-11-06
 
 * Changes and bug fixes
