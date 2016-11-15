@@ -29,6 +29,7 @@ install:
 
 language: ruby
 rvm:
+  - 2.2.5
   - 2.3.1
   - jruby-9.1.6.0
   - 2.4.0-preview3
