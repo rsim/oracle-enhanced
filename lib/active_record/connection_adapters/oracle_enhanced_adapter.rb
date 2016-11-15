@@ -390,6 +390,17 @@ module ActiveRecord
       cattr_accessor :string_to_time_format
       self.string_to_time_format = nil
 
+      ##
+      # :singleton-method:
+      # By default, OracleEnhanced adapter will use Oracle12 visitor
+      # if database version is Oracle 12.1.
+      # If you wish to use Oracle visitor which is intended to work with Oracle 11.2 or lower
+      # for Oracle 12.1 database you can add the following line to your initializer file:
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor = true
+      cattr_accessor :use_old_oracle_visitor
+      self.use_old_oracle_visitor = false
+
       class StatementPool
         include Enumerable
 
@@ -434,7 +445,7 @@ module ActiveRecord
       end
 
       def arel_visitor # :nodoc:
-        if supports_fetch_first_n_rows_and_offset?
+        if supports_fetch_first_n_rows_and_offset? && !use_old_oracle_visitor
           Arel::Visitors::Oracle12.new(self)
         else
           Arel::Visitors::Oracle.new(self)
