@@ -1,3 +1,13 @@
+## 1.7.7 / 2016-11-15
+
+* Changes and bug fixes
+  * Introduce `use_old_oracle_visitor` to choose old Oracle visitor [#1049]
+  * Fix deprecated warnings in Ruby 2.4.0+ [#1048, #1052]
+  * Add Ruby 2.2.5 and JRuby 9.0.5.0 for travis [#1050, #1051]
+
+* Known issues
+ * No changes since 1.7.6
+
 ## 1.7.6 / 2016-11-12
 
 * Changes and bug fixes
