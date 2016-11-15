@@ -250,12 +250,12 @@ module ActiveRecord
 
       def typecast_result_value(value, get_lob_value)
         case value
-        when Fixnum, Bignum
+        when Integer
           value
         when String
           value
         when Float, BigDecimal
-          # return Fixnum or Bignum if value is integer (to avoid issues with _before_type_cast values for id attributes)
+          # return Integer if value is integer (to avoid issues with _before_type_cast values for id attributes)
           value == (v_to_i = value.to_i) ? v_to_i : value
         when OraNumber
           # change OraNumber value (returned in early versions of ruby-oci8 2.0.x) to BigDecimal
