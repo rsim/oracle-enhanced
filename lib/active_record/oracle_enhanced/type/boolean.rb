@@ -2,17 +2,15 @@ module ActiveRecord
   module OracleEnhanced
     module Type
       class Boolean < ActiveModel::Type::Boolean # :nodoc:
-        # Add 'N' as FALSE_VALUES
-        FALSE_VALUES = [false, 0, '0', 'f', 'F', 'false', 'FALSE', 'off', 'OFF', 'n', 'N'].to_set
 
         private
 
         def cast_value(value)
-          # Not calling super to use its own `FALSE_VALUES`
-          if value == ''
-            nil
+          # Kind of adding 'n' and 'N' to  `FALSE_VALUES`
+          if ['n', 'N'].include?(value)
+            false
           else
-            !FALSE_VALUES.include?(value)
+            super
           end
         end
 
