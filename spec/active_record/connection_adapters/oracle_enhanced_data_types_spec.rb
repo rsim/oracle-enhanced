@@ -212,13 +212,13 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
         attribute :job_id, :integer
       end
       create_employee2
-      expect(@employee2.job_id.class).to eq(Integer)
+      expect(@employee2.job_id).to be_a(Integer)
     end
 
     it "should return Integer value from NUMBER column with integer value using _before_type_cast method" do
       # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
       create_employee2
-      expect(@employee2.job_id_before_type_cast.class).to eq(Integer)
+      expect(@employee2.job_id_before_type_cast).to be_a(Integer)
     end
 
     it "should return BigDecimal value from NUMBER column if column name does not contain 'id' and emulate_integers_by_column_name is true" do
@@ -234,7 +234,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
         attribute :job_id, :integer
       end
       create_employee2
-      expect(@employee2.job_id.class).to eq(Integer)
+      expect(@employee2.job_id).to be_a(Integer)
     end
 
     it "should return Boolean value from NUMBER(1) column if emulate booleans is used" do
@@ -249,7 +249,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
         attribute :is_manager, :integer
       end
       create_employee2
-      expect(@employee2.is_manager.class).to eq(Integer)
+      expect(@employee2.is_manager).to be_a(Integer)
     end
 
     it "should return Integer value from NUMBER(1) column if column specified in set_integer_columns" do
@@ -259,7 +259,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
         attribute :is_manager, :integer
       end
       create_employee2
-      expect(@employee2.is_manager.class).to eq(Integer)
+      expect(@employee2.is_manager).to be_a(Integer)
     end
 
   end
