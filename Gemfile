@@ -6,7 +6,7 @@ git_source(:github) do |repo_name|
 end
 
 group :development do
-  gem 'rspec', '~> 3.3'
+  gem 'rspec'
   gem 'rdoc'
   gem 'rake'
 
