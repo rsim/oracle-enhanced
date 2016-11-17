@@ -22,9 +22,9 @@ describe "OracleEnhancedAdapter structure dump" do
       end
       TestPost.table_name = "test_posts"
     end
-  
+
     after(:each) do
-      @conn.drop_table :test_posts 
+      @conn.drop_table :test_posts
       @conn.drop_table :foos
       @conn.execute "DROP SEQUENCE test_posts_seq" rescue nil
       @conn.execute "ALTER TABLE test_posts drop CONSTRAINT fk_test_post_foo" rescue nil
@@ -40,12 +40,12 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute "DROP VIEW test_posts_view_z" rescue nil
       @conn.execute "DROP VIEW test_posts_view_a" rescue nil
     end
-  
+
     it "should dump single primary key" do
       dump = ActiveRecord::Base.connection.structure_dump
       expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \(ID\)\n/)
     end
-  
+
     it "should dump composite primary keys" do
       pk = @conn.send(:select_one, <<-SQL)
         select constraint_name from user_constraints where table_name = 'TEST_POSTS' and constraint_type='P'
@@ -60,43 +60,43 @@ describe "OracleEnhancedAdapter structure dump" do
       dump = ActiveRecord::Base.connection.structure_dump
       expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \(ID,TITLE\)\n/)
     end
-  
+
     it "should dump foreign keys" do
       @conn.execute <<-SQL
-        ALTER TABLE TEST_POSTS 
+        ALTER TABLE TEST_POSTS
         ADD CONSTRAINT fk_test_post_foo FOREIGN KEY (foo_id) REFERENCES foos(id)
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       expect(dump.split('\n').length).to eq(1)
       expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOO\"? FOREIGN KEY \(\"?FOO_ID\"?\) REFERENCES \"?FOOS\"?\(\"?ID\"?\)/i)
     end
-    
+
     it "should dump foreign keys when reference column name is not 'id'" do
       @conn.add_column :foos, :baz_id, :integer
-      
+
       @conn.execute <<-SQL
-        ALTER TABLE FOOS 
+        ALTER TABLE FOOS
         ADD CONSTRAINT UK_BAZ UNIQUE (BAZ_ID)
       SQL
-      
+
       @conn.add_column :test_posts, :baz_id, :integer
-      
+
       @conn.execute <<-SQL
-        ALTER TABLE TEST_POSTS 
+        ALTER TABLE TEST_POSTS
         ADD CONSTRAINT fk_test_post_baz FOREIGN KEY (baz_id) REFERENCES foos(baz_id)
       SQL
-      
+
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       expect(dump.split('\n').length).to eq(1)
       expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\)/i)
     end
-    
+
     it "should not error when no foreign keys are present" do
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       expect(dump.split('\n').length).to eq(0)
       expect(dump).to eq('')
     end
-  
+
     it "should dump triggers" do
       @conn.execute <<-SQL
         create or replace TRIGGER TEST_POST_TRIGGER
@@ -110,7 +110,7 @@ describe "OracleEnhancedAdapter structure dump" do
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
       expect(dump).to match(/CREATE OR REPLACE TRIGGER TEST_POST_TRIGGER/)
     end
-  
+
     it "should dump types" do
       @conn.execute <<-SQL
         create or replace TYPE TEST_TYPE AS TABLE OF VARCHAR2(10);
@@ -125,7 +125,7 @@ describe "OracleEnhancedAdapter structure dump" do
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
       expect(dump).to match(/CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_A.*CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_Z/)
     end
-  
+
     it "should dump virtual columns" do
       skip "Not supported in this database version" unless @oracle11g_or_higher
       @conn.execute <<-SQL
@@ -159,20 +159,20 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_unique_keys("test_posts")
       expect(dump).to eq(["ALTER TABLE TEST_POSTS ADD CONSTRAINT UK_FOO_FOO_ID UNIQUE (FOO,FOO_ID)"])
-    
+
       dump = ActiveRecord::Base.connection.structure_dump
       expect(dump).to match(/CONSTRAINT UK_FOO_FOO_ID UNIQUE \(FOO,FOO_ID\)/)
     end
-  
+
     it "should dump indexes" do
       ActiveRecord::Base.connection.add_index(:test_posts, :foo, :name => :ix_test_posts_foo)
       ActiveRecord::Base.connection.add_index(:test_posts, :foo_id, :name => :ix_test_posts_foo_id, :unique => true)
-      
+
       @conn.execute <<-SQL
         ALTER TABLE test_posts
           add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
-      
+
       dump = ActiveRecord::Base.connection.structure_dump
       expect(dump).to match(/CREATE UNIQUE INDEX "?IX_TEST_POSTS_FOO_ID"? ON "?TEST_POSTS"? \("?FOO_ID"?\)/i)
       expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO\"? ON "?TEST_POSTS"? \("?FOO"?\)/i)
@@ -260,11 +260,11 @@ describe "OracleEnhancedAdapter structure dump" do
 
     it "should return the character size of nvarchar fields" do
       if /.*unq_nvarchar nvarchar2\((\d+)\).*/ =~ @conn.structure_dump
-         expect("#$1").to eq("255")
+        expect("#$1").to eq("255")
       end
     end
   end
-  
+
   describe "temp_table_drop" do
     before(:each) do
       @conn.create_table :temp_tbl, :temporary => true do |t|
@@ -280,13 +280,44 @@ describe "OracleEnhancedAdapter structure dump" do
       expect(dump).not_to match(/DROP TABLE "?NOT_TEMP_TBL"?/i)
     end
     after(:each) do
-      @conn.drop_table :temp_tbl 
+      @conn.drop_table :temp_tbl
       @conn.drop_table :not_temp_tbl
     end
   end
-  
+
+  describe "schema migrations" do
+    let(:versions) do
+      (1..10).map do |i|
+        Time.parse("2016.01.#{i}").strftime("%Y%m%d%H%M%S")
+      end
+    end
+    before do
+      @conn.create_table :schema_migrations, :id => false do |t|
+        t.string :version
+      end
+      versions.each do |i|
+        @conn.execute "insert into schema_migrations (version) values ('#{i}')"
+      end
+    end
+    let(:dump) { ActiveRecord::Base.connection.dump_schema_information }
+    it "should dump schema migrations one version per insert" do
+      versions[0...-1].each do |i|
+        expect(dump).to include "INSERT INTO schema_migrations (version) VALUES ('#{i}')\n\n/\n"
+      end
+    end
+    it "should not add own separator or newline" do
+      expect(dump).to match(/INSERT INTO schema_migrations \(version\) VALUES \('#{versions.last}'\)\z/)
+    end
+    it "should contain expected amount of lines" do
+      expect(dump.lines.length).to eq(4 * (versions.length - 1) + 1)
+    end
+    after do
+      @conn.drop_table :schema_migrations
+    end
+  end
+
   describe "full drop" do
-    before(:each) do 
+    before(:each) do
       @conn.create_table :full_drop_test do |t|
         t.string :foo
       end
@@ -308,7 +339,7 @@ describe "OracleEnhancedAdapter structure dump" do
         end test_package;
       SQL
       @conn.execute <<-SQL
-        create or replace package body full_drop_test_package as 
+        create or replace package body full_drop_test_package as
           function test_func return varchar2 is
             begin
               return ('foo');
@@ -318,10 +349,10 @@ describe "OracleEnhancedAdapter structure dump" do
       #function
       @conn.execute <<-SQL
         create or replace function full_drop_test_function
-          return varchar2 
+          return varchar2
         is
           foo varchar2(3);
-        begin 
+        begin
           return('foo');
         end;
       SQL
