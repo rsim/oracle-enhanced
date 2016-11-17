@@ -260,7 +260,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
     it "should return the character size of nvarchar fields" do
       if /.*unq_nvarchar nvarchar2\((\d+)\).*/ =~ @conn.structure_dump
-         expect("#$1").to eq("255")
+        expect("#$1").to eq("255")
       end
     end
   end
@@ -282,6 +282,37 @@ describe "OracleEnhancedAdapter structure dump" do
     after(:each) do
       @conn.drop_table :temp_tbl
       @conn.drop_table :not_temp_tbl
+    end
+  end
+
+  describe "schema migrations" do
+    let(:versions) do
+      (1..10).map do |i|
+        Time.parse("2016.01.#{i}").strftime("%Y%m%d%H%M%S")
+      end
+    end
+    before do
+      @conn.create_table :schema_migrations, :id => false do |t|
+        t.string :version
+      end
+      versions.each do |i|
+        @conn.execute "insert into schema_migrations (version) values ('#{i}')"
+      end
+    end
+    let(:dump) { ActiveRecord::Base.connection.dump_schema_information }
+    it "should dump schema migrations one version per insert" do
+      versions[0...-1].each do |i|
+        expect(dump).to include "INSERT INTO schema_migrations (version) VALUES ('#{i}')\n\n/\n"
+      end
+    end
+    it "should not add own separator or newline" do
+      expect(dump).to match(/INSERT INTO schema_migrations \(version\) VALUES \('#{versions.last}'\)\z/)
+    end
+    it "should contain expected amount of lines" do
+      expect(dump.lines.length).to eq(4 * (versions.length - 1) + 1)
+    end
+    after do
+      @conn.drop_table :schema_migrations
     end
   end
 
