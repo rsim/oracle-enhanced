@@ -366,7 +366,7 @@ module ActiveRecord
           if options[:dependent]
             ActiveSupport::Deprecation.warn "`:dependent` option will be deprecated. Please use `:on_delete` option"
           end
-          case options[:dependent]  
+          case options[:dependent]
           when :delete then options[:on_delete] = :cascade
           when :nullify then options[:on_delete] = :nullify
           else
@@ -449,7 +449,7 @@ module ActiveRecord
 
         def create_alter_table(name)
           OracleEnhanced::AlterTable.new create_table_definition(name, false, {})
-        end 
+        end
 
         def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
           tablespace_sql = ''

@@ -2,7 +2,7 @@ require 'active_support'
 
 module ActiveRecord #:nodoc:
   # Custom create, update, delete methods functionality.
-  # 
+  #
   # Example:
   #
   #   class Employee < ActiveRecord::Base
