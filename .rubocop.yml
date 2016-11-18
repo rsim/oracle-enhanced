@@ -1,0 +1,11 @@
+AllCops:
+  TargetRubyVersion: 2.2
+  DisabledByDefault: true
+
+# No trailing whitespace.
+Style/TrailingWhitespace:
+  enabled: true
+
+# Blank lines should not have any spaces.
+Style/TrailingBlankLines:
+  enabled: true

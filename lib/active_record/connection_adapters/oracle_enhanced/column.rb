@@ -69,7 +69,7 @@ module ActiveRecord
 #        #TODO: may be deprecated due to conflict with variable
 #        ActiveRecord::Base.connection.column_comment(@table_name, name)
 #      end
-      
+
       private
 
       def self.extract_value_from_default(default)
@@ -85,7 +85,7 @@ module ActiveRecord
         value.respond_to?(:hour) && (value.hour == 0 and value.min == 0 and value.sec == 0) ?
           Date.new(value.year, value.month, value.day) : value
       end
-      
+
       class << self
         protected
 
@@ -128,7 +128,7 @@ module ActiveRecord
           end
           DateTime.strptime(string, OracleEnhancedAdapter.string_to_date_format).to_date
         end
-        
+
       end
     end
 

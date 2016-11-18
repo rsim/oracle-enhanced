@@ -51,7 +51,7 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
     @conn.enable_dbms_output
 
     expect(@conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a).to eq([{'is_it_long'=>1}])
-    
+
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: before the if -hi there-$/)
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: it is longer than 5$/)
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: about to return: 1$/)
@@ -61,7 +61,7 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
     @conn.enable_dbms_output
 
     expect(@conn.select_all("select more_than_five_characters_long('short') is_it_long from dual").to_a).to eq([{'is_it_long'=>0}])
-    
+
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: before the if -short-$/)
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: it is 5 or shorter$/)
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: about to return: 0$/)

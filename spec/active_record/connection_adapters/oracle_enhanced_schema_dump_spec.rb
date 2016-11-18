@@ -234,7 +234,7 @@ describe "OracleEnhancedAdapter schema dump" do
       dump = standard_dump
       expect(dump.rindex("create_table")).to be < dump.index("add_foreign_key")
     end
- 
+
     it "should include primary_key when reference column name is not 'id'" do
       schema_define do
         create_table :test_posts, force: true, :primary_key => 'baz_id' do |t|
@@ -253,7 +253,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
       expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", column: "baz_id", primary_key: "baz_id", name: "test_comments_baz_id_fk"/)
     end
-    
+
   end
 
   describe "synonyms" do
@@ -415,7 +415,7 @@ describe "OracleEnhancedAdapter schema dump" do
     context "with index on virtual column" do
       before(:all) do
         if @oracle11g_or_higher
-          schema_define do 
+          schema_define do
             add_index 'test_names', 'field_with_leading_space', :name => "index_on_virtual_col"
           end
         end

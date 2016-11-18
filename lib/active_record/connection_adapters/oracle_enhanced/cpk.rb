@@ -7,11 +7,11 @@ module ActiveRecord #:nodoc:
       def supports_count_distinct? #:nodoc:
         @supports_count_distinct ||= ! defined?(CompositePrimaryKeys)
       end
-      
+
       def concat(*columns) #:nodoc:
         "(#{columns.join('||')})"
       end
-      
+
     end
   end
 end

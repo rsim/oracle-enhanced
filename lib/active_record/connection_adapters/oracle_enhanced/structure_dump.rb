@@ -73,7 +73,7 @@ module ActiveRecord #:nodoc:
 
       def structure_dump_primary_key(table) #:nodoc:
         opts = {:name => '', :cols => []}
-        pks = select_all(<<-SQL, "Primary Keys") 
+        pks = select_all(<<-SQL, "Primary Keys")
           SELECT a.constraint_name, a.column_name, a.position
             FROM all_cons_columns a
             JOIN all_constraints c
@@ -92,7 +92,7 @@ module ActiveRecord #:nodoc:
 
       def structure_dump_unique_keys(table) #:nodoc:
         keys = {}
-        uks = select_all(<<-SQL, "Primary Keys") 
+        uks = select_all(<<-SQL, "Primary Keys")
           SELECT a.constraint_name, a.column_name, a.position
             FROM all_cons_columns a
             JOIN all_constraints c
@@ -215,7 +215,7 @@ module ActiveRecord #:nodoc:
           structure << ddl
         end
 
-        # export views 
+        # export views
         select_all("SELECT view_name, text FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY view_name ASC").each do |view|
           structure << "CREATE OR REPLACE FORCE VIEW #{view['view_name']} AS\n #{view['text']}"
         end
@@ -298,7 +298,7 @@ module ActiveRecord #:nodoc:
 
       private
 
-      # virtual columns are an 11g feature.  This returns [] if feature is not 
+      # virtual columns are an 11g feature.  This returns [] if feature is not
       # present or none are found.
       # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
       def virtual_columns_for(table)

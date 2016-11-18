@@ -90,4 +90,3 @@ describe "Oracle Enhanced adapter database tasks" do
     after { ActiveRecord::Base.connection.execute "DROP TABLE test_posts" rescue nil }
   end
 end
-
