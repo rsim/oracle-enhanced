@@ -64,7 +64,7 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
     before(:all) do
       schema_define do
         create_table  :cpk_write_lobs_test, :primary_key => [:type_category, :date_value], :force => true do |t|
-          t.string  :type_category, :limit => 15, :null => false  
+          t.string  :type_category, :limit => 15, :null => false
           t.date    :date_value, :null => false
           t.text    :results, :null => false
           t.timestamps null: true
@@ -83,7 +83,7 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
         set_table_name 'non_cpk_write_lobs_test'
       end
     end
-    
+
     after(:all) do
       schema_define do
         drop_table :cpk_write_lobs_test
@@ -98,14 +98,14 @@ describe "OracleEnhancedAdapter composite_primary_keys support" do
         CpkWriteLobsTest.create(:type_category => 'AAA', :date_value => Date.today, :results => 'DATA '*10)
       }.not_to raise_error
     end
-    
+
     it "should create new record in table without CPK and with LOB" do
       expect {
         NonCpkWriteLobsTest.create(:date_value => Date.today, :results => 'DATA '*10)
       }.not_to raise_error
     end
   end
-  
+
   # Other testing was done based on composite_primary_keys tests
 
 end

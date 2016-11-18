@@ -69,4 +69,3 @@ class BugTest < Minitest::Test
     assert_equal post.id, Comment.first.post.id
   end
 end
-

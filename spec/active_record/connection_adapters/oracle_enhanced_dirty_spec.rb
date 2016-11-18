@@ -20,11 +20,11 @@ if ActiveRecord::Base.method_defined?(:changed?)
       class TestEmployee < ActiveRecord::Base
       end
     end
-  
+
     after(:all) do
       Object.send(:remove_const, "TestEmployee")
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
-    end  
+    end
 
     it "should not mark empty string (stored as NULL) as changed when reassigning it" do
       @employee = TestEmployee.create!(:first_name => '')
@@ -102,7 +102,7 @@ if ActiveRecord::Base.method_defined?(:changed?)
       @employee = TestEmployee.new
       @employee.job_id = 0
       expect(@employee.save!).to be_truthy
-      
+
       expect(@employee).not_to be_changed
 
       @employee.job_id = '0'

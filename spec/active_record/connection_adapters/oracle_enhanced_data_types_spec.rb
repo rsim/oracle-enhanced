@@ -151,7 +151,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test2_employees"
     @conn.execute "DROP SEQUENCE test2_employees_seq"
@@ -162,7 +162,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       class ::Test2Employee < ActiveRecord::Base
       end
     end
-    
+
     after(:each) do
       Object.send(:remove_const, "Test2Employee")
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
@@ -791,7 +791,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     @employee.reload
     expect(@employee.last_login_at).to eq(@today.to_time)
   end
-  
+
 end
 
 describe "OracleEnhancedAdapter handling of CLOB columns" do
@@ -1378,7 +1378,7 @@ describe "OracleEnhancedAdapter handling of BINARY_FLOAT columns" do
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test2_employees"
     @conn.execute "DROP SEQUENCE test2_employees_seq"

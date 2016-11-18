@@ -78,7 +78,51 @@ module ActiveRecord
         value.respond_to?(:hour) && (value.hour == 0 and value.min == 0 and value.sec == 0) ?
           Date.new(value.year, value.month, value.day) : value
       end
-      
+
+      class << self
+        protected
+
+        def fallback_string_to_date(string) #:nodoc:
+          if OracleEnhancedAdapter.string_to_date_format || OracleEnhancedAdapter.string_to_time_format
+            ActiveSupport::Deprecation.warn(<<-MSG.squish)
+              `fallback_string_to_date` has been deprecated.
+              It will be removed from next version of Oracle enhanced adapter.
+              Users are unlikely to see this message since this method has gone
+              from ActiveRecord::ConnectionAdapters::Column in Rails 4.2.
+            MSG
+            return (string_to_date_or_time_using_format(string).to_date rescue super)
+          end
+          super
+        end
+
+        def fallback_string_to_time(string) #:nodoc:
+          if OracleEnhancedAdapter.string_to_time_format || OracleEnhancedAdapter.string_to_date_format
+            ActiveSupport::Deprecation.warn(<<-MSG.squish)
+              `fallback_string_to_time` has been deprecated.
+              It will be removed from next version of Oracle enhanced adapter.
+              Users are unlikely to see this message since this method has gone
+              from ActiveRecord::ConnectionAdapters::Column in Rails 4.2.
+            MSG
+            return (string_to_date_or_time_using_format(string).to_time rescue super)
+          end
+          super
+        end
+
+        def string_to_date_or_time_using_format(string) #:nodoc:
+          ActiveSupport::Deprecation.warn(<<-MSG.squish)
+            `string_to_date_or_time_using_format` has been deprecated.
+            It will be removed from next version of Oracle enhanced adapter.
+            Users are unlikely to see this message since `fallback_string_to_date`
+            and `fallback_string_to_time` have gone
+            from ActiveRecord::ConnectionAdapters::Column in Rails 4.2.
+          MSG
+          if OracleEnhancedAdapter.string_to_time_format && dt=Date._strptime(string, OracleEnhancedAdapter.string_to_time_format)
+            return Time.parse("#{dt[:year]}-#{dt[:mon]}-#{dt[:mday]} #{dt[:hour]}:#{dt[:min]}:#{dt[:sec]}#{dt[:zone]}")
+          end
+          DateTime.strptime(string, OracleEnhancedAdapter.string_to_date_format).to_date
+        end
+
+      end
     end
 
   end

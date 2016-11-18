@@ -1,4 +1,4 @@
-module ActiveRecord 
+module ActiveRecord
   module OracleEnhanced
     module Type
       class Integer < ActiveModel::Type::Integer # :nodoc:
