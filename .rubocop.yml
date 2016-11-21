@@ -4,8 +4,8 @@ AllCops:
 
 # No trailing whitespace.
 Style/TrailingWhitespace:
-  enabled: true
+  Enabled: true
 
 # Blank lines should not have any spaces.
 Style/TrailingBlankLines:
-  enabled: true
+  Enabled: true
