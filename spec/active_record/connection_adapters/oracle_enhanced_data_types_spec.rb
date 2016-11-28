@@ -420,10 +420,12 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 end
 
 describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strings = true" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    ActiveRecord::Schema.define do
+    schema_define do
       create_table :posts, :force => true do |t|
         t.string  :name,        null: false
         t.boolean :is_default, default: false
