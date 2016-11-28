@@ -178,4 +178,8 @@ DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] |
 # which will be used to set session time zone
 ENV['TZ'] ||= config["timezone"] || 'Europe/Riga'
 
-# ActiveRecord::Base.logger = Logger.new(STDOUT)
+# add extra white spaces and extra lines to be detected by rubocop
+ActiveRecord::Base.logger = Logger.new(STDOUT)   
+
+
+
