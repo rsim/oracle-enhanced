@@ -467,7 +467,6 @@ module ActiveRecord
           (default_tablespaces[type] || default_tablespaces[native_database_types[type][:name]]) rescue nil
         end
 
-
         def column_for(table_name, column_name)
           unless column = columns(table_name).find { |c| c.name == column_name.to_s }
             raise "No such column: #{table_name}.#{column_name}"

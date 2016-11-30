@@ -767,7 +767,6 @@ module ActiveRecord
         data_sources
       end
 
-
       def data_sources
         select_values(
         "SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name) FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'",

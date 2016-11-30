@@ -46,7 +46,6 @@ rescue LoadError, NameError
   raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars ? ojdbc_jars.join(' or ') : "Oracle JDBC"} library."
 end
 
-
 module ActiveRecord
   module ConnectionAdapters
 

@@ -191,7 +191,6 @@ module ActiveRecord #:nodoc:
         sql
       end
 
-
       # Extract all stored procedures, packages, synonyms and views.
       def structure_dump_db_stored_code #:nodoc:
         structure = []

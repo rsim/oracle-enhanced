@@ -370,11 +370,8 @@ module ActiveRecord
       end
     end
 
-
   end
 end
-
-
 
 class OCI8 #:nodoc:
 

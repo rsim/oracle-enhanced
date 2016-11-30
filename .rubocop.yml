@@ -9,3 +9,7 @@ Style/TrailingWhitespace:
 # Blank lines should not have any spaces.
 Style/TrailingBlankLines:
   Enabled: true
+
+# No extra empty lines.
+Style/EmptyLines:
+  Enabled: true
