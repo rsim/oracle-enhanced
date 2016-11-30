@@ -2,7 +2,6 @@ module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhanced #:nodoc:
       module ColumnDumper #:nodoc:
-
         def column_spec(column)
           spec = Hash[prepare_column_options(column).map { |k, v| [k, "#{k}: #{v}"] }]
           spec[:name] = column.name.inspect
@@ -63,7 +62,6 @@ module ActiveRecord #:nodoc:
             column.type.inspect if column.virtual?
           end
         end
-
       end
     end
   end

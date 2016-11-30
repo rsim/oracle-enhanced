@@ -220,7 +220,6 @@ module ActiveRecord
             write_lobs(table_name, klass, fixture, klass.lob_columns)
           end
         end
-
       end
     end
   end

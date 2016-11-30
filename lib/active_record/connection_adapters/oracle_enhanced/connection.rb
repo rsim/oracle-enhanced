@@ -2,7 +2,6 @@ module ActiveRecord
   module ConnectionAdapters
     # interface independent methods
     class OracleEnhancedConnection #:nodoc:
-
       def self.create(config)
         case ORACLE_ENHANCED_CONNECTION
         when :oci
@@ -97,7 +96,6 @@ module ActiveRecord
         result = select(sql, name = nil)
         result.map { |r| r.values.first }
       end
-
     end
 
     # Returns array with major and minor version of database (e.g. [12, 1])
@@ -107,7 +105,6 @@ module ActiveRecord
 
     class OracleEnhancedConnectionException < StandardError #:nodoc:
     end
-
   end
 end
 

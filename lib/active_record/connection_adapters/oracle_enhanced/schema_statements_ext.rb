@@ -54,7 +54,6 @@ module ActiveRecord
               oracle_downcase(row['table_owner']), oracle_downcase(row['table_name']), oracle_downcase(row['db_link']))
           end
         end
-
       end
     end
   end
