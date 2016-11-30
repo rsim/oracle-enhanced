@@ -1,7 +1,6 @@
 module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhancedStructureDump #:nodoc:
-
       # Statements separator used in structure dump to allow loading of structure dump also with SQL*Plus
       STATEMENT_TOKEN = "\n\n/\n\n"
 
@@ -335,7 +334,6 @@ module ActiveRecord #:nodoc:
         string << STATEMENT_TOKEN unless string.blank?
         string
       end
-
     end
   end
 end

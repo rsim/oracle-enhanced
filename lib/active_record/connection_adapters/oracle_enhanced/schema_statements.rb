@@ -519,7 +519,6 @@ module ActiveRecord
 
           execute("ALTER INDEX #{quote_column_name(index_name)} REBUILD TABLESPACE #{tablespace}")
         end
-
       end
     end
   end

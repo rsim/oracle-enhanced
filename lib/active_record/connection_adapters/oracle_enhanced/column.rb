@@ -1,7 +1,6 @@
 module ActiveRecord
   module ConnectionAdapters #:nodoc:
     class OracleEnhancedColumn < Column
-
       attr_reader :table_name, :nchar, :virtual_column_data_default, :returning_id #:nodoc:
 
       def initialize(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual = false, returning_id = nil, comment = nil) #:nodoc:
@@ -128,10 +127,7 @@ module ActiveRecord
           end
           DateTime.strptime(string, OracleEnhancedAdapter.string_to_date_format).to_date
         end
-
       end
     end
-
   end
-
 end

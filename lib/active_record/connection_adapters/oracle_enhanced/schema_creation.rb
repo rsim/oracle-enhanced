@@ -90,7 +90,6 @@ module ActiveRecord
             MSG
           end
         end
-
       end
     end
   end

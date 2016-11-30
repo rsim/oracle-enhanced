@@ -4,7 +4,6 @@ module ActiveRecord
   module OracleEnhanced
     module Type
       class Text < ActiveModel::Type::Text # :nodoc:
-
         def changed_in_place?(raw_old_value, new_value)
           #TODO: Needs to find a way not to cast here.
           raw_old_value = cast(raw_old_value)
@@ -25,7 +24,6 @@ module ActiveRecord
             @value
           end
         end
-
       end
     end
   end

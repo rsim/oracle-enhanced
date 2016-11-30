@@ -48,10 +48,8 @@ end
 
 module ActiveRecord
   module ConnectionAdapters
-
     # JDBC database interface for JRuby
     class OracleEnhancedJDBCConnection < OracleEnhancedConnection #:nodoc:
-
       attr_accessor :active
       alias :active? :active
 
@@ -451,7 +449,6 @@ module ActiveRecord
         def close
           @raw_statement.close
         end
-
       end
 
       def select(sql, name = nil, return_column_names = false)
@@ -572,8 +569,6 @@ module ActiveRecord
           end
         end
       end
-
     end
-
   end
 end

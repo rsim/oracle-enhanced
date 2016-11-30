@@ -46,7 +46,6 @@ end
 
 module ActiveRecord
   class Base
-
     # Specify table columns which should be ignored by ActiveRecord, e.g.:
     #
     #   ignore_table_columns :attribute1, :attribute2
@@ -173,7 +172,6 @@ module ActiveRecord
   end
 
   module ConnectionAdapters #:nodoc:
-
     # Oracle enhanced adapter will work with both
     # Ruby 1.8/1.9 ruby-oci8 gem (which provides interface to Oracle OCI client)
     # or with JRuby and Oracle JDBC driver.
@@ -1305,7 +1303,6 @@ module ActiveRecord
           @logger.debug "DBMS_OUTPUT: #{result[:line]}" if @logger
         end
       end
-
     end
   end
 end
