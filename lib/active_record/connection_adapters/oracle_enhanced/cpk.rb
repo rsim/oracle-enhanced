@@ -1,7 +1,6 @@
 module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhancedCpk #:nodoc:
-
       # This mightn't be in Core, but count(distinct x,y) doesn't work for me.
       # Return that not supported if composite_primary_keys gem is required.
       def supports_count_distinct? #:nodoc:
@@ -11,7 +10,6 @@ module ActiveRecord #:nodoc:
       def concat(*columns) #:nodoc:
         "(#{columns.join('||')})"
       end
-
     end
   end
 end

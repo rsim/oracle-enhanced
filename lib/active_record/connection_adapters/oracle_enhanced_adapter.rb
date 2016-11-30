@@ -46,7 +46,6 @@ end
 
 module ActiveRecord
   class Base
-
     # Get table comment from schema definition.
     def self.table_comment
       connection.table_comment(self.table_name)
@@ -101,7 +100,6 @@ module ActiveRecord
   end
 
   module ConnectionAdapters #:nodoc:
-
     # Oracle enhanced adapter will work with both
     # Ruby 1.8/1.9 ruby-oci8 gem (which provides interface to Oracle OCI client)
     # or with JRuby and Oracle JDBC driver.
@@ -583,7 +581,6 @@ module ActiveRecord
         data_sources
       end
 
-
       def data_sources
         select_values(
         "SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name) FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'",
@@ -1064,7 +1061,6 @@ module ActiveRecord
           @logger.debug "DBMS_OUTPUT: #{result[:line]}" if @logger
         end
       end
-
     end
   end
 end

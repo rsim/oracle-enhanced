@@ -2,7 +2,6 @@ module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhanced #:nodoc:
       module SchemaDumper #:nodoc:
-
         private
 
         def tables(stream)
@@ -198,7 +197,6 @@ module ActiveRecord #:nodoc:
             end
           end
         end
-
       end
     end
   end

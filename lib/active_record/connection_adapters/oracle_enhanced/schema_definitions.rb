@@ -1,7 +1,6 @@
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
-
       class SynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
       end
 
@@ -17,7 +16,6 @@ module ActiveRecord
       end
 
       class ColumnDefinition < ActiveRecord::ConnectionAdapters::ColumnDefinition
-
       end
 
       class TableDefinition < ActiveRecord::ConnectionAdapters::TableDefinition
@@ -51,9 +49,7 @@ module ActiveRecord
         def create_column_definition(name, type)
           OracleEnhanced::ColumnDefinition.new name, type
         end
-
       end
-
     end
   end
 end

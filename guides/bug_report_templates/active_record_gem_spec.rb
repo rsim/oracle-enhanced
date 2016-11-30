@@ -35,7 +35,6 @@ CONNECTION_PARAMS = {
   :password => DATABASE_PASSWORD
 }
 
-
 ActiveRecord::Base.logger = Logger.new(STDOUT)
 
 describe "bug test" do

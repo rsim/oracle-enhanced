@@ -534,7 +534,6 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
 
 end
 
-
 describe "OracleEnhancedAdapter date and timestamp with different NLS date formats" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -916,7 +915,6 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     expect(@employee.comments).to be_nil
   end
 
-
   it "should create record with CLOB data" do
     @employee = TestEmployee.create!(
       :first_name => "First",
@@ -1295,7 +1293,6 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
     expect(@employee.binary_data).to eq(@binary_data)
   end
 end
-
 
 describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
   before(:all) do

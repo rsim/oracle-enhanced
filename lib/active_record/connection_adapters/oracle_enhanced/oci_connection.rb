@@ -18,10 +18,8 @@ end
 
 module ActiveRecord
   module ConnectionAdapters
-
     # OCI database interface for MRI
     class OracleEnhancedOCIConnection < OracleEnhancedConnection #:nodoc:
-
       def initialize(config)
         @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
         # default schema owner
@@ -188,7 +186,6 @@ module ActiveRecord
         def close
           @raw_cursor.close
         end
-
       end
 
       def select(sql, name = nil, return_column_names = false)
@@ -308,7 +305,6 @@ module ActiveRecord
           ::DateTime.civil(year, month, day, hour, min, sec, offset)
         end
       end
-
     end
 
     # The OracleEnhancedOCIFactory factors out the code necessary to connect and
@@ -365,15 +361,10 @@ module ActiveRecord
         conn
       end
     end
-
-
   end
 end
 
-
-
 class OCI8 #:nodoc:
-
   def describe(name)
     info = describe_table(name.to_s)
     raise %Q{"DESC #{name}" failed} if info.nil?
@@ -459,6 +450,5 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
       retry
     end
   end
-
 end
 #:startdoc:

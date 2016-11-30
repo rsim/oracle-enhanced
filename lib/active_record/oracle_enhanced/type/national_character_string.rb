@@ -4,7 +4,6 @@ module ActiveRecord
   module OracleEnhanced
     module Type
       class NationalCharacterString < ActiveRecord::OracleEnhanced::Type::String # :nodoc:
-
         def serialize(value)
           return unless value
           Data.new(super)

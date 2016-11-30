@@ -212,7 +212,6 @@ describe "OracleEnhancedAdapter" do
 
   end
 
-
   describe "reserved words column quoting" do
 
     before(:all) do

@@ -15,7 +15,6 @@ if defined?(Rails)
           end
 
         end
-
       end
     end
   end

@@ -17,7 +17,6 @@ module ActiveRecord
             value.map { |x| "%02X" % x }.join
           end
         end
-
       end
     end
   end

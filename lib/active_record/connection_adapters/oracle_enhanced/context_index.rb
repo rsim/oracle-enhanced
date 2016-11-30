@@ -2,7 +2,6 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
       module ContextIndex
-
         # Define full text index with Oracle specific CONTEXT index type
         #
         # Oracle CONTEXT index by default supports full text indexing of one column.
@@ -336,7 +335,6 @@ module ActiveRecord
               order("SCORE(#{score_label}) DESC")
           end
         end
-
       end
     end
   end
