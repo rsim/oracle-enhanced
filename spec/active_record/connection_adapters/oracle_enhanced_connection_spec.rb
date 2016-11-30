@@ -111,9 +111,11 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "default_timezone" do
+    include SchemaSpecHelper
+
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
-      ActiveRecord::Schema.define do
+      schema_define do
         create_table :posts, :force => true do |t|
           t.timestamps null: false
         end
