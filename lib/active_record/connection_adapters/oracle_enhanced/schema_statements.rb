@@ -117,6 +117,14 @@ module ActiveRecord
           super
         end
 
+        def insert_versions_sql(versions) # :nodoc:
+          sm_table = ActiveRecord::Migrator.schema_migrations_table_name
+
+          versions.map { |version|
+            "INSERT INTO #{sm_table} (version) VALUES ('#{version}')"
+          }.join "\n\n/\n\n"
+        end
+
         def initialize_schema_migrations_table
           super
         end
