@@ -292,11 +292,10 @@ describe "OracleEnhancedAdapter structure dump" do
       end
     end
     before do
-      @conn.create_table :schema_migrations, :id => false do |t|
-        t.string :version
-      end
+      ActiveRecord::SchemaMigration.reset_table_name
+      ActiveRecord::SchemaMigration.create_table
       versions.each do |i|
-        @conn.execute "insert into schema_migrations (version) values ('#{i}')"
+        ActiveRecord::SchemaMigration.create!(:version => i)
       end
     end
     let(:dump) { ActiveRecord::Base.connection.dump_schema_information }
@@ -312,7 +311,7 @@ describe "OracleEnhancedAdapter structure dump" do
       expect(dump.lines.length).to eq(4 * (versions.length - 1) + 1)
     end
     after do
-      @conn.drop_table :schema_migrations
+      ActiveRecord::SchemaMigration.drop_table
     end
   end
 
