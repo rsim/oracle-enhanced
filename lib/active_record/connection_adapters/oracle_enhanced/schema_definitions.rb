@@ -1,7 +1,6 @@
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
-
       class ForeignKeyDefinition < ActiveRecord::ConnectionAdapters::ForeignKeyDefinition
         def name
           if options[:name].length > OracleEnhancedAdapter::IDENTIFIER_MAX_LENGTH
@@ -18,7 +17,7 @@ module ActiveRecord
 
       class IndexDefinition < ActiveRecord::ConnectionAdapters::IndexDefinition
         attr_accessor :parameters, :statement_parameters, :tablespace
- 
+
         def initialize(table, name, unique, columns, lengths, orders, where, type, using, parameters, statement_parameters, tablespace)
           @parameters = parameters
           @statement_parameters = statement_parameters
@@ -28,7 +27,6 @@ module ActiveRecord
       end
 
       class ColumnDefinition < ActiveRecord::ConnectionAdapters::ColumnDefinition
-
       end
 
       class TableDefinition < ActiveRecord::ConnectionAdapters::TableDefinition
@@ -65,7 +63,6 @@ module ActiveRecord
         def create_column_definition(name, type)
           OracleEnhanced::ColumnDefinition.new name, type
         end
-
       end
 
       class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable
@@ -86,7 +83,6 @@ module ActiveRecord
           @base.remove_foreign_key(@name, options)
         end
       end
-
     end
   end
 end

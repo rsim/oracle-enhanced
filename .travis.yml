@@ -13,9 +13,8 @@ env:
     - DATABASE_VERSION=11.2.0.2
     - ORACLE_SID=XE
     - DATABASE_NAME=XE
-    - ORA_SDTZ='Europe/London' #Needed as a client parameter
-    - TZ='Europe/London'       #Needed as a DB Server parameter
-    - DATABASE_NON_DEFAULT_TABLESPACE=USERS
+    - ORA_SDTZ='Europe/Riga' #Needed as a client parameter
+    - TZ='Europe/Riga'       #Needed as a DB Server parameter
 
 before_install:
   - chmod +x .travis/oracle/download.sh
@@ -30,7 +29,10 @@ install:
 
 language: ruby
 rvm:
-  - 2.3.1
-  - jruby-9.1.2.0
+  - 2.2.6
+  - 2.3.3
+  - jruby-9.0.5.0
+  - jruby-9.1.6.0
+  - 2.4.0-preview3
 notifications:
     email: false

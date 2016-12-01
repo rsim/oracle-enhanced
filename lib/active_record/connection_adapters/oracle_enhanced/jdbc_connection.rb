@@ -46,13 +46,10 @@ rescue LoadError, NameError
   raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars ? ojdbc_jars.join(' or ') : "Oracle JDBC"} library."
 end
 
-
 module ActiveRecord
   module ConnectionAdapters
-
     # JDBC database interface for JRuby
     class OracleEnhancedJDBCConnection < OracleEnhancedConnection #:nodoc:
-
       attr_accessor :active
       alias :active? :active
 
@@ -109,8 +106,9 @@ module ActiveRecord
           host, port = config[:host], config[:port]
           privilege = config[:privilege] && config[:privilege].to_s
 
-          # connection using TNS alias
-          if database && !host && !config[:url] && ENV['TNS_ADMIN']
+          # connection using TNS alias, or connection-string from DATABASE_URL
+          using_tns_alias = !host && !config[:url] && ENV['TNS_ADMIN']
+          if database && (using_tns_alias || host == 'connection-string')
             url = "jdbc:oracle:thin:@#{database}"
           else
             unless database.match(/^(\:|\/)/)
@@ -451,7 +449,6 @@ module ActiveRecord
         def close
           @raw_statement.close
         end
-
       end
 
       def select(sql, name = nil, return_column_names = false)
@@ -572,8 +569,6 @@ module ActiveRecord
           end
         end
       end
-
     end
-
   end
 end

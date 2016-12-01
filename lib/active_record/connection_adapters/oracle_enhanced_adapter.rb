@@ -46,7 +46,6 @@ end
 
 module ActiveRecord
   class Base
-
     # Specify table columns which should be ignored by ActiveRecord, e.g.:
     #
     #   ignore_table_columns :attribute1, :attribute2
@@ -173,7 +172,6 @@ module ActiveRecord
   end
 
   module ConnectionAdapters #:nodoc:
-
     # Oracle enhanced adapter will work with both
     # Ruby 1.8/1.9 ruby-oci8 gem (which provides interface to Oracle OCI client)
     # or with JRuby and Oracle JDBC driver.
@@ -390,6 +388,17 @@ module ActiveRecord
       cattr_accessor :string_to_time_format
       self.string_to_time_format = nil
 
+      ##
+      # :singleton-method:
+      # By default, OracleEnhanced adapter will use Oracle12 visitor
+      # if database version is Oracle 12.1.
+      # If you wish to use Oracle visitor which is intended to work with Oracle 11.2 or lower
+      # for Oracle 12.1 database you can add the following line to your initializer file:
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor = true
+      cattr_accessor :use_old_oracle_visitor
+      self.use_old_oracle_visitor = false
+
       class StatementPool
         include Enumerable
 
@@ -434,7 +443,7 @@ module ActiveRecord
       end
 
       def arel_visitor # :nodoc:
-        if supports_fetch_first_n_rows_and_offset?
+        if supports_fetch_first_n_rows_and_offset? && !use_old_oracle_visitor
           Arel::Visitors::Oracle12.new(self)
         else
           Arel::Visitors::Oracle.new(self)
@@ -755,7 +764,6 @@ module ActiveRecord
 
         data_sources
       end
-
 
       def data_sources
         select_values(
@@ -1165,11 +1173,17 @@ module ActiveRecord
         offset: nil
       ) # :nodoc:
         result = from_clause + join_clause + where_clause + having_clause
-        if offset
+        if RUBY_ENGINE == 'jruby' && !supports_fetch_first_n_rows_and_offset? && offset && limit
           result << offset
-        end
-        if limit
           result << limit
+          result << offset
+        else
+          if offset
+            result << offset
+          end
+          if limit
+            result << limit
+          end
         end
         result
       end
@@ -1289,7 +1303,6 @@ module ActiveRecord
           @logger.debug "DBMS_OUTPUT: #{result[:line]}" if @logger
         end
       end
-
     end
   end
 end
@@ -1345,3 +1358,6 @@ require 'active_record/oracle_enhanced/type/text'
 
 # Add OracleEnhanced::Type::Boolean
 require 'active_record/oracle_enhanced/type/boolean'
+
+# To use :boolean type for Attribute API, each type needs registered explicitly.
+ActiveRecord::Type.register(:boolean, ActiveRecord::OracleEnhanced::Type::Boolean, adapter: :oracleenhanced)

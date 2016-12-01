@@ -85,6 +85,7 @@ module ActiveRecord
           end
           td.indexes.each { |c,o| add_index table_name, c, o }
 
+          rebuild_primary_key_index_to_default_tablespace(table_name, options)
         end
 
         def create_table_definition(*args)
@@ -373,7 +374,7 @@ module ActiveRecord
           if options[:dependent]
             ActiveSupport::Deprecation.warn "`:dependent` option will be deprecated. Please use `:on_delete` option"
           end
-          case options[:dependent]  
+          case options[:dependent]
           when :delete then options[:on_delete] = :cascade
           when :nullify then options[:on_delete] = :nullify
           else
@@ -456,7 +457,7 @@ module ActiveRecord
 
         def create_alter_table(name)
           OracleEnhanced::AlterTable.new create_table_definition(name, false, {})
-        end 
+        end
 
         def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
           tablespace_sql = ''
@@ -473,7 +474,6 @@ module ActiveRecord
         def default_tablespace_for(type)
           (default_tablespaces[type] || default_tablespaces[native_database_types[type][:name]]) rescue nil
         end
-
 
         def column_for(table_name, column_name)
           unless column = columns(table_name).find { |c| c.name == column_name.to_s }
@@ -512,6 +512,21 @@ module ActiveRecord
           "#{table_name.to_s[0,table_name_length-4]}_pkt"
         end
 
+        def rebuild_primary_key_index_to_default_tablespace(table_name, options)
+          tablespace = default_tablespace_for(:index)
+
+          return unless tablespace
+
+          index_name = Base.connection.select_value(
+            "SELECT index_name FROM all_constraints
+                WHERE table_name = #{quote(table_name.upcase)}
+                AND constraint_type = 'P'
+                AND owner = SYS_CONTEXT('userenv', 'current_schema')")
+
+          return unless index_name
+
+          execute("ALTER INDEX #{quote_column_name(index_name)} REBUILD TABLESPACE #{tablespace}")
+        end
       end
     end
   end

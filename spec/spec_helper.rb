@@ -103,7 +103,6 @@ module LoggerSpecHelper
   def wait
     @notifier.wait if @notifier
   end
-
 end
 
 module SchemaSpecHelper

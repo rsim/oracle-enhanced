@@ -1,3 +1,44 @@
+## 1.7.7 / 2016-11-15
+
+* Changes and bug fixes
+  * Introduce `use_old_oracle_visitor` to choose old Oracle visitor [#1049]
+  * Fix deprecated warnings in Ruby 2.4.0+ [#1048, #1052]
+  * Add Ruby 2.2.5 and JRuby 9.0.5.0 for travis [#1050, #1051]
+
+* Known issues
+ * No changes since 1.7.6
+
+## 1.7.6 / 2016-11-12
+
+* Changes and bug fixes
+  * Register `:boolean` type for Attribute API [#942, #1045]
+  * No need to set version in Gemfile anymore since rdoc 5.0.0 released [#1040]
+  * Bump MRI and JRuby version for travis [#1041, #1042, #1043]
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+
+## 1.7.5 / 2016-11-06
+
+* Changes and bug fixes
+
+ * Multi insert is not supported [#1016]
+ * Use `default_timezone = :local` to handle `TIMESTAMP WITH LOCAL TIME ZONE` [#1001, #1019]
+ * Address Rails 5 : custom methods for create record when exception is raised in `after_create` callback fails [#944, #1023]
+ * Using the gem in non-rails apps [#1026]
+ * Support connection strings in `DATABASE_URL1 [#1032, #1035]
+ * Rebuild primary key index to `default_tablespaces[:index]` [#1028]
+ * Address `Java::JavaSql::SQLException: Missing IN or OUT parameter at index:: 3:` [#1030, #1033]
+
+* Known issues
+
+ - Only with JRuby
+ * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
+    * Workaround: execute explain without bind or use CRuby
+ - CRuby and JRuby
+ * Rails 5 : specs need update to emulate_booleans_from_strings [#942]
+
 ## 1.7.4 / 2016-10-14
 
 * Changes and bug fixes

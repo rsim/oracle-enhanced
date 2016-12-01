@@ -111,9 +111,11 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "default_timezone" do
+    include SchemaSpecHelper
+
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
-      ActiveRecord::Schema.define do
+      schema_define do
         create_table :posts, :force => true do |t|
           t.timestamps null: false
         end
@@ -135,6 +137,23 @@ describe "OracleEnhancedConnection" do
       expect(post).to eq(Post.find_by!(created_at: created_at))
     end
 
+  end
+
+  describe 'with host="connection-string"' do
+    let(:username) { CONNECTION_PARAMS[:username] }
+    let(:password) { CONNECTION_PARAMS[:password] }
+    let(:connection_string) { "(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=#{DATABASE_HOST})(PORT=#{DATABASE_PORT})))(CONNECT_DATA=(SERVICE_NAME=#{DATABASE_NAME})))" }
+    let(:params) { { username: username, password: password, host: 'connection-string', database: connection_string } }
+
+    it 'uses the database param as the connection string' do
+      if ORACLE_ENHANCED_CONNECTION == :jdbc
+        expect(java.sql.DriverManager).to receive(:getConnection).with("jdbc:oracle:thin:@#{connection_string}", anything).and_call_original
+      else
+        expect(OCI8).to receive(:new).with(username, password, connection_string, nil).and_call_original
+      end
+      conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      expect(conn).to be_active
+    end
   end
 
   if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'

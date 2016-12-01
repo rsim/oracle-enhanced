@@ -171,7 +171,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test2_employees"
     @conn.execute "DROP SEQUENCE test2_employees_seq"
@@ -182,7 +182,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       class ::Test2Employee < ActiveRecord::Base
       end
     end
-    
+
     after(:each) do
       Object.send(:remove_const, "Test2Employee")
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
@@ -206,19 +206,19 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       expect(@employee2.job_id.class).to eq(BigDecimal)
     end
 
-    it "should return Fixnum value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
+    it "should return Integer value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
       # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
       class ::Test2Employee < ActiveRecord::Base
         attribute :job_id, :integer
       end
       create_employee2
-      expect(@employee2.job_id.class).to eq(Fixnum)
+      expect(@employee2.job_id).to be_a(Integer)
     end
 
-    it "should return Fixnum value from NUMBER column with integer value using _before_type_cast method" do
+    it "should return Integer value from NUMBER column with integer value using _before_type_cast method" do
       # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
       create_employee2
-      expect(@employee2.job_id_before_type_cast.class).to eq(Fixnum)
+      expect(@employee2.job_id_before_type_cast).to be_a(Integer)
     end
 
     it "should return BigDecimal value from NUMBER column if column name does not contain 'id' and emulate_integers_by_column_name is true" do
@@ -227,14 +227,14 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       expect(@employee2.salary.class).to eq(BigDecimal)
     end
 
-    it "should return Fixnum value from NUMBER column if column specified in set_integer_columns" do
+    it "should return Integer value from NUMBER column if column specified in set_integer_columns" do
       # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
       # Test2Employee.set_integer_columns :job_id
       class ::Test2Employee < ActiveRecord::Base
         attribute :job_id, :integer
       end
       create_employee2
-      expect(@employee2.job_id.class).to eq(Fixnum)
+      expect(@employee2.job_id).to be_a(Integer)
     end
 
     it "should return Boolean value from NUMBER(1) column if emulate booleans is used" do
@@ -243,23 +243,23 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       expect(@employee2.is_manager.class).to eq(TrueClass)
     end
 
-    it "should return Fixnum value from NUMBER(1) column if emulate booleans is not used" do
+    it "should return Integer value from NUMBER(1) column if emulate booleans is not used" do
       # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = false
       class ::Test2Employee < ActiveRecord::Base
         attribute :is_manager, :integer
       end
       create_employee2
-      expect(@employee2.is_manager.class).to eq(Fixnum)
+      expect(@employee2.is_manager).to be_a(Integer)
     end
 
-    it "should return Fixnum value from NUMBER(1) column if column specified in set_integer_columns" do
+    it "should return Integer value from NUMBER(1) column if column specified in set_integer_columns" do
       # ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
       # Test2Employee.set_integer_columns :is_manager
       class ::Test2Employee < ActiveRecord::Base
         attribute :is_manager, :integer
       end
       create_employee2
-      expect(@employee2.is_manager.class).to eq(Fixnum)
+      expect(@employee2.is_manager).to be_a(Integer)
     end
 
   end
@@ -440,10 +440,12 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 end
 
 describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strings = true" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    ActiveRecord::Schema.define do
+    schema_define do
       create_table :posts, :force => true do |t|
         t.string  :name,        null: false
         t.boolean :is_default, default: false
@@ -475,7 +477,8 @@ end
 
 describe "OracleEnhancedAdapter timestamp with timezone support" do
   before(:all) do
-    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    ActiveRecord::Base.default_timezone = :local
+    ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
     @conn = ActiveRecord::Base.connection
     @conn.execute <<-SQL
       CREATE TABLE test_employees (
@@ -504,6 +507,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
   after(:all) do
     @conn.execute "DROP TABLE test_employees"
     @conn.execute "DROP SEQUENCE test_employees_seq"
+    ActiveRecord::Base.default_timezone = :utc
   end
 
   it "should set TIMESTAMP columns type as datetime" do
@@ -518,13 +522,11 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
       class ::TestEmployee < ActiveRecord::Base
         self.primary_key = "employee_id"
       end
-      ActiveRecord::Base.default_timezone = :local
     end
 
     after(:all) do
       Object.send(:remove_const, "TestEmployee")
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
-      ActiveRecord::Base.default_timezone = :utc
     end
 
     it "should return Time value from TIMESTAMP columns" do
@@ -558,7 +560,6 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
   end
 
 end
-
 
 describe "OracleEnhancedAdapter date and timestamp with different NLS date formats" do
   before(:all) do
@@ -818,7 +819,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     @employee.reload
     expect(@employee.last_login_at).to eq(@today.to_time)
   end
-  
+
 end
 
 describe "OracleEnhancedAdapter handling of CLOB columns" do
@@ -940,7 +941,6 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     #should not set readonly
     expect(@employee.comments).to be_nil
   end
-
 
   it "should create record with CLOB data" do
     @employee = TestEmployee.create!(
@@ -1321,7 +1321,6 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
   end
 end
 
-
 describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -1403,7 +1402,7 @@ describe "OracleEnhancedAdapter handling of BINARY_FLOAT columns" do
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
-  
+
   after(:all) do
     @conn.execute "DROP TABLE test2_employees"
     @conn.execute "DROP SEQUENCE test2_employees_seq"

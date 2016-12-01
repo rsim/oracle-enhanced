@@ -4,7 +4,7 @@ require 'ruby-plsql'
 
 describe "OracleEnhancedAdapter custom methods for create, update and destroy" do
   include LoggerSpecHelper
-  
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
@@ -67,7 +67,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
           VALUES (p_employee_id, p_first_name, p_last_name, p_hire_date, p_salary, p_description,
                                       1, SYSDATE, SYSDATE);
         END create_employee;
-        
+
         PROCEDURE update_employee(
             p_employee_id   NUMBER,
             p_first_name    VARCHAR2,
@@ -85,7 +85,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
               version = v_version + 1, update_time = SYSDATE
           WHERE employee_id = p_employee_id;
         END update_employee;
-        
+
         PROCEDURE delete_employee(
             p_employee_id   NUMBER)
         IS
@@ -111,7 +111,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       self.primary_key = :employee_id
 
       validates_presence_of :first_name, :last_name, :hire_date
-      
+
       # should return ID of new record
       set_create_method do
         plsql.test_employees_pkg.create_employee(
@@ -186,7 +186,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     expect {
       @employee.save
     }.to raise_error("Make the transaction rollback")
-    expect(@employee.id).to eq(nil)
+    expect(@employee.new_record?).to be_truthy
     expect(TestEmployee.count).to eq(employees_count)
   end
 
@@ -372,5 +372,5 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     expect(@employee.save).to be_falsey
     expect(@employee.errors[:first_name]).not_to be_blank
   end
-  
+
 end

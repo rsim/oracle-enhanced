@@ -44,7 +44,7 @@ module ActiveRecord
         end
 
         def default_tablespace_for(type)
-          (ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[type] || 
+          (ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[type] ||
            ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[native_database_types[type][:name]]) rescue nil
         end
 
@@ -90,7 +90,6 @@ module ActiveRecord
             MSG
           end
         end
-
       end
     end
   end

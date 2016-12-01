@@ -15,7 +15,6 @@ module ActiveRecord
             !FALSE_VALUES.include?(value)
           end
         end
-
       end
     end
   end
