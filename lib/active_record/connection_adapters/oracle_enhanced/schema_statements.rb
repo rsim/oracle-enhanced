@@ -113,6 +113,14 @@ module ActiveRecord
           self.all_schema_indexes = nil
         end
 
+        def insert_versions_sql(versions) # :nodoc:
+          sm_table = ActiveRecord::Migrator.schema_migrations_table_name
+
+          versions.map { |version|
+            "INSERT INTO #{sm_table} (version) VALUES ('#{version}')"
+          }.join "\n\n/\n\n"
+        end
+
         def add_index(table_name, column_name, options = {}) #:nodoc:
           index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
