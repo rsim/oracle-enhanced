@@ -443,7 +443,7 @@ module ActiveRecord
       end
 
       def arel_visitor # :nodoc:
-        if supports_fetch_first_n_rows_and_offset? && !use_old_oracle_visitor
+        if supports_fetch_first_n_rows_and_offset?
           Arel::Visitors::Oracle12.new(self)
         else
           Arel::Visitors::Oracle.new(self)
@@ -475,7 +475,7 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        if @connection.database_version == [12,1]
+        if !use_old_oracle_visitor && @connection.database_version == [12,1]
           true
         else
           false
