@@ -1,3 +1,17 @@
+## 1.7.8 / 2016-12-06
+
+* Changes and bug fixes
+  * Separate schema migration insert statements correctly [#1074]
+  * Add `use_old_oracle_visitor` example [#1068]
+  * `supports_fetch_first_n_rows_and_offset?` returns `false` when `use_old_oracle_visitor` is true {1070, #1075]
+  * Suppress `create_table(:posts, {:force=>true})` message [#1067, #1072]
+  * Enable rubocop and Code Climate [#1056, #1057, #1060, #1062, #1071]
+  * Bump MRI version for travis [#1054, #1059]
+  * Drop `ActiveRecord::InternalMetadata.table_name` after each spec [#1073]
+
+* Known issues
+ * No changes since 1.7.7
+
 ## 1.7.7 / 2016-11-15
 
 * Changes and bug fixes
