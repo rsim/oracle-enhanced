@@ -1,6 +1,18 @@
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
+      class ReferenceDefinition < ActiveRecord::ConnectionAdapters::ReferenceDefinition # :nodoc:
+        def initialize(
+          name,
+          polymorphic: false,
+          index: true,
+          foreign_key: false,
+          type: :integer,
+          **options)
+          super
+        end
+      end
+
       class SynonymDefinition < Struct.new(:name, :table_owner, :table_name, :db_link) #:nodoc:
       end
 

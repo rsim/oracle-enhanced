@@ -53,6 +53,10 @@ module ActiveRecord #:nodoc:
 
         private
 
+        def default_primary_key?(column)
+          schema_type(column) == :integer
+        end
+
         def schema_virtual_as(column)
           column.virtual_column_data_default if column.virtual?
         end
