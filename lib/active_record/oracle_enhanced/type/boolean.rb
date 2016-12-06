@@ -2,7 +2,6 @@ module ActiveRecord
   module OracleEnhanced
     module Type
       class Boolean < ActiveModel::Type::Boolean # :nodoc:
-
         private
 
         def cast_value(value)
