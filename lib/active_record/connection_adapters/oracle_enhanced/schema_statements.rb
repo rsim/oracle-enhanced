@@ -232,6 +232,10 @@ module ActiveRecord
           self.all_schema_indexes = nil
         end
 
+        def add_reference(table_name, *args)
+          ActiveRecord::ConnectionAdapters::OracleEnhanced::ReferenceDefinition.new(*args).add_to(update_table_definition(table_name, self))
+        end
+
         def add_column(table_name, column_name, type, options = {}) #:nodoc:
           if type.to_sym == :virtual
             type = options[:type]
