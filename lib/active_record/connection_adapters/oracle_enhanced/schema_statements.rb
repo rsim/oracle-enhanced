@@ -428,6 +428,14 @@ module ActiveRecord
           end
         end
 
+        def create_alter_table(name)
+          ActiveRecord::ConnectionAdapters::OracleEnhanced::AlterTable.new create_table_definition(name, false, {})
+        end
+
+        def update_table_definition(table_name, base)
+          ActiveRecord::ConnectionAdapters::OracleEnhanced::Table.new(table_name, base)
+        end
+
         private
 
         def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)

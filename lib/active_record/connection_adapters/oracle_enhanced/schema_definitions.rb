@@ -1,6 +1,13 @@
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
+      module ColumnMethods
+        def primary_key(name, type = :primary_key, **options)
+          # This is a placeholder for future :auto_increment support
+          super
+        end
+      end
+
       class ReferenceDefinition < ActiveRecord::ConnectionAdapters::ReferenceDefinition # :nodoc:
         def initialize(
           name,
@@ -31,6 +38,8 @@ module ActiveRecord
       end
 
       class TableDefinition < ActiveRecord::ConnectionAdapters::TableDefinition
+        include ActiveRecord::ConnectionAdapters::OracleEnhanced::ColumnMethods
+
         attr_accessor :tablespace, :organization
         def initialize(name, temporary = false, options = nil, as = nil, tablespace = nil, organization = nil, comment: nil)
           @tablespace = tablespace
@@ -61,6 +70,13 @@ module ActiveRecord
         def create_column_definition(name, type)
           OracleEnhanced::ColumnDefinition.new name, type
         end
+      end
+
+      class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable
+      end
+
+      class Table < ActiveRecord::ConnectionAdapters::Table
+        include ActiveRecord::ConnectionAdapters::OracleEnhanced::ColumnMethods
       end
     end
   end
