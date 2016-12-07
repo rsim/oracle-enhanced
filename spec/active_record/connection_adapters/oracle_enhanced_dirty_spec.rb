@@ -3,10 +3,11 @@ require 'spec_helper'
 if ActiveRecord::Base.method_defined?(:changed?)
 
   describe "OracleEnhancedAdapter dirty object tracking" do
+    include SchemaSpecHelper
 
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      ActiveRecord::Schema.define do
+      schema_define do
         create_table :test_employees, :force => true do |t|
           t.string    :first_name,  limit: 20
           t.string    :last_name,   limit: 25
