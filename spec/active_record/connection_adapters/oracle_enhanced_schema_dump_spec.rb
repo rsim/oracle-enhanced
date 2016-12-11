@@ -434,6 +434,31 @@ describe "OracleEnhancedAdapter schema dump" do
       end
     end
   end
+  
+  describe ":decimal datatype" do
+    before(:each) do
+      schema_define do
+        create_table :test_decimals, force: true do |t|
+          t.decimal :hourly_rate
+          t.decimal :tax_rate, precision: 10, scale: 5
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_decimals
+      end
+    end
+
+    it "should dump decimal type with no specified precision correctly" do
+      standard_dump.should =~ /t\.decimal "hourly_rate"$/
+    end
+    
+    it "should dump decimal type with specified precision correctly" do
+      standard_dump.should =~ /t\.decimal "tax_rate",\s*precision: 10,\s*scale: 5$/
+    end
+  end
 
   describe ":float datatype" do
     before(:each) do
