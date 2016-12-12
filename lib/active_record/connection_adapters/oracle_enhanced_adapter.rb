@@ -285,6 +285,32 @@ module ActiveRecord
         @connection.database_version.first >= 11
       end
 
+      def supports_json?
+        # No migration supported for :json type due to there is no `JSON` data type
+        # in Oracle Database itself.
+        #
+        # 1.Define :string or :text in migration
+        #
+        # create_table :test_posts, force: true do |t|
+        #   t.string  :title
+        #   t.text    :article
+        # end
+        #
+        # 2. Set :json attributes
+        #
+        # class TestPost < ActiveRecord::Base
+        #  attribute :title, :json
+        #  attribute :article, :json
+        # end
+        #
+        # 3. Add `is json` database constraints by running sql statements
+        #
+        # alter table test_posts add constraint test_posts_title_is_json check (title is json)
+        # alter table test_posts add constraint test_posts_article_is_json check (article is json)
+        #
+        @connection.database_version.first >= 12
+      end
+
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         nls_calendar: nil,
@@ -1084,3 +1110,7 @@ require "active_record/oracle_enhanced/type/boolean"
 
 # To use :boolean type for Attribute API, each type needs registered explicitly.
 ActiveRecord::Type.register(:boolean, ActiveRecord::OracleEnhanced::Type::Boolean, adapter: :oracleenhanced)
+
+# Add JSON attribute support
+require "active_record/oracle_enhanced/type/json"
+ActiveRecord::Type.register(:json, ActiveRecord::OracleEnhanced::Type::Json, adapter: :oracleenhanced)
