@@ -1429,4 +1429,44 @@ end
     end
 
   end
+
+  describe "load schema" do
+    let(:versions) {
+      %w(20160101000000 20160102000000 20160103000000)
+    }
+
+    before do
+      @conn = ActiveRecord::Base.connection
+
+      ActiveRecord::SchemaMigration.create_table
+    end
+
+    context "multi insert is supported" do
+      it "should loads the migration schema table from insert versions sql" do
+        skip "Not supported in this database version" unless ActiveRecord::Base.connection.supports_multi_insert?
+
+        expect {
+          @conn.execute @conn.insert_versions_sql(versions)
+        }.not_to raise_error
+
+        expect(@conn.select_value("SELECT COUNT(version) FROM schema_migrations")).to eq versions.count
+      end
+    end
+
+    context "multi insert is NOT supported" do
+      it "should loads the migration schema table from insert versions sql" do
+        skip "Not supported in this database version" if ActiveRecord::Base.connection.supports_multi_insert?
+
+        expect {
+          versions.each { |version| @conn.execute @conn.insert_versions_sql(version) }
+        }.not_to raise_error
+
+        expect(@conn.select_value("SELECT COUNT(version) FROM schema_migrations")).to eq versions.count
+      end
+    end
+
+    after do
+      ActiveRecord::SchemaMigration.drop_table
+    end
+  end
 end
