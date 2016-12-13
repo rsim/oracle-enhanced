@@ -23,6 +23,9 @@ if ActiveRecord::Base.method_defined?(:changed?)
     end
 
     after(:all) do
+      schema_define do
+        drop_table :test_employees
+      end
       Object.send(:remove_const, "TestEmployee")
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
