@@ -92,6 +92,11 @@ module ActiveRecord
           super
         end
 
+        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [])
+          value = exec_insert(to_sql(arel, binds), name, binds, id_value ? nil : pk, sequence_name)
+          id_value || last_inserted_id(value)
+        end
+
         # New method in ActiveRecord 3.1
         def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil)
           sql, binds = sql_for_insert(sql, pk, nil, sequence_name, binds)
