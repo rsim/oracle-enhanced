@@ -92,8 +92,14 @@ module ActiveRecord
           super
         end
 
+        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [])
+          pk = nil if id_value
+          super
+        end
+
         # New method in ActiveRecord 3.1
         def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil)
+          sql, binds = sql_for_insert(sql, pk, nil, sequence_name, binds)
           type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
 
           log(sql, name, binds, type_casted_binds) do
