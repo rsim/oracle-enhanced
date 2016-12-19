@@ -93,8 +93,8 @@ module ActiveRecord
         end
 
         def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [])
-          value = exec_insert(to_sql(arel, binds), name, binds, id_value ? nil : pk, sequence_name)
-          id_value || last_inserted_id(value)
+          pk = nil if id_value
+          super
         end
 
         # New method in ActiveRecord 3.1
