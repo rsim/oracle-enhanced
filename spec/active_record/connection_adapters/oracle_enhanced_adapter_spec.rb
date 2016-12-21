@@ -610,7 +610,6 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should explain query with binds" do
-      skip "Skip until further investigation made for #908" if RUBY_ENGINE == 'jruby'
       pk = TestPost.columns_hash[TestPost.primary_key]
       sub = Arel::Nodes::BindParam.new.to_sql
       binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
