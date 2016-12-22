@@ -991,6 +991,8 @@ module ActiveRecord
         case @connection.error_code(exception)
         when 1
           RecordNotUnique.new(message)
+        when 942, 955
+          ActiveRecord::StatementInvalid.new(message)
         when 2291
           InvalidForeignKey.new(message)
         when 12899
