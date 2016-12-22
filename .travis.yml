@@ -1,6 +1,9 @@
 dist: trusty
 sudo: required
 
+language: ruby
+cache: bundler
+
 env:
   global:
     - ORACLE_COOKIE=sqldev
