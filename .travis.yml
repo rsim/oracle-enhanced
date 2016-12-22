@@ -1,4 +1,8 @@
+dist: trusty
 sudo: required
+
+language: ruby
+cache: bundler
 
 env:
   global:
