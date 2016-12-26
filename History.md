@@ -4,7 +4,6 @@
 
   * Fix ORA-00933 error when executing `rails db:schema:load` [#1084]
   * Quoting booleans should return a frozen string [#1083]
-  * Quoting booleans should return a frozen string [#1083]
   * CI against ruby 2.4.0 [#1096, #1086]
 
 * Known issues
