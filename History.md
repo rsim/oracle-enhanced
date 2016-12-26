@@ -1,3 +1,15 @@
+## 1.7.9 / 2016-12-26
+
+* Changes and bug fixes
+
+  * Fix ORA-00933 error when executing `rails db:schema:load` [#1084]
+  * Quoting booleans should return a frozen string [#1083]
+  * Quoting booleans should return a frozen string [#1083]
+  * CI against ruby 2.4.0 [#1096, #1086]
+
+* Known issues
+ * No changes since 1.7.7
+
 ## 1.7.8 / 2016-12-06
 
 * Changes and bug fixes
