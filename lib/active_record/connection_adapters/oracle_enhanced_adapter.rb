@@ -493,7 +493,7 @@ module ActiveRecord
       end
 
       def supports_multi_insert?
-        false
+        @connection.database_version.to_s >= [11, 2].to_s
       end
 
       #:stopdoc:
