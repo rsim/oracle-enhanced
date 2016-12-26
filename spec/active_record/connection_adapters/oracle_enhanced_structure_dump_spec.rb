@@ -291,6 +291,9 @@ describe "OracleEnhancedAdapter structure dump" do
         Time.parse("2016.01.#{i}").strftime("%Y%m%d%H%M%S")
       end
     end
+
+    let(:dump) { ActiveRecord::Base.connection.dump_schema_information }
+
     before do
       ActiveRecord::SchemaMigration.reset_table_name
       ActiveRecord::SchemaMigration.create_table
@@ -298,18 +301,42 @@ describe "OracleEnhancedAdapter structure dump" do
         ActiveRecord::SchemaMigration.create!(:version => i)
       end
     end
-    let(:dump) { ActiveRecord::Base.connection.dump_schema_information }
-    it "should dump schema migrations one version per insert" do
-      versions[0...-1].each do |i|
-        expect(dump).to include "INSERT INTO schema_migrations (version) VALUES ('#{i}')\n\n/\n"
+
+    context "multi insert is supported" do
+      it "should dump schema migrations using multi inserts" do
+        skip "Not supported in this database version" unless ActiveRecord::Base.connection.supports_multi_insert?
+
+        expect(dump).to eq <<-SQL.strip_heredoc
+          INSERT ALL
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160101000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160102000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160103000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160104000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160105000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160106000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160107000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160108000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160109000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160110000000')
+          SELECT * FROM DUAL
+        SQL
       end
     end
-    it "should not add own separator or newline" do
-      expect(dump).to match(/INSERT INTO schema_migrations \(version\) VALUES \('#{versions.last}'\)\z/)
+
+    context "multi insert is NOT supported" do
+      let(:insert_statement_per_migration) {
+        1.step(10).map { |i|
+          %Q|INSERT INTO "SCHEMA_MIGRATIONS" (version) VALUES ('201601#{sprintf("%02d", i)}000000')|
+        }.join("\n\n/\n\n")
+      }
+
+      it "should dump schema migrations one version per insert" do
+        skip "Not supported in this database version" if ActiveRecord::Base.connection.supports_multi_insert?
+
+        expect(dump).to eq insert_statement_per_migration
+      end
     end
-    it "should contain expected amount of lines" do
-      expect(dump.lines.length).to eq(4 * (versions.length - 1) + 1)
-    end
+
     after do
       ActiveRecord::SchemaMigration.drop_table
     end
