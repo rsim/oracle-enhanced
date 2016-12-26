@@ -42,14 +42,14 @@ describe "Oracle Enhanced adapter database tasks" do
     describe "drop" do
       before { ActiveRecord::Tasks::DatabaseTasks.drop(config) }
       it "drops all tables" do
-        expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_falsey
+        expect(ActiveRecord::Base.connection.data_source_exists?(:test_posts)).to be_falsey
       end
     end
 
     describe "purge" do
       before { ActiveRecord::Tasks::DatabaseTasks.purge(config) }
       it "drops all tables" do
-        expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_falsey
+        expect(ActiveRecord::Base.connection.data_source_exists?(:test_posts)).to be_falsey
         expect(ActiveRecord::Base.connection.select_value("SELECT COUNT(*) FROM RECYCLEBIN")).to eq(0)
       end
     end
@@ -77,7 +77,7 @@ describe "Oracle Enhanced adapter database tasks" do
           ActiveRecord::Tasks::DatabaseTasks.structure_load(config, temp_file)
         end
         it "loads the database structure from a file" do
-          expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_truthy
+          expect(ActiveRecord::Base.connection.data_source_exists?(:test_posts)).to be_truthy
         end
       end
 
