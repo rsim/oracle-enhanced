@@ -491,7 +491,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should dump column comments" do
-      standard_dump.should =~ /comment: "this is a \\"column comment\\"!"/
+      expect(standard_dump).to match(/comment: "this is a \\"column comment\\"!"/)
     end
   end
 
