@@ -753,7 +753,7 @@ module ActiveRecord
                  comments.comments as column_comment
             FROM all_tab_cols#{db_link} cols, all_col_comments#{db_link} comments
            WHERE cols.owner      = '#{owner}'
-             AND cols.table_name = '#{desc_table_name}'
+             AND cols.table_name = #{quote(desc_table_name)}
              AND cols.hidden_column = 'NO'
              AND cols.owner = comments.owner
              AND cols.table_name = comments.table_name
@@ -847,7 +847,7 @@ module ActiveRecord
           select us.sequence_name
           from all_sequences#{db_link} us
           where us.sequence_owner = '#{owner}'
-          and us.sequence_name = '#{desc_table_name}_SEQ'
+          and us.sequence_name = upper(#{quote(default_sequence_name(desc_table_name))})
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
@@ -855,7 +855,7 @@ module ActiveRecord
           SELECT cc.column_name
             FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
            WHERE c.owner = '#{owner}'
-             AND c.table_name = '#{desc_table_name}'
+             AND c.table_name = #{quote(desc_table_name)}
              AND c.constraint_type = 'P'
              AND cc.owner = c.owner
              AND cc.constraint_name = c.constraint_name
