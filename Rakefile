@@ -14,11 +14,6 @@ require 'rake'
 require 'rspec/core/rake_task'
 RSpec::Core::RakeTask.new(:spec)
 
-RSpec::Core::RakeTask.new(:rcov) do |t|
-  t.rcov = true
-  t.rcov_opts =  ['--exclude', '/Library,spec/']
-end
-
 desc "Clear test database"
 task :clear do
   require "./spec/spec_helper"
