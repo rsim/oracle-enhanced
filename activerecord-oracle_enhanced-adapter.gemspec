@@ -89,5 +89,5 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   ]
   s.add_runtime_dependency("activerecord", ["~> 5.1.0.alpha"])
   s.add_runtime_dependency("arel", ["~> 7.1.4"])
-  s.add_runtime_dependency("ruby-plsql", [">= 0.5.0"])
+  s.add_runtime_dependency("ruby-plsql")
 end
