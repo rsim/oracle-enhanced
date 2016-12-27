@@ -76,8 +76,8 @@ module ActiveRecord
         end
 
         def quote_table_name(name) #:nodoc:
-          name, link = name.to_s.split('@')
-          @quoted_table_names[name] ||= [name.split('.').map{|n| quote_column_name(n)}.join('.'), quote_database_link(link)].compact.join('@')
+          name, link = name.to_s.split("@")
+          @quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }.join("."), quote_database_link(link)].compact.join("@")
         end
 
         def quote_string(s) #:nodoc:
@@ -87,11 +87,11 @@ module ActiveRecord
         def _quote(value) #:nodoc:
           case value
           when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data then
-             "N" << "'#{quote_string(value.to_s)}'"
+            "N" << "'#{quote_string(value.to_s)}'"
           when ActiveModel::Type::Binary::Data then
-            %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
+            "empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()"
           when ActiveRecord::OracleEnhanced::Type::Text::Data then
-            %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'clob' }()}
+            "empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'clob' }()"
           else
             super
           end
@@ -143,11 +143,11 @@ module ActiveRecord
 end
 
 # if MRI or YARV
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
-  require 'active_record/connection_adapters/oracle_enhanced/oci_quoting'
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"
+  require "active_record/connection_adapters/oracle_enhanced/oci_quoting"
 # if JRuby
-elsif RUBY_ENGINE == 'jruby'
-  require 'active_record/connection_adapters/oracle_enhanced/jdbc_quoting'
+elsif RUBY_ENGINE == "jruby"
+  require "active_record/connection_adapters/oracle_enhanced/jdbc_quoting"
 else
   raise "Unsupported Ruby engine #{RUBY_ENGINE}"
 end

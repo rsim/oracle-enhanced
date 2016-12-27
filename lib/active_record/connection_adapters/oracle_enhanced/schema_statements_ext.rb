@@ -16,7 +16,7 @@ module ActiveRecord
         #     # ...
         #   end
         #
-        def add_primary_key_trigger(table_name, options={})
+        def add_primary_key_trigger(table_name, options = {})
           # call the same private method that is used for create_table :primary_key_trigger => true
           create_primary_key_trigger(table_name, options)
         end
@@ -50,8 +50,8 @@ module ActiveRecord
         # get synonyms for schema dump
         def synonyms #:nodoc:
           select_all("SELECT synonym_name, table_owner, table_name, db_link FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'session_user')").collect do |row|
-            OracleEnhanced::SynonymDefinition.new(oracle_downcase(row['synonym_name']),
-              oracle_downcase(row['table_owner']), oracle_downcase(row['table_name']), oracle_downcase(row['db_link']))
+            OracleEnhanced::SynonymDefinition.new(oracle_downcase(row["synonym_name"]),
+              oracle_downcase(row["table_owner"]), oracle_downcase(row["table_name"]), oracle_downcase(row["db_link"]))
           end
         end
       end

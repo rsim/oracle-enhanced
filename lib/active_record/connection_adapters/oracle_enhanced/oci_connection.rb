@@ -1,4 +1,4 @@
-require 'delegate'
+require "delegate"
 
 begin
   require "oci8"
@@ -11,7 +11,7 @@ end
 
 # check ruby-oci8 version
 required_oci8_version = [2, 2, 0]
-oci8_version_ints = OCI8::VERSION.scan(/\d+/).map{|s| s.to_i}
+oci8_version_ints = OCI8::VERSION.scan(/\d+/).map { |s| s.to_i }
 if (oci8_version_ints <=> required_oci8_version) < 0
   raise LoadError, "ERROR: ruby-oci8 version #{OCI8::VERSION} is too old. Please install ruby-oci8 version #{required_oci8_version.join('.')} or later."
 end
@@ -98,9 +98,9 @@ module ActiveRecord
       # and return :insert_id value
       def exec_with_returning(sql)
         cursor = @raw_connection.parse(sql)
-        cursor.bind_param(':insert_id', nil, Integer)
+        cursor.bind_param(":insert_id", nil, Integer)
         cursor.exec
-        cursor[':insert_id']
+        cursor[":insert_id"]
       ensure
         cursor.close rescue nil
       end
@@ -115,7 +115,7 @@ module ActiveRecord
           @raw_cursor = raw_cursor
         end
 
-        def bind_params( *bind_vars )
+        def bind_params(*bind_vars)
           index = 1
           bind_vars.flatten.each do |var|
             if Hash === var
@@ -170,7 +170,7 @@ module ActiveRecord
           @raw_cursor.get_col_names
         end
 
-        def fetch(options={})
+        def fetch(options = {})
           if row = @raw_cursor.fetch
             get_lob_value = options[:get_lob_value]
             row.map do |col|
@@ -194,13 +194,13 @@ module ActiveRecord
         # Ignore raw_rnum_ which is used to simulate LIMIT and OFFSET
         cursor.get_col_names.each do |col_name|
           col_name = oracle_downcase(col_name)
-          cols << col_name unless col_name == 'raw_rnum_'
+          cols << col_name unless col_name == "raw_rnum_"
         end
         # Reuse the same hash for all rows
         column_hash = {}
-        cols.each {|c| column_hash[c] = nil}
+        cols.each { |c| column_hash[c] = nil }
         rows = []
-        get_lob_value = !(name == 'Writable Large Object')
+        get_lob_value = !(name == "Writable Large Object")
 
         while row = cursor.fetch
           hash = column_hash.dup
@@ -223,7 +223,7 @@ module ActiveRecord
 
       def describe(name)
         # fall back to SELECT based describe if using database link
-        return super if name.to_s.include?('@')
+        return super if name.to_s.include?("@")
         quoted_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(name) ? name : "\"#{name}\""
         @raw_connection.describe(quoted_name)
       rescue OCIException => e
@@ -261,7 +261,7 @@ module ActiveRecord
           if get_lob_value
             data = value.read || ""     # if value.read returns nil, then we have an empty_clob() i.e. an empty string
             # In Ruby 1.9.1 always change encoding to ASCII-8BIT for binaries
-            data.force_encoding('ASCII-8BIT') if data.respond_to?(:force_encoding) && value.is_a?(OCI8::BLOB)
+            data.force_encoding("ASCII-8BIT") if data.respond_to?(:force_encoding) && value.is_a?(OCI8::BLOB)
             data
           else
             value
@@ -279,32 +279,32 @@ module ActiveRecord
 
       private
 
-      def date_without_time?(value)
-        case value
-        when OraDate
-          value.hour == 0 && value.minute == 0 && value.second == 0
-        else
-          value.hour == 0 && value.min == 0 && value.sec == 0
+        def date_without_time?(value)
+          case value
+          when OraDate
+            value.hour == 0 && value.minute == 0 && value.second == 0
+          else
+            value.hour == 0 && value.min == 0 && value.sec == 0
+          end
         end
-      end
 
-      def create_time_with_default_timezone(value)
-        year, month, day, hour, min, sec, usec = case value
-        when Time
-          [value.year, value.month, value.day, value.hour, value.min, value.sec, value.usec]
-        when OraDate
-          [value.year, value.month, value.day, value.hour, value.minute, value.second, 0]
-        else
-          [value.year, value.month, value.day, value.hour, value.min, value.sec, 0]
+        def create_time_with_default_timezone(value)
+          year, month, day, hour, min, sec, usec = case value
+                                                   when Time
+                                                     [value.year, value.month, value.day, value.hour, value.min, value.sec, value.usec]
+                                                   when OraDate
+                                                     [value.year, value.month, value.day, value.hour, value.minute, value.second, 0]
+          else
+                                                     [value.year, value.month, value.day, value.hour, value.min, value.sec, 0]
+          end
+          # code from Time.time_with_datetime_fallback
+          begin
+            Time.send(Base.default_timezone, year, month, day, hour, min, sec, usec)
+          rescue
+            offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
+            ::DateTime.civil(year, month, day, hour, min, sec, offset)
+          end
         end
-        # code from Time.time_with_datetime_fallback
-        begin
-          Time.send(Base.default_timezone, year, month, day, hour, min, sec, usec)
-        rescue
-          offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
-          ::DateTime.civil(year, month, day, hour, min, sec, offset)
-        end
-      end
     end
 
     # The OracleEnhancedOCIFactory factors out the code necessary to connect and
@@ -320,16 +320,16 @@ module ActiveRecord
         privilege = config[:privilege] && config[:privilege].to_sym
         async = config[:allow_concurrency]
         prefetch_rows = config[:prefetch_rows] || 100
-        cursor_sharing = config[:cursor_sharing] || 'force'
+        cursor_sharing = config[:cursor_sharing] || "force"
         # get session time_zone from configuration or from TZ environment variable
-        time_zone = config[:time_zone] || ENV['TZ']
+        time_zone = config[:time_zone] || ENV["TZ"]
 
         # using a connection string via DATABASE_URL
-        connection_string = if host == 'connection-string'
+        connection_string = if host == "connection-string"
           database
         # connection using host, port and database name
         elsif host || port
-          host ||= 'localhost'
+          host ||= "localhost"
           host = "[#{host}]" if host =~ /^[^\[].*:/  # IPv6
           port ||= 1521
           database = "/#{database}" unless database.match(/^\//)
@@ -368,8 +368,8 @@ class OCI8 #:nodoc:
   def describe(name)
     info = describe_table(name.to_s)
     raise %Q{"DESC #{name}" failed} if info.nil?
-    if info.respond_to? :obj_link and info.obj_link
-      [info.obj_schema, info.obj_name, '@' + info.obj_link]
+    if info.respond_to?(:obj_link) && info.obj_link
+      [info.obj_schema, info.obj_name, "@" + info.obj_link]
     else
       [info.obj_schema, info.obj_name]
     end
@@ -398,7 +398,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
     @active = true
     @config = config
     @factory = factory
-    @connection  = @factory.new_connection @config
+    @connection = @factory.new_connection @config
     super @connection
   end
 

@@ -29,8 +29,8 @@ module ActiveRecord
       # Used always by JDBC connection as well by OCI connection when describing tables over database link
       def describe(name)
         name = name.to_s
-        if name.include?('@')
-          name, db_link = name.split('@')
+        if name.include?("@")
+          name, db_link = name.split("@")
           default_owner = select_value("SELECT username FROM all_db_links WHERE db_link = '#{db_link.upcase}'")
           db_link = "@#{db_link}"
         else
@@ -38,8 +38,8 @@ module ActiveRecord
           default_owner = @owner
         end
         real_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(name) ? name.upcase : name
-        if real_name.include?('.')
-          table_owner, table_name = real_name.split('.')
+        if real_name.include?(".")
+          table_owner, table_name = real_name.split(".")
         else
           table_owner, table_name = default_owner, real_name
         end
@@ -65,11 +65,11 @@ module ActiveRecord
             AND synonym_name = '#{real_name}'
         SQL
         if result = select_one(sql)
-          case result['name_type']
-          when 'SYNONYM'
+          case result["name_type"]
+          when "SYNONYM"
             describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}#{db_link}")
           else
-            db_link ? [result['owner'], result['table_name'], db_link] : [result['owner'], result['table_name']]
+            db_link ? [result["owner"], result["table_name"], db_link] : [result["owner"], result["table_name"]]
           end
         else
           raise OracleEnhancedConnectionException, %Q{"DESC #{name}" failed; does it exist?}
@@ -109,13 +109,13 @@ module ActiveRecord
 end
 
 # if MRI or YARV
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"
   ORACLE_ENHANCED_CONNECTION = :oci
-  require 'active_record/connection_adapters/oracle_enhanced/oci_connection'
+  require "active_record/connection_adapters/oracle_enhanced/oci_connection"
 # if JRuby
-elsif RUBY_ENGINE == 'jruby'
+elsif RUBY_ENGINE == "jruby"
   ORACLE_ENHANCED_CONNECTION = :jdbc
-  require 'active_record/connection_adapters/oracle_enhanced/jdbc_connection'
+  require "active_record/connection_adapters/oracle_enhanced/jdbc_connection"
 else
   raise "Unsupported Ruby engine #{RUBY_ENGINE}"
 end

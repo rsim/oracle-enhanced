@@ -1,4 +1,4 @@
-require 'active_model/type/string'
+require "active_model/type/string"
 
 module ActiveRecord
   module OracleEnhanced
@@ -13,7 +13,7 @@ module ActiveRecord
           if value.nil?
             super
           else
-            value = value.unpack('C*')
+            value = value.unpack("C*")
             value.map { |x| "%02X" % x }.join
           end
         end

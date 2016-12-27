@@ -1,16 +1,16 @@
 Gem::Specification.new do |s|
-  s.name = %q{activerecord-oracle_enhanced-adapter}
+  s.name = "activerecord-oracle_enhanced-adapter"
   s.version = "1.8.0.alpha"
 
   s.required_rubygems_version = ">= 1.8.11"
-  s.required_ruby_version     = '>= 2.2.2'
-  s.license = 'MIT'
-  s.authors = [%q{Raimonds Simanovskis}]
-  s.date = %q{2016-12-26}
-  s.description = %q{Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
+  s.required_ruby_version     = ">= 2.2.2"
+  s.license = "MIT"
+  s.authors = ["Raimonds Simanovskis"]
+  s.date = "2016-12-26"
+  s.description = 'Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
-}
-  s.email = %q{raimonds.simanovskis@gmail.com}
+'
+  s.email = "raimonds.simanovskis@gmail.com"
   s.extra_rdoc_files = [
     "README.md"
   ]
@@ -68,9 +68,9 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "spec/active_record/connection_adapters/oracle_enhanced_structure_dump_spec.rb",
     "spec/spec_helper.rb"
   ]
-  s.homepage = %q{http://github.com/rsim/oracle-enhanced}
-  s.require_paths = [%q{lib}]
-  s.summary = %q{Oracle enhanced adapter for ActiveRecord}
+  s.homepage = "http://github.com/rsim/oracle-enhanced"
+  s.require_paths = ["lib"]
+  s.summary = "Oracle enhanced adapter for ActiveRecord"
   s.test_files = [
     "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_connection_spec.rb",
@@ -87,7 +87,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "spec/active_record/connection_adapters/oracle_enhanced_structure_dump_spec.rb",
     "spec/spec_helper.rb"
   ]
-  s.add_runtime_dependency(%q<activerecord>, ["~> 5.1.0.alpha"])
-  s.add_runtime_dependency(%q<arel>, ["~> 7.1.4"])
-  s.add_runtime_dependency(%q<ruby-plsql>, [">= 0.5.0"])
+  s.add_runtime_dependency("activerecord", ["~> 5.1.0.alpha"])
+  s.add_runtime_dependency("arel", ["~> 7.1.4"])
+  s.add_runtime_dependency("ruby-plsql", [">= 0.5.0"])
 end

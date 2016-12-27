@@ -15,7 +15,7 @@ module ActiveRecord
           when Date, DateTime
             Java::oracle.sql.DATE.new(value.strftime("%Y-%m-%d %H:%M:%S"))
           when Time
-            Java::java.sql.Timestamp.new(value.year-1900, value.month-1, value.day, value.hour, value.min, value.sec, value.usec * 1000)
+            Java::java.sql.Timestamp.new(value.year - 1900, value.month - 1, value.day, value.hour, value.min, value.sec, value.usec * 1000)
           else
             super
           end

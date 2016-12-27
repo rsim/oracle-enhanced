@@ -74,9 +74,9 @@ module ActiveRecord
         def add_context_index(table_name, column_name, options = {})
           self.all_schema_indexes = nil
           column_names = Array(column_name)
-          index_name = options[:name] || index_name(table_name, :column => options[:index_column] || column_names,
+          index_name = options[:name] || index_name(table_name, column: options[:index_column] || column_names,
             # CONEXT index name max length is 25
-            :identifier_max_length => 25)
+            identifier_max_length: 25)
 
           quoted_column_name = quote_column_name(options[:index_column] || column_names.first)
           if options[:index_column_trigger_on]
@@ -129,10 +129,10 @@ module ActiveRecord
         def remove_context_index(table_name, options = {})
           self.all_schema_indexes = nil
           unless Hash === options # if column names passed as argument
-            options = {:column => Array(options)}
+            options = { column: Array(options) }
           end
           index_name = options[:name] || index_name(table_name,
-            :column => options[:index_column] || options[:column], :identifier_max_length => 25)
+            column: options[:index_column] || options[:column], identifier_max_length: 25)
           execute "DROP INDEX #{index_name}"
           drop_ctx_preference(default_datastore_name(index_name))
           drop_ctx_preference(default_storage_name(index_name))
@@ -143,17 +143,17 @@ module ActiveRecord
 
         private
 
-        def create_datastore_procedure(table_name, procedure_name, column_names, options)
-          quoted_table_name = quote_table_name(table_name)
-          select_queries, column_names = column_names.partition { |c| c.to_s =~ /^\s*SELECT\s+/i }
-          select_queries = select_queries.map { |s| s.strip.gsub(/\s+/, ' ') }
-          keys, selected_columns = parse_select_queries(select_queries)
-          quoted_column_names = (column_names+keys).map{|col| quote_column_name(col)}
-          execute compress_lines(<<-SQL)
+          def create_datastore_procedure(table_name, procedure_name, column_names, options)
+            quoted_table_name = quote_table_name(table_name)
+            select_queries, column_names = column_names.partition { |c| c.to_s =~ /^\s*SELECT\s+/i }
+            select_queries = select_queries.map { |s| s.strip.gsub(/\s+/, " ") }
+            keys, selected_columns = parse_select_queries(select_queries)
+            quoted_column_names = (column_names + keys).map { |col| quote_column_name(col) }
+            execute compress_lines(<<-SQL)
             CREATE OR REPLACE PROCEDURE #{quote_table_name(procedure_name)}
               (p_rowid IN	      ROWID,
               p_clob	IN OUT NOCOPY CLOB) IS
-              -- add_context_index_parameters #{(column_names+select_queries).inspect}#{!options.empty? ? ', ' << options.inspect[1..-2] : ''}
+              -- add_context_index_parameters #{(column_names + select_queries).inspect}#{!options.empty? ? ', ' << options.inspect[1..-2] : ''}
               #{
               selected_columns.map do |cols|
                 cols.map do |col|
@@ -170,171 +170,171 @@ module ActiveRecord
                 #{
                 (column_names.map do |col|
                   col = col.to_s
-                  "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length+2}, '<#{col}>');\n" <<
+                  "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n" <<
                   "IF LENGTH(r1.#{col}) > 0 THEN\n" <<
                   "DBMS_LOB.WRITEAPPEND(p_clob, LENGTH(r1.#{col}), r1.#{col});\n" <<
                   "END IF;\n" <<
-                  "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length+3}, '</#{col}>');\n"
+                  "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 3}, '</#{col}>');\n"
                 end.join) <<
                 (selected_columns.zip(select_queries).map do |cols, query|
                   (cols.map do |col|
                     "l_#{col} := '';\n"
                   end.join) <<
                   "FOR r2 IN (\n" <<
-                  query.gsub(/:(\w+)/,"r1.\\1") << "\n) LOOP\n" <<
+                  query.gsub(/:(\w+)/, "r1.\\1") << "\n) LOOP\n" <<
                   (cols.map do |col|
                     "l_#{col} := l_#{col} || r2.#{col} || CHR(10);\n"
                   end.join) <<
                   "END LOOP;\n" <<
                   (cols.map do |col|
                     col = col.to_s
-                    "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length+2}, '<#{col}>');\n" <<
+                    "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n" <<
                     "IF LENGTH(l_#{col}) > 0 THEN\n" <<
                     "DBMS_LOB.WRITEAPPEND(p_clob, LENGTH(l_#{col}), l_#{col});\n" <<
                     "END IF;\n" <<
-                    "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length+3}, '</#{col}>');\n"
+                    "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 3}, '</#{col}>');\n"
                   end.join)
                 end.join)
                 }
               END LOOP;
             END;
           SQL
-        end
-
-        def parse_select_queries(select_queries)
-          keys = []
-          selected_columns = []
-          select_queries.each do |query|
-            # get primary or foreign keys like :id or :something_id
-            keys << (query.scan(/:\w+/).map{|k| k[1..-1].downcase.to_sym})
-            select_part = query.scan(/^select\s.*\sfrom/i).first
-            selected_columns << select_part.scan(/\sas\s+(\w+)/i).map{|c| c.first}
           end
-          [keys.flatten.uniq, selected_columns]
-        end
 
-        def create_datastore_preference(datastore_name, procedure_name)
-          drop_ctx_preference(datastore_name)
-          execute <<-SQL
+          def parse_select_queries(select_queries)
+            keys = []
+            selected_columns = []
+            select_queries.each do |query|
+              # get primary or foreign keys like :id or :something_id
+              keys << (query.scan(/:\w+/).map { |k| k[1..-1].downcase.to_sym })
+              select_part = query.scan(/^select\s.*\sfrom/i).first
+              selected_columns << select_part.scan(/\sas\s+(\w+)/i).map { |c| c.first }
+            end
+            [keys.flatten.uniq, selected_columns]
+          end
+
+          def create_datastore_preference(datastore_name, procedure_name)
+            drop_ctx_preference(datastore_name)
+            execute <<-SQL
             BEGIN
               CTX_DDL.CREATE_PREFERENCE('#{datastore_name}', 'USER_DATASTORE');
               CTX_DDL.SET_ATTRIBUTE('#{datastore_name}', 'PROCEDURE', '#{procedure_name}');
             END;
           SQL
-        end
-
-        def create_storage_preference(storage_name, tablespace)
-          drop_ctx_preference(storage_name)
-          sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{storage_name}', 'BASIC_STORAGE');\n"
-          ['I_TABLE_CLAUSE', 'K_TABLE_CLAUSE', 'R_TABLE_CLAUSE',
-          'N_TABLE_CLAUSE', 'I_INDEX_CLAUSE', 'P_TABLE_CLAUSE'].each do |clause|
-            default_clause = case clause
-            when 'R_TABLE_CLAUSE'; 'LOB(DATA) STORE AS (CACHE) '
-            when 'I_INDEX_CLAUSE'; 'COMPRESS 2 '
-            else ''
-            end
-            sql << "CTX_DDL.SET_ATTRIBUTE('#{storage_name}', '#{clause}', '#{default_clause}TABLESPACE #{tablespace}');\n"
           end
-          sql << "END;\n"
-          execute sql
-        end
 
-        def create_lexer_preference(lexer_name, lexer_type, options)
-          drop_ctx_preference(lexer_name)
-          sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{lexer_name}', '#{lexer_type}');\n"
-          options.each do |key, value|
-            plsql_value = case value
-            when String; "'#{value}'"
-            when true; "'YES'"
-            when false; "'NO'"
-            when nil; 'NULL'
-            else value
+          def create_storage_preference(storage_name, tablespace)
+            drop_ctx_preference(storage_name)
+            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{storage_name}', 'BASIC_STORAGE');\n"
+            ["I_TABLE_CLAUSE", "K_TABLE_CLAUSE", "R_TABLE_CLAUSE",
+            "N_TABLE_CLAUSE", "I_INDEX_CLAUSE", "P_TABLE_CLAUSE"].each do |clause|
+              default_clause = case clause
+                               when "R_TABLE_CLAUSE"; "LOB(DATA) STORE AS (CACHE) "
+                               when "I_INDEX_CLAUSE"; "COMPRESS 2 "
+              else ""
+              end
+              sql << "CTX_DDL.SET_ATTRIBUTE('#{storage_name}', '#{clause}', '#{default_clause}TABLESPACE #{tablespace}');\n"
             end
-            sql << "CTX_DDL.SET_ATTRIBUTE('#{lexer_name}', '#{key}', #{plsql_value});\n"
+            sql << "END;\n"
+            execute sql
           end
-          sql << "END;\n"
-          execute sql
-        end
 
-        def create_wordlist_preference(wordlist_name, wordlist_type, options)
-          drop_ctx_preference(wordlist_name)
-          sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{wordlist_name}', '#{wordlist_type}');\n"
-          options.each do |key, value|
-            plsql_value = case value
-            when String; "'#{value}'"
-            when true; "'YES'"
-            when false; "'NO'"
-            when nil; 'NULL'
-            else value
+          def create_lexer_preference(lexer_name, lexer_type, options)
+            drop_ctx_preference(lexer_name)
+            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{lexer_name}', '#{lexer_type}');\n"
+            options.each do |key, value|
+              plsql_value = case value
+                            when String; "'#{value}'"
+                            when true; "'YES'"
+                            when false; "'NO'"
+                            when nil; "NULL"
+              else value
+              end
+              sql << "CTX_DDL.SET_ATTRIBUTE('#{lexer_name}', '#{key}', #{plsql_value});\n"
             end
-            sql << "CTX_DDL.SET_ATTRIBUTE('#{wordlist_name}', '#{key}', #{plsql_value});\n"
+            sql << "END;\n"
+            execute sql
           end
-          sql << "END;\n"
-          execute sql
-        end
 
-        def drop_ctx_preference(preference_name)
-          execute "BEGIN CTX_DDL.DROP_PREFERENCE('#{preference_name}'); END;" rescue nil
-        end
+          def create_wordlist_preference(wordlist_name, wordlist_type, options)
+            drop_ctx_preference(wordlist_name)
+            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{wordlist_name}', '#{wordlist_type}');\n"
+            options.each do |key, value|
+              plsql_value = case value
+                            when String; "'#{value}'"
+                            when true; "'YES'"
+                            when false; "'NO'"
+                            when nil; "NULL"
+              else value
+              end
+              sql << "CTX_DDL.SET_ATTRIBUTE('#{wordlist_name}', '#{key}', #{plsql_value});\n"
+            end
+            sql << "END;\n"
+            execute sql
+          end
 
-        def create_index_column_trigger(table_name, index_name, index_column, index_column_source)
-          trigger_name = default_index_column_trigger_name(index_name)
-          columns = Array(index_column_source)
-          quoted_column_names = columns.map{|col| quote_column_name(col)}.join(', ')
-          execute compress_lines(<<-SQL)
+          def drop_ctx_preference(preference_name)
+            execute "BEGIN CTX_DDL.DROP_PREFERENCE('#{preference_name}'); END;" rescue nil
+          end
+
+          def create_index_column_trigger(table_name, index_name, index_column, index_column_source)
+            trigger_name = default_index_column_trigger_name(index_name)
+            columns = Array(index_column_source)
+            quoted_column_names = columns.map { |col| quote_column_name(col) }.join(", ")
+            execute compress_lines(<<-SQL)
             CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
             BEFORE UPDATE OF #{quoted_column_names} ON #{quote_table_name(table_name)} FOR EACH ROW
             BEGIN
               :new.#{quote_column_name(index_column)} := '1';
             END;
           SQL
-        end
-
-        def drop_index_column_trigger(index_name)
-          trigger_name = default_index_column_trigger_name(index_name)
-          execute "DROP TRIGGER #{quote_table_name(trigger_name)}" rescue nil
-        end
-
-        def default_datastore_procedure(index_name)
-          "#{index_name}_prc"
-        end
-
-        def default_datastore_name(index_name)
-          "#{index_name}_dst"
-        end
-
-        def default_storage_name(index_name)
-          "#{index_name}_sto"
-        end
-
-        def default_index_column_trigger_name(index_name)
-          "#{index_name}_trg"
-        end
-
-        def default_lexer_name(index_name)
-          "#{index_name}_lex"
-        end
-
-        def default_wordlist_name(index_name)
-          "#{index_name}_wl"
-        end
-
-        module BaseClassMethods
-          # Declare that model table has context index defined.
-          # As a result <tt>contains</tt> class scope method is defined.
-          def has_context_index
-            extend ContextIndexClassMethods
           end
-        end
 
-        module ContextIndexClassMethods
-          # Add context index condition.
-          def contains(column, query, options ={})
-            score_label = options[:label].to_i || 1
-            where("CONTAINS(#{connection.quote_table_name(column)}, ?, #{score_label}) > 0", query).
-              order("SCORE(#{score_label}) DESC")
+          def drop_index_column_trigger(index_name)
+            trigger_name = default_index_column_trigger_name(index_name)
+            execute "DROP TRIGGER #{quote_table_name(trigger_name)}" rescue nil
           end
-        end
+
+          def default_datastore_procedure(index_name)
+            "#{index_name}_prc"
+          end
+
+          def default_datastore_name(index_name)
+            "#{index_name}_dst"
+          end
+
+          def default_storage_name(index_name)
+            "#{index_name}_sto"
+          end
+
+          def default_index_column_trigger_name(index_name)
+            "#{index_name}_trg"
+          end
+
+          def default_lexer_name(index_name)
+            "#{index_name}_lex"
+          end
+
+          def default_wordlist_name(index_name)
+            "#{index_name}_wl"
+          end
+
+          module BaseClassMethods
+            # Declare that model table has context index defined.
+            # As a result <tt>contains</tt> class scope method is defined.
+            def has_context_index
+              extend ContextIndexClassMethods
+            end
+          end
+
+          module ContextIndexClassMethods
+            # Add context index condition.
+            def contains(column, query, options = {})
+              score_label = options[:label].to_i || 1
+              where("CONTAINS(#{connection.quote_table_name(column)}, ?, #{score_label}) > 0", query).
+                order("SCORE(#{score_label}) DESC")
+            end
+          end
       end
     end
   end
