@@ -27,7 +27,7 @@ if ActiveRecord::Base.method_defined?(:changed?)
         drop_table :test_employees
       end
       Object.send(:remove_const, "TestEmployee")
-      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+      ActiveRecord::Base.clear_cache!
     end
 
     it "should not mark empty string (stored as NULL) as changed when reassigning it" do
