@@ -14,7 +14,7 @@ group :development do
   gem "rack",           github: "rack/rack", branch: "master"
   gem "arel",           github: "rails/arel", branch: "7-1-stable"
 
-  gem "ruby-plsql", ">=0.5.0"
+  gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
     gem "ruby-oci8",    github: "kubo/ruby-oci8"
