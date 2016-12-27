@@ -12,7 +12,7 @@ group :development do
 
   gem "activerecord",   github: "rails/rails", branch: "master"
   gem "rack",           github: "rack/rack", branch: "master"
-  gem "arel",           github: "rails/arel", branch: "7-1-stable"
+  gem "arel",           github: "rails/arel", branch: "master"
 
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
