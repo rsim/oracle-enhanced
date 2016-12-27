@@ -143,11 +143,11 @@ module ActiveRecord
             if without_prepared_statement?(binds)
               cursor = @connection.prepare(sql)
             else
-              cursor = if @statements.key?(sql)
-                @statements[sql]
-                       else
-                         @statements[sql] = @connection.prepare(sql)
-                       end
+              if @statements.key?(sql)
+                cursor = @statements[sql]
+              else
+                cursor = @statements[sql] = @connection.prepare(sql)
+              end
 
               cursor.bind_params(type_casted_binds)
 

@@ -453,10 +453,10 @@ module ActiveRecord
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
             tablespace_sql = ""
             if tablespace = (tablespace_option || default_tablespace_for(obj_type))
-              tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
-                                  " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
+              if [:blob, :clob].include?(obj_type.to_sym)
+                tablespace_sql << " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
               else
-                " TABLESPACE #{tablespace}"
+                tablespace_sql << " TABLESPACE #{tablespace}"
               end
             end
             tablespace_sql
