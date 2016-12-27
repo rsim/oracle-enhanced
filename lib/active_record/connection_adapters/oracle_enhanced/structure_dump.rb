@@ -15,15 +15,15 @@ module ActiveRecord #:nodoc:
                     ORDER BY 1").each do |table_name|
           virtual_columns = virtual_columns_for(table_name)
           ddl = "CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
-          cols = select_all(%Q{
+          cols = select_all("
             SELECT column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
             FROM all_tab_columns
             WHERE table_name = '#{table_name}'
             AND owner = SYS_CONTEXT('userenv', 'session_user')
             ORDER BY column_id
-          }).map do |row|
-            if(v = virtual_columns.find {|col| col['column_name'] == row['column_name']})
-              structure_dump_virtual_column(row, v['data_default'])
+          ").map do |row|
+            if (v = virtual_columns.find { |col| col["column_name"] == row["column_name"] })
+              structure_dump_virtual_column(row, v["data_default"])
             else
               structure_dump_column(row)
             end
@@ -43,35 +43,35 @@ module ActiveRecord #:nodoc:
 
       def structure_dump_column(column) #:nodoc:
         col = "\"#{column['column_name']}\" #{column['data_type']}"
-        if column['data_type'] =='NUMBER' and !column['data_precision'].nil?
+        if (column["data_type"] == "NUMBER") && !column["data_precision"].nil?
           col << "(#{column['data_precision'].to_i}"
-          col << ",#{column['data_scale'].to_i}" if !column['data_scale'].nil?
-          col << ')'
-        elsif column['data_type'].include?('CHAR') || column['data_type'] == 'RAW'
-          length = column['char_used'] == 'C' ? column['char_length'].to_i : column['data_length'].to_i
-          col <<  "(#{length})"
+          col << ",#{column['data_scale'].to_i}" if !column["data_scale"].nil?
+          col << ")"
+        elsif column["data_type"].include?("CHAR") || column["data_type"] == "RAW"
+          length = column["char_used"] == "C" ? column["char_length"].to_i : column["data_length"].to_i
+          col << "(#{length})"
         end
-        col << " DEFAULT #{column['data_default']}" if !column['data_default'].nil?
-        col << ' NOT NULL' if column['nullable'] == 'N'
+        col << " DEFAULT #{column['data_default']}" if !column["data_default"].nil?
+        col << " NOT NULL" if column["nullable"] == "N"
         col
       end
 
       def structure_dump_virtual_column(column, data_default) #:nodoc:
-        data_default = data_default.gsub(/"/, '')
+        data_default = data_default.gsub(/"/, "")
         col = "\"#{column['column_name']}\" #{column['data_type']}"
-        if column['data_type'] =='NUMBER' and !column['data_precision'].nil?
+        if (column["data_type"] == "NUMBER") && !column["data_precision"].nil?
           col << "(#{column['data_precision'].to_i}"
-          col << ",#{column['data_scale'].to_i}" if !column['data_scale'].nil?
-          col << ')'
-        elsif column['data_type'].include?('CHAR') || column['data_type'] == 'RAW'
-          length = column['char_used'] == 'C' ? column['char_length'].to_i : column['data_length'].to_i
-          col <<  "(#{length})"
+          col << ",#{column['data_scale'].to_i}" if !column["data_scale"].nil?
+          col << ")"
+        elsif column["data_type"].include?("CHAR") || column["data_type"] == "RAW"
+          length = column["char_used"] == "C" ? column["char_length"].to_i : column["data_length"].to_i
+          col << "(#{length})"
         end
         col << " GENERATED ALWAYS AS (#{data_default}) VIRTUAL"
       end
 
       def structure_dump_primary_key(table) #:nodoc:
-        opts = {:name => '', :cols => []}
+        opts = { name: "", cols: [] }
         pks = select_all(<<-SQL, "Primary Keys")
           SELECT a.constraint_name, a.column_name, a.position
             FROM all_cons_columns a
@@ -83,10 +83,10 @@ module ActiveRecord #:nodoc:
              AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
         pks.each do |row|
-          opts[:name] = row['constraint_name']
-          opts[:cols][row['position']-1] = row['column_name']
+          opts[:name] = row["constraint_name"]
+          opts[:cols][row["position"] - 1] = row["column_name"]
         end
-        opts[:cols].length > 0 ? ",\n CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})" : ''
+        opts[:cols].length > 0 ? ",\n CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})" : ""
       end
 
       def structure_dump_unique_keys(table) #:nodoc:
@@ -102,10 +102,10 @@ module ActiveRecord #:nodoc:
              AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
         uks.each do |uk|
-          keys[uk['constraint_name']] ||= []
-          keys[uk['constraint_name']][uk['position']-1] = uk['column_name']
+          keys[uk["constraint_name"]] ||= []
+          keys[uk["constraint_name"]][uk["position"] - 1] = uk["column_name"]
         end
-        keys.map do |k,v|
+        keys.map do |k, v|
           "ALTER TABLE #{table.upcase} ADD CONSTRAINT #{k} UNIQUE (#{v.join(',')})"
         end
       end
@@ -113,8 +113,8 @@ module ActiveRecord #:nodoc:
       def structure_dump_indexes(table_name) #:nodoc:
         indexes(table_name).map do |options|
           column_names = options[:columns]
-          options = {:name => options[:name], :unique => options[:unique]}
-          index_name   = index_name(table_name, :column => column_names)
+          options = { name: options[:name], unique: options[:unique] }
+          index_name = index_name(table_name, column: column_names)
           if Hash === options # legacy support, since this param was a string
             index_type = options[:unique] ? "UNIQUE" : ""
             index_name = options[:name] || index_name
@@ -168,9 +168,9 @@ module ActiveRecord #:nodoc:
 
         if columns.size > 1
           # composite foreign key
-          columns_sql = columns.map {|c| quote_column_name(c)}.join(',')
+          columns_sql = columns.map { |c| quote_column_name(c) }.join(",")
           references = options[:references] || columns
-          references_sql = references.map {|c| quote_column_name(c)}.join(',')
+          references_sql = references.map { |c| quote_column_name(c) }.join(",")
         else
           columns_sql = quote_column_name(columns.first || "#{to_table.to_s.singularize}_id")
           references = options[:references] ? options[:references].first : nil
@@ -199,17 +199,17 @@ module ActiveRecord #:nodoc:
                       AND name NOT LIKE 'BIN$%'
                       AND owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY type").each do |source|
           ddl = "CREATE OR REPLACE   \n"
-          select_all(%Q{
+          select_all("
                   SELECT text
                     FROM all_source
                    WHERE name = '#{source['name']}'
                      AND type = '#{source['type']}'
                      AND owner = SYS_CONTEXT('userenv', 'current_schema')
                    ORDER BY line
-                }).each do |row|
-            ddl << row['text']
+                ").each do |row|
+            ddl << row["text"]
           end
-          ddl << ";" unless ddl.strip[-1,1] == ';'
+          ddl << ";" unless ddl.strip[-1, 1] == ";"
           structure << ddl
         end
 
@@ -251,7 +251,7 @@ module ActiveRecord #:nodoc:
         end)
       end
 
-      def full_drop(preserve_tables=false) #:nodoc:
+      def full_drop(preserve_tables = false) #:nodoc:
         s = preserve_tables ? [] : [structure_drop]
         s << temp_table_drop if preserve_tables
         s << drop_sql_for_feature("view")
@@ -296,44 +296,44 @@ module ActiveRecord #:nodoc:
 
       private
 
-      # virtual columns are an 11g feature.  This returns [] if feature is not
-      # present or none are found.
-      # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
-      def virtual_columns_for(table)
-        begin
-          select_all <<-SQL
+        # virtual columns are an 11g feature.  This returns [] if feature is not
+        # present or none are found.
+        # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
+        def virtual_columns_for(table)
+          begin
+            select_all <<-SQL
             SELECT column_name, data_default
               FROM all_tab_cols
              WHERE virtual_column = 'YES'
                AND owner = SYS_CONTEXT('userenv', 'session_user')
                AND table_name = '#{table.upcase}'
           SQL
-        # feature not supported previous to 11g
-        rescue ActiveRecord::StatementInvalid => _e
-          []
+          # feature not supported previous to 11g
+          rescue ActiveRecord::StatementInvalid => _e
+            []
+          end
         end
-      end
 
-      def drop_sql_for_feature(type)
-        short_type = type == 'materialized view' ? 'mview' : type
-        join_with_statement_token(
-        select_values("SELECT #{short_type}_name FROM all_#{short_type.tableize} where owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
-          "DROP #{type.upcase} \"#{name}\""
-        end)
-      end
+        def drop_sql_for_feature(type)
+          short_type = type == "materialized view" ? "mview" : type
+          join_with_statement_token(
+          select_values("SELECT #{short_type}_name FROM all_#{short_type.tableize} where owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
+            "DROP #{type.upcase} \"#{name}\""
+          end)
+        end
 
-      def drop_sql_for_object(type)
-        join_with_statement_token(
-        select_values("SELECT object_name FROM all_objects WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
-          "DROP #{type.upcase} \"#{name}\""
-        end)
-      end
+        def drop_sql_for_object(type)
+          join_with_statement_token(
+          select_values("SELECT object_name FROM all_objects WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
+            "DROP #{type.upcase} \"#{name}\""
+          end)
+        end
 
-      def join_with_statement_token(array)
-        string = array.join(STATEMENT_TOKEN)
-        string << STATEMENT_TOKEN unless string.blank?
-        string
-      end
+        def join_with_statement_token(array)
+          string = array.join(STATEMENT_TOKEN)
+          string << STATEMENT_TOKEN unless string.blank?
+          string
+        end
     end
   end
 end

@@ -17,7 +17,7 @@ module ActiveRecord
         # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
         # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
         if sql_type_metadata
-          @object_type = sql_type_metadata.sql_type.include? '.'
+          @object_type = sql_type_metadata.sql_type.include? "."
         end
         # TODO: Need to investigate when `sql_type` becomes nil
       end
@@ -64,63 +64,63 @@ module ActiveRecord
 
       private
 
-      def self.extract_value_from_default(default)
-        case default
+        def self.extract_value_from_default(default)
+          case default
           when String
             default.gsub(/''/, "'")
-          else
+            else
             default
+          end
         end
-      end
 
-      def guess_date_or_time(value)
-        value.respond_to?(:hour) && (value.hour == 0 and value.min == 0 and value.sec == 0) ?
-          Date.new(value.year, value.month, value.day) : value
-      end
+        def guess_date_or_time(value)
+          value.respond_to?(:hour) && ((value.hour == 0) && (value.min == 0) && (value.sec == 0)) ?
+            Date.new(value.year, value.month, value.day) : value
+        end
 
-      class << self
-        protected
+        class << self
+          protected
 
-        def fallback_string_to_date(string) #:nodoc:
-          if OracleEnhancedAdapter.string_to_date_format || OracleEnhancedAdapter.string_to_time_format
-            ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          def fallback_string_to_date(string) #:nodoc:
+            if OracleEnhancedAdapter.string_to_date_format || OracleEnhancedAdapter.string_to_time_format
+              ActiveSupport::Deprecation.warn(<<-MSG.squish)
               `fallback_string_to_date` has been deprecated.
               It will be removed from next version of Oracle enhanced adapter.
               Users are unlikely to see this message since this method has gone
               from ActiveRecord::ConnectionAdapters::Column in Rails 4.2.
             MSG
-            return (string_to_date_or_time_using_format(string).to_date rescue super)
+              return (string_to_date_or_time_using_format(string).to_date rescue super)
+            end
+            super
           end
-          super
-        end
 
-        def fallback_string_to_time(string) #:nodoc:
-          if OracleEnhancedAdapter.string_to_time_format || OracleEnhancedAdapter.string_to_date_format
-            ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          def fallback_string_to_time(string) #:nodoc:
+            if OracleEnhancedAdapter.string_to_time_format || OracleEnhancedAdapter.string_to_date_format
+              ActiveSupport::Deprecation.warn(<<-MSG.squish)
               `fallback_string_to_time` has been deprecated.
               It will be removed from next version of Oracle enhanced adapter.
               Users are unlikely to see this message since this method has gone
               from ActiveRecord::ConnectionAdapters::Column in Rails 4.2.
             MSG
-            return (string_to_date_or_time_using_format(string).to_time rescue super)
+              return (string_to_date_or_time_using_format(string).to_time rescue super)
+            end
+            super
           end
-          super
-        end
 
-        def string_to_date_or_time_using_format(string) #:nodoc:
-          ActiveSupport::Deprecation.warn(<<-MSG.squish)
+          def string_to_date_or_time_using_format(string) #:nodoc:
+            ActiveSupport::Deprecation.warn(<<-MSG.squish)
             `string_to_date_or_time_using_format` has been deprecated.
             It will be removed from next version of Oracle enhanced adapter.
             Users are unlikely to see this message since `fallback_string_to_date`
             and `fallback_string_to_time` have gone
             from ActiveRecord::ConnectionAdapters::Column in Rails 4.2.
           MSG
-          if OracleEnhancedAdapter.string_to_time_format && dt=Date._strptime(string, OracleEnhancedAdapter.string_to_time_format)
-            return Time.parse("#{dt[:year]}-#{dt[:mon]}-#{dt[:mday]} #{dt[:hour]}:#{dt[:min]}:#{dt[:sec]}#{dt[:zone]}")
+            if OracleEnhancedAdapter.string_to_time_format && dt = Date._strptime(string, OracleEnhancedAdapter.string_to_time_format)
+              return Time.parse("#{dt[:year]}-#{dt[:mon]}-#{dt[:mday]} #{dt[:hour]}:#{dt[:min]}:#{dt[:sec]}#{dt[:zone]}")
+            end
+            DateTime.strptime(string, OracleEnhancedAdapter.string_to_date_format).to_date
           end
-          DateTime.strptime(string, OracleEnhancedAdapter.string_to_date_format).to_date
         end
-      end
     end
   end
 end

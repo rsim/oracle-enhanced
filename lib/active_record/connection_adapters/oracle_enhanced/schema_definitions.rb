@@ -55,7 +55,7 @@ module ActiveRecord
 
         def column(name, type, options = {})
           if type == :virtual
-            default = {:type => options[:type]}
+            default = { type: options[:type] }
             if options[:as]
               default[:as] = options[:as]
             else
@@ -67,9 +67,9 @@ module ActiveRecord
         end
 
         private
-        def create_column_definition(name, type)
-          OracleEnhanced::ColumnDefinition.new name, type
-        end
+          def create_column_definition(name, type)
+            OracleEnhanced::ColumnDefinition.new name, type
+          end
       end
 
       class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable

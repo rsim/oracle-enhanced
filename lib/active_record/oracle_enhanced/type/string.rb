@@ -1,4 +1,4 @@
-require 'active_model/type/string'
+require "active_model/type/string"
 
 module ActiveRecord
   module OracleEnhanced
@@ -15,7 +15,7 @@ module ActiveRecord
 
         def changed_in_place?(raw_old_value, new_value)
           if raw_old_value.nil?
-            new_value = nil if new_value == ''
+            new_value = nil if new_value == ""
             raw_old_value != new_value
           else
             super

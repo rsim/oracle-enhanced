@@ -9,7 +9,7 @@ begin
     %w(ojdbc5.jar)
   elsif java_version =~ /^1.6/
     %w(ojdbc6.jar)
-  elsif java_version >= '1.7'
+  elsif java_version >= "1.7"
     # Oracle 11g client ojdbc6.jar is also compatible with Java 1.7
     # Oracle 12c client provides new ojdbc7.jar
     %w(ojdbc7.jar ojdbc6.jar)
@@ -17,12 +17,12 @@ begin
     nil
   end
 
-  if ojdbc_jars && ENV_JAVA['java.class.path'] !~ Regexp.new(ojdbc_jars.join('|'))
+  if ojdbc_jars && ENV_JAVA["java.class.path"] !~ Regexp.new(ojdbc_jars.join("|"))
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
-    env_path = (ENV["PATH"] || ENV["Path"] || '').split(File::PATH_SEPARATOR)
+    env_path = (ENV["PATH"] || ENV["Path"] || "").split(File::PATH_SEPARATOR)
     # Look for JDBC driver at first in lib subdirectory (application specific JDBC file version)
     # then in Ruby load path and finally in environment PATH
-    ['./lib'].concat($LOAD_PATH).concat(env_path).detect do |dir|
+    ["./lib"].concat($LOAD_PATH).concat(env_path).detect do |dir|
       # check any compatible JDBC driver in the priority order
       ojdbc_jars.any? do |ojdbc_jar|
         if File.exists?(file_path = File.join(dir, ojdbc_jar))
@@ -74,7 +74,7 @@ module ActiveRecord
 
           # tomcat needs first lookup method, oc4j (and maybe other application servers) need second method
           begin
-            env = ctx.lookup('java:/comp/env')
+            env = ctx.lookup("java:/comp/env")
             ds = env.lookup(jndi)
           rescue
             ds = ctx.lookup(jndi)
@@ -102,13 +102,13 @@ module ActiveRecord
           # to_s needed if username, password or database is specified as number in database.yml file
           username = config[:username] && config[:username].to_s
           password = config[:password] && config[:password].to_s
-          database = config[:database] && config[:database].to_s || 'XE'
+          database = config[:database] && config[:database].to_s || "XE"
           host, port = config[:host], config[:port]
           privilege = config[:privilege] && config[:privilege].to_s
 
           # connection using TNS alias, or connection-string from DATABASE_URL
-          using_tns_alias = !host && !config[:url] && ENV['TNS_ADMIN']
-          if database && (using_tns_alias || host == 'connection-string')
+          using_tns_alias = !host && !config[:url] && ENV["TNS_ADMIN"]
+          if database && (using_tns_alias || host == "connection-string")
             url = "jdbc:oracle:thin:@#{database}"
           else
             unless database.match(/^(\:|\/)/)
@@ -120,7 +120,7 @@ module ActiveRecord
 
           prefetch_rows = config[:prefetch_rows] || 100
           # get session time_zone from configuration or from TZ environment variable
-          time_zone = config[:time_zone] || ENV['TZ'] || java.util.TimeZone.default.getID
+          time_zone = config[:time_zone] || ENV["TZ"] || java.util.TimeZone.default.getID
 
           properties = java.util.Properties.new
           properties.put("user", username)
@@ -144,7 +144,7 @@ module ActiveRecord
           # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
         end
 
-        cursor_sharing = config[:cursor_sharing] || 'force'
+        cursor_sharing = config[:cursor_sharing] || "force"
         exec "alter session set cursor_sharing = #{cursor_sharing}"
 
         # Initialize NLS parameters
@@ -327,7 +327,7 @@ module ActiveRecord
           @raw_statement = raw_statement
         end
 
-        def bind_params( *bind_vars )
+        def bind_params(*bind_vars)
           index = 1
           bind_vars.flatten.each do |var|
             if Hash === var
@@ -411,21 +411,21 @@ module ActiveRecord
         end
 
         def column_types
-          @column_types ||= (1..metadata.getColumnCount).map{|i| metadata.getColumnTypeName(i).to_sym}
+          @column_types ||= (1..metadata.getColumnCount).map { |i| metadata.getColumnTypeName(i).to_sym }
         end
 
         def column_names
-          @column_names ||= (1..metadata.getColumnCount).map{|i| metadata.getColumnName(i)}
+          @column_names ||= (1..metadata.getColumnCount).map { |i| metadata.getColumnName(i) }
         end
         alias :get_col_names :column_names
 
-        def fetch(options={})
+        def fetch(options = {})
           if @raw_result_set.next
             get_lob_value = options[:get_lob_value]
             row_values = []
             column_types.each_with_index do |column_type, i|
               row_values <<
-                @connection.get_ruby_value_from_result_set(@raw_result_set, i+1, column_type, get_lob_value)
+                @connection.get_ruby_value_from_result_set(@raw_result_set, i + 1, column_type, get_lob_value)
             end
             row_values
           else
@@ -469,14 +469,14 @@ module ActiveRecord
 
         cols_types_index = (1..column_count).map do |i|
           col_name = oracle_downcase(metadata.getColumnName(i))
-          next if col_name == 'raw_rnum_'
+          next if col_name == "raw_rnum_"
           column_hash[col_name] = nil
           [col_name, metadata.getColumnTypeName(i).to_sym, i]
         end
         cols_types_index.delete(nil)
 
         rows = []
-        get_lob_value = !(name == 'Writable Large Object')
+        get_lob_value = !(name == "Writable Large Object")
 
         while rset.next
           hash = column_hash.dup
@@ -496,7 +496,7 @@ module ActiveRecord
         if is_binary
           lob.setBytes(1, value.to_java_bytes)
         else
-          lob.setString(1,value)
+          lob.setString(1, value)
         end
       end
 
@@ -541,7 +541,7 @@ module ActiveRecord
           get_lob_value ? lob_to_ruby_value(rset.getBlob(i)) : rset.getBlob(i)
         when :RAW
           raw_value = rset.getRAW(i)
-          raw_value && raw_value.getBytes.to_a.pack('C*')
+          raw_value && raw_value.getBytes.to_a.pack("C*")
         else
           nil
         end
@@ -549,22 +549,22 @@ module ActiveRecord
 
       private
 
-      def lob_to_ruby_value(val)
-        case val
-        when ::Java::OracleSql::CLOB
-          if val.isEmptyLob
-            nil
-          else
-            val.getSubString(1, val.length)
-          end
-        when ::Java::OracleSql::BLOB
-          if val.isEmptyLob
-            nil
-          else
-            String.from_java_bytes(val.getBytes(1, val.length))
+        def lob_to_ruby_value(val)
+          case val
+          when ::Java::OracleSql::CLOB
+            if val.isEmptyLob
+              nil
+            else
+              val.getSubString(1, val.length)
+            end
+          when ::Java::OracleSql::BLOB
+            if val.isEmptyLob
+              nil
+            else
+              String.from_java_bytes(val.getBytes(1, val.length))
+            end
           end
         end
-      end
     end
   end
 end

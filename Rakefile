@@ -1,6 +1,6 @@
-require 'rubygems'
-require 'bundler'
-require 'bundler/gem_tasks'
+require "rubygems"
+require "bundler"
+require "bundler/gem_tasks"
 begin
   Bundler.setup(:default, :development)
 rescue Bundler::BundlerError => e
@@ -9,9 +9,9 @@ rescue Bundler::BundlerError => e
   exit e.status_code
 end
 
-require 'rake'
+require "rake"
 
-require 'rspec/core/rake_task'
+require "rspec/core/rake_task"
 RSpec::Core::RakeTask.new(:spec)
 
 desc "Clear test database"
@@ -24,17 +24,17 @@ task :clear do
 end
 
 # Clear test database before running spec and rcov
-task :spec => :clear
-task :rcov => :clear
+task spec: :clear
+task rcov: :clear
 
-task :default => :spec
+task default: :spec
 
-require 'rdoc/task'
+require "rdoc/task"
 Rake::RDocTask.new do |rdoc|
-  version = File.exist?('VERSION') ? File.read('VERSION') : ""
+  version = File.exist?("VERSION") ? File.read("VERSION") : ""
 
-  rdoc.rdoc_dir = 'doc'
+  rdoc.rdoc_dir = "doc"
   rdoc.title = "activerecord-oracle_enhanced-adapter #{version}"
-  rdoc.rdoc_files.include('README*')
-  rdoc.rdoc_files.include('lib/**/*.rb')
+  rdoc.rdoc_files.include("README*")
+  rdoc.rdoc_files.include("lib/**/*.rb")
 end

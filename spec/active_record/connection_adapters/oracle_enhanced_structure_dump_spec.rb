@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe "OracleEnhancedAdapter structure dump" do
   include LoggerSpecHelper
@@ -11,7 +11,7 @@ describe "OracleEnhancedAdapter structure dump" do
   end
   describe "structure dump" do
     before(:each) do
-      @conn.create_table :test_posts, :force => true do |t|
+      @conn.create_table :test_posts, force: true do |t|
         t.string      :title
         t.string      :foo
         t.integer     :foo_id
@@ -94,7 +94,7 @@ describe "OracleEnhancedAdapter structure dump" do
     it "should not error when no foreign keys are present" do
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       expect(dump.split('\n').length).to eq(0)
-      expect(dump).to eq('')
+      expect(dump).to eq("")
     end
 
     it "should dump triggers" do
@@ -107,7 +107,7 @@ describe "OracleEnhancedAdapter structure dump" do
           SELECT 'bar' INTO :new.FOO FROM DUAL;
         END;
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
+      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
       expect(dump).to match(/CREATE OR REPLACE TRIGGER TEST_POST_TRIGGER/)
     end
 
@@ -115,14 +115,14 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute <<-SQL
         create or replace TYPE TEST_TYPE AS TABLE OF VARCHAR2(10);
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
+      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
       expect(dump).to match(/CREATE OR REPLACE TYPE TEST_TYPE/)
     end
 
     it "should dump views" do
       @conn.execute "create or replace VIEW test_posts_view_z as select * from test_posts"
       @conn.execute "create or replace VIEW test_posts_view_a as select * from test_posts_view_z"
-      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/,' ')
+      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
       expect(dump).to match(/CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_A.*CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_Z/)
     end
 
@@ -165,8 +165,8 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump indexes" do
-      ActiveRecord::Base.connection.add_index(:test_posts, :foo, :name => :ix_test_posts_foo)
-      ActiveRecord::Base.connection.add_index(:test_posts, :foo_id, :name => :ix_test_posts_foo_id, :unique => true)
+      ActiveRecord::Base.connection.add_index(:test_posts, :foo, name: :ix_test_posts_foo)
+      ActiveRecord::Base.connection.add_index(:test_posts, :foo_id, name: :ix_test_posts_foo_id, unique: true)
 
       @conn.execute <<-SQL
         ALTER TABLE test_posts
@@ -180,7 +180,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump multi-value and function value indexes" do
-      ActiveRecord::Base.connection.add_index(:test_posts, [:foo, :foo_id], :name => :ix_test_posts_foo_foo_id)
+      ActiveRecord::Base.connection.add_index(:test_posts, [:foo, :foo_id], name: :ix_test_posts_foo_foo_id)
 
       @conn.execute <<-SQL
         CREATE INDEX "IX_TEST_POSTS_FUNCTION" ON "TEST_POSTS" (TO_CHAR(LENGTH("FOO"))||"FOO")
@@ -237,7 +237,7 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.drop_table :test_comments rescue nil
     end
     it "should dump correctly" do
-      @conn.create_table :test_comments, :temporary => true, :id => false do |t|
+      @conn.create_table :test_comments, temporary: true, id: false do |t|
         t.integer :post_id
       end
       dump = ActiveRecord::Base.connection.structure_dump
@@ -267,7 +267,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
   describe "temp_table_drop" do
     before(:each) do
-      @conn.create_table :temp_tbl, :temporary => true do |t|
+      @conn.create_table :temp_tbl, temporary: true do |t|
         t.string :foo
       end
       @conn.create_table :not_temp_tbl do |t|
@@ -298,7 +298,7 @@ describe "OracleEnhancedAdapter structure dump" do
       ActiveRecord::SchemaMigration.reset_table_name
       ActiveRecord::SchemaMigration.create_table
       versions.each do |i|
-        ActiveRecord::SchemaMigration.create!(:version => i)
+        ActiveRecord::SchemaMigration.create!(version: i)
       end
     end
 
@@ -347,7 +347,7 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.create_table :full_drop_test do |t|
         t.string :foo
       end
-      @conn.create_table :full_drop_test_temp, :temporary => true do |t|
+      @conn.create_table :full_drop_test_temp, temporary: true do |t|
         t.string :foo
       end
       #view

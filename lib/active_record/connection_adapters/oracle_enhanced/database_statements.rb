@@ -16,7 +16,7 @@ module ActiveRecord
           reload_type_map
         end
 
-        def exec_query(sql, name = 'SQL', binds = [], prepare: false)
+        def exec_query(sql, name = "SQL", binds = [], prepare: false)
           type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
 
           log(sql, name, binds, type_casted_binds) do
@@ -38,14 +38,14 @@ module ActiveRecord
 
             cursor.exec
 
-            if name == 'EXPLAIN' and sql =~ /^EXPLAIN/
+            if (name == "EXPLAIN") && sql =~ /^EXPLAIN/
               res = true
             else
               columns = cursor.get_col_names.map do |col_name|
                 @connection.oracle_downcase(col_name)
               end
               rows = []
-              fetch_options = {:get_lob_value => (name != 'Writable Large Object')}
+              fetch_options = { get_lob_value: (name != "Writable Large Object") }
               while row = cursor.fetch(fetch_options)
                 rows << row
               end
@@ -69,11 +69,11 @@ module ActiveRecord
           sql = "EXPLAIN PLAN FOR #{to_sql(arel, binds)}"
           return if sql =~ /FROM all_/
           if ORACLE_ENHANCED_CONNECTION == :jdbc
-            exec_query(sql, 'EXPLAIN', binds)
+            exec_query(sql, "EXPLAIN", binds)
           else
-            exec_query(sql, 'EXPLAIN')
+            exec_query(sql, "EXPLAIN")
           end
-          select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)", 'EXPLAIN').join("\n")
+          select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)", "EXPLAIN").join("\n")
         end
 
         # Returns an array of arrays containing the field values.
@@ -144,7 +144,7 @@ module ActiveRecord
               cursor = @connection.prepare(sql)
             else
               cursor = if @statements.key?(sql)
-                         @statements[sql]
+                @statements[sql]
                        else
                          @statements[sql] = @connection.prepare(sql)
                        end
@@ -208,7 +208,7 @@ module ActiveRecord
         # Returns default sequence name for table.
         # Will take all or first 26 characters of table name and append _seq suffix
         def default_sequence_name(table_name, primary_key = nil)
-          table_name.to_s.gsub((/(^|\.)([\w$-]{1,#{sequence_name_length-4}})([\w$-]*)$/), '\1\2_seq')
+          table_name.to_s.gsub((/(^|\.)([\w$-]{1,#{sequence_name_length - 4}})([\w$-]*)$/), '\1\2_seq')
         end
 
         # Inserts the given fixture into the table. Overridden to properly handle lobs.

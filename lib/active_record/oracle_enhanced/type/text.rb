@@ -1,4 +1,4 @@
-require 'active_model/type/string'
+require "active_model/type/string"
 
 module ActiveRecord
   module OracleEnhanced

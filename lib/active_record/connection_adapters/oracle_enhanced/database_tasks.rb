@@ -1,21 +1,21 @@
-require 'active_record/base'
+require "active_record/base"
 
 module ActiveRecord
   module ConnectionAdapters
     class OracleEnhancedAdapter
       class DatabaseTasks
-        delegate :connection, :establish_connection, :to => ActiveRecord::Base
+        delegate :connection, :establish_connection, to: ActiveRecord::Base
 
         def initialize(config)
           @config = config
         end
 
         def create
-          system_password = ENV.fetch('ORACLE_SYSTEM_PASSWORD') {
+          system_password = ENV.fetch("ORACLE_SYSTEM_PASSWORD") {
             print "Please provide the SYSTEM password for your Oracle installation (set ORACLE_SYSTEM_PASSWORD to avoid this prompt)\n>"
             $stdin.gets.strip
           }
-          establish_connection(@config.merge('username' => 'SYSTEM', 'password' => system_password))
+          establish_connection(@config.merge("username" => "SYSTEM", "password" => system_password))
           begin
             connection.execute "CREATE USER #{@config['username']} IDENTIFIED BY #{@config['password']}"
           rescue => e
@@ -39,14 +39,14 @@ module ActiveRecord
 
         def purge
           drop
-          connection.execute('PURGE RECYCLEBIN') rescue nil
+          connection.execute("PURGE RECYCLEBIN") rescue nil
         end
 
         def structure_dump(filename)
           establish_connection(@config)
-          File.open(filename, 'w:utf-8') { |f| f << connection.structure_dump }
-          if @config['structure_dump'] == 'db_stored_code'
-             File.open(filename, 'a') { |f| f << connection.structure_dump_db_stored_code }
+          File.open(filename, "w:utf-8") { |f| f << connection.structure_dump }
+          if @config["structure_dump"] == "db_stored_code"
+            File.open(filename, "a") { |f| f << connection.structure_dump_db_stored_code }
           end
         end
 

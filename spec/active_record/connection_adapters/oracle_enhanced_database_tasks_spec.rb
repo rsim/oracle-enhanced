@@ -1,13 +1,13 @@
-require 'spec_helper'
-require 'active_record/connection_adapters/oracle_enhanced/database_tasks'
-require 'stringio'
-require 'tempfile'
+require "spec_helper"
+require "active_record/connection_adapters/oracle_enhanced/database_tasks"
+require "stringio"
+require "tempfile"
 
 describe "Oracle Enhanced adapter database tasks" do
   let(:config) { CONNECTION_PARAMS.with_indifferent_access }
 
   describe "create" do
-    let(:new_user_config) { config.merge({username: "oracle_enhanced_test_user"}) }
+    let(:new_user_config) { config.merge(username: "oracle_enhanced_test_user") }
     before do
       fake_terminal(SYSTEM_CONNECTION_PARAMS[:password]) do
         ActiveRecord::Tasks::DatabaseTasks.create(new_user_config)
@@ -75,7 +75,7 @@ describe "Oracle Enhanced adapter database tasks" do
         it "dumps the database structure to a file without the schema information" do
           contents = File.read(temp_file)
           expect(contents).to include('CREATE TABLE "TEST_POSTS"')
-          expect(contents).not_to include('INSERT INTO schema_migrations')
+          expect(contents).not_to include("INSERT INTO schema_migrations")
         end
       end
 

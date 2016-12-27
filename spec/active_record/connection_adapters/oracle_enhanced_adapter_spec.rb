@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe "OracleEnhancedAdapter establish connection" do
 
@@ -63,7 +63,7 @@ describe "OracleEnhancedAdapter" do
           hire_date     DATE
         )
       SQL
-      @column_names = ['id', 'first_name', 'last_name', 'full_name', 'hire_date']
+      @column_names = ["id", "first_name", "last_name", "full_name", "hire_date"]
       @column_sql_types = ["NUMBER", "VARCHAR2(20)", "VARCHAR2(25)", "VARCHAR2(46)", "DATE"]
       class ::TestEmployee < ActiveRecord::Base
       end
@@ -99,33 +99,33 @@ describe "OracleEnhancedAdapter" do
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = false
       end
 
-      it 'should identify virtual columns as such' do
+      it "should identify virtual columns as such" do
         skip "Not supported in this database version" unless @oracle11g_or_higher
-        te = TestEmployee.connection.columns('test_employees').detect(&:virtual?)
-        expect(te.name).to eq('full_name')
+        te = TestEmployee.connection.columns("test_employees").detect(&:virtual?)
+        expect(te.name).to eq("full_name")
       end
 
       it "should get columns from database at first time" do
-        expect(TestEmployee.connection.columns('test_employees').map(&:name)).to eq(@column_names)
+        expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
         expect(@logger.logged(:debug).last).to match(/select .* from all_tab_cols/im)
       end
 
       it "should get columns from database at second time" do
-        TestEmployee.connection.columns('test_employees')
+        TestEmployee.connection.columns("test_employees")
         @logger.clear(:debug)
-        expect(TestEmployee.connection.columns('test_employees').map(&:name)).to eq(@column_names)
+        expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
         expect(@logger.logged(:debug).last).to match(/select .* from all_tab_cols/im)
       end
 
       it "should get primary key from database at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for('test_employees')).to eq(['id', nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
       it "should get primary key from database at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for('test_employees')).to eq(['id', nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
         @logger.clear(:debug)
-        expect(TestEmployee.connection.pk_and_sequence_for('test_employees')).to eq(['id', nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
@@ -145,33 +145,33 @@ describe "OracleEnhancedAdapter" do
       end
 
       it "should get columns from database at first time" do
-        expect(TestEmployee.connection.columns('test_employees').map(&:name)).to eq(@column_names)
+        expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
         expect(@logger.logged(:debug).last).to match(/select .* from all_tab_cols/im)
       end
 
       it "should get columns from cache at second time" do
-        TestEmployee.connection.columns('test_employees')
+        TestEmployee.connection.columns("test_employees")
         @logger.clear(:debug)
-        expect(TestEmployee.connection.columns('test_employees').map(&:name)).to eq(@column_names)
+        expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
         expect(@logger.logged(:debug).last).to be_blank
       end
 
       it "should get primary key from database at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for('test_employees')).to eq(['id', nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
       it "should get primary key from cache at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for('test_employees')).to eq(['id', nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
         @logger.clear(:debug)
-        expect(TestEmployee.connection.pk_and_sequence_for('test_employees')).to eq(['id', nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
         expect(@logger.logged(:debug).last).to be_blank
       end
 
       it "should store primary key as nil in cache at first time for table without primary key" do
-        expect(TestEmployee.connection.pk_and_sequence_for('test_employees_without_pk')).to eq(nil)
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees_without_pk")).to eq(nil)
         @logger.clear(:debug)
-        expect(TestEmployee.connection.pk_and_sequence_for('test_employees_without_pk')).to eq(nil)
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees_without_pk")).to eq(nil)
         expect(@logger.logged(:debug).last).to be_blank
       end
 
@@ -190,7 +190,7 @@ describe "OracleEnhancedAdapter" do
           name          VARCHAR2(50)
         )
       SQL
-      Object.send(:remove_const, 'CompositePrimaryKeys') if defined?(CompositePrimaryKeys)
+      Object.send(:remove_const, "CompositePrimaryKeys") if defined?(CompositePrimaryKeys)
       class ::TestEmployee < ActiveRecord::Base
         self.primary_key = :employee_id
       end
@@ -250,9 +250,9 @@ describe "OracleEnhancedAdapter" do
 
     it "should create record" do
       attrs = {
-        :varchar2 => 'dummy',
-        :integer => 1,
-        :comment => 'dummy'
+        varchar2: "dummy",
+        integer: 1,
+        comment: "dummy"
       }
       record = TestReservedWord.create!(attrs)
       record.reload
@@ -371,7 +371,7 @@ describe "OracleEnhancedAdapter" do
         self.table_name = "warehouse-things"
       end
 
-      wh = WarehouseThing.create!(:name => "Foo", :foo => 2)
+      wh = WarehouseThing.create!(name: "Foo", foo: 2)
       expect(wh.id).not_to be_nil
 
       expect(@conn.data_sources).to include("warehouse-things")
@@ -383,14 +383,14 @@ describe "OracleEnhancedAdapter" do
         self.table_name = "CamelCase"
       end
 
-      cc = CamelCase.create!(:name => "Foo", :foo => 2)
+      cc = CamelCase.create!(name: "Foo", foo: 2)
       expect(cc.id).not_to be_nil
 
       expect(@conn.data_sources).to include("CamelCase")
     end
 
     it "properly quotes database links" do
-      expect(@conn.quote_table_name('asdf@some.link')).to eq('"ASDF"@"SOME.LINK"')
+      expect(@conn.quote_table_name("asdf@some.link")).to eq('"ASDF"@"SOME.LINK"')
     end
   end
 
@@ -428,7 +428,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should verify database link" do
-      @conn.select_value("select * from dual@#{@db_link}") == 'X'
+      @conn.select_value("select * from dual@#{@db_link}") == "X"
     end
 
     it "should get column names" do
@@ -436,7 +436,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should create record" do
-      p = TestPost.create(:title => "Title", :body => "Body")
+      p = TestPost.create(title: "Title", body: "Body")
       expect(p.id).not_to be_nil
       expect(TestPost.find(p.id)).not_to be_nil
     end
@@ -450,7 +450,7 @@ describe "OracleEnhancedAdapter" do
 
     it "should get current database name" do
       # get database name if using //host:port/database connection string
-      database_name = CONNECTION_PARAMS[:database].split('/').last
+      database_name = CONNECTION_PARAMS[:database].split("/").last
       expect(@conn.current_database.upcase).to eq(database_name.upcase)
     end
 
@@ -461,25 +461,25 @@ describe "OracleEnhancedAdapter" do
 
   describe "temporary tables" do
     before(:all) do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:table] = 'UNUSED'
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = 'UNUSED'
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:table] = "UNUSED"
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = "UNUSED"
       @conn = ActiveRecord::Base.connection
     end
     after(:all) do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces={}
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces = {}
     end
 
     after(:each) do
       @conn.drop_table :foos rescue nil
     end
     it "should create ok" do
-      @conn.create_table :foos, :temporary => true, :id => false do |t|
+      @conn.create_table :foos, temporary: true, id: false do |t|
         t.integer :id
         t.text :bar
       end
     end
     it "should show up as temporary" do
-      @conn.create_table :foos, :temporary => true, :id => false do |t|
+      @conn.create_table :foos, temporary: true, id: false do |t|
         t.integer :id
       end
       expect(@conn.temporary_table?("foos")).to be_truthy
@@ -507,8 +507,8 @@ describe "OracleEnhancedAdapter" do
       @ids = (1..1010).to_a
       TestPost.transaction do
         @ids.each do |id|
-          TestPost.create!(:id => id, :title => "Title #{id}")
-          TestComment.create!(:test_post_id => id, :description => "Description #{id}")
+          TestPost.create!(id: id, title: "Title #{id}")
+          TestComment.create!(test_post_id: id, description: "Description #{id}")
         end
       end
     end
@@ -532,7 +532,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "with statement pool" do
     before(:all) do
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(:statement_limit => 3))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(statement_limit: 3))
       @conn = ActiveRecord::Base.connection
       schema_define do
         drop_table :test_posts rescue nil
@@ -604,13 +604,13 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should explain query" do
-      explain = TestPost.where(:id => 1).explain
+      explain = TestPost.where(id: 1).explain
       expect(explain).to include("Cost")
       expect(explain).to include("INDEX UNIQUE SCAN")
     end
 
     it "should explain query with binds" do
-      pending "Pending until further investigation made for #908" if RUBY_ENGINE == 'jruby'
+      pending "Pending until further investigation made for #908" if RUBY_ENGINE == "jruby"
       pk = TestPost.columns_hash[TestPost.primary_key]
       sub = Arel::Nodes::BindParam.new.to_sql
       binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
@@ -643,11 +643,11 @@ describe "OracleEnhancedAdapter" do
         self.table_name = :test_employees
       end
       i = 0
-      @employee.create!(sort_order: i+=1, first_name: 'Peter',   last_name: 'Parker')
-      @employee.create!(sort_order: i+=1, first_name: 'Tony',    last_name: 'Stark')
-      @employee.create!(sort_order: i+=1, first_name: 'Steven',  last_name: 'Rogers')
-      @employee.create!(sort_order: i+=1, first_name: 'Bruce',   last_name: 'Banner')
-      @employee.create!(sort_order: i+=1, first_name: 'Natasha', last_name: 'Romanova')
+      @employee.create!(sort_order: i += 1, first_name: "Peter",   last_name: "Parker")
+      @employee.create!(sort_order: i += 1, first_name: "Tony",    last_name: "Stark")
+      @employee.create!(sort_order: i += 1, first_name: "Steven",  last_name: "Rogers")
+      @employee.create!(sort_order: i += 1, first_name: "Bruce",   last_name: "Banner")
+      @employee.create!(sort_order: i += 1, first_name: "Natasha", last_name: "Romanova")
     end
 
     after(:all) do
@@ -690,7 +690,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "returns true when passed a valid type" do
-      column = @conn.columns('test_employees').find { |col| col.name == 'first_name' }
+      column = @conn.columns("test_employees").find { |col| col.name == "first_name" }
       expect(@conn.valid_type?(column.type)).to be true
     end
 
@@ -699,7 +699,7 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
-  describe 'serialized column' do
+  describe "serialized column" do
     before(:all) do
       schema_define do
         create_table :test_serialized_columns do |t|
@@ -715,7 +715,7 @@ describe "OracleEnhancedAdapter" do
       schema_define do
         drop_table :test_serialized_columns
       end
-      Object.send(:remove_const, 'TestSerializedColumn')
+      Object.send(:remove_const, "TestSerializedColumn")
       ActiveRecord::Base.table_name_prefix = nil
       ActiveRecord::Base.clear_cache!
     end
@@ -728,8 +728,8 @@ describe "OracleEnhancedAdapter" do
       clear_logger
     end
 
-    it 'should serialize' do
-      new_value = 'new_value'
+    it "should serialize" do
+      new_value = "new_value"
       serialized_column = TestSerializedColumn.new
 
       expect(serialized_column.serialized).to eq([])

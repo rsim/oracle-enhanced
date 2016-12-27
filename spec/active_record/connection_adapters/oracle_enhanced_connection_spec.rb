@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe "OracleEnhancedConnection" do
 
@@ -61,26 +61,26 @@ describe "OracleEnhancedConnection" do
 
   describe "create connection with NLS parameters" do
     after do
-      ENV['NLS_DATE_FORMAT'] = nil
+      ENV["NLS_DATE_FORMAT"] = nil
     end
 
     it "should use NLS_DATE_FORMAT environment variable" do
-      ENV['NLS_DATE_FORMAT'] = 'YYYY-MM-DD'
+      ENV["NLS_DATE_FORMAT"] = "YYYY-MM-DD"
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
-      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{'value' => 'YYYY-MM-DD'}])
+      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{ "value" => "YYYY-MM-DD" }])
     end
 
     it "should use configuration value and ignore NLS_DATE_FORMAT environment variable" do
-      ENV['NLS_DATE_FORMAT'] = 'YYYY-MM-DD'
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS.merge(:nls_date_format => 'YYYY-MM-DD HH24:MI'))
-      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{'value' => 'YYYY-MM-DD HH24:MI'}])
+      ENV["NLS_DATE_FORMAT"] = "YYYY-MM-DD"
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS.merge(nls_date_format: "YYYY-MM-DD HH24:MI"))
+      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{ "value" => "YYYY-MM-DD HH24:MI" }])
     end
 
     it "should use default value when NLS_DATE_FORMAT environment variable is not set" do
-      ENV['NLS_DATE_FORMAT'] = nil
+      ENV["NLS_DATE_FORMAT"] = nil
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
       default = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS[:nls_date_format]
-      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{'value' => default}])
+      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{ "value" => default }])
     end
   end
 
@@ -116,7 +116,7 @@ describe "OracleEnhancedConnection" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
       schema_define do
-        create_table :posts, :force => true do |t|
+        create_table :posts, force: true do |t|
           t.timestamps null: false
         end
       end
@@ -143,9 +143,9 @@ describe "OracleEnhancedConnection" do
     let(:username) { CONNECTION_PARAMS[:username] }
     let(:password) { CONNECTION_PARAMS[:password] }
     let(:connection_string) { "(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=#{DATABASE_HOST})(PORT=#{DATABASE_PORT})))(CONNECT_DATA=(SERVICE_NAME=#{DATABASE_NAME})))" }
-    let(:params) { { username: username, password: password, host: 'connection-string', database: connection_string } }
+    let(:params) { { username: username, password: password, host: "connection-string", database: connection_string } }
 
-    it 'uses the database param as the connection string' do
+    it "uses the database param as the connection string" do
       if ORACLE_ENHANCED_CONNECTION == :jdbc
         expect(java.sql.DriverManager).to receive(:getConnection).with("jdbc:oracle:thin:@#{connection_string}", anything).and_call_original
       else
@@ -156,7 +156,7 @@ describe "OracleEnhancedConnection" do
     end
   end
 
-  if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+  if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
 
     describe "create JDBC connection" do
 
@@ -189,11 +189,11 @@ describe "OracleEnhancedConnection" do
       it "should create a new connection using JNDI" do
 
         begin
-          import 'oracle.jdbc.driver.OracleDriver'
-          import 'org.apache.commons.pool.impl.GenericObjectPool'
-          import 'org.apache.commons.dbcp.PoolingDataSource'
-          import 'org.apache.commons.dbcp.PoolableConnectionFactory'
-          import 'org.apache.commons.dbcp.DriverManagerConnectionFactory'
+          import "oracle.jdbc.driver.OracleDriver"
+          import "org.apache.commons.pool.impl.GenericObjectPool"
+          import "org.apache.commons.dbcp.PoolingDataSource"
+          import "org.apache.commons.dbcp.PoolableConnectionFactory"
+          import "org.apache.commons.dbcp.DriverManagerConnectionFactory"
         rescue NameError => e
           return skip e.message
         end
@@ -203,12 +203,12 @@ describe "OracleEnhancedConnection" do
             connection_pool = GenericObjectPool.new(nil)
             uri = "jdbc:oracle:thin:@#{DATABASE_HOST && "#{DATABASE_HOST}:"}#{DATABASE_PORT && "#{DATABASE_PORT}:"}#{DATABASE_NAME}"
             connection_factory = DriverManagerConnectionFactory.new(uri, DATABASE_USER, DATABASE_PASSWORD)
-            poolable_connection_factory = PoolableConnectionFactory.new(connection_factory,connection_pool,nil,nil,false,true)
+            poolable_connection_factory = PoolableConnectionFactory.new(connection_factory, connection_pool, nil, nil, false, true)
             @data_source = PoolingDataSource.new(connection_pool)
             @data_source.access_to_underlying_connection_allowed = true
           end
           def lookup(path)
-            if (path == 'java:/comp/env')
+            if (path == "java:/comp/env")
               return self
             else
               return @data_source
@@ -219,7 +219,7 @@ describe "OracleEnhancedConnection" do
         allow(javax.naming.InitialContext).to receive(:new).and_return(InitialContextMock.new)
 
         params = {}
-        params[:jndi] = 'java:comp/env/jdbc/test'
+        params[:jndi] = "java:comp/env/jdbc/test"
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
         expect(@conn).to be_active
       end
@@ -231,7 +231,7 @@ describe "OracleEnhancedConnection" do
       params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST && "//#{DATABASE_HOST}#{DATABASE_PORT && ":#{DATABASE_PORT}"}/"}#{DATABASE_NAME}"
       params[:host] = nil
       params[:database] = nil
-      allow(java.sql.DriverManager).to receive(:getConnection).and_raise('no suitable driver found')
+      allow(java.sql.DriverManager).to receive(:getConnection).and_raise("no suitable driver found")
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
       expect(@conn).to be_active
     end
@@ -248,11 +248,11 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should execute SQL select" do
-      expect(@conn.select("SELECT * FROM dual")).to eq([{'dummy' => 'X'}])
+      expect(@conn.select("SELECT * FROM dual")).to eq([{ "dummy" => "X" }])
     end
 
     it "should execute SQL select and return also columns" do
-      expect(@conn.select("SELECT * FROM dual", nil, true)).to eq([ [{'dummy' => 'X'}], ['dummy'] ])
+      expect(@conn.select("SELECT * FROM dual", nil, true)).to eq([ [{ "dummy" => "X" }], ["dummy"] ])
     end
 
   end
@@ -266,7 +266,7 @@ describe "OracleEnhancedConnection" do
       cursor = @conn.prepare("SELECT * FROM dual WHERE :1 = 1")
       cursor.bind_param(1, 1)
       cursor.exec
-      expect(cursor.get_col_names).to eq(['DUMMY'])
+      expect(cursor.get_col_names).to eq(["DUMMY"])
       expect(cursor.fetch).to eq(["X"])
       cursor.close
     end
@@ -285,20 +285,20 @@ describe "OracleEnhancedConnection" do
 
   describe "SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', '" do
     before(:all) do
-      ENV['NLS_NUMERIC_CHARACTERS'] = ", "
+      ENV["NLS_NUMERIC_CHARACTERS"] = ", "
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
       @conn.exec "CREATE TABLE test_employees (age NUMBER(10,2))"
     end
 
     after(:all) do
-      ENV['NLS_NUMERIC_CHARACTERS'] = nil
+      ENV["NLS_NUMERIC_CHARACTERS"] = nil
       @conn.exec "DROP TABLE test_employees" rescue nil
     end
 
     it "should execute prepared statement with decimal bind parameter " do
       cursor = @conn.prepare("INSERT INTO test_employees VALUES(:1)")
       type_metadata = ActiveRecord::ConnectionAdapters::SqlTypeMetadata.new(sql_type: "NUMBER", type: :decimal, limit: 10, precision: nil, scale: 2)
-      column = ActiveRecord::ConnectionAdapters::OracleEnhancedColumn.new('age', nil, type_metadata, false, "test_employees", false, false, nil)
+      column = ActiveRecord::ConnectionAdapters::OracleEnhancedColumn.new("age", nil, type_metadata, false, "test_employees", false, false, nil)
       expect(column.type).to eq(:decimal)
       # Here 1.5 expects that this value has been type casted already
       # it should use bind_params in the long term.
@@ -324,10 +324,10 @@ describe "OracleEnhancedConnection" do
     end
 
     def kill_current_session
-      audsid = @conn.select("SELECT userenv('sessionid') audsid FROM dual").first['audsid']
+      audsid = @conn.select("SELECT userenv('sessionid') audsid FROM dual").first["audsid"]
       sid_serial = @sys_conn.select("SELECT s.sid||','||s.serial# sid_serial
           FROM   v$session s
-          WHERE  audsid = '#{audsid}'").first['sid_serial']
+          WHERE  audsid = '#{audsid}'").first["sid_serial"]
       @sys_conn.exec "ALTER SYSTEM KILL SESSION '#{sid_serial}' IMMEDIATE"
     end
 
@@ -342,7 +342,7 @@ describe "OracleEnhancedConnection" do
       # @conn.auto_retry = false
       ActiveRecord::Base.connection.auto_retry = false
       kill_current_session
-      if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+      if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
         expect { @conn.exec("SELECT * FROM dual") }.to raise_error(NativeException)
       else
         expect { @conn.exec("SELECT * FROM dual") }.to raise_error(OCIError)
@@ -353,14 +353,14 @@ describe "OracleEnhancedConnection" do
       # @conn.auto_retry = true
       ActiveRecord::Base.connection.auto_retry = true
       kill_current_session
-      expect(@conn.select("SELECT * FROM dual")).to eq([{'dummy' => 'X'}])
+      expect(@conn.select("SELECT * FROM dual")).to eq([{ "dummy" => "X" }])
     end
 
     it "should not reconnect and execute SQL select if connection is lost and auto retry is disabled" do
       # @conn.auto_retry = false
       ActiveRecord::Base.connection.auto_retry = false
       kill_current_session
-      if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'jruby'
+      if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
         expect { @conn.select("SELECT * FROM dual") }.to raise_error(NativeException)
       else
         expect { @conn.select("SELECT * FROM dual") }.to raise_error(OCIError)

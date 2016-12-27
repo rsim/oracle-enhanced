@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe "OracleEnhancedAdapter schema dump" do
   include SchemaSpecHelper
@@ -12,7 +12,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
   def standard_dump(options = {})
     stream = StringIO.new
-    ActiveRecord::SchemaDumper.ignore_tables = options[:ignore_tables]||[]
+    ActiveRecord::SchemaDumper.ignore_tables = options[:ignore_tables] || []
     ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
     stream.string
   end
@@ -78,42 +78,42 @@ describe "OracleEnhancedAdapter schema dump" do
       drop_test_posts_table
       @conn.drop_table(ActiveRecord::Migrator.schema_migrations_table_name) if @conn.data_source_exists?(ActiveRecord::Migrator.schema_migrations_table_name)
       @conn.drop_table(ActiveRecord::InternalMetadata.table_name) if @conn.data_source_exists?(ActiveRecord::InternalMetadata.table_name)
-      ActiveRecord::Base.table_name_prefix = ''
-      ActiveRecord::Base.table_name_suffix = ''
+      ActiveRecord::Base.table_name_prefix = ""
+      ActiveRecord::Base.table_name_suffix = ""
     end
 
     it "should remove table prefix in schema dump" do
-      ActiveRecord::Base.table_name_prefix = 'xxx_'
+      ActiveRecord::Base.table_name_prefix = "xxx_"
       create_test_posts_table
       expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
     end
 
     it "should remove table prefix with $ sign in schema dump" do
-      ActiveRecord::Base.table_name_prefix = 'xxx$'
+      ActiveRecord::Base.table_name_prefix = "xxx$"
       create_test_posts_table
       expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
     end
 
     it "should remove table suffix in schema dump" do
-      ActiveRecord::Base.table_name_suffix = '_xxx'
+      ActiveRecord::Base.table_name_suffix = "_xxx"
       create_test_posts_table
       expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
     end
 
     it "should remove table suffix with $ sign in schema dump" do
-      ActiveRecord::Base.table_name_suffix = '$xxx'
+      ActiveRecord::Base.table_name_suffix = "$xxx"
       create_test_posts_table
       expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
     end
 
     it "should not include schema_migrations table with prefix in schema dump" do
-      ActiveRecord::Base.table_name_prefix = 'xxx_'
+      ActiveRecord::Base.table_name_prefix = "xxx_"
       @conn.initialize_schema_migrations_table
       expect(standard_dump).not_to match(/schema_migrations/)
     end
 
     it "should not include schema_migrations table with suffix in schema dump" do
-      ActiveRecord::Base.table_name_suffix = '_xxx'
+      ActiveRecord::Base.table_name_suffix = "_xxx"
       @conn.initialize_schema_migrations_table
       expect(standard_dump).not_to match(/schema_migrations/)
     end
@@ -126,7 +126,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should include non-default primary key in schema dump" do
-      create_test_posts_table(primary_key: 'post_id')
+      create_test_posts_table(primary_key: "post_id")
       expect(standard_dump).to match(/create_table "test_posts", primary_key: "post_id"/)
     end
 
@@ -145,7 +145,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should include primary key trigger with non-default primary key in schema dump" do
-      create_test_posts_table(primary_key_trigger: true, primary_key: 'post_id')
+      create_test_posts_table(primary_key_trigger: true, primary_key: "post_id")
       expect(standard_dump).to match(/create_table "test_posts", primary_key: "post_id".*add_primary_key_trigger "test_posts", primary_key: "post_id"/m)
     end
 
@@ -167,7 +167,7 @@ describe "OracleEnhancedAdapter schema dump" do
     after(:each) do
       schema_define do
         remove_foreign_key :test_comments, :test_posts rescue nil
-        remove_foreign_key :test_comments, name: 'comments_posts_baz_fooz_fk' rescue nil
+        remove_foreign_key :test_comments, name: "comments_posts_baz_fooz_fk" rescue nil
       end
     end
     after(:all) do
@@ -238,7 +238,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should include primary_key when reference column name is not 'id'" do
       schema_define do
-        create_table :test_posts, force: true, :primary_key => 'baz_id' do |t|
+        create_table :test_posts, force: true, primary_key: "baz_id" do |t|
           t.string :title
         end
         create_table :test_comments, force: true do |t|
@@ -324,7 +324,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should specify non-default tablespace in add index" do
       tablespace_name = @conn.default_tablespace
-      allow(@conn).to receive(:default_tablespace).and_return('dummy')
+      allow(@conn).to receive(:default_tablespace).and_return("dummy")
       create_test_posts_table
       expect(standard_dump).to match(/add_index "test_posts", \["title"\], name: "index_test_posts_on_title", tablespace: "#{tablespace_name}"$/)
     end
@@ -350,19 +350,19 @@ describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
-  describe 'virtual columns' do
+  describe "virtual columns" do
     before(:all) do
       skip "Not supported in this database version" unless @oracle11g_or_higher
       schema_define do
-        create_table :test_names, :force => true do |t|
+        create_table :test_names, force: true do |t|
           t.string :first_name
           t.string :last_name
-          t.virtual :full_name,       :as => "first_name || ', ' || last_name"
-          t.virtual :short_name,      :as => "COALESCE(first_name, last_name)", :type => :string, :limit => 300
-          t.virtual :abbrev_name,     :as => "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", :type => "VARCHAR(100)"
-          t.virtual :name_ratio,      :as => '(LENGTH(first_name)*10/LENGTH(last_name)*10)'
-          t.column :full_name_length, :virtual, :as => "length(first_name || ', ' || last_name)", :type => :integer
-          t.virtual :field_with_leading_space, :as => "' ' || first_name || ' '", :limit => 300, :type => :string
+          t.virtual :full_name,       as: "first_name || ', ' || last_name"
+          t.virtual :short_name,      as: "COALESCE(first_name, last_name)", type: :string, limit: 300
+          t.virtual :abbrev_name,     as: "SUBSTR(first_name,1,50) || ' ' || SUBSTR(last_name,1,1) || '.'", type: "VARCHAR(100)"
+          t.virtual :name_ratio,      as: "(LENGTH(first_name)*10/LENGTH(last_name)*10)"
+          t.column :full_name_length, :virtual, as: "length(first_name || ', ' || last_name)", type: :integer
+          t.virtual :field_with_leading_space, as: "' ' || first_name || ' '", limit: 300, type: :string
         end
       end
     end
@@ -383,7 +383,7 @@ describe "OracleEnhancedAdapter schema dump" do
       end
     end
 
-    it 'should dump correctly' do
+    it "should dump correctly" do
       expect(standard_dump).to match(/t\.virtual "full_name",(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\"",(\s*)type: :string/)
       expect(standard_dump).to match(/t\.virtual "short_name",(\s*)limit: 300,(\s*)as:(.*),(\s*)type: :string/)
       expect(standard_dump).to match(/t\.virtual "full_name_length",(\s*)precision: 38,(\s*)as:(.*),(\s*)type: :integer/)
@@ -392,7 +392,7 @@ describe "OracleEnhancedAdapter schema dump" do
       expect(standard_dump).to match(/t\.virtual "field_with_leading_space",(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '",(\s*)type: :string/)
     end
 
-    context 'with column cache' do
+    context "with column cache" do
       before(:all) do
         @old_cache = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
@@ -400,8 +400,8 @@ describe "OracleEnhancedAdapter schema dump" do
       after(:all) do
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = @old_cache
       end
-      it 'should not change column defaults after several dumps' do
-        col = TestName.columns.detect{|c| c.name == 'full_name'}
+      it "should not change column defaults after several dumps" do
+        col = TestName.columns.detect { |c| c.name == "full_name" }
         expect(col).not_to be_nil
         expect(col.virtual_column_data_default).not_to match(/:as/)
 
@@ -417,18 +417,18 @@ describe "OracleEnhancedAdapter schema dump" do
       before(:all) do
         if @oracle11g_or_higher
           schema_define do
-            add_index 'test_names', 'field_with_leading_space', :name => "index_on_virtual_col"
+            add_index "test_names", "field_with_leading_space", name: "index_on_virtual_col"
           end
         end
       end
       after(:all) do
         if @oracle11g_or_higher
           schema_define do
-            remove_index 'test_names', :name => 'index_on_virtual_col'
+            remove_index "test_names", name: "index_on_virtual_col"
           end
         end
       end
-      it 'should dump correctly' do
+      it "should dump correctly" do
         expect(standard_dump).not_to match(/add_index "test_names".+FIRST_NAME.+$/)
         expect(standard_dump).to     match(/add_index "test_names".+field_with_leading_space.+$/)
       end
@@ -458,7 +458,7 @@ describe "OracleEnhancedAdapter schema dump" do
   describe "table comments" do
     before(:each) do
       schema_define do
-        create_table :test_table_comments, :comment => "this is a \"table comment\"!", force: true do |t|
+        create_table :test_table_comments, comment: "this is a \"table comment\"!", force: true do |t|
           t.string :blah
         end
       end
@@ -479,7 +479,7 @@ describe "OracleEnhancedAdapter schema dump" do
     before(:each) do
       schema_define do
         create_table :test_column_comments, force: true do |t|
-          t.string :blah, :comment => "this is a \"column comment\"!"
+          t.string :blah, comment: "this is a \"column comment\"!"
         end
       end
     end
@@ -498,7 +498,7 @@ describe "OracleEnhancedAdapter schema dump" do
   describe "table comments" do
     before(:each) do
       schema_define do
-        create_table :test_table_comments, :comment => "this is a \"table comment\"!", force: true do |t|
+        create_table :test_table_comments, comment: "this is a \"table comment\"!", force: true do |t|
           t.string :blah
         end
       end
@@ -519,7 +519,7 @@ describe "OracleEnhancedAdapter schema dump" do
     before(:each) do
       schema_define do
         create_table :test_column_comments, force: true do |t|
-          t.string :blah, :comment => "this is a \"column comment\"!"
+          t.string :blah, comment: "this is a \"column comment\"!"
         end
       end
     end

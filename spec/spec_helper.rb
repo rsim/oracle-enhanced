@@ -1,43 +1,43 @@
-require 'simplecov'
+require "simplecov"
 SimpleCov.start
 require "rubygems"
 require "bundler"
 require "yaml"
 Bundler.setup(:default, :development)
 
-$:.unshift(File.expand_path('../../lib', __FILE__))
-config_path = File.expand_path('../spec_config.yaml', __FILE__)
+$:.unshift(File.expand_path("../../lib", __FILE__))
+config_path = File.expand_path("../spec_config.yaml", __FILE__)
 if File.exist?(config_path)
   puts "==> Loading config from #{config_path}"
   config = YAML.load_file(config_path)
 else
   puts "==> Loading config from ENV or use default"
-  config = {"rails" => {}, "database" => {}}
+  config = { "rails" => {}, "database" => {} }
 end
 
-require 'rspec'
+require "rspec"
 
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == 'ruby'
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"
   puts "==> Running specs with MRI version #{RUBY_VERSION}"
-  require 'oci8'
-elsif RUBY_ENGINE == 'jruby'
+  require "oci8"
+elsif RUBY_ENGINE == "jruby"
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
 end
 
 NO_COMPOSITE_PRIMARY_KEYS = true
 
-require 'active_record'
+require "active_record"
 
-require 'active_support/core_ext/module/attribute_accessors'
-require 'active_support/core_ext/class/attribute_accessors'
+require "active_support/core_ext/module/attribute_accessors"
+require "active_support/core_ext/class/attribute_accessors"
 
 require "active_support/log_subscriber"
-require 'active_record/log_subscriber'
+require "active_record/log_subscriber"
 
-require 'logger'
+require "logger"
 
-require 'active_record/connection_adapters/oracle_enhanced_adapter'
-require 'ruby-plsql'
+require "active_record/connection_adapters/oracle_enhanced_adapter"
+require "ruby-plsql"
 
 puts "==> Effective ActiveRecord version #{ActiveRecord::VERSION::STRING}"
 
@@ -63,7 +63,7 @@ module LoggerSpecHelper
 
     def initialize
       @flush_count = 0
-      @logged = Hash.new { |h,k| h[k] = [] }
+      @logged = Hash.new { |h, k| h[k] = [] }
     end
 
     # used in AtiveRecord 2.x
@@ -117,66 +117,66 @@ module SchemaSpecHelper
   end
 end
 
-DATABASE_NAME         = config["database"]["name"]         || ENV['DATABASE_NAME']         || 'orcl'
-DATABASE_HOST         = config["database"]["host"]         || ENV['DATABASE_HOST']         || "127.0.0.1"
-DATABASE_PORT         = config["database"]["port"]         || ENV['DATABASE_PORT']         || 1521
-DATABASE_USER         = config["database"]["user"]         || ENV['DATABASE_USER']         || 'oracle_enhanced'
-DATABASE_PASSWORD     = config["database"]["password"]     || ENV['DATABASE_PASSWORD']     || 'oracle_enhanced'
-DATABASE_SCHEMA       = config["database"]["schema"]       || ENV['DATABASE_SCHEMA']       || 'oracle_enhanced_schema'
-DATABASE_SYS_PASSWORD = config["database"]["sys_password"] || ENV['DATABASE_SYS_PASSWORD'] || 'admin'
+DATABASE_NAME         = config["database"]["name"]         || ENV["DATABASE_NAME"]         || "orcl"
+DATABASE_HOST         = config["database"]["host"]         || ENV["DATABASE_HOST"]         || "127.0.0.1"
+DATABASE_PORT         = config["database"]["port"]         || ENV["DATABASE_PORT"]         || 1521
+DATABASE_USER         = config["database"]["user"]         || ENV["DATABASE_USER"]         || "oracle_enhanced"
+DATABASE_PASSWORD     = config["database"]["password"]     || ENV["DATABASE_PASSWORD"]     || "oracle_enhanced"
+DATABASE_SCHEMA       = config["database"]["schema"]       || ENV["DATABASE_SCHEMA"]       || "oracle_enhanced_schema"
+DATABASE_SYS_PASSWORD = config["database"]["sys_password"] || ENV["DATABASE_SYS_PASSWORD"] || "admin"
 
 CONNECTION_PARAMS = {
-  :adapter => "oracle_enhanced",
-  :database => DATABASE_NAME,
-  :host => DATABASE_HOST,
-  :port => DATABASE_PORT,
-  :username => DATABASE_USER,
-  :password => DATABASE_PASSWORD
+  adapter: "oracle_enhanced",
+  database: DATABASE_NAME,
+  host: DATABASE_HOST,
+  port: DATABASE_PORT,
+  username: DATABASE_USER,
+  password: DATABASE_PASSWORD
 }
 
 CONNECTION_WITH_SCHEMA_PARAMS = {
-  :adapter => "oracle_enhanced",
-  :database => DATABASE_NAME,
-  :host => DATABASE_HOST,
-  :port => DATABASE_PORT,
-  :username => DATABASE_USER,
-  :password => DATABASE_PASSWORD,
-  :schema => DATABASE_SCHEMA
+  adapter: "oracle_enhanced",
+  database: DATABASE_NAME,
+  host: DATABASE_HOST,
+  port: DATABASE_PORT,
+  username: DATABASE_USER,
+  password: DATABASE_PASSWORD,
+  schema: DATABASE_SCHEMA
 }
 
 CONNECTION_WITH_TIMEZONE_PARAMS = {
-  :adapter => "oracle_enhanced",
-  :database => DATABASE_NAME,
-  :host => DATABASE_HOST,
-  :port => DATABASE_PORT,
-  :username => DATABASE_USER,
-  :password => DATABASE_PASSWORD,
-  :time_zone => "Europe/Riga"
+  adapter: "oracle_enhanced",
+  database: DATABASE_NAME,
+  host: DATABASE_HOST,
+  port: DATABASE_PORT,
+  username: DATABASE_USER,
+  password: DATABASE_PASSWORD,
+  time_zone: "Europe/Riga"
 }
 
 SYS_CONNECTION_PARAMS = {
-  :adapter => "oracle_enhanced",
-  :database => DATABASE_NAME,
-  :host => DATABASE_HOST,
-  :port => DATABASE_PORT,
-  :username => "sys",
-  :password => DATABASE_SYS_PASSWORD,
-  :privilege => "SYSDBA"
+  adapter: "oracle_enhanced",
+  database: DATABASE_NAME,
+  host: DATABASE_HOST,
+  port: DATABASE_PORT,
+  username: "sys",
+  password: DATABASE_SYS_PASSWORD,
+  privilege: "SYSDBA"
 }
 
 SYSTEM_CONNECTION_PARAMS = {
-  :adapter => "oracle_enhanced",
-  :database => DATABASE_NAME,
-  :host => DATABASE_HOST,
-  :port => DATABASE_PORT,
-  :username => "system",
-  :password => DATABASE_SYS_PASSWORD
+  adapter: "oracle_enhanced",
+  database: DATABASE_NAME,
+  host: DATABASE_HOST,
+  port: DATABASE_PORT,
+  username: "system",
+  password: DATABASE_SYS_PASSWORD
 }
 
-DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] || ENV['DATABASE_NON_DEFAULT_TABLESPACE'] || "SYSTEM"
+DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] || ENV["DATABASE_NON_DEFAULT_TABLESPACE"] || "SYSTEM"
 
 # set default time zone in TZ environment variable
 # which will be used to set session time zone
-ENV['TZ'] ||= config["timezone"] || 'Europe/Riga'
+ENV["TZ"] ||= config["timezone"] || "Europe/Riga"
 
 # ActiveRecord::Base.logger = Logger.new(STDOUT)

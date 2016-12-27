@@ -1,4 +1,4 @@
-require 'digest/sha1'
+require "digest/sha1"
 
 module ActiveRecord
   module ConnectionAdapters
@@ -83,7 +83,7 @@ module ActiveRecord
               change_column_comment(table_name, column.name, column.comment) if column.comment
             end
           end
-          td.indexes.each { |c,o| add_index table_name, c, o }
+          td.indexes.each { |c, o| add_index table_name, c, o }
 
           rebuild_primary_key_index_to_default_tablespace(table_name, options)
         end
@@ -136,7 +136,7 @@ module ActiveRecord
         def add_index(table_name, column_name, options = {}) #:nodoc:
           index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
-          if index_type == 'UNIQUE'
+          if index_type == "UNIQUE"
             unless quoted_column_names =~ /\(.*\)/
               execute "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(index_name)} #{index_type} (#{quoted_column_names})"
             end
@@ -166,7 +166,7 @@ module ActiveRecord
           end
 
           quoted_column_names = column_names.map { |e| quote_column_name_or_expression(e) }.join(", ")
-           [index_name, index_type, quoted_column_names, tablespace, index_options]
+          [index_name, index_type, quoted_column_names, tablespace, index_options]
         end
 
         # Remove the given index from the table.
@@ -204,11 +204,11 @@ module ActiveRecord
 
           # leave just first three letters from each word
           if shortened_name.length > identifier_max_length
-            shortened_name = shortened_name.split('_').map{|w| w[0,3]}.join('_')
+            shortened_name = shortened_name.split("_").map { |w| w[0, 3] }.join("_")
           end
           # generate unique name using hash function
           if shortened_name.length > identifier_max_length
-            shortened_name = 'i'+Digest::SHA1.hexdigest(default_name)[0,identifier_max_length-1]
+            shortened_name = "i" + Digest::SHA1.hexdigest(default_name)[0, identifier_max_length - 1]
           end
           @logger.warn "#{adapter_name} shortened default index name #{default_name} to #{shortened_name}" if @logger
           shortened_name
@@ -256,7 +256,7 @@ module ActiveRecord
           add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} "
           add_column_sql << type_to_sql(type, options[:limit], options[:precision], options[:scale]) if type
 
-          add_column_options!(add_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
+          add_column_options!(add_column_sql, options.merge(type: type, column_name: column_name, table_name: table_name))
 
           add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name) if type
 
@@ -286,7 +286,7 @@ module ActiveRecord
             execute("UPDATE #{quote_table_name(table_name)} SET #{quote_column_name(column_name)}=#{quote(default)} WHERE #{quote_column_name(column_name)} IS NULL")
           end
 
-          change_column table_name, column_name, column.sql_type, :null => null
+          change_column table_name, column_name, column.sql_type, null: null
         end
 
         def change_column(table_name, column_name, type, options = {}) #:nodoc:
@@ -303,7 +303,7 @@ module ActiveRecord
           change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} "
           change_column_sql << "#{type_to_sql(type, options[:limit], options[:precision], options[:scale])}" if type
 
-          add_column_options!(change_column_sql, options.merge(:type=>type, :column_name=>column_name, :table_name=>table_name))
+          add_column_options!(change_column_sql, options.merge(type: type, column_name: column_name, table_name: table_name))
 
           change_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name]) if type
 
@@ -360,7 +360,7 @@ module ActiveRecord
         # Maps logical Rails types to Oracle-specific data types.
         def type_to_sql(type, limit = nil, precision = nil, scale = nil) #:nodoc:
           # Ignore options for :text and :binary columns
-          return super(type, nil, nil, nil) if ['text', 'binary'].include?(type.to_s)
+          return super(type, nil, nil, nil) if ["text", "binary"].include?(type.to_s)
 
           super
         end
@@ -378,7 +378,7 @@ module ActiveRecord
         def foreign_keys(table_name) #:nodoc:
           (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
-          fk_info = select_all(<<-SQL, 'Foreign Keys')
+          fk_info = select_all(<<-SQL, "Foreign Keys")
             SELECT r.table_name to_table
                   ,rc.column_name references_column
                   ,cc.column_name
@@ -401,19 +401,19 @@ module ActiveRecord
 
           fk_info.map do |row|
             options = {
-              column: oracle_downcase(row['column_name']),
-              name: oracle_downcase(row['name']),
-              primary_key: oracle_downcase(row['references_column'])
+              column: oracle_downcase(row["column_name"]),
+              name: oracle_downcase(row["name"]),
+              primary_key: oracle_downcase(row["references_column"])
             }
-            options[:on_delete] = extract_foreign_key_action(row['delete_rule'])
-            ActiveRecord::ConnectionAdapters::ForeignKeyDefinition.new(oracle_downcase(table_name), oracle_downcase(row['to_table']), options)
+            options[:on_delete] = extract_foreign_key_action(row["delete_rule"])
+            ActiveRecord::ConnectionAdapters::ForeignKeyDefinition.new(oracle_downcase(table_name), oracle_downcase(row["to_table"]), options)
           end
         end
 
         def extract_foreign_key_action(specifier) # :nodoc:
           case specifier
-          when 'CASCADE'; :cascade
-          when 'SET NULL'; :nullify
+          when "CASCADE"; :cascade
+          when "SET NULL"; :nullify
           end
         end
 
@@ -450,42 +450,42 @@ module ActiveRecord
 
         private
 
-        def tablespace_for(obj_type, tablespace_option, table_name=nil, column_name=nil)
-          tablespace_sql = ''
-          if tablespace = (tablespace_option || default_tablespace_for(obj_type))
-            tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
-             " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
-            else
-             " TABLESPACE #{tablespace}"
+          def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
+            tablespace_sql = ""
+            if tablespace = (tablespace_option || default_tablespace_for(obj_type))
+              tablespace_sql << if [:blob, :clob].include?(obj_type.to_sym)
+                                  " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
+              else
+                " TABLESPACE #{tablespace}"
+              end
             end
+            tablespace_sql
           end
-          tablespace_sql
-        end
 
-        def default_tablespace_for(type)
-          (default_tablespaces[type] || default_tablespaces[native_database_types[type][:name]]) rescue nil
-        end
-
-        def column_for(table_name, column_name)
-          unless column = columns(table_name).find { |c| c.name == column_name.to_s }
-            raise "No such column: #{table_name}.#{column_name}"
+          def default_tablespace_for(type)
+            (default_tablespaces[type] || default_tablespaces[native_database_types[type][:name]]) rescue nil
           end
-          column
-        end
 
-        def create_sequence_and_trigger(table_name, options)
-          seq_name = options[:sequence_name] || default_sequence_name(table_name)
-          seq_start_value = options[:sequence_start_value] || default_sequence_start_value
-          execute "CREATE SEQUENCE #{quote_table_name(seq_name)} START WITH #{seq_start_value}"
+          def column_for(table_name, column_name)
+            unless column = columns(table_name).find { |c| c.name == column_name.to_s }
+              raise "No such column: #{table_name}.#{column_name}"
+            end
+            column
+          end
 
-          create_primary_key_trigger(table_name, options) if options[:primary_key_trigger]
-        end
+          def create_sequence_and_trigger(table_name, options)
+            seq_name = options[:sequence_name] || default_sequence_name(table_name)
+            seq_start_value = options[:sequence_start_value] || default_sequence_start_value
+            execute "CREATE SEQUENCE #{quote_table_name(seq_name)} START WITH #{seq_start_value}"
 
-        def create_primary_key_trigger(table_name, options)
-          seq_name = options[:sequence_name] || default_sequence_name(table_name)
-          trigger_name = options[:trigger_name] || default_trigger_name(table_name)
-          primary_key = options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)
-          execute compress_lines(<<-SQL)
+            create_primary_key_trigger(table_name, options) if options[:primary_key_trigger]
+          end
+
+          def create_primary_key_trigger(table_name, options)
+            seq_name = options[:sequence_name] || default_sequence_name(table_name)
+            trigger_name = options[:trigger_name] || default_trigger_name(table_name)
+            primary_key = options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)
+            execute compress_lines(<<-SQL)
             CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
             BEFORE INSERT ON #{quote_table_name(table_name)} FOR EACH ROW
             BEGIN
@@ -496,28 +496,28 @@ module ActiveRecord
               END IF;
             END;
           SQL
-        end
+          end
 
-        def default_trigger_name(table_name)
-          # truncate table name if necessary to fit in max length of identifier
-          "#{table_name.to_s[0,table_name_length-4]}_pkt"
-        end
+          def default_trigger_name(table_name)
+            # truncate table name if necessary to fit in max length of identifier
+            "#{table_name.to_s[0, table_name_length - 4]}_pkt"
+          end
 
-        def rebuild_primary_key_index_to_default_tablespace(table_name, options)
-          tablespace = default_tablespace_for(:index)
+          def rebuild_primary_key_index_to_default_tablespace(table_name, options)
+            tablespace = default_tablespace_for(:index)
 
-          return unless tablespace
+            return unless tablespace
 
-          index_name = Base.connection.select_value(
-            "SELECT index_name FROM all_constraints
-                WHERE table_name = #{quote(table_name.upcase)}
-                AND constraint_type = 'P'
-                AND owner = SYS_CONTEXT('userenv', 'current_schema')")
+            index_name = Base.connection.select_value(
+              "SELECT index_name FROM all_constraints
+                  WHERE table_name = #{quote(table_name.upcase)}
+                  AND constraint_type = 'P'
+                  AND owner = SYS_CONTEXT('userenv', 'current_schema')")
 
-          return unless index_name
+            return unless index_name
 
-          execute("ALTER INDEX #{quote_column_name(index_name)} REBUILD TABLESPACE #{tablespace}")
-        end
+            execute("ALTER INDEX #{quote_column_name(index_name)} REBUILD TABLESPACE #{tablespace}")
+          end
       end
     end
   end

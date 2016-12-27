@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe "OracleEnhancedAdapter date type detection based on column names" do
   before(:all) do
@@ -41,14 +41,14 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       end
     end
 
-    def create_test_employee(params={})
-      @today = params[:today] || Date.new(2008,8,19)
-      @now = params[:now] || Time.local(2008,8,19,17,03,59)
+    def create_test_employee(params = {})
+      @today = params[:today] || Date.new(2008, 8, 19)
+      @now = params[:now] || Time.local(2008, 8, 19, 17, 03, 59)
       @employee = TestEmployee.create(
-        :first_name => "First",
-        :last_name => "Last",
-        :hire_date => @today,
-        :created_at => @now
+        first_name: "First",
+        last_name: "Last",
+        hire_date: @today,
+        created_at: @now
       )
       @employee.reload
     end
@@ -73,7 +73,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     end
 
     it "should return Date value from DATE column with old date value if column name contains 'date' and emulate_dates_by_column_name is true" do
-      create_test_employee(:today => Date.new(1900,1,1))
+      create_test_employee(today: Date.new(1900, 1, 1))
       expect(@employee.hire_date.class).to eq(Date)
     end
 
@@ -163,11 +163,11 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
 
     def create_employee2
       @employee2 = Test2Employee.create(
-        :first_name => "First",
-        :last_name => "Last",
-        :job_id => 1,
-        :is_manager => 1,
-        :salary => 1000
+        first_name: "First",
+        last_name: "Last",
+        job_id: 1,
+        is_manager: 1,
+        salary: 1000
       )
       @employee2.reload
     end
@@ -282,8 +282,8 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
       it "are Y or N" do
         subject = Test3Employee.new
-        expect(subject.has_phone).to eq('Y')
-        expect(subject.manager_yn).to eq('N')
+        expect(subject.has_phone).to eq("Y")
+        expect(subject.manager_yn).to eq("N")
       end
     end
 
@@ -319,15 +319,15 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       ActiveRecord::Base.clear_cache!
     end
 
-    def create_employee3(params={})
+    def create_employee3(params = {})
       @employee3 = Test3Employee.create(
         {
-        :first_name => "First",
-        :last_name => "Last",
-        :has_email => true,
-        :has_phone => false,
-        :active_flag => true,
-        :manager_yn => false
+        first_name: "First",
+        last_name: "Last",
+        has_email: true,
+        has_phone: false,
+        active_flag: true,
+        manager_yn: false
         }.merge(params)
       )
       @employee3.reload
@@ -352,11 +352,11 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       create_employee3
       %w(has_email active_flag).each do |col|
         expect(@employee3.send(col.to_sym).class).to eq(TrueClass)
-        expect(@employee3.send((col+"_before_type_cast").to_sym)).to eq("Y")
+        expect(@employee3.send((col + "_before_type_cast").to_sym)).to eq("Y")
       end
       %w(has_phone manager_yn).each do |col|
         expect(@employee3.send(col.to_sym).class).to eq(FalseClass)
-        expect(@employee3.send((col+"_before_type_cast").to_sym)).to eq("N")
+        expect(@employee3.send((col + "_before_type_cast").to_sym)).to eq("N")
       end
     end
 
@@ -371,16 +371,16 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       class ::Test3Employee < ActiveRecord::Base
         attribute :test_boolean, :boolean
       end
-      create_employee3(:test_boolean => true)
+      create_employee3(test_boolean: true)
       expect(@employee3.test_boolean.class).to eq(TrueClass)
       expect(@employee3.test_boolean_before_type_cast).to eq("Y")
-      create_employee3(:test_boolean => false)
+      create_employee3(test_boolean: false)
       expect(@employee3.test_boolean.class).to eq(FalseClass)
       expect(@employee3.test_boolean_before_type_cast).to eq("N")
-      create_employee3(:test_boolean => nil)
+      create_employee3(test_boolean: nil)
       expect(@employee3.test_boolean.class).to eq(NilClass)
       expect(@employee3.test_boolean_before_type_cast).to eq(nil)
-      create_employee3(:test_boolean => "")
+      create_employee3(test_boolean: "")
       expect(@employee3.test_boolean.class).to eq(NilClass)
       expect(@employee3.test_boolean_before_type_cast).to eq(nil)
     end
@@ -405,7 +405,7 @@ describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strin
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     schema_define do
-      create_table :posts, :force => true do |t|
+      create_table :posts, force: true do |t|
         t.string  :name,        null: false
         t.boolean :is_default, default: false
       end
@@ -427,7 +427,7 @@ describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strin
   end
 
   it "boolean should not change after reload" do
-    post = Post.create(name: 'Test 1', is_default: false)
+    post = Post.create(name: "Test 1", is_default: false)
     expect(post.is_default).to be false
     post.reload
     expect(post.is_default).to be false
@@ -482,11 +482,11 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
     end
 
     it "should return Time value from TIMESTAMP columns" do
-      @now = Time.local(2008,5,26,23,11,11,0)
+      @now = Time.local(2008, 5, 26, 23, 11, 11, 0)
       @employee = TestEmployee.create(
-        :created_at => @now,
-        :created_at_tz => @now,
-        :created_at_ltz => @now
+        created_at: @now,
+        created_at_tz: @now,
+        created_at_ltz: @now
       )
       @employee.reload
       [:created_at, :created_at_tz, :created_at_ltz].each do |c|
@@ -496,11 +496,11 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
     end
 
     it "should return Time value with fractional seconds from TIMESTAMP columns" do
-      @now = Time.local(2008,5,26,23,11,11,10)
+      @now = Time.local(2008, 5, 26, 23, 11, 11, 10)
       @employee = TestEmployee.create(
-        :created_at => @now,
-        :created_at_tz => @now,
-        :created_at_ltz => @now
+        created_at: @now,
+        created_at_tz: @now,
+        created_at_ltz: @now
       )
       @employee.reload
       [:created_at, :created_at_tz, :created_at_ltz].each do |c|
@@ -539,9 +539,9 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
     # @conn.execute %q{alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'}
-    @conn.execute %q{alter session set nls_date_format = 'DD-MON-YYYY HH24:MI:SS'}
+    @conn.execute "alter session set nls_date_format = 'DD-MON-YYYY HH24:MI:SS'"
     # @conn.execute %q{alter session set nls_timestamp_format = 'YYYY-MM-DD HH24:MI:SS'}
-    @conn.execute %q{alter session set nls_timestamp_format = 'DD-MON-YYYY HH24:MI:SS'}
+    @conn.execute "alter session set nls_timestamp_format = 'DD-MON-YYYY HH24:MI:SS'"
   end
 
   after(:all) do
@@ -553,8 +553,8 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
     class ::TestEmployee < ActiveRecord::Base
       self.primary_key = "employee_id"
     end
-    @today = Date.new(2008,6,28)
-    @now = Time.local(2008,6,28,13,34,33)
+    @today = Date.new(2008, 6, 28)
+    @now = Time.local(2008, 6, 28, 13, 34, 33)
   end
 
   after(:each) do
@@ -565,11 +565,11 @@ describe "OracleEnhancedAdapter date and timestamp with different NLS date forma
 
   def create_test_employee
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :hire_date => @today,
-      :created_at => @now,
-      :created_at_ts => @now
+      first_name: "First",
+      last_name: "Last",
+      hire_date: @today,
+      created_at: @now,
+      created_at_ts: @now
     )
     @employee.reload
   end
@@ -629,11 +629,11 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
       self.primary_key = "employee_id"
       attribute :last_login_at, :datetime
     end
-    @today = Date.new(2008,6,28)
+    @today = Date.new(2008, 6, 28)
     @today_iso = "2008-06-28"
     @today_nls = "28.06.2008"
     @nls_date_format = "%d.%m.%Y"
-    @now = Time.local(2008,6,28,13,34,33)
+    @now = Time.local(2008, 6, 28, 13, 34, 33)
     @now_iso = "2008-06-28 13:34:33"
     @now_nls = "28.06.2008 13:34:33"
     @nls_time_format = "%d.%m.%Y %H:%M:%S"
@@ -655,9 +655,9 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   it "should assign ISO string to date column" do
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :hire_date => @today_iso
+      first_name: "First",
+      last_name: "Last",
+      hire_date: @today_iso
     )
     expect(@employee.hire_date).to eq(@today)
     @employee.reload
@@ -666,9 +666,9 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   it "should assign NLS string to date column" do
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :hire_date => @today_nls
+      first_name: "First",
+      last_name: "Last",
+      hire_date: @today_nls
     )
     expect(@employee.hire_date).to eq(@today)
     @employee.reload
@@ -677,9 +677,9 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   it "should assign ISO time string to date column" do
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :hire_date => @now_iso
+      first_name: "First",
+      last_name: "Last",
+      hire_date: @now_iso
     )
     expect(@employee.hire_date).to eq(@today)
     @employee.reload
@@ -688,9 +688,9 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   it "should assign NLS time string to date column" do
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :hire_date => @now_nls
+      first_name: "First",
+      last_name: "Last",
+      hire_date: @now_nls
     )
     expect(@employee.hire_date).to eq(@today)
     @employee.reload
@@ -700,9 +700,9 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   it "should assign ISO time string to datetime column" do
     ActiveRecord::Base.default_timezone = :local
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :last_login_at => @now_iso
+      first_name: "First",
+      last_name: "Last",
+      last_login_at: @now_iso
     )
     expect(@employee.last_login_at).to eq(@now)
     @employee.reload
@@ -712,9 +712,9 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   it "should assign NLS time string to datetime column" do
     ActiveRecord::Base.default_timezone = :local
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :last_login_at => @now_nls
+      first_name: "First",
+      last_name: "Last",
+      last_login_at: @now_nls
     )
     expect(@employee.last_login_at).to eq(@now)
     @employee.reload
@@ -723,9 +723,9 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   it "should assign NLS time string with time zone to datetime column" do
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :last_login_at => @now_nls_with_tz
+      first_name: "First",
+      last_name: "Last",
+      last_login_at: @now_nls_with_tz
     )
     expect(@employee.last_login_at).to eq(@now_with_tz)
     @employee.reload
@@ -735,9 +735,9 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   it "should assign ISO date string to datetime column" do
     ActiveRecord::Base.default_timezone = :local
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :last_login_at => @today_iso
+      first_name: "First",
+      last_name: "Last",
+      last_login_at: @today_iso
     )
     expect(@employee.last_login_at).to eq(@today.to_time)
     @employee.reload
@@ -747,9 +747,9 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   it "should assign NLS date string to datetime column" do
     ActiveRecord::Base.default_timezone = :local
     @employee = TestEmployee.create(
-      :first_name => "First",
-      :last_name => "Last",
-      :last_login_at => @today_nls
+      first_name: "First",
+      last_name: "Last",
+      last_login_at: @today_nls
     )
     expect(@employee.last_login_at).to eq(@today.to_time)
     @employee.reload
@@ -832,8 +832,8 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   it "should create record without CLOB data when attribute is serialized" do
     @employee = Test2Employee.create!(
-      :first_name => "First",
-      :last_name => "Last"
+      first_name: "First",
+      last_name: "Last"
     )
     expect(@employee).to be_valid
     @employee.reload
@@ -842,29 +842,29 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   it "should accept Symbol value for CLOB column" do
     @employee = TestEmployee.create!(
-      :comments => :test_comment
+      comments: :test_comment
     )
     expect(@employee).to be_valid
   end
 
   it "should respect attr_readonly setting for CLOB column" do
     @employee = TestEmployeeReadOnlyClob.create!(
-      :first_name => "First",
-      :comments => "initial"
+      first_name: "First",
+      comments: "initial"
     )
     expect(@employee).to be_valid
     @employee.reload
-    expect(@employee.comments).to eq('initial')
+    expect(@employee.comments).to eq("initial")
     @employee.comments = "changed"
     expect(@employee.save).to eq(true)
     @employee.reload
-    expect(@employee.comments).to eq('initial')
+    expect(@employee.comments).to eq("initial")
   end
 
   it "should work for serialized readonly CLOB columns", serialized: true do
     @employee = TestSerializeEmployee.new(
-      :first_name => "First",
-      :comments => nil
+      first_name: "First",
+      comments: nil
     )
     expect(@employee.comments).to be_nil
     expect(@employee.save).to eq(true)
@@ -880,9 +880,9 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   it "should create record with CLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :comments => @char_data
+      first_name: "First",
+      last_name: "Last",
+      comments: @char_data
     )
     @employee.reload
     expect(@employee.comments).to eq(@char_data)
@@ -890,8 +890,8 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   it "should update record with CLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last"
+      first_name: "First",
+      last_name: "Last"
     )
     @employee.reload
     expect(@employee.comments).to be_nil
@@ -903,22 +903,22 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   it "should update record with zero-length CLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last"
+      first_name: "First",
+      last_name: "Last"
     )
     @employee.reload
     expect(@employee.comments).to be_nil
-    @employee.comments = ''
+    @employee.comments = ""
     @employee.save!
     @employee.reload
-    expect(@employee.comments).to eq('')
+    expect(@employee.comments).to eq("")
   end
 
   it "should update record that has existing CLOB data with different CLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :comments => @char_data
+      first_name: "First",
+      last_name: "Last",
+      comments: @char_data
     )
     @employee.reload
     @employee.comments = @char_data2
@@ -929,9 +929,9 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   it "should update record that has existing CLOB data with nil" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :comments => @char_data
+      first_name: "First",
+      last_name: "Last",
+      comments: @char_data
     )
     @employee.reload
     @employee.comments = nil
@@ -942,25 +942,25 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   it "should update record that has existing CLOB data with zero-length CLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :comments => @char_data
+      first_name: "First",
+      last_name: "Last",
+      comments: @char_data
     )
     @employee.reload
-    @employee.comments = ''
+    @employee.comments = ""
     @employee.save!
     @employee.reload
-    expect(@employee.comments).to eq('')
+    expect(@employee.comments).to eq("")
   end
 
   it "should update record that has zero-length CLOB data with non-empty CLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :comments => ''
+      first_name: "First",
+      last_name: "Last",
+      comments: ""
     )
     @employee.reload
-    expect(@employee.comments).to eq('')
+    expect(@employee.comments).to eq("")
     @employee.comments = @char_data
     @employee.save!
     @employee.reload
@@ -968,10 +968,10 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
   end
 
   it "should store serializable ruby data structures" do
-    ruby_data1 = {"arbitrary1" => ["ruby", :data, 123]}
-    ruby_data2 = {"arbitrary2" => ["ruby", :data, 123]}
+    ruby_data1 = { "arbitrary1" => ["ruby", :data, 123] }
+    ruby_data2 = { "arbitrary2" => ["ruby", :data, 123] }
     @employee = Test2Employee.create!(
-      :comments => ruby_data1
+      comments: ruby_data1
     )
     @employee.reload
     expect(@employee.comments).to eq(ruby_data1)
@@ -983,9 +983,9 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   it "should keep unchanged serialized data when other columns changed" do
     @employee = Test2Employee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :comments => "initial serialized data"
+      first_name: "First",
+      last_name: "Last",
+      comments: "initial serialized data"
     )
     @employee.first_name = "Steve"
     @employee.save
@@ -995,14 +995,14 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 
   it "should keep serialized data after save" do
     @employee = Test2Employee.new
-    @employee.comments = {:length=>{:is=>1}}
+    @employee.comments = { length: { is: 1 } }
     @employee.save
     @employee.reload
-    expect(@employee.comments).to eq({:length=>{:is=>1}})
-    @employee.comments = {:length=>{:is=>2}}
+    expect(@employee.comments).to eq(length: { is: 1 })
+    @employee.comments = { length: { is: 2 } }
     @employee.save
     @employee.reload
-    expect(@employee.comments).to eq({:length=>{:is=>2}})
+    expect(@employee.comments).to eq(length: { is: 2 })
   end
 end
 
@@ -1022,8 +1022,8 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
       CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
-    @binary_data = "\0\1\2\3\4\5\6\7\8\9"*10000
-    @binary_data2 = "\1\2\3\4\5\6\7\8\9\0"*10000
+    @binary_data = "\0\1\2\3\4\5\6\7\8\9" * 10000
+    @binary_data2 = "\1\2\3\4\5\6\7\8\9\0" * 10000
   end
 
   after(:all) do
@@ -1044,9 +1044,9 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
 
   it "should create record with BLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => @binary_data
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
     )
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data)
@@ -1054,8 +1054,8 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
 
   it "should update record with BLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last"
+      first_name: "First",
+      last_name: "Last"
     )
     @employee.reload
     expect(@employee.binary_data).to be_nil
@@ -1067,22 +1067,22 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
 
   it "should update record with zero-length BLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last"
+      first_name: "First",
+      last_name: "Last"
     )
     @employee.reload
     expect(@employee.binary_data).to be_nil
-    @employee.binary_data = ''
+    @employee.binary_data = ""
     @employee.save!
     @employee.reload
-    expect(@employee.binary_data).to eq('')
+    expect(@employee.binary_data).to eq("")
   end
 
   it "should update record that has existing BLOB data with different BLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => @binary_data
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
     )
     @employee.reload
     @employee.binary_data = @binary_data2
@@ -1093,9 +1093,9 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
 
   it "should update record that has existing BLOB data with nil" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => @binary_data
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
     )
     @employee.reload
     @employee.binary_data = nil
@@ -1106,25 +1106,25 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
 
   it "should update record that has existing BLOB data with zero-length BLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => @binary_data
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
     )
     @employee.reload
-    @employee.binary_data = ''
+    @employee.binary_data = ""
     @employee.save!
     @employee.reload
-    expect(@employee.binary_data).to eq('')
+    expect(@employee.binary_data).to eq("")
   end
 
   it "should update record that has zero-length BLOB data with non-empty BLOB data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => ''
+      first_name: "First",
+      last_name: "Last",
+      binary_data: ""
     )
     @employee.reload
-    expect(@employee.binary_data).to eq('')
+    expect(@employee.binary_data).to eq("")
     @employee.binary_data = @binary_data
     @employee.save!
     @employee.reload
@@ -1148,8 +1148,8 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
       CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
     SQL
-    @binary_data = "\0\1\2\3\4\5\6\7\8\9"*100
-    @binary_data2 = "\1\2\3\4\5\6\7\8\9\0"*100
+    @binary_data = "\0\1\2\3\4\5\6\7\8\9" * 100
+    @binary_data2 = "\1\2\3\4\5\6\7\8\9\0" * 100
   end
 
   after(:all) do
@@ -1170,9 +1170,9 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
 
   it "should create record with RAW data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => @binary_data
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
     )
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data)
@@ -1180,8 +1180,8 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
 
   it "should update record with RAW data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last"
+      first_name: "First",
+      last_name: "Last"
     )
     @employee.reload
     expect(@employee.binary_data).to be_nil
@@ -1193,12 +1193,12 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
 
   it "should update record with zero-length RAW data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last"
+      first_name: "First",
+      last_name: "Last"
     )
     @employee.reload
     expect(@employee.binary_data).to be_nil
-    @employee.binary_data = ''
+    @employee.binary_data = ""
     @employee.save!
     @employee.reload
     expect(@employee.binary_data).to be_nil
@@ -1206,9 +1206,9 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
 
   it "should update record that has existing RAW data with different RAW data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => @binary_data
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
     )
     @employee.reload
     @employee.binary_data = @binary_data2
@@ -1219,9 +1219,9 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
 
   it "should update record that has existing RAW data with nil" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => @binary_data
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
     )
     @employee.reload
     @employee.binary_data = nil
@@ -1232,12 +1232,12 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
 
   it "should update record that has existing RAW data with zero-length RAW data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => @binary_data
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
     )
     @employee.reload
-    @employee.binary_data = ''
+    @employee.binary_data = ""
     @employee.save!
     @employee.reload
     expect(@employee.binary_data).to be_nil
@@ -1245,9 +1245,9 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
 
   it "should update record that has zero-length BLOB data with non-empty RAW data" do
     @employee = TestEmployee.create!(
-      :first_name => "First",
-      :last_name => "Last",
-      :binary_data => ''
+      first_name: "First",
+      last_name: "Last",
+      binary_data: ""
     )
     @employee.reload
     @employee.binary_data = @binary_data
@@ -1289,23 +1289,23 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
   end
 
   it "should quote with N prefix" do
-    columns = @conn.columns('test_items')
+    columns = @conn.columns("test_items")
     %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
-      column = columns.detect{|c| c.name == col}
-      value = @conn.type_cast_from_column(column, 'abc')
-      expect(@conn.quote(value)).to eq(column.sql_type[0,1] == 'N' ? "N'abc'" : "'abc'")
+      column = columns.detect { |c| c.name == col }
+      value = @conn.type_cast_from_column(column, "abc")
+      expect(@conn.quote(value)).to eq(column.sql_type[0, 1] == "N" ? "N'abc'" : "'abc'")
       nilvalue = @conn.type_cast_from_column(column, nil)
-      expect(@conn.quote(nilvalue)).to eq('NULL')
+      expect(@conn.quote(nilvalue)).to eq("NULL")
     end
   end
 
   it "should create record" do
-    nchar_data = 'āčē'
+    nchar_data = "āčē"
     item = TestItem.create(
-      :nchar_column => nchar_data,
-      :nvarchar2_column => nchar_data
+      nchar_column: nchar_data,
+      nvarchar2_column: nchar_data
     ).reload
-    expect(item.nchar_column).to eq(nchar_data + ' '*17)
+    expect(item.nchar_column).to eq(nchar_data + " " * 17)
     expect(item.nvarchar2_column).to eq(nchar_data)
   end
 
@@ -1347,8 +1347,8 @@ describe "OracleEnhancedAdapter handling of BINARY_FLOAT columns" do
   end
 
   it "should set BINARY_FLOAT column type as float" do
-    columns = @conn.columns('test2_employees')
-    column = columns.detect{|c| c.name == "hourly_rate"}
+    columns = @conn.columns("test2_employees")
+    column = columns.detect { |c| c.name == "hourly_rate" }
     expect(column.type).to eq(:float)
   end
 end

@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   include LoggerSpecHelper
@@ -42,7 +42,7 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   it "should NOT log dbms output when dbms output is disabled" do
     @conn.disable_dbms_output
 
-    expect(@conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a).to eq([{'is_it_long'=>1}])
+    expect(@conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a).to eq([{ "is_it_long" => 1 }])
 
     expect(@logger.output(:debug)).not_to match(/^DBMS_OUTPUT/)
   end
@@ -50,7 +50,7 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   it "should log dbms output lines to the rails log" do
     @conn.enable_dbms_output
 
-    expect(@conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a).to eq([{'is_it_long'=>1}])
+    expect(@conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a).to eq([{ "is_it_long" => 1 }])
 
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: before the if -hi there-$/)
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: it is longer than 5$/)
@@ -60,7 +60,7 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   it "should log dbms output lines to the rails log" do
     @conn.enable_dbms_output
 
-    expect(@conn.select_all("select more_than_five_characters_long('short') is_it_long from dual").to_a).to eq([{'is_it_long'=>0}])
+    expect(@conn.select_all("select more_than_five_characters_long('short') is_it_long from dual").to_a).to eq([{ "is_it_long" => 0 }])
 
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: before the if -short-$/)
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: it is 5 or shorter$/)
