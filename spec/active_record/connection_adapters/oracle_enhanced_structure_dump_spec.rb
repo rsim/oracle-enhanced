@@ -207,28 +207,28 @@ describe "OracleEnhancedAdapter structure dump" do
       comment_sql = %Q(COMMENT ON TABLE "TEST_POSTS" IS 'Test posts with ''some'' "quotes"')
       @conn.execute comment_sql
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /#{comment_sql}/
+      expect(dump).to match(/#{comment_sql}/)
     end
 
     it "should dump column comments" do
       comment_sql = %Q(COMMENT ON COLUMN "TEST_POSTS"."TITLE" IS 'The title of the post with ''some'' "quotes"')
       @conn.execute comment_sql
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /#{comment_sql}/
+      expect(dump).to match(/#{comment_sql}/)
     end
 
     it "should dump table comments" do
       comment_sql = %Q(COMMENT ON TABLE "TEST_POSTS" IS 'Test posts with ''some'' "quotes"')
       @conn.execute comment_sql
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /#{comment_sql}/
+      expect(dump).to match(/#{comment_sql}/)
     end
 
     it "should dump column comments" do
       comment_sql = %Q(COMMENT ON COLUMN "TEST_POSTS"."TITLE" IS 'The title of the post with ''some'' "quotes"')
       @conn.execute comment_sql
       dump = ActiveRecord::Base.connection.structure_dump
-      dump.should =~ /#{comment_sql}/
+      expect(dump).to match(/#{comment_sql}/)
     end
 
   end
