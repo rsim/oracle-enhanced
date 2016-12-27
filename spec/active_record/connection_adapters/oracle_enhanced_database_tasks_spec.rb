@@ -34,6 +34,15 @@ describe "Oracle Enhanced adapter database tasks" do
   end
 
   context "with test table" do
+    before(:all) do
+      $stdout, @original_stdout = StringIO.new, $stdout
+      $stderr, @original_stderr = StringIO.new, $stderr
+    end
+
+    after(:all) do
+      $stdout, $stderr = @original_stdout, @original_stderr
+    end
+
     before do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       ActiveRecord::Base.connection.execute "CREATE TABLE test_posts (name VARCHAR2(20))"
