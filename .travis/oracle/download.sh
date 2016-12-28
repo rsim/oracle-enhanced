@@ -1,16 +1,14 @@
-#!/bin/sh -e
-
-[ -n "$ORACLE_COOKIE" ] || { echo "Missing ORACLE_COOKIE environment variable!"; exit 1; }
-[ -n "$ORACLE_FILE" ] || { echo "Missing ORACLE_FILE environment variable!"; exit 1; }
+#!/usr/bin/env bash
 
 cd "$(dirname "$(readlink -f "$0")")"
 
-npm install bluebird node-phantom-simple
+deb_file=oracle-xe_11.2.0-1.0_amd64.deb
 
-export COOKIES='cookies.txt'
-export USER_AGENT='Mozilla/5.0'
+git clone https://github.com/wnameless/docker-oracle-xe-11g.git
 
-echo > "$COOKIES"
-chmod 600 "$COOKIES"
+cd docker-oracle-xe-11g/assets &&
+      cat "${deb_file}aa" "${deb_file}ab" "${deb_file}ac" > "${deb_file}"
 
-exec node download.js
+pwd
+
+ls -lAh "${deb_file}"
