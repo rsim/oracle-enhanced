@@ -23,9 +23,8 @@ task :clear do
   ActiveRecord::Base.connection.execute("PURGE RECYCLEBIN") rescue nil
 end
 
-# Clear test database before running spec and rcov
+# Clear test database before running spec
 task spec: :clear
-task rcov: :clear
 
 task default: :spec
 
