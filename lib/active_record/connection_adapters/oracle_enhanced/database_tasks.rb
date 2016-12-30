@@ -42,7 +42,7 @@ module ActiveRecord
           connection.execute("PURGE RECYCLEBIN") rescue nil
         end
 
-        def structure_dump(filename)
+        def structure_dump(filename, extra_flags)
           establish_connection(@config)
           File.open(filename, "w:utf-8") { |f| f << connection.structure_dump }
           if @config["structure_dump"] == "db_stored_code"
@@ -50,7 +50,7 @@ module ActiveRecord
           end
         end
 
-        def structure_load(filename)
+        def structure_load(filename, extra_flags)
           establish_connection(@config)
           connection.execute_structure_dump(File.read(filename))
         end
