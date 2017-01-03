@@ -107,7 +107,7 @@ module ActiveRecord #:nodoc:
             if self.record_timestamps
               current_time = current_time_from_proper_timezone
 
-              all_timestamp_attributes.each do |column|
+              all_timestamp_attributes_in_model.each do |column|
                 if respond_to?(column) && respond_to?("#{column}=") && self.send(column).nil?
                   write_attribute(column.to_s, current_time)
                 end
