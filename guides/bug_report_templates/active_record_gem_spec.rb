@@ -7,8 +7,9 @@ end
 
 gemfile(true) do
   source "https://rubygems.org"
-  gem "rails", "~> 5.0.0"
-  gem "activerecord-oracle_enhanced-adapter", "~> 1.7.0"
+  gem "rails", github: "rails/rails", branch: "master"
+  gem "arel", github: "rails/arel", branch: "master"
+  gem "activerecord-oracle_enhanced-adapter",  github: "rsim/oracle-enhanced", branch: "master"
   gem "ruby-oci8"
   gem "rspec"
 end
