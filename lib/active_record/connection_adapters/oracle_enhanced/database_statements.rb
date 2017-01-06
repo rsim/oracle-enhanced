@@ -76,12 +76,6 @@ module ActiveRecord
           select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)", "EXPLAIN").join("\n")
         end
 
-        # Returns an array of arrays containing the field values.
-        # Order is the same as that returned by #columns.
-        def select_rows(sql, name = nil, binds = [])
-          exec_query(sql, name, binds).rows
-        end
-
         # New method in ActiveRecord 3.1
         # Will add RETURNING clause in case of trigger generated primary keys
         def sql_for_insert(sql, pk, id_value, sequence_name, binds)
