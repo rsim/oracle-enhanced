@@ -547,6 +547,8 @@ module ActiveRecord
 
       # Current database name
       def current_database
+        select_value("SELECT SYS_CONTEXT('userenv', 'con_name') FROM dual")
+      rescue ActiveRecord::StatementInvalid
         select_value("SELECT SYS_CONTEXT('userenv', 'db_name') FROM dual")
       end
 
