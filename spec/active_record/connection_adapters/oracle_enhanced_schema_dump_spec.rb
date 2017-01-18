@@ -108,13 +108,13 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should not include schema_migrations table with prefix in schema dump" do
       ActiveRecord::Base.table_name_prefix = "xxx_"
-      @conn.initialize_schema_migrations_table
+      ActiveRecord::SchemaMigration.create_table
       expect(standard_dump).not_to match(/schema_migrations/)
     end
 
     it "should not include schema_migrations table with suffix in schema dump" do
       ActiveRecord::Base.table_name_suffix = "_xxx"
-      @conn.initialize_schema_migrations_table
+      ActiveRecord::SchemaMigration.create_table
       expect(standard_dump).not_to match(/schema_migrations/)
     end
 
