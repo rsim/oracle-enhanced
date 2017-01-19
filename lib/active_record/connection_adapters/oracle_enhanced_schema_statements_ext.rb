@@ -176,7 +176,7 @@ module ActiveRecord
 
         fk_info.map do |row|
           name = oracle_downcase(row['name'])
-          fks[name] ||= { :columns => [], :to_table => oracle_downcase(row['to_table']), :references => [] }
+          fks[name] ||= { :columns => [], :to_table => oracle_downcase(row['to_table']), :references => [], :primary_key => oracle_downcase(row['references_column']) }
           fks[name][:columns] << oracle_downcase(row['column_name'])
           fks[name][:references] << oracle_downcase(row['references_column'])
           case row['delete_rule']
@@ -188,7 +188,7 @@ module ActiveRecord
         end
         
         fks.map do |k, v|
-          options = {:name => k, :columns => v[:columns], :references => v[:references], :dependent => v[:dependent]}
+          options = {:name => k, :columns => v[:columns], :references => v[:references], :dependent => v[:dependent], :primary_key => v[:primary_key]}
           OracleEnhancedForeignKeyDefinition.new(table_name, v[:to_table], options)
         end
       end
