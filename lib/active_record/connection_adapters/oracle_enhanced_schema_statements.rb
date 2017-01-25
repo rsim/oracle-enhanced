@@ -86,9 +86,14 @@ module ActiveRecord
           table_definition.lob_columns.each{|cd| create_sql << tablespace_for(cd.sql_type.downcase.to_sym, nil, name, cd.name)}
         end
         create_sql << " #{options[:options]}"
+        if options[:generated]
+          identity_col_id = /\((\S+)\s+(\S+)\s+NOT NULL PRIMARY KEY/.match(create_sql)[1]
+          create_sql.gsub!('NOT NULL PRIMARY KEY', "GENERATED #{options[:generated]}")
+          create_sql.gsub!(/\) $/, ", PRIMARY KEY(#{identity_col_id})) ")
+        end
         execute create_sql
 
-        create_sequence_and_trigger(name, options) if create_sequence
+        create_sequence_and_trigger(name, options) if create_sequence && !options[:generated]
 
         add_table_comment name, options[:comment]
         column_comments.each do |column_name, comment|
