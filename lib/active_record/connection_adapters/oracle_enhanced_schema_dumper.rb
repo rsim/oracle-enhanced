@@ -147,21 +147,29 @@ module ActiveRecord #:nodoc:
         begin
           tbl = StringIO.new
 
+          # check if there is an identity column
+          if @connection.respond_to?(:identity_column_for)
+            ic = @connection.identity_column_for(table)
+          end
+
           # first dump primary key column
           if @connection.respond_to?(:pk_and_sequence_for)
             pk, pk_seq = @connection.pk_and_sequence_for(table)
           elsif @connection.respond_to?(:primary_key)
             pk = @connection.primary_key(table)
           end
-          
+
           tbl.print "  create_table #{table.inspect}"
           
           # addition to make temporary option work
           tbl.print ", :temporary => true" if @connection.temporary_table?(table)
-          
+
           if columns.detect { |c| c.name == pk }
             if pk != 'id'
               tbl.print %Q(, :primary_key => "#{pk}")
+            end
+            if ic
+              tbl.print %Q(, :generated => "BY DEFAULT ON NULL AS IDENTITY")
             end
           else
             tbl.print ", :id => false"

@@ -1165,6 +1165,19 @@ module ActiveRecord
         end
       end
 
+      def identity_column_for(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
+        (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
+
+        identities = select_values(<<-SQL.strip.gsub(/\s+/, ' '))
+        SELECT c.column_name
+          FROM all_tab_identity_cols#{db_link} c
+         WHERE c.owner = '#{owner}'
+           AND c.table_name = '#{desc_table_name}'
+           AND c.generation_type = 'BY DEFAULT'
+        SQL
+        identities.size == 1 ? oracle_downcase(identities.first) : nil
+      end
+
       def pk_and_sequence_for_without_cache(table_name, owner=nil, desc_table_name=nil, db_link=nil) #:nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
