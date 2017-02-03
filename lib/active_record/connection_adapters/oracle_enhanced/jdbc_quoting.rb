@@ -16,6 +16,9 @@ module ActiveRecord
             Java::oracle.sql.DATE.new(value.strftime("%Y-%m-%d %H:%M:%S"))
           when Time
             Java::java.sql.Timestamp.new(value.year-1900, value.month-1, value.day, value.hour, value.min, value.sec, value.usec * 1000)
+          when Java::JavaSql::Timestamp
+            # Returning value as it is likely this value was already type casted from Time to Java::JavaSql::Timestamp
+            value
           else
             super
           end

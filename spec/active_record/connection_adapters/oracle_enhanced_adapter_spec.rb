@@ -816,4 +816,31 @@ describe "OracleEnhancedAdapter" do
       expect(serialized_column.save!).to eq(true)
     end
   end
+
+  describe "quoting" do
+    before(:all) do
+      schema_define do
+        create_table :test_logs, force: true do |t|
+          t.timestamp :send_time
+        end
+      end
+      class TestLog < ActiveRecord::Base
+        validates_uniqueness_of :send_time
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_logs
+      end
+      Object.send(:remove_const, "TestLog")
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "should create records including Time"  do
+      TestLog.create! send_time: Time.now + 1.seconds
+      TestLog.create! send_time: Time.now + 2.seconds
+      expect(TestLog.count).to eq 2
+    end
+  end
 end
