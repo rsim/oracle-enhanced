@@ -308,6 +308,8 @@ module ActiveRecord
           change_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name]) if type
 
           execute(change_column_sql)
+
+          change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
         ensure
           clear_table_columns_cache(table_name)
         end
