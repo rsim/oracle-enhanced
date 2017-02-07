@@ -1027,14 +1027,6 @@ end
       expect(TestPost.columns_hash["title"].null).to be_truthy
     end
 
-    it "should change column with comment" do
-      schema_define do
-        change_column :test_posts, :title, :string, comment: "hello comment"
-      end
-      TestPost.reset_column_information
-      expect(TestPost.columns_hash["title"].comment).to eq "hello comment"
-    end
-
     it "should add column" do
       schema_define do
         add_column :test_posts, :body, :string
