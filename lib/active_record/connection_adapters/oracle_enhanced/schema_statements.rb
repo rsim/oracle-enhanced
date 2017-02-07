@@ -80,7 +80,7 @@ module ActiveRecord
           if supports_comments? && !supports_comments_in_create?
             change_table_comment(table_name, comment) if comment
             td.columns.each do |column|
-              change_column_comment(table_name, column.name, column.comment) if column.comment
+              change_column_comment(table_name, column.name, column.comment) if column.comment.present?
             end
           end
           td.indexes.each { |c, o| add_index table_name, c, o }
