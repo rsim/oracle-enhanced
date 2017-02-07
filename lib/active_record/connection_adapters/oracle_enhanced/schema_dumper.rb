@@ -104,7 +104,7 @@ module ActiveRecord #:nodoc:
               tbl.print ", temporary: true" if @connection.temporary_table?(table)
 
               table_comments = @connection.table_comment(table)
-              unless table_comments.nil?
+              unless table_comments.blank?
                 tbl.print ", comment: #{table_comments.inspect}"
               end
 
