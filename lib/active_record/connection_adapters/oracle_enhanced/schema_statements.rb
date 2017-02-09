@@ -254,7 +254,7 @@ module ActiveRecord
           end
           type = aliased_types(type.to_s, type)
           add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} "
-          add_column_sql << type_to_sql(type, options[:limit], options[:precision], options[:scale]) if type
+          add_column_sql << type_to_sql(type, options) if type
 
           add_column_options!(add_column_sql, options.merge(type: type, column_name: column_name, table_name: table_name))
 
@@ -301,7 +301,7 @@ module ActiveRecord
             type = options[:type]
           end
           change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} "
-          change_column_sql << "#{type_to_sql(type, options[:limit], options[:precision], options[:scale])}" if type
+          change_column_sql << "#{type_to_sql(type, options)}" if type
 
           add_column_options!(change_column_sql, options.merge(type: type, column_name: column_name, table_name: table_name))
 
@@ -360,9 +360,9 @@ module ActiveRecord
         end
 
         # Maps logical Rails types to Oracle-specific data types.
-        def type_to_sql(type, limit = nil, precision = nil, scale = nil) #:nodoc:
+        def type_to_sql(type, limit: nil, precision: nil, scale: nil, **) #:nodoc:
           # Ignore options for :text and :binary columns
-          return super(type, nil, nil, nil) if ["text", "binary"].include?(type.to_s)
+          return super(type) if ["text", "binary"].include?(type.to_s)
 
           super
         end
