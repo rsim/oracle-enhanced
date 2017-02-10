@@ -249,19 +249,12 @@ module ActiveRecord
         end
 
         def add_column(table_name, column_name, type, options = {}) #:nodoc:
-          if type.to_sym == :virtual
-            type = options[:type]
-          end
           type = aliased_types(type.to_s, type)
-          add_column_sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} "
-          add_column_sql << type_to_sql(type, options) if type
-
-          add_column_options!(add_column_sql, options.merge(type: type, column_name: column_name, table_name: table_name))
-
-          add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name) if type
-
-          execute(add_column_sql)
-
+          at = create_alter_table table_name
+          at.add_column(column_name, type, options)
+          add_column_sql = schema_creation.accept at
+          add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name)
+          execute add_column_sql
           create_sequence_and_trigger(table_name, options) if type && type.to_sym == :primary_key
           change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
         ensure
