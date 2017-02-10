@@ -103,11 +103,6 @@ module ActiveRecord #:nodoc:
               # addition to make temporary option work
               tbl.print ", temporary: true" if @connection.temporary_table?(table)
 
-              table_comments = @connection.table_comment(table)
-              unless table_comments.blank?
-                tbl.print ", comment: #{table_comments.inspect}"
-              end
-
               case pk
               when String
                 tbl.print ", primary_key: #{pk.inspect}" unless pk == "id"
@@ -125,6 +120,12 @@ module ActiveRecord #:nodoc:
               end
 
               tbl.print ", force: :cascade"
+
+              table_comments = @connection.table_comment(table)
+              unless table_comments.blank?
+                tbl.print ", comment: #{table_comments.inspect}"
+              end
+
               tbl.puts " do |t|"
 
               # then dump all non-primary key columns
