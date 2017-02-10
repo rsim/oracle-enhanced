@@ -264,30 +264,6 @@ module ActiveRecord #:nodoc:
         s.join
       end
 
-      def add_column_options!(sql, options) #:nodoc:
-        type = options[:type] || ((column = options[:column]) && column.type)
-        type = type && type.to_sym
-        # handle case of defaults for CLOB columns, which would otherwise get "quoted" incorrectly
-        if options_include_default?(options)
-          if type == :text
-            sql << " DEFAULT #{quote(options[:default])}"
-          else
-            # from abstract adapter
-            sql << " DEFAULT #{quote(options[:default], options[:column])}"
-          end
-        end
-        # must explicitly add NULL or NOT NULL to allow change_column to work on migrations
-        if options[:null] == false
-          sql << " NOT NULL"
-        elsif options[:null] == true
-          sql << " NULL" unless type == :primary_key
-        end
-        # add AS expression for virtual columns
-        if options[:as].present?
-          sql << " AS (#{options[:as]})"
-        end
-      end
-
       def execute_structure_dump(string)
         string.split(STATEMENT_TOKEN).each do |ddl|
           execute(ddl) unless ddl.blank?
