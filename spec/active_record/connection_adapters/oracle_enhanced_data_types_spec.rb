@@ -306,8 +306,8 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
   it "should translate boolean type to NUMBER(1) if emulate_booleans_from_strings is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
-    expect(ActiveRecord::Base.connection.type_to_sql(
-      :boolean, nil, nil, nil)).to eq("NUMBER(1)")
+    sql_type = ActiveRecord::Base.connection.type_to_sql(:boolean)
+    expect(sql_type).to eq("NUMBER(1)")
   end
 
   describe "/ VARCHAR2 boolean values from ActiveRecord model" do

@@ -5,11 +5,7 @@ module ActiveRecord
         private
 
           def visit_ColumnDefinition(o)
-            case
-            when o.type.to_sym == :virtual
-              sql_type = type_to_sql(o.default[:type], o.limit, o.precision, o.scale) if o.default[:type]
-              return "#{quote_column_name(o.name)} #{sql_type} AS (#{o.default[:as]})"
-            when [:blob, :clob].include?(sql_type = type_to_sql(o.type.to_sym,  o.limit, o.precision, o.scale).downcase.to_sym)
+            if [:blob, :clob].include?(sql_type = type_to_sql(o.type.to_sym,  o.options).downcase.to_sym)
               if (tablespace = default_tablespace_for(sql_type))
                 @lob_tablespaces ||= {}
                 @lob_tablespaces[o.name] = tablespace

@@ -34,9 +34,6 @@ module ActiveRecord
         end
       end
 
-      class ColumnDefinition < ActiveRecord::ConnectionAdapters::ColumnDefinition
-      end
-
       class TableDefinition < ActiveRecord::ConnectionAdapters::TableDefinition
         include ActiveRecord::ConnectionAdapters::OracleEnhanced::ColumnMethods
 
@@ -47,29 +44,13 @@ module ActiveRecord
           super(name, temporary, options, as, comment: comment)
         end
 
-        def virtual(* args)
-          options = args.extract_options!
-          column_names = args
-          column_names.each { |name| column(name, :virtual, options) }
-        end
-
-        def column(name, type, options = {})
+        def new_column_definition(name, type, **options) # :nodoc:
           if type == :virtual
-            default = { type: options[:type] }
-            if options[:as]
-              default[:as] = options[:as]
-            else
-              raise "No virtual column definition found."
-            end
-            options[:default] = default
+            raise "No virtual column definition found." unless options[:as]
+            type = options[:type]
           end
-          super(name, type, options)
+          super
         end
-
-        private
-          def create_column_definition(name, type)
-            OracleEnhanced::ColumnDefinition.new name, type
-          end
       end
 
       class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable
