@@ -1133,33 +1133,29 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
 end
 
 describe "OracleEnhancedAdapter handling of RAW columns" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
-    @conn.execute <<-SQL
-      CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0) PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        binary_data   RAW(1024)
-      )
-    SQL
-    @conn.execute <<-SQL
-      CREATE SEQUENCE test_employees_seq  MINVALUE 1
-        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
-    SQL
+    schema_define do
+      create_table :test_employees, force: true do |t|
+        t.string    :first_name,    limit: 20
+        t.string    :last_name,     limit: 25
+        t.raw       :binary_data,   limit: 1024
+      end
+    end
     @binary_data = "\0\1\2\3\4\5\6\7\8\9" * 100
     @binary_data2 = "\1\2\3\4\5\6\7\8\9\0" * 100
   end
 
   after(:all) do
-    @conn.execute "DROP TABLE test_employees"
-    @conn.execute "DROP SEQUENCE test_employees_seq"
+    schema_define do
+      drop_table :test_employees
+    end
   end
 
   before(:each) do
     class ::TestEmployee < ActiveRecord::Base
-      self.primary_key = "employee_id"
     end
   end
 

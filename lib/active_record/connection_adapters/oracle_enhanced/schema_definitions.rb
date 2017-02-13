@@ -6,6 +6,16 @@ module ActiveRecord
           # This is a placeholder for future :auto_increment support
           super
         end
+
+        [
+          :raw
+        ].each do |column_type|
+          module_eval <<-CODE, __FILE__, __LINE__ + 1
+            def #{column_type}(*args, **options)
+              args.each { |name| column(name, :#{column_type}, options) }
+            end
+          CODE
+        end
       end
 
       class ReferenceDefinition < ActiveRecord::ConnectionAdapters::ReferenceDefinition # :nodoc:
