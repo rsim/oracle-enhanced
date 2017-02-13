@@ -220,7 +220,12 @@ module ActiveRecord
         # as there's no way to determine the correct answer in that case.
         #
         # Will always query database and not index cache.
-        def index_name_exists?(table_name, index_name, default)
+        def index_name_exists?(table_name, index_name, default = nil)
+          unless default.nil?
+            ActiveSupport::Deprecation.warn(<<-MSG.squish)
+              Passing default to #index_name_exists? is deprecated without replacement.
+            MSG
+          end
           (owner, table_name, db_link) = @connection.describe(table_name)
           result = select_value(<<-SQL)
             SELECT 1 FROM all_indexes#{db_link} i
