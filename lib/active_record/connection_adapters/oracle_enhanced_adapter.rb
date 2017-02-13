@@ -272,10 +272,6 @@ module ActiveRecord
         true
       end
 
-      def supports_primary_key? #:nodoc:
-        true
-      end
-
       def supports_savepoints? #:nodoc:
         true
       end
