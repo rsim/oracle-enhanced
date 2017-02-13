@@ -374,7 +374,7 @@ describe "OracleEnhancedAdapter" do
       wh = WarehouseThing.create!(name: "Foo", foo: 2)
       expect(wh.id).not_to be_nil
 
-      expect(@conn.data_sources).to include("warehouse-things")
+      expect(@conn.tables).to include("warehouse-things")
     end
 
     it "should allow creation of a table with CamelCase name" do
@@ -386,7 +386,7 @@ describe "OracleEnhancedAdapter" do
       cc = CamelCase.create!(name: "Foo", foo: 2)
       expect(cc.id).not_to be_nil
 
-      expect(@conn.data_sources).to include("CamelCase")
+      expect(@conn.tables).to include("CamelCase")
     end
 
     it "properly quotes database links" do
