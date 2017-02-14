@@ -102,7 +102,7 @@ describe "OracleEnhancedAdapter context index" do
 
     it "should not include text index secondary tables in user tables list" do
       @conn.add_context_index :posts, :title
-      expect(@conn.data_sources.any? { |t| t =~ /^dr\$/i }).to be_falsey
+      expect(@conn.tables.any? { |t| t =~ /^dr\$/i }).to be_falsey
       @conn.remove_context_index :posts, :title
     end
 
