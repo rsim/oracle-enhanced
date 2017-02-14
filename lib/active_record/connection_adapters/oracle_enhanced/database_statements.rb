@@ -197,6 +197,7 @@ module ActiveRecord
 
         def release_savepoint(name = current_savepoint_name) #:nodoc:
           # there is no RELEASE SAVEPOINT statement in Oracle
+          raise NotImplementedError
         end
 
         # Returns default sequence name for table.
