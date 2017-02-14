@@ -220,6 +220,13 @@ module ActiveRecord
             write_lobs(table_name, klass, fixture, klass.lob_columns)
           end
         end
+
+        # Oracle Database does not support this feature
+        # Refer https://community.oracle.com/ideas/13845 and consider to vote
+        # if you need this feature.
+        def empty_insert_statement_value
+          raise NotImplementedError
+        end
       end
     end
   end
