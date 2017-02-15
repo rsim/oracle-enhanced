@@ -4,7 +4,6 @@ cache: bundler
 
 env:
   global:
-    - ORACLE_COOKIE=sqldev
     - ORACLE_FILE=oracle11g/xe/oracle-xe-11.2.0-1.0.x86_64.rpm.zip
     - ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe
     - TNS_ADMIN=$ORACLE_HOME/network/admin
@@ -12,7 +11,7 @@ env:
     - ORACLE_BASE=/u01/app/oracle
     - LD_LIBRARY_PATH=$ORACLE_HOME/lib
     - PATH=$PATH:$ORACLE_HOME/jdbc/lib
-    - DATABASE_VERSION=11.2.0.2
+    - DATABASE_VERSION=11.2.0.1
     - ORACLE_SID=XE
     - DATABASE_NAME=XE
     - ORA_SDTZ='Europe/Riga' #Needed as a client parameter
