@@ -384,12 +384,12 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should dump correctly" do
-      expect(standard_dump).to match(/t\.virtual "full_name",(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\"",(\s*)type: :string/)
-      expect(standard_dump).to match(/t\.virtual "short_name",(\s*)limit: 300,(\s*)as:(.*),(\s*)type: :string/)
-      expect(standard_dump).to match(/t\.virtual "full_name_length",(\s*)precision: 38,(\s*)as:(.*),(\s*)type: :integer/)
+      expect(standard_dump).to match(/t\.virtual "full_name",(\s*)type: :string,(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\""/)
+      expect(standard_dump).to match(/t\.virtual "short_name",(\s*)type: :string,(\s*)limit: 300,(\s*)as:(.*)/)
+      expect(standard_dump).to match(/t\.virtual "full_name_length",(\s*)type: :integer,(\s*)precision: 38,(\s*)as:(.*)/)
       expect(standard_dump).to match(/t\.virtual "name_ratio",(\s*)as:(.*)\"$/) # no :type
-      expect(standard_dump).to match(/t\.virtual "abbrev_name",(\s*)limit: 100,(\s*)as:(.*),(\s*)type: :string/)
-      expect(standard_dump).to match(/t\.virtual "field_with_leading_space",(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '",(\s*)type: :string/)
+      expect(standard_dump).to match(/t\.virtual "abbrev_name",(\s*)type: :string,(\s*)limit: 100,(\s*)as:(.*)/)
+      expect(standard_dump).to match(/t\.virtual "field_with_leading_space",(\s*)type: :string,(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '"/)
     end
 
     context "with column cache" do
