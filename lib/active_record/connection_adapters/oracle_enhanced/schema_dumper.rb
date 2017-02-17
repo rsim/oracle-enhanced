@@ -109,9 +109,7 @@ module ActiveRecord #:nodoc:
                 pkcol = columns.detect { |c| c.name == pk }
                 pkcolspec = @connection.column_spec_for_primary_key(pkcol)
                 if pkcolspec.present?
-                  pkcolspec.each do |key, value|
-                    tbl.print ", #{key}: #{value}"
-                  end
+                  tbl.print ", #{format_colspec(pkcolspec)}"
                 end
               when Array
                 tbl.print ", primary_key: #{pk.inspect}"
@@ -129,37 +127,12 @@ module ActiveRecord #:nodoc:
               tbl.puts " do |t|"
 
               # then dump all non-primary key columns
-              column_specs = columns.map do |column|
+              columns.each do |column|
                 raise StandardError, "Unknown type '#{column.sql_type}' for column '#{column.name}'" unless @connection.valid_type?(column.type)
                 next if column.name == pk
-                @connection.column_spec(column)
-              end.compact
-
-              # find all migration keys used in this table
-              #
-              # TODO `& column_specs.map(&:keys).flatten` should be executed
-              # in migration_keys_with_oracle_enhanced
-              keys = @connection.migration_keys & column_specs.map(&:keys).flatten
-
-              # figure out the lengths for each column based on above keys
-              lengths = keys.map { |key| column_specs.map { |spec| spec[key] ? spec[key].length + 2 : 0 }.max }
-
-              # the string we're going to sprintf our values against, with standardized column widths
-              format_string = lengths.map { |len| "%-#{len}s" }
-
-              # find the max length for the 'type' column, which is special
-              type_length = column_specs.map { |column| column[:type].length }.max
-
-              # add column type definition to our format string
-              format_string.unshift "    t.%-#{type_length}s "
-
-              format_string *= ""
-
-              # dirty hack to replace virtual_type: with type:
-              column_specs.each do |colspec|
-                values = keys.zip(lengths).map { |key, len| colspec.key?(key) ? colspec[key] + ", " : " " * len }
-                values.unshift colspec[:type]
-                tbl.print((format_string % values).gsub(/,\s*$/, "").gsub(/virtual_type:/, "type:"))
+                type, colspec = @connection.column_spec(column)
+                tbl.print "    t.#{type} #{column.name.inspect}"
+                tbl.print ", #{format_colspec(colspec)}" if colspec.present?
                 tbl.puts
               end
 
