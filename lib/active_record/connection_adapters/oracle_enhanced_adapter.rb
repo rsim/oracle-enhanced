@@ -312,6 +312,10 @@ module ActiveRecord
         @connection.database_version.to_s >= [11, 2].to_s
       end
 
+      def supports_virtual_columns?
+        @connection.database_version.first >= 11
+      end
+
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         nls_calendar: nil,
