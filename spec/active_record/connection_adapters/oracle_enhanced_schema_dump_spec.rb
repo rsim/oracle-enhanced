@@ -83,25 +83,25 @@ describe "OracleEnhancedAdapter schema dump" do
     it "should remove table prefix in schema dump" do
       ActiveRecord::Base.table_name_prefix = "xxx_"
       create_test_posts_table
-      expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
+      expect(standard_dump).to match(/create_table "test_posts"/m)
     end
 
     it "should remove table prefix with $ sign in schema dump" do
       ActiveRecord::Base.table_name_prefix = "xxx$"
       create_test_posts_table
-      expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
+      expect(standard_dump).to match(/create_table "test_posts"/m)
     end
 
     it "should remove table suffix in schema dump" do
       ActiveRecord::Base.table_name_suffix = "_xxx"
       create_test_posts_table
-      expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
+      expect(standard_dump).to match(/create_table "test_posts"/m)
     end
 
     it "should remove table suffix with $ sign in schema dump" do
       ActiveRecord::Base.table_name_suffix = "$xxx"
       create_test_posts_table
-      expect(standard_dump).to match(/create_table "test_posts".*add_index "test_posts"/m)
+      expect(standard_dump).to match(/create_table "test_posts"/m)
     end
 
     it "should not include schema_migrations table with prefix in schema dump" do
@@ -317,20 +317,20 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should not specify default tablespace in add index" do
       create_test_posts_table
-      expect(standard_dump).to match(/add_index "test_posts", \["title"\], name: "index_test_posts_on_title"$/)
+      expect(standard_dump).to match(/t\.index \["title"\], name: "index_test_posts_on_title"$/)
     end
 
     it "should specify non-default tablespace in add index" do
       tablespace_name = @conn.default_tablespace
       allow(@conn).to receive(:default_tablespace).and_return("dummy")
       create_test_posts_table
-      expect(standard_dump).to match(/add_index "test_posts", \["title"\], name: "index_test_posts_on_title", tablespace: "#{tablespace_name}"$/)
+      expect(standard_dump).to match(/t\.index \["title"\], name: "index_test_posts_on_title", tablespace: "#{tablespace_name}"$/)
     end
 
     it "should create and dump function-based indexes" do
       create_test_posts_table
       @conn.add_index :test_posts, "NVL(created_at, updated_at)", name: "index_test_posts_cr_upd_at"
-      expect(standard_dump).to match(/add_index "test_posts", \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], name: "index_test_posts_cr_upd_at"$/)
+      expect(standard_dump).to match(/t\.index \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], name: "index_test_posts_cr_upd_at"$/)
     end
 
   end
@@ -427,8 +427,8 @@ describe "OracleEnhancedAdapter schema dump" do
         end
       end
       it "should dump correctly" do
-        expect(standard_dump).not_to match(/add_index "test_names".+FIRST_NAME.+$/)
-        expect(standard_dump).to     match(/add_index "test_names".+field_with_leading_space.+$/)
+        expect(standard_dump).not_to match(/t\.index .+FIRST_NAME.+$/)
+        expect(standard_dump).to     match(/t\.index .+field_with_leading_space.+$/)
       end
     end
   end
