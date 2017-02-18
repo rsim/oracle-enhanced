@@ -1,5 +1,3 @@
-require "spec_helper"
-
 describe "OracleEnhancedAdapter structure dump" do
   include LoggerSpecHelper
 

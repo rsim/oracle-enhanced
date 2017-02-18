@@ -1,5 +1,3 @@
-require "spec_helper"
-
 describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   include LoggerSpecHelper
 
