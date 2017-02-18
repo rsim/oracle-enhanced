@@ -1,5 +1,3 @@
-require "spec_helper"
-
 describe "OracleEnhancedConnection" do
 
   describe "create connection" do

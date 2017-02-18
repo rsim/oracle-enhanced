@@ -1,5 +1,3 @@
-require "spec_helper"
-
 if ActiveRecord::Base.method_defined?(:changed?)
 
   describe "OracleEnhancedAdapter dirty object tracking" do

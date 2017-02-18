@@ -1,5 +1,3 @@
-require "spec_helper"
-
 describe "OracleEnhancedAdapter schema dump" do
   include SchemaSpecHelper
 

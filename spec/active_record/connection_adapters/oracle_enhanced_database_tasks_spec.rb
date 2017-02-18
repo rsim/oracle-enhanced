@@ -1,4 +1,3 @@
-require "spec_helper"
 require "active_record/connection_adapters/oracle_enhanced/database_tasks"
 require "stringio"
 require "tempfile"

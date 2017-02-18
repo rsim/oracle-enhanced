@@ -1,5 +1,3 @@
-require "spec_helper"
-
 unless defined?(NO_COMPOSITE_PRIMARY_KEYS)
 
   describe "OracleEnhancedAdapter composite_primary_keys support" do

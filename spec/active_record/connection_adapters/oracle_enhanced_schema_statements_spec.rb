@@ -1,5 +1,3 @@
-require "spec_helper"
-
 describe "OracleEnhancedAdapter schema definition" do
   include SchemaSpecHelper
   include LoggerSpecHelper
