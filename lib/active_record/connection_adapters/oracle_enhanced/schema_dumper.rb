@@ -57,12 +57,8 @@ module ActiveRecord #:nodoc:
               add_index_statements = indexes.map do |index|
                 case index.type
                 when nil
-                  # use table.inspect as it will remove prefix and suffix
-                  statement_parts = [ ("add_index " + table.inspect) ]
-                  statement_parts << index.columns.inspect
-                  statement_parts << ("name: " + index.name.inspect)
-                  statement_parts << "unique: true" if index.unique
-                  statement_parts << "tablespace: " + index.tablespace.inspect if index.tablespace
+                  # do nothing here. see indexes_in_create
+                  statement_parts = []
                 when "CTXSYS.CONTEXT"
                   if index.statement_parameters
                     statement_parts = [ ("add_context_index " + table.inspect) ]
@@ -82,6 +78,21 @@ module ActiveRecord #:nodoc:
               stream.puts add_index_statements.sort.join("\n")
               stream.puts
             end
+          end
+
+          def indexes_in_create(table, stream)
+            if (indexes = @connection.indexes(table)).any?
+              index_statements = indexes.map do |index|
+                "    t.index #{index_parts(index).join(', ')}" unless index.type == "CTXSYS.CONTEXT"
+              end
+              stream.puts index_statements.sort.join("\n")
+            end
+          end
+
+          def index_parts(index)
+            index_parts = super
+            index_parts << "tablespace: #{index.tablespace.inspect}" if index.tablespace
+            index_parts
           end
 
           def table(table, stream)
@@ -135,6 +146,8 @@ module ActiveRecord #:nodoc:
                 tbl.print ", #{format_colspec(colspec)}" if colspec.present?
                 tbl.puts
               end
+
+              indexes_in_create(table, tbl)
 
               tbl.puts "  end"
               tbl.puts
