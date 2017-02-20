@@ -571,20 +571,11 @@ module ActiveRecord
         select_value("SELECT LOWER(default_tablespace) FROM user_users WHERE username = SYS_CONTEXT('userenv', 'current_schema')")
       end
 
-      def tables(name = nil) #:nodoc:
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          #tables currently returns both tables and views.
-          This behavior is deprecated and will be changed with Rails 5.1 to only return tables.
-          Use #data_sources instead.
-        MSG
-
-        if name
-          ActiveSupport::Deprecation.warn(<<-MSG.squish)
-            Passing arguments to #tables is deprecated without replacement.
-          MSG
-        end
-
-        data_sources
+      def tables #:nodoc:
+        select_values(<<-SQL, "SCHEMA")
+          SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
+          FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
+        SQL
       end
 
       def data_sources
