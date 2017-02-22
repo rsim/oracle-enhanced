@@ -227,12 +227,7 @@ module ActiveRecord
         end
 
         def rename_index(table_name, old_name, new_name) #:nodoc:
-          unless index_name_exists?(table_name, old_name, true)
-            raise ArgumentError, "Index name '#{old_name}' on table '#{table_name}' does not exist"
-          end
-          if new_name.length > allowed_index_name_length
-            raise ArgumentError, "Index name '#{new_name}' on table '#{table_name}' is too long; the limit is #{allowed_index_name_length} characters"
-          end
+          validate_index_length!(table_name, new_name)
           execute "ALTER INDEX #{quote_column_name(old_name)} rename to #{quote_column_name(new_name)}"
         ensure
           self.all_schema_indexes = nil

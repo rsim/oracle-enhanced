@@ -550,7 +550,7 @@ describe "OracleEnhancedAdapter schema definition" do
   it "should raise error when current index name does not exist" do
     expect do
       @conn.rename_index("test_employees", "nonexist_index_name", "new_index_name")
-    end.to raise_error(ArgumentError)
+    end.to raise_error(ActiveRecord::StatementInvalid)
   end
 
   it "should rename index name with new one" do
