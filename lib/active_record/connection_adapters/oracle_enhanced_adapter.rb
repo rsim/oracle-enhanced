@@ -585,13 +585,27 @@ module ActiveRecord
       end
 
       def table_exists?(table_name)
-        ActiveSupport::Deprecation.warn(<<-MSG.squish)
-          #table_exists? currently checks both tables and views.
-          This behavior is deprecated and will be changed with Rails 5.1 to only check tables.
-          Use #data_source_exists? instead.
-        MSG
-
-        data_source_exists?(table_name)
+        table_name = table_name.to_s
+        if table_name.include?("@")
+          # db link is not table
+          false
+        else
+          db_link = nil
+          default_owner = current_schema
+        end
+        real_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(table_name) ?
+          table_name.upcase : table_name
+        if real_name.include?(".")
+          table_owner, table_name = real_name.split(".")
+        else
+          table_owner, table_name = default_owner, real_name
+        end
+        select_values(<<-SQL, "SCHEMA").any?
+          SELECT owner, table_name
+          FROM all_tables
+          WHERE owner = '#{table_owner}'
+          AND table_name = q'[#{table_name}]'
+        SQL
       end
 
       # Will return true if database object exists (to be able to use also views and synonyms for ActiveRecord models)
