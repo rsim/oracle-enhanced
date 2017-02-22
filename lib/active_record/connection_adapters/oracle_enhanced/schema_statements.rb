@@ -161,7 +161,7 @@ module ActiveRecord
           if index_name.to_s.length > max_index_length
             raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' is too long; the limit is #{max_index_length} characters"
           end
-          if index_name_exists?(table_name, index_name, false)
+          if table_exists?(table_name) && index_name_exists?(table_name, index_name)
             raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' already exists"
           end
 
