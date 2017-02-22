@@ -579,9 +579,7 @@ module ActiveRecord
       end
 
       def data_sources
-        select_values(
-        "SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name) FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'",
-        "SCHEMA")
+        super
       end
 
       def table_exists?(table_name)
@@ -715,9 +713,9 @@ module ActiveRecord
           SELECT trigger_name
           FROM all_triggers#{db_link}
           WHERE owner = '#{owner}'
-            AND trigger_name = '#{trigger_name}'
+            AND trigger_name = q'[#{trigger_name}]'
             AND table_owner = '#{owner}'
-            AND table_name = '#{desc_table_name}'
+            AND table_name = q'[#{desc_table_name}]'
             AND status = 'ENABLED'
         SQL
         select_value(pkt_sql, "Primary Key Trigger") ? true : false
