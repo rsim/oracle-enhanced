@@ -22,7 +22,6 @@ group :development do
   end
 
   platforms :jruby do
-    gem "ruby-debug"
     gem "pry"
     gem "pry-nav"
   end
