@@ -386,7 +386,7 @@ module ActiveRecord
               FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc,
                    all_constraints#{db_link} r, all_cons_columns#{db_link} rc
              WHERE c.owner = '#{owner}'
-               AND c.table_name = '#{desc_table_name}'
+               AND c.table_name = q'[#{desc_table_name}]'
                AND c.constraint_type = 'R'
                AND cc.owner = c.owner
                AND cc.constraint_name = c.constraint_name

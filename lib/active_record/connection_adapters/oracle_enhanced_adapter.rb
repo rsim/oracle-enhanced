@@ -713,9 +713,9 @@ module ActiveRecord
           SELECT trigger_name
           FROM all_triggers#{db_link}
           WHERE owner = '#{owner}'
-            AND trigger_name = '#{trigger_name}'
+            AND trigger_name = q'[#{trigger_name}]'
             AND table_owner = '#{owner}'
-            AND table_name = '#{desc_table_name}'
+            AND table_name = q'[#{desc_table_name}]'
             AND status = 'ENABLED'
         SQL
         select_value(pkt_sql, "Primary Key Trigger") ? true : false
