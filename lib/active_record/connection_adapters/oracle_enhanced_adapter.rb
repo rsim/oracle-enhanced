@@ -46,11 +46,6 @@ end
 
 module ActiveRecord
   class Base
-    # Get table comment from schema definition.
-    def self.table_comment
-      connection.table_comment(self.table_name)
-    end
-
     def self.lob_columns
       columns.select do |column|
         column.respond_to?(:lob?) && column.lob?
