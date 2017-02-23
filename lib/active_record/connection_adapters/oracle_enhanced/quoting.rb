@@ -117,11 +117,6 @@ module ActiveRecord
           "0".freeze
         end
 
-        # Cast a +value+ to a type that the database understands.
-        def type_cast(value, column = nil)
-          super
-        end
-
         def _type_cast(value)
           case value
           when Date, Time
