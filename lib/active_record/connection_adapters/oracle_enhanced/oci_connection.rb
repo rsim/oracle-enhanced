@@ -127,30 +127,16 @@ module ActiveRecord
           end
         end
 
-        def bind_param(position, value, column = nil)
-          if column
-            ActiveSupport::Deprecation.warn(<<-MSG.squish)
-              *******************************************************
-              Passing a column to `bind_param` will be deprecated.
-              `type_casted_binds` should be already type casted
-              so that `bind_param` should not need to know column.
-              *******************************************************
-            MSG
-          end
-
-          if column && column.object_type?
-            @raw_cursor.bind_param(position, value, :named_type, column.sql_type)
+        def bind_param(position, value)
+          case value
+          when ActiveRecord::OracleEnhanced::Type::Raw
+            @raw_cursor.bind_param(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))
+          when ActiveModel::Type::Decimal
+            @raw_cursor.bind_param(position, BigDecimal.new(value.to_s))
+          when NilClass
+            @raw_cursor.bind_param(position, nil, String)
           else
-            case value
-            when ActiveRecord::OracleEnhanced::Type::Raw
-              @raw_cursor.bind_param(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))
-            when ActiveModel::Type::Decimal
-              @raw_cursor.bind_param(position, BigDecimal.new(value.to_s))
-            when NilClass
-              @raw_cursor.bind_param(position, nil, String)
-            else
-              @raw_cursor.bind_param(position, value)
-            end
+            @raw_cursor.bind_param(position, value)
           end
         end
 
