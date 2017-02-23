@@ -337,17 +337,7 @@ module ActiveRecord
           end
         end
 
-        def bind_param(position, value, column = nil)
-          if column
-            ActiveSupport::Deprecation.warn(<<-MSG.squish)
-              *******************************************************
-              Passing a column to `bind_param` will be deprecated.
-              `type_casted_binds` should be already type casted
-              so that `bind_param` should not need to know column.
-              *******************************************************
-            MSG
-          end
-
+        def bind_param(position, value)
           case value
           when Integer
             @raw_statement.setLong(position, value)
@@ -374,14 +364,10 @@ module ActiveRecord
             # TODO: Really needed or not
             @raw_statement.setTimestamp(position, value)
           when NilClass
-            if column && column.object_type?
-              @raw_statement.setNull(position, java.sql.Types::STRUCT, column.sql_type)
-            else
-              # TODO: currently nil is always bound as NULL with VARCHAR type.
-              # When nils will actually be used by ActiveRecord as bound parameters
-              # then need to pass actual column type.
-              @raw_statement.setNull(position, java.sql.Types::VARCHAR)
-            end
+            # TODO: currently nil is always bound as NULL with VARCHAR type.
+            # When nils will actually be used by ActiveRecord as bound parameters
+            # then need to pass actual column type.
+            @raw_statement.setNull(position, java.sql.Types::VARCHAR)
           else
             raise ArgumentError, "Don't know how to bind variable with type #{value.class}"
           end
