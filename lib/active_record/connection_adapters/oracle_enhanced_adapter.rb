@@ -588,7 +588,6 @@ module ActiveRecord
           # db link is not table
           false
         else
-          db_link = nil
           default_owner = current_schema
         end
         real_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(table_name) ?
