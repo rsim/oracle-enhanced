@@ -348,7 +348,6 @@ describe "OracleEnhancedAdapter schema definition" do
       class ::TestEmployee < ActiveRecord::Base; end
 
       expect(@conn.table_comment("test_employees")).to eq(table_comment)
-      expect(TestEmployee.table_comment).to eq(table_comment)
     end
 
     it "should create table with columns comment" do
@@ -372,7 +371,6 @@ describe "OracleEnhancedAdapter schema definition" do
       class ::TestEmployee < ActiveRecord::Base; end
 
       expect(@conn.table_comment(TestEmployee.table_name)).to eq(table_comment)
-      expect(TestEmployee.table_comment).to eq(table_comment)
       [:first_name, :last_name].each do |attr|
         expect(@conn.column_comment(TestEmployee.table_name, attr.to_s)).to eq(column_comments[attr])
       end
