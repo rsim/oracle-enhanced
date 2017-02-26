@@ -919,10 +919,6 @@ module ActiveRecord
         select_value("SELECT temporary FROM all_tables WHERE table_name = '#{table_name.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')") == "Y"
       end
 
-      def valid_type?(type)
-        !native_database_types[type].nil?
-      end
-
       def combine_bind_parameters(
         from_clause: [],
         join_clause: [],
