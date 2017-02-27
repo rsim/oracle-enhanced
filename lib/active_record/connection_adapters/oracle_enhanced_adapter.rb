@@ -263,10 +263,6 @@ module ActiveRecord
         end
       end
 
-      def supports_migrations? #:nodoc:
-        true
-      end
-
       def supports_savepoints? #:nodoc:
         true
       end
@@ -917,10 +913,6 @@ module ActiveRecord
 
       def temporary_table?(table_name) #:nodoc:
         select_value("SELECT temporary FROM all_tables WHERE table_name = '#{table_name.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')") == "Y"
-      end
-
-      def valid_type?(type)
-        !native_database_types[type].nil?
       end
 
       def combine_bind_parameters(
