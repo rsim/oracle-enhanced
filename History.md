@@ -1,3 +1,14 @@
+## 1.7.10 / 2017-02-03
+
+* Changes and bug fixes
+  * Address `TypeError: can't cast Java::JavaSql::Timestamp` [#1147, 1153]
+  * Use docker-oracle-xe-11g for Travis CI for release17 branch [#1150]
+  * Use JRuby 9.1.7.0 for release17 branch [#1154]
+  * Pending until further investigation made for #908 for release17 branch [#1151]
+
+* Known issues
+ * No changes since 1.7.7
+
 ## 1.7.9 / 2016-12-26
 
 * Changes and bug fixes
