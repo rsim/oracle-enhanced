@@ -210,7 +210,6 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       hire_date: @today,
       description: "description"
     )
-    empl_id = @employee.id
     @employee.reload
     @employee.first_name = "Second"
     expect {

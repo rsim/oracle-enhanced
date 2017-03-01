@@ -1,6 +1,7 @@
 describe "OracleEnhancedAdapter emulate OracleAdapter" do
 
   before(:all) do
+    @old_oracle_adapter = nil
     if defined?(ActiveRecord::ConnectionAdapters::OracleAdapter)
       @old_oracle_adapter = ActiveRecord::ConnectionAdapters::OracleAdapter
       ActiveRecord::ConnectionAdapters.send(:remove_const, :OracleAdapter)

@@ -112,6 +112,8 @@ if ActiveRecord::Base.method_defined?(:changed?)
     end
 
     it "should not update unchanged CLOBs" do
+      @conn = nil
+      @connection = nil
       @employee = TestEmployee.create!(
           comments: "initial"
       )

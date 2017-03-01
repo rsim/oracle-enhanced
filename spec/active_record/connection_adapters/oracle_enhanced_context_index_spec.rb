@@ -78,6 +78,10 @@ describe "OracleEnhancedAdapter context index" do
       ActiveRecord::Base.clear_cache!
     end
 
+    before(:each) do
+      @post = nil
+    end
+
     after(:each) do
       @post.destroy if @post
     end
