@@ -1107,7 +1107,7 @@ end
             t.virtual :field2
           end
         end
-      }.to raise_error
+      }.to raise_error(RuntimeError, "No virtual column definition found.")
     end
   end
 
