@@ -74,7 +74,7 @@ describe "OracleEnhancedAdapter schema dump" do
   describe "table prefixes and suffixes" do
     after(:each) do
       drop_test_posts_table
-      @conn.drop_table(ActiveRecord::Migrator.schema_migrations_table_name) if @conn.table_exists?(ActiveRecord::Migrator.schema_migrations_table_name)
+      @conn.drop_table(ActiveRecord::SchemaMigration.table_name) if @conn.table_exists?(ActiveRecord::SchemaMigration.table_name)
       @conn.drop_table(ActiveRecord::InternalMetadata.table_name) if @conn.table_exists?(ActiveRecord::InternalMetadata.table_name)
       ActiveRecord::Base.table_name_prefix = ""
       ActiveRecord::Base.table_name_suffix = ""
