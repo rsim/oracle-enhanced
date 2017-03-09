@@ -1072,9 +1072,6 @@ require "active_record/connection_adapters/oracle_enhanced/schema_definitions"
 # Extensions for context index definition
 require "active_record/connection_adapters/oracle_enhanced/context_index"
 
-# Load additional methods for composite_primary_keys support
-require "active_record/connection_adapters/oracle_enhanced/cpk"
-
 # Patches and enhancements for schema dumper
 require "active_record/connection_adapters/oracle_enhanced/schema_dumper"
 
