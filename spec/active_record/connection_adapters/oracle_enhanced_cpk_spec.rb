@@ -52,10 +52,6 @@ unless defined?(NO_COMPOSITE_PRIMARY_KEYS)
       it "should tell ActiveRecord that count distinct is not supported" do
         expect(ActiveRecord::Base.connection.supports_count_distinct?).to be_falsey
       end
-
-      it "should execute correct SQL COUNT DISTINCT statement on table with composite primary keys" do
-        expect { JobHistory.count(distinct: true) }.not_to raise_error
-      end
     end
 
     describe "table with LOB" do
