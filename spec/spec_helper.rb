@@ -24,8 +24,6 @@ elsif RUBY_ENGINE == "jruby"
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
 end
 
-NO_COMPOSITE_PRIMARY_KEYS = true
-
 require "active_record"
 
 require "active_support/core_ext/module/attribute_accessors"
