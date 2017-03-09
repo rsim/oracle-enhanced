@@ -28,32 +28,6 @@ unless defined?(NO_COMPOSITE_PRIMARY_KEYS)
       end
     end
 
-    describe "do not use count distinct" do
-      before(:all) do
-        schema_define do
-          create_table :job_history, primary_key: [:employee_id, :start_date], force: true do |t|
-            t.integer :employee_id
-            t.date    :start_date
-          end
-        end
-        class ::JobHistory < ActiveRecord::Base
-          set_table_name "job_history"
-          set_primary_keys :employee_id, :start_date
-        end
-      end
-
-      after(:all) do
-        Object.send(:remove_const, "JobHistory") if defined?(JobHistory)
-        schema_define do
-          drop_table :job_history
-        end
-      end
-
-      it "should tell ActiveRecord that count distinct is not supported" do
-        expect(ActiveRecord::Base.connection.supports_count_distinct?).to be_falsey
-      end
-    end
-
     describe "table with LOB" do
       before(:all) do
         schema_define do
