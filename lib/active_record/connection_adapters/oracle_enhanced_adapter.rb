@@ -513,13 +513,7 @@ module ActiveRecord
 
       # Writes LOB values from attributes for specified columns
       def write_lobs(table_name, klass, attributes, columns) #:nodoc:
-        # is class with composite primary key>
-        is_with_cpk = klass.respond_to?(:composite?) && klass.composite?
-        if is_with_cpk
-          id = klass.primary_key.map { |pk| attributes[pk.to_s] }
-        else
-          id = quote(attributes[klass.primary_key])
-        end
+        id = quote(attributes[klass.primary_key])
         columns.each do |col|
           value = attributes[col.name]
           # changed sequence of next two lines - should check if value is nil before converting to yaml
@@ -528,8 +522,7 @@ module ActiveRecord
             value = klass.attribute_types[col.name].serialize(value)
           end
           uncached do
-            sql = is_with_cpk ? "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{klass.composite_where_clause(id)} FOR UPDATE" :
-              "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE"
+            sql = "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE"
             unless lob_record = select_one(sql, "Writable Large Object")
               raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
             end
@@ -1071,9 +1064,6 @@ require "active_record/connection_adapters/oracle_enhanced/schema_definitions"
 
 # Extensions for context index definition
 require "active_record/connection_adapters/oracle_enhanced/context_index"
-
-# Load additional methods for composite_primary_keys support
-require "active_record/connection_adapters/oracle_enhanced/cpk"
 
 # Patches and enhancements for schema dumper
 require "active_record/connection_adapters/oracle_enhanced/schema_dumper"

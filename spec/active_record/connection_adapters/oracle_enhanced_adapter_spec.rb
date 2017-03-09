@@ -200,10 +200,6 @@ describe "OracleEnhancedAdapter" do
       ActiveRecord::Base.clear_cache!
     end
 
-    it "should tell ActiveRecord that count distinct is supported" do
-      expect(ActiveRecord::Base.connection.supports_count_distinct?).to be_truthy
-    end
-
     it "should execute correct SQL COUNT DISTINCT statement" do
       expect { TestEmployee.distinct.count(:employee_id) }.not_to raise_error
     end
