@@ -11,8 +11,6 @@ group :development do
   gem "rake"
 
   gem "activerecord",   github: "rails/rails", branch: "master"
-  gem "rack",           github: "rack/rack", branch: "master"
-
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
