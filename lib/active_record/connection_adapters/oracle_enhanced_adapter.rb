@@ -244,7 +244,6 @@ module ActiveRecord
 
       def initialize(connection, logger = nil, config = {}) # :nodoc:
         super(connection, logger, config)
-        @quoted_column_names, @quoted_table_names = {}, {}
         @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
         @enable_dbms_output = false
       end
