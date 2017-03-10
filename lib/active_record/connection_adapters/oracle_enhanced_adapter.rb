@@ -29,6 +29,7 @@
 # portions Copyright 2005 Graham Jenkins
 
 require "active_record/connection_adapters/abstract_adapter"
+require "active_record/connection_adapters/statement_pool"
 require "active_record/connection_adapters/oracle_enhanced/connection"
 require "active_record/connection_adapters/oracle_enhanced/database_statements"
 require "active_record/connection_adapters/oracle_enhanced/schema_statements"
@@ -212,39 +213,17 @@ module ActiveRecord
       cattr_accessor :use_old_oracle_visitor
       self.use_old_oracle_visitor = false
 
-      class StatementPool
-        include Enumerable
+      class StatementPool < ConnectionAdapters::StatementPool
+        private
 
-        def initialize(connection, max = 300)
-          @connection = connection
-          @max        = max
-          @cache      = {}
-        end
-
-        def each(&block); @cache.each(&block); end
-        def key?(key);    @cache.key?(key); end
-        def [](key);      @cache[key]; end
-        def length;       @cache.length; end
-        def delete(key);  @cache.delete(key); end
-
-        def []=(sql, key)
-          while @max <= @cache.size
-            @cache.shift.last.close
+          def dealloc(stmt)
+            stmt.close
           end
-          @cache[sql] = key
-        end
-
-        def clear
-          @cache.values.each do |cursor|
-            cursor.close
-          end
-          @cache.clear
-        end
       end
 
       def initialize(connection, logger = nil, config = {}) # :nodoc:
         super(connection, logger, config)
-        @statements = StatementPool.new(connection, config.fetch(:statement_limit) { 250 })
+        @statements = StatementPool.new(self.class.type_cast_config_to_integer(config[:statement_limit]))
         @enable_dbms_output = false
       end
 
