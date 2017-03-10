@@ -89,9 +89,9 @@ module ActiveRecord
           when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data then
             "N" << "'#{quote_string(value.to_s)}'"
           when ActiveModel::Type::Binary::Data then
-            "empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()"
+            "empty_blob()"
           when ActiveRecord::OracleEnhanced::Type::Text::Data then
-            "empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'clob' }()"
+            "empty_clob()"
           else
             super
           end
