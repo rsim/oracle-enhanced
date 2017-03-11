@@ -72,8 +72,10 @@ module ActiveRecord #:nodoc:
                   # unrecognized index type
                   statement_parts = ["# unrecognized index #{index.name.inspect} with type #{index.type.inspect}"]
                 end
-                "  " + statement_parts.join(", ")
-              end
+                "  " + statement_parts.join(", ") unless statement_parts.empty?
+              end.compact
+
+              return if add_index_statements.empty?
 
               stream.puts add_index_statements.sort.join("\n")
               stream.puts
