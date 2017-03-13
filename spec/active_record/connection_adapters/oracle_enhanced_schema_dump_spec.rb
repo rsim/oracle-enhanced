@@ -493,4 +493,29 @@ describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "schema.rb format" do
+    before do
+      create_test_posts_table
+
+      schema_define do
+        create_table :test_comments, force: true do |t|
+          t.string :title
+        end
+
+        add_index :test_comments, :title
+      end
+    end
+
+    it "should be only one blank line between create_table methods in schema dump" do
+      expect(standard_dump).to match(/end\n\n  create_table/)
+    end
+
+    after do
+      schema_define do
+        drop_table :test_comments rescue nil
+      end
+
+      drop_test_posts_table
+    end
+  end
 end
