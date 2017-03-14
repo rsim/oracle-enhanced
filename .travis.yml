@@ -15,6 +15,7 @@ env:
     - DATABASE_NAME=XE
     - ORA_SDTZ='Europe/Riga' #Needed as a client parameter
     - TZ='Europe/Riga'       #Needed as a DB Server parameter
+    - "JRUBY_OPTS='--debug --dev -J-Xmx1024M'"
 
 before_install:
   - chmod +x .travis/oracle/download.sh
@@ -32,7 +33,7 @@ rvm:
   - 2.2.6
   - 2.3.3
   - jruby-9.0.5.0
-  - jruby-9.1.7.0
+  - jruby-9.1.8.0
   - 2.4.0
 notifications:
     email: false
