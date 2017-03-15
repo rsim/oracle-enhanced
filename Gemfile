@@ -2,7 +2,7 @@ source 'http://rubygems.org'
 
 group :development do
   gem 'jeweler', '~> 2.0'
-  gem 'rspec', '~> 2.4'
+  gem 'rspec'
   gem 'rdoc'
 
   gem 'activerecord',   github: 'rails/rails', branch: '4-2-stable'
