@@ -254,11 +254,11 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
     column.type_cast_from_database(1.0).class.should == BigDecimal
   end
 
-  it "should return Fixnum value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
+  it "should return Integer value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
     columns = @conn.columns('test2_employees')
     column = columns.detect{|c| c.name == "job_id"}
-    column.type_cast_from_database(1.0).class.should == Fixnum
+    expect(column.type_cast_from_database(1.0)).to be_a(Integer)
   end
 
   describe "/ NUMBER values from ActiveRecord model" do
@@ -291,16 +291,16 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       @employee2.job_id.class.should == BigDecimal
     end
 
-    it "should return Fixnum value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
+    it "should return Integer value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
       create_employee2
-      @employee2.job_id.class.should == Fixnum
+      expect(@employee2.job_id).to be_a(Integer)
     end
 
-    it "should return Fixnum value from NUMBER column with integer value using _before_type_cast method" do
+    it "should return Integer value from NUMBER column with integer value using _before_type_cast method" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = true
       create_employee2
-      @employee2.job_id_before_type_cast.class.should == Fixnum
+      expect(@employee2.job_id_before_type_cast).to be_a(Integer)
     end
 
     it "should return BigDecimal value from NUMBER column if column name does not contain 'id' and emulate_integers_by_column_name is true" do
@@ -309,11 +309,11 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       @employee2.salary.class.should == BigDecimal
     end
 
-    it "should return Fixnum value from NUMBER column if column specified in set_integer_columns" do
+    it "should return Integer value from NUMBER column if column specified in set_integer_columns" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_integers_by_column_name = false
       Test2Employee.set_integer_columns :job_id
       create_employee2
-      @employee2.job_id.class.should == Fixnum
+      expect(@employee2.job_id).to be_a(Integer)
     end
 
     it "should return Boolean value from NUMBER(1) column if emulate booleans is used" do
@@ -322,17 +322,17 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       @employee2.is_manager.class.should == TrueClass
     end
 
-    it "should return Fixnum value from NUMBER(1) column if emulate booleans is not used" do
+    it "should return Integer value from NUMBER(1) column if emulate booleans is not used" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = false
       create_employee2
-      @employee2.is_manager.class.should == Fixnum
+      expect(@employee2.is_manager).to be_a(Integer)
     end
 
-    it "should return Fixnum value from NUMBER(1) column if column specified in set_integer_columns" do
+    it "should return Integer value from NUMBER(1) column if column specified in set_integer_columns" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
       Test2Employee.set_integer_columns :is_manager
       create_employee2
-      @employee2.is_manager.class.should == Fixnum
+      expect(@employee2.is_manager).to be_a(Integer)
     end
 
   end
