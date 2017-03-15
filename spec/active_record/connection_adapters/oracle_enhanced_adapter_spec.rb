@@ -177,35 +177,6 @@ describe "OracleEnhancedAdapter" do
 
   end
 
-  describe "without composite_primary_keys" do
-
-    before(:all) do
-      @conn = ActiveRecord::Base.connection
-      @conn.execute "DROP TABLE test_employees" rescue nil
-      @conn.execute <<-SQL
-        CREATE TABLE test_employees (
-          employee_id   NUMBER PRIMARY KEY,
-          name          VARCHAR2(50)
-        )
-      SQL
-      Object.send(:remove_const, "CompositePrimaryKeys") if defined?(CompositePrimaryKeys)
-      class ::TestEmployee < ActiveRecord::Base
-        self.primary_key = :employee_id
-      end
-    end
-
-    after(:all) do
-      Object.send(:remove_const, "TestEmployee")
-      @conn.execute "DROP TABLE test_employees"
-      ActiveRecord::Base.clear_cache!
-    end
-
-    it "should execute correct SQL COUNT DISTINCT statement" do
-      expect { TestEmployee.distinct.count(:employee_id) }.not_to raise_error
-    end
-
-  end
-
   describe "reserved words column quoting" do
 
     before(:all) do
