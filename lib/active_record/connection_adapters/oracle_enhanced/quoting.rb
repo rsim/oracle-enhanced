@@ -119,7 +119,7 @@ module ActiveRecord
 
         def _type_cast(value)
           case value
-          when Date, Time
+          when ActiveRecord::OracleEnhanced::Type::TimestampTz::Data
             if value.acts_like?(:time)
               zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
               value.respond_to?(zone_conversion_method) ? value.send(zone_conversion_method) : value

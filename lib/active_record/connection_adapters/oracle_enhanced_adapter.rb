@@ -941,6 +941,7 @@ module ActiveRecord
         def initialize_type_map(m)
           super
           # oracle
+          register_class_with_precision m, %r(ZONE)i,  ActiveRecord::OracleEnhanced::Type::TimestampTz
           register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
           register_class_with_limit m, %r(char)i,           ActiveRecord::OracleEnhanced::Type::String
           register_class_with_limit m, %r(clob)i,           ActiveRecord::OracleEnhanced::Type::Text
@@ -1114,3 +1115,6 @@ ActiveRecord::Type.register(:boolean, ActiveRecord::OracleEnhanced::Type::Boolea
 # Add JSON attribute support
 require "active_record/oracle_enhanced/type/json"
 ActiveRecord::Type.register(:json, ActiveRecord::OracleEnhanced::Type::Json, adapter: :oracleenhanced)
+
+# Add Type:TimestampTz
+require "active_record/oracle_enhanced/type/timestamptz"

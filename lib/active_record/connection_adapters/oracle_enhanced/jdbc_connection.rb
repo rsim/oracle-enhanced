@@ -137,7 +137,11 @@ module ActiveRecord
           end
 
           # Set session time zone to current time zone
-          @raw_connection.setSessionTimeZone(time_zone)
+          if ActiveRecord::Base.default_timezone == :local
+            @raw_connection.setSessionTimeZone(time_zone)
+          elsif ActiveRecord::Base.default_timezone == :utc
+            @raw_connection.setSessionTimeZone("UTC")
+          end
 
           # Set default number of rows to prefetch
           # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
@@ -362,8 +366,8 @@ module ActiveRecord
           when Java::JavaSql::Timestamp
             @raw_statement.setTimestamp(position, value)
           when Time
-            # TODO: Really needed or not
-            @raw_statement.setTimestamp(position, value)
+            new_value = Java::java.sql.Timestamp.new(value.year - 1900, value.month - 1, value.day, value.hour, value.min, value.sec, value.usec * 1000)
+            @raw_statement.setTimestamp(position, new_value)
           when NilClass
             # TODO: currently nil is always bound as NULL with VARCHAR type.
             # When nils will actually be used by ActiveRecord as bound parameters
