@@ -1,3 +1,15 @@
+## 1.6.8 / 2017-03-18
+
+* Changes and bug fixes since 1.6.7
+ * Better fix to support "Relation#count does not support finder options anymore in Rails [#787, #788]
+ * Run Oracle enhanced adapter unit tests using Travis CI [#789]
+ * Upgrade travis-oracle to Version 2.0.1 [#903]
+ * NoMethodError: undefined method `write' for nil:NilClass for serialized column [#798, #1004]
+ * Support connection strings in `DATABASE_URL` [#1036]
+ * Rebuild primary key index to default_tablespaces[:index] [#1037]
+ * Use docker oracle xe 11g for release16 branch [#1238]
+ * Fix deprecated warnings in Ruby 2.4.0+ [#1237]
+
 ## 1.6.7 / 2016-03-08
 
 * Changes and bug fixes since 1.6.6
