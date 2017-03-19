@@ -28,7 +28,7 @@ module ActiveRecord #:nodoc:
               structure_dump_column(row)
             end
           end
-          ddl << cols.join(",\n ")
+          ddl << cols.map { |col| " #{col}" }.join(",\n")
           ddl << structure_dump_primary_key(table_name)
           ddl << "\n)"
           structure << ddl

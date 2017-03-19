@@ -147,7 +147,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/)
+      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/)
     end
 
     it "should dump unique keys" do
@@ -198,7 +198,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n\"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\)/)
+      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\)/)
     end
 
     it "should dump table comments" do
