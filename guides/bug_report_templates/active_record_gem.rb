@@ -10,8 +10,11 @@ gemfile(true) do
   gem "rails", github: "rails/rails", branch: "master"
   gem "arel", github: "rails/arel", branch: "master"
   gem "activerecord-oracle_enhanced-adapter",  github: "rsim/oracle-enhanced", branch: "master"
-  gem "ruby-oci8"
   gem "minitest"
+
+  platforms :ruby do
+    gem "ruby-oci8"
+  end
 end
 
 require "active_record"
