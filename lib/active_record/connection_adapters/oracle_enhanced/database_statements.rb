@@ -17,7 +17,7 @@ module ActiveRecord
         end
 
         def exec_query(sql, name = "SQL", binds = [], prepare: false)
-          type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
+          type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds) do
             cursor = nil
@@ -94,7 +94,7 @@ module ActiveRecord
         # New method in ActiveRecord 3.1
         def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil)
           sql, binds = sql_for_insert(sql, pk, nil, sequence_name, binds)
-          type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
+          type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds) do
             returning_id_col = returning_id_index = nil
@@ -130,7 +130,7 @@ module ActiveRecord
 
         # New method in ActiveRecord 3.1
         def exec_update(sql, name = nil, binds = [])
-          type_casted_binds = binds.map { |attr| type_cast(attr.value_for_database) }
+          type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds) do
             cached = false
