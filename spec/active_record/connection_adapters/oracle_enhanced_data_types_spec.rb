@@ -1333,9 +1333,14 @@ describe "OracleEnhancedAdapter handling of BINARY_FLOAT columns" do
       CREATE SEQUENCE test2_employees_seq  MINVALUE 1
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
+
+    class ::Test2Employee < ActiveRecord::Base
+    end
   end
 
   after(:all) do
+    Object.send(:remove_const, "Test2Employee")
+
     @conn.execute "DROP TABLE test2_employees"
     @conn.execute "DROP SEQUENCE test2_employees_seq"
   end
@@ -1344,6 +1349,14 @@ describe "OracleEnhancedAdapter handling of BINARY_FLOAT columns" do
     columns = @conn.columns("test2_employees")
     column = columns.detect { |c| c.name == "hourly_rate" }
     expect(column.type).to eq(:float)
+  end
+
+  it "should BINARY_FLOAT column type returns an approximate value" do
+    employee = Test2Employee.create(hourly_rate: 4.4)
+
+    employee.reload
+
+    expect(employee.hourly_rate).to eq(4.400000095367432)
   end
 end
 
