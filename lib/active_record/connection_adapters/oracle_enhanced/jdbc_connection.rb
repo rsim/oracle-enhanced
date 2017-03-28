@@ -532,6 +532,8 @@ module ActiveRecord
           else
             BigDecimal.new(d.stringValue)
           end
+        when :BINARY_FLOAT
+          rset.getFloat(i)
         when :VARCHAR2, :CHAR, :LONG, :NVARCHAR2, :NCHAR
           rset.getString(i)
         when :DATE
