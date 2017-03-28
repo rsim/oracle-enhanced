@@ -1,3 +1,12 @@
+## 1.7.11 / 2017-03-29
+
+* Changes and bug fixes
+  * Bump JRuby to 9.1.8.0 and add JRUBY_OPTS [#1233]
+  * Fix the BINARY_FLOAT column type returns nil in JRuby [#1256]
+
+* Known issues
+ * No changes since 1.7.7
+
 ## 1.7.10 / 2017-02-03
 
 * Changes and bug fixes
