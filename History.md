@@ -1,3 +1,8 @@
+## 1.6.9 / 2017-03-29
+
+* Changes and bug fixes since 1.6.8
+ * Fix the BINARY_FLOAT column type returns nil in JRuby [#1257]
+
 ## 1.6.8 / 2017-03-18
 
 * Changes and bug fixes since 1.6.7
