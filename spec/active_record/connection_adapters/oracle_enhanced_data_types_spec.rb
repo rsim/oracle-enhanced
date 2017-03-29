@@ -511,7 +511,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
 
 end
 
-describe "OracleEnhancedAdapter date and timestamp with different NLS date formats" do
+xdescribe "OracleEnhancedAdapter date and timestamp with different NLS date formats" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
