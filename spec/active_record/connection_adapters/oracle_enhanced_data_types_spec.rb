@@ -1364,7 +1364,7 @@ describe "OracleEnhancedAdapter attribute API support for JSON type" do
 
   include SchemaSpecHelper
 
-  before(:each) do
+  before(:all) do
     @conn = ActiveRecord::Base.connection
     @oracle12c_or_higher = !! @conn.select_value(
       "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 12")
@@ -1375,25 +1375,25 @@ describe "OracleEnhancedAdapter attribute API support for JSON type" do
         t.string  :title
         t.text    :article
       end
+      execute "alter table test_posts add constraint test_posts_title_is_json check (title is json)"
+      execute "alter table test_posts add constraint test_posts_article_is_json check (article is json)"
     end
-    @conn.execute <<-SQL
-      alter table test_posts add constraint test_posts_title_is_json check (title is json)
-    SQL
-    @conn.execute <<-SQL
-      alter table test_posts add constraint test_posts_article_is_json check (article is json)
-    SQL
 
-    class TestPost < ActiveRecord::Base
+    class ::TestPost < ActiveRecord::Base
       attribute :title, :json
       attribute :article, :json
     end
   end
 
-  after(:each) do
+  after(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     schema_define do
       drop_table :test_posts, if_exists: true
     end
+  end
+
+  before(:each) do
+    TestPost.delete_all
   end
 
   it "should support attribute api for JSON" do
