@@ -243,7 +243,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
   end
 
-  describe "database stucture dump extentions" do
+  describe "database structure dump extensions" do
     before(:all) do
       @conn.execute <<-SQL
         CREATE TABLE nvarchartable (

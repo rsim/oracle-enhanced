@@ -225,7 +225,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should include foreign keys following all tables" do
-      # if foreign keys preceed declaration of all tables
+      # if foreign keys precede declaration of all tables
       # it can cause problems when using db:test rake tasks
       schema_define do
         add_foreign_key :test_comments, :test_posts
