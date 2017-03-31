@@ -526,7 +526,7 @@
  * Address undefined method `cast_type' [#805]
  * Better fix to support "Relation#count does not support finder options anymore in Rails [#788, #787]
  * ActiveRecord::Calculations#count no longer accepts an options hash argument #754
- * Supress WARNINGs using `raise_error` without specific errors [#724]
+ * Suppress WARNINGs using `raise_error` without specific errors [#724]
  * Use RSpec 3 [#707]
  * Update "OracleEnhancedAdapter boolean type detection based on string column types and names" [#873]
  * Update "OracleEnhancedAdapter integer type detection based on column names" [#871]
@@ -813,7 +813,7 @@
  * Update README to support assignment methods [#365]
  * Remove add_limit_offset! method [#369]
  * Update Gemfile to use `bundle config --local` [#370]
- * `describe` does not try super when no datbase link and ORA-4043 returned [#375]
+ * `describe` does not try super when no database link and ORA-4043 returned [#375]
  * Support `remove_columns` [#377]
  * Dump views in alphabetical order and add `FORCE` option [#378]
 
@@ -1198,10 +1198,10 @@
 * Forked from original activerecord-oracle-adapter-1.0.0.9216
 * Renamed oracle adapter to oracle_enhanced adapter
   * Added "enhanced" to method and class definitions so that oracle_enhanced and original oracle adapter
-    could be used simultaniously
+    could be used simultaneously
   * Added Rails rake tasks as a copy from original oracle tasks
 * Enhancements:
-  * Improved perfomance of schema dump methods when used on large data dictionaries
+  * Improved performance of schema dump methods when used on large data dictionaries
   * Added LOB writing callback for sessions stored in database
   * Added emulate_dates_by_column_name option
   * Added emulate_integers_by_column_name option

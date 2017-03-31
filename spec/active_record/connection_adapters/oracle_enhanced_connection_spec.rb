@@ -412,9 +412,9 @@ describe "OracleEnhancedConnection" do
     if defined?(OCI8)
       context "OCI8 adapter" do
 
-        it "should not fallback to SELECT-based logic when querying non-existant table information" do
+        it "should not fallback to SELECT-based logic when querying non-existent table information" do
           expect(@conn).not_to receive(:select_one)
-          @conn.describe("non_existant") rescue ActiveRecord::ConnectionAdapters::OracleEnhancedConnectionException
+          @conn.describe("non_existent") rescue ActiveRecord::ConnectionAdapters::OracleEnhancedConnectionException
         end
 
       end
