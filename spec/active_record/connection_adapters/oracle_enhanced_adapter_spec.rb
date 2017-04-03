@@ -643,15 +643,15 @@ describe "OracleEnhancedAdapter" do
   describe "valid_type?" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
-      @conn.execute <<-SQL
-        CREATE TABLE test_employees (
-          first_name    VARCHAR2(20)
-       )
-      SQL
+      schema_define do
+        create_table :test_employees, force: true do |t|
+          t.string  :first_name, limit: 20
+        end
+      end
     end
 
     after(:all) do
-      @conn.execute "DROP TABLE test_employees"
+      @conn.drop_table :test_employees, if_exists: true
     end
 
     it "returns true when passed a valid type" do
