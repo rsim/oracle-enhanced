@@ -588,22 +588,14 @@ describe "OracleEnhancedAdapter" do
   describe "using offset and limit" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
-      @conn.execute "DROP TABLE test_employees" rescue nil
-      @conn.execute <<-SQL
-        CREATE TABLE test_employees (
-          id            NUMBER PRIMARY KEY,
-          sort_order    NUMBER(38,0),
-          first_name    VARCHAR2(20),
-          last_name     VARCHAR2(25),
-          updated_at    DATE,
-          created_at    DATE
-        )
-      SQL
-      @conn.execute "DROP SEQUENCE test_employees_seq" rescue nil
-      @conn.execute <<-SQL
-        CREATE SEQUENCE test_employees_seq  MINVALUE 1
-          INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER NOCYCLE
-      SQL
+      schema_define do
+        create_table :test_employees, force: true do |t|
+          t.integer   :sort_order
+          t.string    :first_name, limit: 20
+          t.string    :last_name, limit: 20
+          t.timestamps
+        end
+      end
       @employee = Class.new(ActiveRecord::Base) do
         self.table_name = :test_employees
       end
@@ -616,8 +608,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     after(:all) do
-      @conn.execute "DROP TABLE test_employees"
-      @conn.execute "DROP SEQUENCE test_employees_seq"
+      @conn.drop_table :test_employees, if_exists: true
     end
 
     after(:each) do
