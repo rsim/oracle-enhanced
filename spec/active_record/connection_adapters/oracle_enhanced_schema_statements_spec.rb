@@ -397,16 +397,12 @@ describe "OracleEnhancedAdapter schema definition" do
     before(:each) do
       @conn = ActiveRecord::Base.connection
       schema_define do
-        drop_table :test_employees rescue nil
-        drop_table :new_test_employees rescue nil
-        drop_table :test_employees_no_primary_key rescue nil
-
-        create_table  :test_employees do |t|
+        create_table  :test_employees, force: true do |t|
           t.string    :first_name
           t.string    :last_name
         end
 
-        create_table  :test_employees_no_pkey, id: false do |t|
+        create_table  :test_employees_no_pkey, force: true, id: false do |t|
           t.string    :first_name
           t.string    :last_name
         end
@@ -415,11 +411,12 @@ describe "OracleEnhancedAdapter schema definition" do
 
     after(:each) do
       schema_define do
-        drop_table :test_employees rescue nil
-        drop_table :new_test_employees rescue nil
-        drop_table :test_employees_no_pkey rescue nil
-        drop_table :new_test_employees_no_pkey rescue nil
-        drop_table :aaaaaaaaaaaaaaaaaaaaaaaaaaa rescue nil
+        drop_table :test_employees_no_primary_key, if_exists: true
+        drop_table :test_employees, if_exists: true
+        drop_table :new_test_employees, if_exists: true
+        drop_table :test_employees_no_pkey, if_exists: true
+        drop_table :new_test_employees_no_pkey, if_exists: true
+        drop_table :aaaaaaaaaaaaaaaaaaaaaaaaaaa, if_exists: true
       end
     end
 
