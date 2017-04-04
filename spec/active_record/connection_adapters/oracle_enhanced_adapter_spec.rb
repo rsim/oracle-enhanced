@@ -42,27 +42,27 @@ describe "OracleEnhancedAdapter" do
   describe "cache table columns" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
-      @conn.execute "DROP TABLE test_employees" rescue nil
-      @oracle11g_or_higher = !! @conn.select_value(
-        "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
-      @conn.execute <<-SQL
-        CREATE TABLE test_employees (
-          id            NUMBER PRIMARY KEY,
-          first_name    VARCHAR2(20),
-          last_name     VARCHAR2(25),
-          #{ @oracle11g_or_higher ? "full_name AS (first_name || ' ' || last_name)," : "full_name VARCHAR2(46),"}
-          hire_date     DATE
-        )
-      SQL
-      @conn.execute <<-SQL
-        CREATE TABLE test_employees_without_pk (
-          first_name    VARCHAR2(20),
-          last_name     VARCHAR2(25),
-          hire_date     DATE
-        )
-      SQL
+      schema_define do
+        create_table :test_employees, force: true do |t|
+          t.string  :first_name, limit: 20
+          t.string  :last_name, limit: 25
+          if ActiveRecord::Base.connection.supports_virtual_columns?
+            t.virtual :full_name, as: "(first_name || ' ' || last_name)"
+          else
+            t.string  :full_name, limit: 46
+          end
+          t.date    :hire_date
+        end
+      end
+      schema_define do
+        create_table :test_employees_without_pk, id: false, force: true do |t|
+          t.string  :first_name, limit: 20
+          t.string  :last_name, limit: 25
+          t.date    :hire_date
+        end
+      end
       @column_names = ["id", "first_name", "last_name", "full_name", "hire_date"]
-      @column_sql_types = ["NUMBER", "VARCHAR2(20)", "VARCHAR2(25)", "VARCHAR2(46)", "DATE"]
+      @column_sql_types = ["NUMBER(38)", "VARCHAR2(20)", "VARCHAR2(25)", "VARCHAR2(46)", "DATE"]
       class ::TestEmployee < ActiveRecord::Base
       end
       # Another class using the same table
@@ -75,8 +75,8 @@ describe "OracleEnhancedAdapter" do
       @conn = ActiveRecord::Base.connection
       Object.send(:remove_const, "TestEmployee")
       Object.send(:remove_const, "TestEmployee2")
-      @conn.execute "DROP TABLE test_employees"
-      @conn.execute "DROP TABLE test_employees_without_pk"
+      @conn.drop_table :test_employees, if_exists: true
+      @conn.drop_table :test_employees_without_pk, if_exists: true
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
       ActiveRecord::Base.clear_cache!
     end
@@ -98,7 +98,7 @@ describe "OracleEnhancedAdapter" do
       end
 
       it "should identify virtual columns as such" do
-        skip "Not supported in this database version" unless @oracle11g_or_higher
+        skip "Not supported in this database version" unless @conn.supports_virtual_columns?
         te = TestEmployee.connection.columns("test_employees").detect(&:virtual?)
         expect(te.name).to eq("full_name")
       end
@@ -116,14 +116,14 @@ describe "OracleEnhancedAdapter" do
       end
 
       it "should get primary key from database at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
       it "should get primary key from database at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         @logger.clear(:debug)
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
@@ -155,14 +155,14 @@ describe "OracleEnhancedAdapter" do
       end
 
       it "should get primary key from database at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
       it "should get primary key from cache at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         @logger.clear(:debug)
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", nil])
+        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         expect(@logger.logged(:debug).last).to be_blank
       end
 
