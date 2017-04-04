@@ -636,7 +636,7 @@ describe "OracleEnhancedAdapter" do
       @conn = ActiveRecord::Base.connection
       schema_define do
         create_table :test_employees, force: true do |t|
-          t.string  :first_name, limit: 20
+          t.string :first_name, limit: 20
         end
       end
     end
