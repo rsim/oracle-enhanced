@@ -911,38 +911,30 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
 end
 
 describe "OracleEnhancedAdapter handling of BLOB columns" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-    @conn.execute <<-SQL
-      CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0) PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        binary_data   BLOB
-      )
-    SQL
-    @conn.execute <<-SQL
-      CREATE SEQUENCE test_employees_seq  MINVALUE 1
-        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
-    SQL
+    schema_define do
+      create_table :test_employees, force: true do |t|
+        t.string  :first_name, limit: 20
+        t.string  :last_name, limit: 25
+        t.binary  :binary_data
+      end
+    end
+    class ::TestEmployee < ActiveRecord::Base
+    end
     @binary_data = "\0\1\2\3\4\5\6\7\8\9" * 10000
     @binary_data2 = "\1\2\3\4\5\6\7\8\9\0" * 10000
   end
 
   after(:all) do
-    @conn.execute "DROP TABLE test_employees"
-    @conn.execute "DROP SEQUENCE test_employees_seq"
-  end
-
-  before(:each) do
-    class ::TestEmployee < ActiveRecord::Base
-      self.primary_key = "employee_id"
-    end
+    @conn.drop_table :test_employees, if_exists: true
+    Object.send(:remove_const, "TestEmployee")
   end
 
   after(:each) do
-    Object.send(:remove_const, "TestEmployee")
     ActiveRecord::Base.clear_cache!
   end
 
