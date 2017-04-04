@@ -512,25 +512,21 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
 end
 
 describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-    @conn.execute <<-SQL
-      CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0) PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        hire_date     DATE,
-        last_login_at    DATE,
-        last_login_at_ts   TIMESTAMP
-      )
-    SQL
-    @conn.execute <<-SQL
-      CREATE SEQUENCE test_employees_seq  MINVALUE 1
-        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
-    SQL
+    schema_define do
+      create_table :test_employees, force: true do |t|
+        t.string    :first_name,  limit: 20
+        t.string    :last_name,  limit: 25
+        t.date      :hire_date
+        t.date      :last_login_at
+        t.datetime  :last_login_at_ts
+      end
+    end
     class ::TestEmployee < ActiveRecord::Base
-      self.primary_key = "employee_id"
       attribute :last_login_at, :datetime
     end
     @today = Date.new(2008, 6, 28)
@@ -548,8 +544,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   after(:all) do
     Object.send(:remove_const, "TestEmployee")
-    @conn.execute "DROP TABLE test_employees"
-    @conn.execute "DROP SEQUENCE test_employees_seq"
+    @conn.drop_table :test_employees, if_exists: true
     ActiveRecord::Base.clear_cache!
   end
 
