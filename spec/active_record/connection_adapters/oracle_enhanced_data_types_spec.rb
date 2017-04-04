@@ -663,45 +663,28 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 end
 
 describe "OracleEnhancedAdapter handling of CLOB columns" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-    @conn.execute <<-SQL
-      CREATE TABLE test_employees (
-        id            NUMBER(6,0) PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        comments      CLOB
-      )
-    SQL
-    @conn.execute <<-SQL
-      CREATE SEQUENCE test_employees_seq  MINVALUE 1
-        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
-    SQL
-    @conn.execute <<-SQL
-      CREATE TABLE test2_employees (
-        id            NUMBER(6,0) PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        comments      CLOB
-      )
-    SQL
-    @conn.execute <<-SQL
-      CREATE SEQUENCE test2_employees_seq  MINVALUE 1
-        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
-    SQL
-    @conn.execute <<-SQL
-      CREATE TABLE test_serialize_employees (
-        id            NUMBER(6,0) PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25)
-      )
-    SQL
-    @conn.execute <<-SQL
-      CREATE SEQUENCE test_serialize_employees_seq  MINVALUE 1
-        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
-    SQL
-    ActiveRecord::Base.connection.add_column(:test_serialize_employees, :comments, :text)
+    schema_define do
+      create_table :test_employees, force: true do |t|
+        t.string  :first_name, limit: 20
+        t.string  :last_name, limit: 25
+        t.text    :comments
+      end
+      create_table :test2_employees, force: true do |t|
+        t.string  :first_name, limit: 20
+        t.string  :last_name, limit: 25
+        t.text    :comments
+      end
+      create_table :test_serialize_employees, force: true do |t|
+        t.string  :first_name, limit: 20
+        t.string  :last_name, limit: 25
+      end
+      add_column :test_serialize_employees, :comments, :text
+    end
 
     @char_data = (0..127).to_a.pack("C*") * 800
     @char_data2 = ((1..127).to_a.pack("C*") + "\0") * 800
@@ -721,12 +704,9 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
   end
 
   after(:all) do
-    @conn.execute "DROP TABLE test_employees"
-    @conn.execute "DROP SEQUENCE test_employees_seq"
-    @conn.execute "DROP TABLE test2_employees"
-    @conn.execute "DROP SEQUENCE test2_employees_seq"
-    @conn.execute "DROP TABLE test_serialize_employees"
-    @conn.execute "DROP SEQUENCE test_serialize_employees_seq"
+    @conn.drop_table :test_employees, if_exists: true
+    @conn.drop_table :test2_employees, if_exists: true
+    @conn.drop_table :test_serialize_employees, if_exists: true
     Object.send(:remove_const, "TestEmployee")
     Object.send(:remove_const, "Test2Employee")
     Object.send(:remove_const, "TestEmployeeReadOnlyClob")
