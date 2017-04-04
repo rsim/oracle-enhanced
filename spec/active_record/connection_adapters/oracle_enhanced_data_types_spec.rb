@@ -1212,43 +1212,35 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
 end
 
 describe "OracleEnhancedAdapter handling of BINARY_FLOAT columns" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-    @conn.execute "DROP TABLE test2_employees" rescue nil
-    @conn.execute <<-SQL
-      CREATE TABLE test2_employees (
-        id            NUMBER PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        email         VARCHAR2(25),
-        phone_number  VARCHAR2(20),
-        hire_date     DATE,
-        job_id        NUMBER,
-        salary        NUMBER,
-        commission_pct  NUMBER(2,2),
-        hourly_rate   BINARY_FLOAT,
-        manager_id    NUMBER(6),
-        is_manager    NUMBER(1),
-        department_id NUMBER(4,0),
-        created_at    DATE
-      )
-    SQL
-    @conn.execute "DROP SEQUENCE test2_employees_seq" rescue nil
-    @conn.execute <<-SQL
-      CREATE SEQUENCE test2_employees_seq  MINVALUE 1
-        INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
-    SQL
-
+    schema_define do
+      create_table :test2_employees, force: true do |t|
+        t.string  :first_name, limit: 20
+        t.string  :last_name, limit: 25
+        t.string  :email, limit: 25
+        t.string  :phone_number, limit: 25
+        t.date    :hire_date
+        t.integer :job_id
+        t.integer :salary
+        t.decimal :commission_pct, scale: 2, precision: 2
+        t.float   :hourly_rate
+        t.integer :manager_id,  limit: 6
+        t.integer :is_manager,  limit: 1
+        t.decimal :department_id, scale: 0, precision: 4
+        t.timestamps
+      end
+    end
     class ::Test2Employee < ActiveRecord::Base
     end
   end
 
   after(:all) do
     Object.send(:remove_const, "Test2Employee")
-
-    @conn.execute "DROP TABLE test2_employees"
-    @conn.execute "DROP SEQUENCE test2_employees_seq"
+    @conn.drop_table :test2_employees, if_exists:  true
   end
 
   it "should set BINARY_FLOAT column type as float" do
