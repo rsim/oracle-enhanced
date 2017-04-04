@@ -342,6 +342,8 @@ module ActiveRecord
         decimal: { name: "DECIMAL" },
         datetime: { name: "TIMESTAMP" },
         timestamp: { name: "TIMESTAMP" },
+        timestamptz: { name: "TIMESTAMP WITH TIME ZONE" },
+        timestampltz: { name: "TIMESTAMP WITH LOCAL TIME ZONE" },
         time: { name: "TIMESTAMP" },
         date: { name: "DATE" },
         binary: { name: "BLOB" },
@@ -941,7 +943,8 @@ module ActiveRecord
         def initialize_type_map(m)
           super
           # oracle
-          register_class_with_precision m, %r(ZONE)i,  ActiveRecord::OracleEnhanced::Type::TimestampTz
+          register_class_with_precision m, %r(WITH TIME ZONE)i,       ActiveRecord::OracleEnhanced::Type::TimestampTz
+          register_class_with_precision m, %r(WITH LOCAL TIME ZONE)i, ActiveRecord::OracleEnhanced::Type::TimestampLtz
           register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
           register_class_with_limit m, %r(char)i,           ActiveRecord::OracleEnhanced::Type::String
           register_class_with_limit m, %r(clob)i,           ActiveRecord::OracleEnhanced::Type::Text
@@ -1118,3 +1121,6 @@ ActiveRecord::Type.register(:json, ActiveRecord::OracleEnhanced::Type::Json, ada
 
 # Add Type:TimestampTz
 require "active_record/oracle_enhanced/type/timestamptz"
+
+# Add Type:TimestampLtz
+require "active_record/oracle_enhanced/type/timestampltz"
