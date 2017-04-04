@@ -8,7 +8,9 @@ module ActiveRecord
         end
 
         [
-          :raw
+          :raw,
+          :timestamptz,
+          :timestampltz
         ].each do |column_type|
           module_eval <<-CODE, __FILE__, __LINE__ + 1
             def #{column_type}(*args, **options)

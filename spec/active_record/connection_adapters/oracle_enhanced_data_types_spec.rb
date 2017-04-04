@@ -433,44 +433,39 @@ describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strin
 end
 
 describe "OracleEnhancedAdapter timestamp with timezone support" do
+  include SchemaSpecHelper
+
   before(:all) do
     ActiveRecord::Base.default_timezone = :local
     ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
     @conn = ActiveRecord::Base.connection
-    @conn.execute <<-SQL
-      CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0) PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        email         VARCHAR2(25),
-        phone_number  VARCHAR2(20),
-        hire_date     DATE,
-        job_id        NUMBER(6,0),
-        salary        NUMBER(8,2),
-        commission_pct  NUMBER(2,2),
-        manager_id    NUMBER(6,0),
-        department_id NUMBER(4,0),
-        created_at    TIMESTAMP,
-        created_at_tz   TIMESTAMP WITH TIME ZONE,
-        created_at_ltz  TIMESTAMP WITH LOCAL TIME ZONE
-      )
-    SQL
-    @conn.execute <<-SQL
-      CREATE SEQUENCE test_employees_seq  MINVALUE 1
-        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
-    SQL
+    schema_define do
+      create_table :test_employees, force: true do |t|
+        t.string        :first_name,  limit: 20
+        t.string        :last_name,  limit: 25
+        t.string        :email, limit: 25
+        t.string        :phone_number, limit: 20
+        t.date          :hire_date
+        t.decimal       :job_id, scale: 0, precision: 6
+        t.decimal       :salary, scale: 2, precision: 8
+        t.decimal       :commission_pct, scale: 2, precision: 2
+        t.decimal       :manager_id, scale: 0, precision: 6
+        t.decimal       :department_id, scale: 0, precision: 4
+        t.timestamp     :created_at
+        t.timestamptz   :created_at_tz
+        t.timestampltz  :created_at_ltz
+      end
+    end
   end
 
   after(:all) do
-    @conn.execute "DROP TABLE test_employees"
-    @conn.execute "DROP SEQUENCE test_employees_seq"
+    @conn.drop_table :test_employees, if_exists: true
     ActiveRecord::Base.default_timezone = :utc
   end
 
   describe "/ TIMESTAMP WITH TIME ZONE values from ActiveRecord model" do
     before(:all) do
       class ::TestEmployee < ActiveRecord::Base
-        self.primary_key = "employee_id"
       end
     end
 

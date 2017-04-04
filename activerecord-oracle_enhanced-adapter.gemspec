@@ -52,6 +52,8 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "lib/active_record/oracle_enhanced/type/raw.rb",
     "lib/active_record/oracle_enhanced/type/string.rb",
     "lib/active_record/oracle_enhanced/type/text.rb",
+    "lib/active_record/oracle_enhanced/type/timestamp.rb",
+    "lib/active_record/oracle_enhanced/type/timestampltz.rb",
     "lib/activerecord-oracle_enhanced-adapter.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_adapter_spec.rb",
     "spec/active_record/connection_adapters/oracle_enhanced_connection_spec.rb",
