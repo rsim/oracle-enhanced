@@ -2,32 +2,25 @@ require "ruby-plsql"
 
 describe "OracleEnhancedAdapter custom methods for create, update and destroy" do
   include LoggerSpecHelper
+  include SchemaSpecHelper
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
     plsql.activerecord_class = ActiveRecord::Base
-    @conn.execute("DROP TABLE test_employees") rescue nil
-    @conn.execute <<-SQL
-      CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0) PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        hire_date     DATE,
-        salary        NUMBER(8,2),
-        description   CLOB,
-        version       NUMBER(15,0),
-        create_time   DATE,
-        update_time   DATE,
-        created_at    DATE,
-        updated_at    DATE
-      )
-    SQL
-    @conn.execute("DROP SEQUENCE test_employees_s") rescue nil
-    @conn.execute <<-SQL
-      CREATE SEQUENCE test_employees_s  MINVALUE 1
-        INCREMENT BY 1 CACHE 20 NOORDER NOCYCLE
-    SQL
+    schema_define do
+      create_table :test_employees, force: true do |t|
+        t.string  :first_name, limit: 20
+        t.string  :last_name, limit: 25
+        t.date    :hire_date
+        t.decimal :salary, scale: 2, precision: 8
+        t.text    :description
+        t.decimal :version, scale: 0, precision: 15
+        t.date    :create_time
+        t.date    :update_time
+        t.timestamps null: true
+      end
+    end
     @conn.execute <<-SQL
       CREATE OR REPLACE PACKAGE test_employees_pkg IS
         PROCEDURE create_employee(
@@ -59,8 +52,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
             p_employee_id   OUT NUMBER)
         IS
         BEGIN
-          SELECT test_employees_s.NEXTVAL INTO p_employee_id FROM dual;
-          INSERT INTO test_employees (employee_id, first_name, last_name, hire_date, salary, description,
+          SELECT test_employees_seq.NEXTVAL INTO p_employee_id FROM dual;
+          INSERT INTO test_employees (id, first_name, last_name, hire_date, salary, description,
                                       version, create_time, update_time)
           VALUES (p_employee_id, p_first_name, p_last_name, p_hire_date, p_salary, p_description,
                                       1, SYSDATE, SYSDATE);
@@ -76,19 +69,19 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
         IS
             v_version       NUMBER;
         BEGIN
-          SELECT version INTO v_version FROM test_employees WHERE employee_id = p_employee_id FOR UPDATE;
+          SELECT version INTO v_version FROM test_employees WHERE id = p_employee_id FOR UPDATE;
           UPDATE test_employees
           SET first_name = p_first_name, last_name = p_last_name,
               hire_date = p_hire_date, salary = p_salary, description = p_description,
               version = v_version + 1, update_time = SYSDATE
-          WHERE employee_id = p_employee_id;
+          WHERE id = p_employee_id;
         END update_employee;
 
         PROCEDURE delete_employee(
             p_employee_id   NUMBER)
         IS
         BEGIN
-          DELETE FROM test_employees WHERE employee_id = p_employee_id;
+          DELETE FROM test_employees WHERE id = p_employee_id;
         END delete_employee;
       END;
     SQL
@@ -97,15 +90,13 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
 
   after(:all) do
     @conn = ActiveRecord::Base.connection
-    @conn.execute "DROP TABLE test_employees"
-    @conn.execute "DROP SEQUENCE test_employees_s"
+    @conn.drop_table :test_employees, if_exists: true
     @conn.execute "DROP PACKAGE test_employees_pkg"
   end
 
   before(:each) do
     class ::TestEmployee < ActiveRecord::Base
       include ActiveRecord::OracleEnhancedProcedures
-      self.primary_key = :employee_id
 
       validates_presence_of :first_name, :last_name, :hire_date
 
@@ -255,7 +246,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     empl_id = @employee.id
     @employee.destroy
     expect(@employee).to be_frozen
-    expect(TestEmployee.find_by_employee_id(empl_id)).to be_nil
+    expect(TestEmployee.find_by_id(empl_id)).to be_nil
   end
 
   it "should delete record and set destroyed flag" do
@@ -284,7 +275,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       @employee.destroy
     }.to raise_error("Make the transaction rollback")
     expect(@employee.id).to eq(empl_id)
-    expect(TestEmployee.find_by_employee_id(empl_id)).not_to be_nil
+    expect(TestEmployee.find_by_id(empl_id)).not_to be_nil
     clear_logger
   end
 
@@ -333,7 +324,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     set_logger
     @employee.save!
-    expect(@logger.logged(:debug).last).to match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with employee_id=#{@employee.id}$/)
+    expect(@logger.logged(:debug).last).to match(/^TestEmployee Update \(\d+\.\d+(ms)?\)  custom update method with id=#{@employee.id}$/)
     clear_logger
   end
 
@@ -345,7 +336,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     )
     set_logger
     @employee.destroy
-    expect(@logger.logged(:debug).last).to match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with employee_id=#{@employee.id}$/)
+    expect(@logger.logged(:debug).last).to match(/^TestEmployee Destroy \(\d+\.\d+(ms)?\)  custom delete method with id=#{@employee.id}$/)
     clear_logger
   end
 
