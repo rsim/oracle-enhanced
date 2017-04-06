@@ -3,6 +3,8 @@ require "stringio"
 require "tempfile"
 
 describe "Oracle Enhanced adapter database tasks" do
+  include SchemaSpecHelper
+
   let(:config) { CONNECTION_PARAMS.with_indifferent_access }
 
   describe "create" do
@@ -44,7 +46,11 @@ describe "Oracle Enhanced adapter database tasks" do
 
     before do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      ActiveRecord::Base.connection.execute "CREATE TABLE test_posts (name VARCHAR2(20))"
+      schema_define do
+        create_table :test_posts, force: true do |t|
+          t.string :name, limit: 20
+        end
+      end
     end
 
     describe "drop" do
@@ -95,6 +101,10 @@ describe "Oracle Enhanced adapter database tasks" do
       end
     end
 
-    after { ActiveRecord::Base.connection.execute "DROP TABLE test_posts" rescue nil }
+    after do
+      schema_define do
+        drop_table :test_posts, if_exists: true
+      end
+    end
   end
 end
