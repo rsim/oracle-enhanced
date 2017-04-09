@@ -1267,7 +1267,7 @@ describe "OracleEnhancedAdapter attribute API support for JSON type" do
   end
 
   it "should support IS JSON" do
-    post = TestPost.create!(title: { "publish" => true, "foo" => "bar" })
+    TestPost.create!(title: { "publish" => true, "foo" => "bar" })
     count_json = TestPost.where("title is json")
     expect(count_json.size).to eq 1
     count_non_json = TestPost.where("title is not json")
