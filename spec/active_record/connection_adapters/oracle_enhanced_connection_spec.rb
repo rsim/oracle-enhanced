@@ -201,7 +201,7 @@ describe "OracleEnhancedConnection" do
             connection_pool = GenericObjectPool.new(nil)
             uri = "jdbc:oracle:thin:@#{DATABASE_HOST && "#{DATABASE_HOST}:"}#{DATABASE_PORT && "#{DATABASE_PORT}:"}#{DATABASE_NAME}"
             connection_factory = DriverManagerConnectionFactory.new(uri, DATABASE_USER, DATABASE_PASSWORD)
-            poolable_connection_factory = PoolableConnectionFactory.new(connection_factory, connection_pool, nil, nil, false, true)
+            PoolableConnectionFactory.new(connection_factory, connection_pool, nil, nil, false, true)
             @data_source = PoolingDataSource.new(connection_pool)
             @data_source.access_to_underlying_connection_allowed = true
           end
