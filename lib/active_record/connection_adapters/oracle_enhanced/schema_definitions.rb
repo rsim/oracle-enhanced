@@ -42,7 +42,7 @@ module ActiveRecord
           @parameters = parameters
           @statement_parameters = statement_parameters
           @tablespace = tablespace
-          super(table, name, unique, columns, lengths, orders, where, type, using)
+          super(table, name, unique, columns, lengths: lengths, orders: orders, where: where, type: type, using: using)
         end
       end
 
