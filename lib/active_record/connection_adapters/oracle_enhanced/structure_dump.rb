@@ -112,8 +112,8 @@ module ActiveRecord #:nodoc:
 
       def structure_dump_indexes(table_name) #:nodoc:
         indexes(table_name).map do |options|
-          column_names = options[:columns]
-          options = { name: options[:name], unique: options[:unique] }
+          column_names = options.columns
+          options = { name: options.name, unique: options.unique }
           index_name = index_name(table_name, column: column_names)
           if Hash === options # legacy support, since this param was a string
             index_type = options[:unique] ? "UNIQUE" : ""
