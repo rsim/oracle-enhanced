@@ -8,7 +8,6 @@ Gem::Specification.new do |s|
   s.required_ruby_version     = ">= 2.2.2"
   s.license = "MIT"
   s.authors = ["Raimonds Simanovskis"]
-  s.date = "2017-03-22"
   s.description = 'Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
 This adapter is superset of original ActiveRecord Oracle adapter.
 '
