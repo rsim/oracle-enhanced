@@ -613,7 +613,9 @@ module ActiveRecord
       def quote(value, column = nil) #:nodoc:
         if value && column
           case column.type
-          when :text, :binary
+          when :text
+            super
+          when :binary
             %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
           # NLS_DATE_FORMAT independent TIMESTAMP support
           when :timestamp
@@ -636,6 +638,8 @@ module ActiveRecord
           quote_date_with_to_date(value)
         elsif value.acts_like?(:time)
           value.to_i == value.to_f ? quote_date_with_to_date(value) : quote_timestamp_with_to_timestamp(value)
+        elsif column.type == :text 
+          %Q{empty_#{ type_to_sql(column.type.to_sym).downcase rescue 'blob' }()}
         else
           super
         end
