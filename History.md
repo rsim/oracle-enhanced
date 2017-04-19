@@ -1,3 +1,19 @@
+## 1.8.0.rc2 / 2017-04-19
+
+* Changes and bug fixes
+  * Fix `select_all` with legacy `binds` [#1246,#1248,#1250]
+  * Fix the `BINARY_FLOAT` column type returns nil in JRuby [#1244, #1254, #1255]
+  * Handle `TIMESTAMP WITH TIMEZONE` separately from `TIMEZONE` [#1206, #1267, #1268]
+  * Changing `NLS_DATE_FORMAT` and `NLS_TIMESTAMP_FORMAT` is not supported [#1267, #1268]
+  * Let abstract adapter type cast Date, DateTime and Time for JRuby [#1272, #1273]
+  * Collapse a file specification in gemspec [#1296, #1297]
+  * Do not write VERSION directly with gemspec [#1298, #1299]
+  * Omit specification of release date in gemspec [#1298, #1299]
+  * Add missing `timestamptz.rb` to gemspec at release18 branch [#1286]
+  * Remove specs for unsupported behaviour which causes `ORA-01861` [#1267, #1269, #1271]
+  * Address `OCIException: OCI8 was already closed` at specs for JSON [#1265, #1266]
+  * Bump Ruby version to 2.2.7 [#1261]
+
 ## 1.8.0.rc1 / 2017-03-20
 
 * Major enhancements
