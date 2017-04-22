@@ -15,7 +15,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   s.extra_rdoc_files = [
     "README.md"
   ]
-  s.files = Dir["History.md", "License.txt", "README.md", "lib/**/*"]
+  s.files = Dir["History.md", "License.txt", "README.md", "VERSION", "lib/**/*"]
   s.homepage = "http://github.com/rsim/oracle-enhanced"
   s.require_paths = ["lib"]
   s.summary = "Oracle enhanced adapter for ActiveRecord"
