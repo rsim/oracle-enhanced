@@ -1,3 +1,8 @@
+## 1.8.0.rc3 / 2017-04-24
+
+* Changes and bug fixes
+  * Include VERSION file in gem [#1302, #1303]
+
 ## 1.8.0.rc2 / 2017-04-19
 
 * Changes and bug fixes
