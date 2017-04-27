@@ -1,3 +1,13 @@
+## 1.8.0 / 2017-04-27
+
+* Major enhancements
+  * Support Rails 5.1.0
+  * Add JSON attribute support [#1240]
+  * Update `database.yml` when `rails new <new_app> -d oracle` specified [rails/rails#28257]
+
+* Changes and bug fixes
+  * No changes since 1.8.0.rc3
+
 ## 1.8.0.rc3 / 2017-04-24
 
 * Changes and bug fixes
