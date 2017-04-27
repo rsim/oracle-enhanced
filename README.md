@@ -10,6 +10,17 @@ Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby o
 
 INSTALLATION
 ------------
+### Rails 5.1
+
+Oracle enhanced adapter version 1.8 just supports Rails 5.1 and does not support Rails 5.0 or lower version of Rails.
+When using Ruby on Rails version 5.1 then in Gemfile include
+
+```ruby
+# Use oracle as the database for Active Record
+gem 'activerecord-oracle_enhanced-adapter', '~> 1.8.0'
+gem 'ruby-oci8' # only for CRuby users
+```
+
 ### Rails 5.0
 
 Oracle enhanced adapter version 1.7 just supports Rails 5.0 and does not support Rails 4.2 or lower version of Rails.
