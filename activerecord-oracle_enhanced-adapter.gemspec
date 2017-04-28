@@ -20,7 +20,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   s.require_paths = ["lib"]
   s.summary = "Oracle enhanced adapter for ActiveRecord"
   s.test_files = Dir["spec/**/*"]
-  s.add_runtime_dependency("activerecord", ["~> 5.1.0.rc"])
+  s.add_runtime_dependency("activerecord", ["~> 5.1.0"])
   s.add_runtime_dependency("arel", ["~> 8.0"])
   s.add_runtime_dependency("ruby-plsql", [">= 0.6.0"])
 end
