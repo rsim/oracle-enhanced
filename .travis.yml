@@ -44,3 +44,8 @@ matrix:
     - rvm: jruby-head
 notifications:
     email: false
+
+branches:
+  except:
+    - nextval
+
