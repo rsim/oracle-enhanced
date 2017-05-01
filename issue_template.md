@@ -11,6 +11,8 @@ Tell us what happens instead
 ### System configuration
 **Rails version**:
 
+**Oracle enhanced adapter version**:
+
 **Ruby version**:
 
 **Oracle Database version**:
