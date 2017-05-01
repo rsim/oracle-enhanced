@@ -1,5 +1,3 @@
-require "digest/sha1"
-
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
@@ -182,25 +180,17 @@ module ActiveRecord
 
         # returned shortened index name if default is too large
         def index_name(table_name, options) #:nodoc:
+          #TODO: These code is only necessary for context indexes whose length needs 25 byte
           default_name = super(table_name, options).to_s
           # sometimes options can be String or Array with column names
           options = {} unless options.is_a?(Hash)
           identifier_max_length = options[:identifier_max_length] || index_name_length
-          return default_name if default_name.length <= identifier_max_length
 
-          # remove 'index', 'on' and 'and' keywords
-          shortened_name = "i_#{table_name}_#{Array(options[:column]) * '_'}"
-
-          # leave just first three letters from each word
-          if shortened_name.length > identifier_max_length
-            shortened_name = shortened_name.split("_").map { |w| w[0, 3] }.join("_")
+          if default_name.length <= identifier_max_length
+            return default_name
+          else
+            return "i_#{table_name}_#{Array(options[:column]) * '_'}"
           end
-          # generate unique name using hash function
-          if shortened_name.length > identifier_max_length
-            shortened_name = "i" + Digest::SHA1.hexdigest(default_name)[0, identifier_max_length - 1]
-          end
-          @logger.warn "#{adapter_name} shortened default index name #{default_name} to #{shortened_name}" if @logger
-          shortened_name
         end
 
         # Verify the existence of an index with a given name.

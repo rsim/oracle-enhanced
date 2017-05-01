@@ -416,7 +416,7 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :new_test_employees, if_exists: true
         drop_table :test_employees_no_pkey, if_exists: true
         drop_table :new_test_employees_no_pkey, if_exists: true
-        drop_table :aaaaaaaaaaaaaaaaaaaaaaaaaaa, if_exists: true
+        drop_table ("a" * 125).to_sym, if_exists: true
       end
     end
 
@@ -428,13 +428,13 @@ describe "OracleEnhancedAdapter schema definition" do
 
     it "should raise error when new table name length is too long" do
       expect do
-        @conn.rename_table("test_employees", "a" * 31)
+        @conn.rename_table("test_employees", "a" * 129)
       end.to raise_error(ArgumentError)
     end
 
     it "should not raise error when new sequence name length is too long" do
       expect do
-        @conn.rename_table("test_employees", "a" * 27)
+        @conn.rename_table("test_employees", "a" * 125)
       end.not_to raise_error
     end
 
@@ -493,15 +493,15 @@ describe "OracleEnhancedAdapter schema definition" do
       expect(@conn.index_name("employees", column: "first_name")).to eq("index_employees_on_first_name")
     end
 
-    it "should return shortened index name by removing 'index', 'on' and 'and' keywords" do
+    xit "should return shortened index name by removing 'index', 'on' and 'and' keywords" do
       expect(@conn.index_name("employees", column: ["first_name", "email"])).to eq("i_employees_first_name_email")
     end
 
-    it "should return shortened index name by shortening table and column names" do
+    xit "should return shortened index name by shortening table and column names" do
       expect(@conn.index_name("employees", column: ["first_name", "last_name"])).to eq("i_emp_fir_nam_las_nam")
     end
 
-    it "should raise error if too large index name cannot be shortened" do
+    xit "should raise error if too large index name cannot be shortened" do
       expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
         "i" + Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
       )
@@ -538,7 +538,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   it "should raise error when new index name length is too long" do
     expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "a" * 31)
+      @conn.rename_index("test_employees", "i_test_employees_first_name", "a" * 129)
     end.to raise_error(ArgumentError)
   end
 
@@ -550,7 +550,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   it "should rename index name with new one" do
     expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "new_index_name")
+      @conn.rename_index("test_employees", "index_test_employees_on_first_name", "new_index_name")
     end.not_to raise_error
   end
 end
