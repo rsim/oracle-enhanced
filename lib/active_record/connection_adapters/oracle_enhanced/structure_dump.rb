@@ -5,7 +5,8 @@ module ActiveRecord #:nodoc:
       STATEMENT_TOKEN = "\n\n/\n\n"
 
       def structure_dump #:nodoc:
-        structure = select_values("SELECT sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |seq|
+        structure = select_values("SELECT sequence_name FROM all_sequences
+                                  where sequence_owner = SYS_CONTEXT('userenv', 'session_user') and sequence_name not like 'ISEQ$$%' ORDER BY 1").map do |seq|
           "CREATE SEQUENCE \"#{seq}\""
         end
         select_values("SELECT table_name FROM all_tables t
@@ -219,7 +220,8 @@ module ActiveRecord #:nodoc:
       end
 
       def structure_drop #:nodoc:
-        statements = select_values("SELECT sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |seq|
+        statements = select_values("SELECT sequence_name FROM all_sequences
+                                   where sequence_owner = SYS_CONTEXT('userenv', 'session_user') and sequence_name not like 'ISEQ$$%' ORDER BY 1").map do |seq|
           "DROP SEQUENCE \"#{seq}\""
         end
         select_values("SELECT table_name from all_tables t
