@@ -271,12 +271,12 @@ describe "OracleEnhancedAdapter" do
       expect(@adapter.valid_table_name?("abC")).to be_falsey
     end
 
-    it "should not be valid for names > 30 characters" do
-      expect(@adapter.valid_table_name?("a" * 31)).to be_falsey
+    it "should not be valid for names > 128 characters" do
+      expect(@adapter.valid_table_name?("a" * 129)).to be_falsey
     end
 
     it "should not be valid for schema names > 30 characters" do
-      expect(@adapter.valid_table_name?(("a" * 31) + ".validname")).to be_falsey
+      expect(@adapter.valid_table_name?(("a" * 129) + ".validname")).to be_falsey
     end
 
     it "should not be valid for database links > 128 characters" do
