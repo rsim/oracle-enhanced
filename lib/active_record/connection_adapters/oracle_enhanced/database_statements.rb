@@ -57,10 +57,6 @@ module ActiveRecord
           end
         end
 
-        def supports_statement_cache?
-          true
-        end
-
         def supports_explain?
           true
         end
