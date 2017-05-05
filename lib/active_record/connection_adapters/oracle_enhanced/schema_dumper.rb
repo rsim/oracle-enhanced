@@ -33,7 +33,6 @@ module ActiveRecord #:nodoc:
                 next if ignored? syn.name
                 table_name = syn.table_name
                 table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
-                table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
                 stream.print "  add_synonym #{syn.name.inspect}, #{table_name.inspect}, force: true"
                 stream.puts
               end
