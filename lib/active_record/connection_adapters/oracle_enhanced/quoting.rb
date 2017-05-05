@@ -132,6 +132,12 @@ module ActiveRecord
             super
           end
         end
+
+        private
+
+          def oracle_downcase(column_name)
+            @connection.oracle_downcase(column_name)
+          end
       end
     end
   end

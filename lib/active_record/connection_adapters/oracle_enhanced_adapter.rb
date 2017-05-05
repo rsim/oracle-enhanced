@@ -961,12 +961,6 @@ module ActiveRecord
           end
         end
 
-      private
-
-        def oracle_downcase(column_name)
-          @connection.oracle_downcase(column_name)
-        end
-
       public
       # DBMS_OUTPUT =============================================
       #
