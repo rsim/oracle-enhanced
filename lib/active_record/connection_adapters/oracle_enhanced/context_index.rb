@@ -149,7 +149,7 @@ module ActiveRecord
             select_queries = select_queries.map { |s| s.strip.gsub(/\s+/, " ") }
             keys, selected_columns = parse_select_queries(select_queries)
             quoted_column_names = (column_names + keys).map { |col| quote_column_name(col) }
-            execute compress_lines(<<-SQL)
+            execute <<-SQL
             CREATE OR REPLACE PROCEDURE #{quote_table_name(procedure_name)}
               (p_rowid IN	      ROWID,
               p_clob	IN OUT NOCOPY CLOB) IS
@@ -281,7 +281,7 @@ module ActiveRecord
             trigger_name = default_index_column_trigger_name(index_name)
             columns = Array(index_column_source)
             quoted_column_names = columns.map { |col| quote_column_name(col) }.join(", ")
-            execute compress_lines(<<-SQL)
+            execute <<-SQL
             CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
             BEFORE UPDATE OF #{quoted_column_names} ON #{quote_table_name(table_name)} FOR EACH ROW
             BEGIN
