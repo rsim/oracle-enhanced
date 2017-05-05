@@ -20,16 +20,6 @@ module ActiveRecord
         #     # ...
         #   end
         #
-        # Create primary key trigger (so that you can skip primary key value in INSERT statement).
-        # By default trigger name will be "table_name_pkt", you can override the name with
-        # :trigger_name option (but it is not recommended to override it as then this trigger will
-        # not be detected by ActiveRecord model and it will still do prefetching of sequence value).
-        # Example:
-        #
-        #   create_table :users, :primary_key_trigger => true do |t|
-        #     # ...
-        #   end
-        #
         # It is possible to add table and column comments in table creation migration files:
         #
         #   create_table :employees, :comment => “Employees and contractors” do |t|
@@ -447,33 +437,11 @@ module ActiveRecord
           end
 
           def create_sequence_and_trigger(table_name, options)
+            # TODO: Needs rename since no triggers created
+            # This method will be removed since sequence will not be created separately
             seq_name = options[:sequence_name] || default_sequence_name(table_name)
             seq_start_value = options[:sequence_start_value] || default_sequence_start_value
             execute "CREATE SEQUENCE #{quote_table_name(seq_name)} START WITH #{seq_start_value}"
-
-            create_primary_key_trigger(table_name, options) if options[:primary_key_trigger]
-          end
-
-          def create_primary_key_trigger(table_name, options)
-            seq_name = options[:sequence_name] || default_sequence_name(table_name)
-            trigger_name = options[:trigger_name] || default_trigger_name(table_name)
-            primary_key = options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)
-            execute <<-SQL
-            CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
-            BEFORE INSERT ON #{quote_table_name(table_name)} FOR EACH ROW
-            BEGIN
-              IF inserting THEN
-                IF :new.#{quote_column_name(primary_key)} IS NULL THEN
-                  SELECT #{quote_table_name(seq_name)}.NEXTVAL INTO :new.#{quote_column_name(primary_key)} FROM dual;
-                END IF;
-              END IF;
-            END;
-          SQL
-          end
-
-          def default_trigger_name(table_name)
-            # truncate table name if necessary to fit in max length of identifier
-            "#{table_name.to_s[0, table_name_length - 4]}_pkt"
           end
 
           def rebuild_primary_key_index_to_default_tablespace(table_name, options)
