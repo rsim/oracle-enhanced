@@ -967,10 +967,6 @@ module ActiveRecord
           @connection.oracle_downcase(column_name)
         end
 
-        def compress_lines(string, join_with = "\n")
-          string.split($/).map { |line| line.strip }.join(join_with)
-        end
-
       public
       # DBMS_OUTPUT =============================================
       #

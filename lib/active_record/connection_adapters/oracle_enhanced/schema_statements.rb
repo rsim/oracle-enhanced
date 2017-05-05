@@ -458,7 +458,7 @@ module ActiveRecord
             seq_name = options[:sequence_name] || default_sequence_name(table_name)
             trigger_name = options[:trigger_name] || default_trigger_name(table_name)
             primary_key = options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)
-            execute compress_lines(<<-SQL)
+            execute <<-SQL
             CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
             BEFORE INSERT ON #{quote_table_name(table_name)} FOR EACH ROW
             BEGIN
