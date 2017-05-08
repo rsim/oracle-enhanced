@@ -195,7 +195,7 @@ module ActiveRecord
               Passing default to #index_name_exists? is deprecated without replacement.
             MSG
           end
-          (owner, table_name, db_link) = @connection.describe(table_name)
+          (owner, table_name) = @connection.describe(table_name)
           result = select_value(<<-SQL)
             SELECT 1 FROM all_indexes i
             WHERE i.owner = '#{owner}'
@@ -301,7 +301,7 @@ module ActiveRecord
         end
 
         def table_comment(table_name) #:nodoc:
-          (owner, table_name, db_link) = @connection.describe(table_name)
+          (owner, table_name) = @connection.describe(table_name)
           select_value <<-SQL
             SELECT comments FROM all_tab_comments
             WHERE owner = '#{owner}'
@@ -311,7 +311,7 @@ module ActiveRecord
 
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
-          (owner, table_name, db_link) = @connection.describe(table_name)
+          (owner, table_name) = @connection.describe(table_name)
           select_value <<-SQL
             SELECT comments FROM all_col_comments
             WHERE owner = '#{owner}'
@@ -339,7 +339,7 @@ module ActiveRecord
 
         # get table foreign keys for schema dump
         def foreign_keys(table_name) #:nodoc:
-          (owner, desc_table_name, db_link) = @connection.describe(table_name)
+          (owner, desc_table_name) = @connection.describe(table_name)
 
           fk_info = select_all(<<-SQL, "Foreign Keys")
             SELECT r.table_name to_table

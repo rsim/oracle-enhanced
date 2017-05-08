@@ -576,7 +576,7 @@ module ActiveRecord
       # This method selects all indexes at once, and caches them in a class variable.
       # Subsequent index calls get them from the variable, without going to the DB.
       def indexes(table_name, name = nil) #:nodoc:
-        (owner, table_name, db_link) = @connection.describe(table_name)
+        (owner, table_name) = @connection.describe(table_name)
         unless all_schema_indexes
           default_tablespace_name = default_tablespace
           result = select_all(<<-SQL.strip.gsub(/\s+/, " "))
@@ -674,7 +674,7 @@ module ActiveRecord
       def columns_without_cache(table_name, name = nil) #:nodoc:
         table_name = table_name.to_s
 
-        (owner, desc_table_name, db_link) = @connection.describe(table_name)
+        (owner, desc_table_name) = @connection.describe(table_name)
 
         # reset do_not_prefetch_primary_key cache for this table
         @@do_not_prefetch_primary_key[table_name] = nil
@@ -823,7 +823,7 @@ module ActiveRecord
       end
 
       def primary_keys(table_name) # :nodoc:
-        (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
+        (owner, desc_table_name) = @connection.describe(table_name) unless owner
 
         pks = select_values(<<-SQL.strip_heredoc, "Primary Keys")
           SELECT cc.column_name

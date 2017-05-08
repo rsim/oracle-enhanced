@@ -32,7 +32,6 @@ module ActiveRecord
         if name.include?("@")
           raise ArgumentError "db link is not supported"
         else
-          db_link = nil
           default_owner = @owner
         end
         real_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(name) ? name.upcase : name
