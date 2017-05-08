@@ -585,11 +585,11 @@ module ActiveRecord
               LOWER(i.tablespace_name) AS tablespace_name,
               LOWER(c.column_name) AS column_name, e.column_expression,
               atc.virtual_column
-            FROM all_indexes#{db_link} i
-              JOIN all_ind_columns#{db_link} c ON c.index_name = i.index_name AND c.index_owner = i.owner
-              LEFT OUTER JOIN all_ind_expressions#{db_link} e ON e.index_name = i.index_name AND
+            FROM all_indexes i
+              JOIN all_ind_columns c ON c.index_name = i.index_name AND c.index_owner = i.owner
+              LEFT OUTER JOIN all_ind_expressions e ON e.index_name = i.index_name AND
                 e.index_owner = i.owner AND e.column_position = c.column_position
-              LEFT OUTER JOIN all_tab_cols#{db_link} atc ON i.table_name = atc.table_name AND
+              LEFT OUTER JOIN all_tab_cols atc ON i.table_name = atc.table_name AND
                 c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
             WHERE i.owner = '#{owner}'
                AND i.table_owner = '#{owner}'
@@ -610,7 +610,7 @@ module ActiveRecord
                 procedure_name = default_datastore_procedure(row["index_name"])
                 source = select_values(<<-SQL).join
                   SELECT text
-                  FROM all_source#{db_link}
+                  FROM all_source
                   WHERE owner = '#{owner}'
                     AND name = '#{procedure_name.upcase}'
                   ORDER BY line
@@ -691,7 +691,7 @@ module ActiveRecord
                                     NULL) AS limit,
                  DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
                  comments.comments as column_comment
-            FROM all_tab_cols#{db_link} cols, all_col_comments#{db_link} comments
+            FROM all_tab_cols cols, all_col_comments comments
            WHERE cols.owner      = '#{owner}'
              AND cols.table_name = #{quote(desc_table_name)}
              AND cols.hidden_column = 'NO'
@@ -785,7 +785,7 @@ module ActiveRecord
 
         seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence")
           select us.sequence_name
-          from all_sequences#{db_link} us
+          from all_sequences us
           where us.sequence_owner = '#{owner}'
           and us.sequence_name = upper(#{quote(default_sequence_name(desc_table_name))})
         SQL
@@ -793,7 +793,7 @@ module ActiveRecord
         # changed back from user_constraints to all_constraints for consistency
         pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key")
           SELECT cc.column_name
-            FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
+            FROM all_constraints c, all_cons_columns cc
            WHERE c.owner = '#{owner}'
              AND c.table_name = #{quote(desc_table_name)}
              AND c.constraint_type = 'P'
@@ -827,7 +827,7 @@ module ActiveRecord
 
         pks = select_values(<<-SQL.strip_heredoc, "Primary Keys")
           SELECT cc.column_name
-            FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
+            FROM all_constraints c, all_cons_columns cc
            WHERE c.owner = '#{owner}'
              AND c.table_name = '#{desc_table_name}'
              AND c.constraint_type = 'P'

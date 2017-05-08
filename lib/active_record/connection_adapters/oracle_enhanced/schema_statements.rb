@@ -197,7 +197,7 @@ module ActiveRecord
           end
           (owner, table_name, db_link) = @connection.describe(table_name)
           result = select_value(<<-SQL)
-            SELECT 1 FROM all_indexes#{db_link} i
+            SELECT 1 FROM all_indexes i
             WHERE i.owner = '#{owner}'
                AND i.table_owner = '#{owner}'
                AND i.table_name = '#{table_name}'
@@ -303,7 +303,7 @@ module ActiveRecord
         def table_comment(table_name) #:nodoc:
           (owner, table_name, db_link) = @connection.describe(table_name)
           select_value <<-SQL
-            SELECT comments FROM all_tab_comments#{db_link}
+            SELECT comments FROM all_tab_comments
             WHERE owner = '#{owner}'
               AND table_name = '#{table_name}'
           SQL
@@ -313,7 +313,7 @@ module ActiveRecord
           # TODO: it  does not exist in Abstract adapter
           (owner, table_name, db_link) = @connection.describe(table_name)
           select_value <<-SQL
-            SELECT comments FROM all_col_comments#{db_link}
+            SELECT comments FROM all_col_comments
             WHERE owner = '#{owner}'
               AND table_name = '#{table_name}'
               AND column_name = '#{column_name.upcase}'
@@ -347,8 +347,8 @@ module ActiveRecord
                   ,cc.column_name
                   ,c.constraint_name name
                   ,c.delete_rule
-              FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc,
-                   all_constraints#{db_link} r, all_cons_columns#{db_link} rc
+              FROM all_constraints c, all_cons_columns cc,
+                   all_constraints r, all_cons_columns rc
              WHERE c.owner = '#{owner}'
                AND c.table_name = q'[#{desc_table_name}]'
                AND c.constraint_type = 'R'
