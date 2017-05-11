@@ -1,3 +1,10 @@
+## 1.8.1 / 2017-05-11
+
+* Changes and bug fixes
+  * Address `undefined method `tablespace' for #<ActiveRecord::ConnectionAdapters::IndexDefinition [#1332, #1334, #1336]
+  * Rails 5.1.0.rcX is not supported anymore [#1311]
+  * Use Ubuntu 12.04 at Travis [#1324]
+
 ## 1.8.0 / 2017-04-27
 
 * Major enhancements
