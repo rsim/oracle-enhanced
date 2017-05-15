@@ -227,6 +227,7 @@ module ActiveRecord
         super(connection, logger, config)
         @statements = StatementPool.new(self.class.type_cast_config_to_integer(config[:statement_limit]))
         @enable_dbms_output = false
+        @visitor = Arel::Visitors::Oracle.new self
       end
 
       ADAPTER_NAME = "OracleEnhanced".freeze
