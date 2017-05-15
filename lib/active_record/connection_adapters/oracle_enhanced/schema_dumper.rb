@@ -80,6 +80,7 @@ module ActiveRecord #:nodoc:
           end
 
           def index_parts(index)
+            return super unless @connection.respond_to?(:temporary_table?)
             index_parts = super
             index_parts << "tablespace: #{index.tablespace.inspect}" if index.tablespace
             index_parts
