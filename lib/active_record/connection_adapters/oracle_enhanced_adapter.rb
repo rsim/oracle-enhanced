@@ -436,8 +436,13 @@ module ActiveRecord
         if do_not_prefetch.nil?
           owner, desc_table_name, db_link = @connection.describe(table_name)
           @@do_not_prefetch_primary_key[table_name] = do_not_prefetch =
-            !has_primary_key?(table_name, owner, desc_table_name, db_link) ||
-            has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
+            # Check if table is version-enabled with Workspace Manager
+            if table_exists?("#{table_name}_lt")
+              false
+            else
+              !has_primary_key?(table_name, owner, desc_table_name, db_link) ||
+              has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
+            end
         end
         !do_not_prefetch
       end
