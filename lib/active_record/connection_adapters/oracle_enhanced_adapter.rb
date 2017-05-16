@@ -724,6 +724,8 @@ module ActiveRecord
             row["data_default"] = nil if row["data_default"] =~ /^(null|empty_[bc]lob\(\))$/i
             # TODO: Needs better fix to fallback "N" to false
             row["data_default"] = false if (row["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings)
+            # TODO: Consider if `default_function` can be used
+            row["data_default"] = nil if (row["data_default"] =~ /ISEQ/)
           end
 
           type_metadata = fetch_type_metadata(row["sql_type"])
