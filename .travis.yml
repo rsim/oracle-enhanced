@@ -37,9 +37,5 @@ rvm:
   - jruby-9.1.9.0
   - jruby-head
 
-matrix:
-  allow_failures:
-    - rvm: ruby-head
-    - rvm: jruby-head
 notifications:
     email: false
