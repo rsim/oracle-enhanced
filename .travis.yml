@@ -23,6 +23,7 @@ before_install:
   - chmod +x .travis/setup_accounts.sh
 
 install:
+  - "gem install bundler"
   - .travis/oracle/download.sh
   - .travis/oracle/install.sh
   - .travis/setup_accounts.sh
