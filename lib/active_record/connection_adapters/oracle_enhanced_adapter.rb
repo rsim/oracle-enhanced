@@ -226,8 +226,12 @@ module ActiveRecord
       def initialize(connection, logger = nil, config = {}) # :nodoc:
         super(connection, logger, config)
         if @connection.database_version.to_s < [12, 2].to_s
-          raise "Your version of Oracle Database (#{@connection.database_version.first}.#{@connection.database_version.second}) is too old.
-          Active Record Oracle enhanced adapter 2 supports Oracle Database 12.2 or higher"
+          $stderr.puts <<-EOS.strip_heredoc
+            Your version of Oracle Database (#{@connection.database_version.first}.#{@connection.database_version.second}) is too old.
+            Active Record Oracle enhanced adapter 2 supports Oracle Database 12.2 or higher.
+          EOS
+
+          exit!
         end
         @statements = StatementPool.new(self.class.type_cast_config_to_integer(config[:statement_limit]))
         @enable_dbms_output = false
