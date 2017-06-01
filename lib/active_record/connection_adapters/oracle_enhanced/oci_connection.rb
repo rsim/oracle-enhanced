@@ -13,7 +13,11 @@ end
 required_oci8_version = [2, 2, 4]
 oci8_version_ints = OCI8::VERSION.scan(/\d+/).map { |s| s.to_i }
 if (oci8_version_ints <=> required_oci8_version) < 0
-  raise LoadError, "ERROR: ruby-oci8 version #{OCI8::VERSION} is too old. Please install ruby-oci8 version #{required_oci8_version.join('.')} or later."
+  $stderr.puts <<-EOS.strip_heredoc
+    "ERROR: ruby-oci8 version #{OCI8::VERSION} is too old. Please install ruby-oci8 version #{required_oci8_version.join('.')} or later."
+  EOS
+
+  exit!
 end
 
 module ActiveRecord
