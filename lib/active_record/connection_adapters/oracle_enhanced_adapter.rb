@@ -262,6 +262,7 @@ module ActiveRecord
       def supports_views?
         true
       end
+      alias ids_in_list_limit in_clause_length
 
       def supports_fetch_first_n_rows_and_offset?
         if !use_old_oracle_visitor && @connection.database_version.first >= 12
