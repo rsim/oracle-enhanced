@@ -62,7 +62,7 @@ module ActiveRecord
         # and pound sign (#). Database links can also contain periods (.) and
         # "at" signs (@). Oracle strongly discourages you from using $ and # in
         # nonquoted identifiers.
-        NONQUOTED_OBJECT_NAME   = /[A-Za-z][A-z0-9$#]{0,29}/
+        NONQUOTED_OBJECT_NAME   = /[A-Za-z][A-z0-9$#]{0,127}/
         NONQUOTED_DATABASE_LINK = /[A-Za-z][A-z0-9$#\.@]{0,127}/
         VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}(?:@#{NONQUOTED_DATABASE_LINK})?\Z/
 
