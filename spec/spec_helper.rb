@@ -177,4 +177,4 @@ DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] |
 # which will be used to set session time zone
 ENV["TZ"] ||= config["timezone"] || "Europe/Riga"
 
-# ActiveRecord::Base.logger = Logger.new(STDOUT)
+ActiveRecord::Base.logger = Logger.new(STDOUT)   
