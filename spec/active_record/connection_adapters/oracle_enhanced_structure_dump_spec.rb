@@ -243,6 +243,38 @@ describe "OracleEnhancedAdapter structure dump" do
     end
   end
 
+  describe "sequences" do
+    let(:sequence_name) { "test_sequence_a" }
+    before(:each) do
+      @conn.execute sql
+    end
+    after(:each) do
+      @conn.execute "drop SEQUENCE \"#{sequence_name}\""
+    end
+    subject do
+      ActiveRecord::Base.connection.structure_dump
+    end
+    context "default sequence" do
+      let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\"" }
+      it { is_expected.to_not match(%r{CREATE SEQUENCE \"#{sequence_name}" MAXVALUE \d+ MINVALUE \d+ NOORDER NOCYCLE}) }
+    end
+    context "noorder" do
+      let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\" NOORDER" }
+      it { is_expected.to include("NOORDER") }
+      it { is_expected.to_not include(" ORDER") }
+    end
+    context "order" do
+      let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\" ORDER" }
+      it { is_expected.to include(" ORDER") }
+      it { is_expected.to_not include("NOORDER") }
+    end
+    context "min max values" do
+      let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\" MINVALUE 7 MAXVALUE 444" }
+      it { is_expected.to include("MINVALUE 7") }
+      it { is_expected.to include("MAXVALUE 444") }
+    end
+  end
+
   describe "database structure dump extensions" do
     before(:all) do
       @conn.execute <<-SQL
