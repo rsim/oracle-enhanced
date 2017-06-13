@@ -5,8 +5,8 @@ module ActiveRecord #:nodoc:
       STATEMENT_TOKEN = "\n\n/\n\n"
 
       def structure_dump #:nodoc:
-        structure = select_values("SELECT sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |seq|
-          "CREATE SEQUENCE \"#{seq}\""
+        structure = select("SELECT sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |result|
+          "CREATE SEQUENCE #{quote_table_name(result["sequence_name"])} MINVALUE #{result["min_value"]} MAXVALUE #{result["max_value"]} INCREMENT BY #{result["increment_by"]} #{result["order_flag"] == 'Y' ? "ORDER" : "NOORDER"} #{result["cycle_flag"] == 'Y' ? "CYCLE" : "NOCYCLE"}"
         end
         select_values("SELECT table_name FROM all_tables t
                     WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
