@@ -641,6 +641,31 @@ development:
 
 UPGRADE
 ---------------
+### Upgrade Rails 5.0 or older version to Rails 5.1
+
+If your application gets `ORA-01000: maximum open cursors exceeded`
+after upgrading to Rails 5.1
+check these two values and configure `:statement_limit` value at database.yml
+is larger than `open_cursors` at Oracle database instance.
+
+* `open_cursors` value at Oracle database instance
+
+```sql
+SQL> select name,value from v$parameter where name = 'open_cursors';
+
+NAME
+--------------------------------------------------------------------------------
+VALUE
+--------------------------------------------------------------------------------
+open_cursors
+1200
+
+```
+
+* `:statement_limit` value at database.yml
+
+Since Oracle enhanced adapter 1.8.0 this default value changed from 250 to 1000.
+
 ### Upgrade Rails 4.2 or older version to Rails 5
 
 If your Oracle table columns have been created for Rails `:datetime` attributes in Rails 4.2 or earlier,
