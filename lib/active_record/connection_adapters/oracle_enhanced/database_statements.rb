@@ -217,6 +217,13 @@ module ActiveRecord
           end
         end
 
+        # fallback to non bulk fixture insert
+        def insert_fixtures(fixtures, table_name)
+          fixtures.each do |fixture|
+            insert_fixture(fixture, table_name)
+          end
+        end
+
         # Oracle Database does not support this feature
         # Refer https://community.oracle.com/ideas/13845 and consider to vote
         # if you need this feature.
