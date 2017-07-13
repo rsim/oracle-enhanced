@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhancedStructureDump #:nodoc:

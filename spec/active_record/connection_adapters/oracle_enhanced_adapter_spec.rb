@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 describe "OracleEnhancedAdapter establish connection" do
 
   it "should connect to database" do

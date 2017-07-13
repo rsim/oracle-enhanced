@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require "ruby-plsql"
 
 describe "OracleEnhancedAdapter custom methods for create, update and destroy" do

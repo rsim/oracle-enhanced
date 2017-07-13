@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 describe "OracleEnhancedAdapter dirty object tracking" do
   include SchemaSpecHelper
 

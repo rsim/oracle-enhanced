@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   include LoggerSpecHelper
 
