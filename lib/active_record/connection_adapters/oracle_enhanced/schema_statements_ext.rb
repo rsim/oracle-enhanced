@@ -32,7 +32,7 @@ module ActiveRecord
         #   add_synonym :employees, "hr.employees@dblink", :force => true
         #
         def add_synonym(name, table_name, options = {})
-          sql = "CREATE"
+          sql = "CREATE".dup
           if options[:force] == true
             sql << " OR REPLACE"
           end

@@ -87,7 +87,7 @@ module ActiveRecord
             create_index_column_trigger(table_name, index_name, options[:index_column], options[:index_column_trigger_on])
           end
 
-          sql = "CREATE INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)}"
+          sql = "CREATE INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)}".dup
           sql << " (#{quoted_column_name})"
           sql << " INDEXTYPE IS CTXSYS.CONTEXT"
           parameters = []
@@ -155,7 +155,7 @@ module ActiveRecord
             CREATE OR REPLACE PROCEDURE #{quote_table_name(procedure_name)}
               (p_rowid IN	      ROWID,
               p_clob	IN OUT NOCOPY CLOB) IS
-              -- add_context_index_parameters #{(column_names + select_queries).inspect}#{!options.empty? ? ', ' << options.inspect[1..-2] : ''}
+              -- add_context_index_parameters #{(column_names + select_queries).inspect}#{!options.empty? ? ', '.dup << options.inspect[1..-2] : ''}
               #{
               selected_columns.map do |cols|
                 cols.map do |col|
@@ -172,7 +172,7 @@ module ActiveRecord
                 #{
                 (column_names.map do |col|
                   col = col.to_s
-                  "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n" <<
+                  "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n".dup <<
                   "IF LENGTH(r1.#{col}) > 0 THEN\n" <<
                   "DBMS_LOB.WRITEAPPEND(p_clob, LENGTH(r1.#{col}), r1.#{col});\n" <<
                   "END IF;\n" <<
@@ -190,7 +190,7 @@ module ActiveRecord
                   "END LOOP;\n" <<
                   (cols.map do |col|
                     col = col.to_s
-                    "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n" <<
+                    "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n".dup <<
                     "IF LENGTH(l_#{col}) > 0 THEN\n" <<
                     "DBMS_LOB.WRITEAPPEND(p_clob, LENGTH(l_#{col}), l_#{col});\n" <<
                     "END IF;\n" <<
@@ -227,7 +227,7 @@ module ActiveRecord
 
           def create_storage_preference(storage_name, tablespace)
             drop_ctx_preference(storage_name)
-            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{storage_name}', 'BASIC_STORAGE');\n"
+            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{storage_name}', 'BASIC_STORAGE');\n".dup
             ["I_TABLE_CLAUSE", "K_TABLE_CLAUSE", "R_TABLE_CLAUSE",
             "N_TABLE_CLAUSE", "I_INDEX_CLAUSE", "P_TABLE_CLAUSE"].each do |clause|
               default_clause = case clause
@@ -243,7 +243,7 @@ module ActiveRecord
 
           def create_lexer_preference(lexer_name, lexer_type, options)
             drop_ctx_preference(lexer_name)
-            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{lexer_name}', '#{lexer_type}');\n"
+            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{lexer_name}', '#{lexer_type}');\n".dup
             options.each do |key, value|
               plsql_value = case value
                             when String; "'#{value}'"
@@ -260,7 +260,7 @@ module ActiveRecord
 
           def create_wordlist_preference(wordlist_name, wordlist_type, options)
             drop_ctx_preference(wordlist_name)
-            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{wordlist_name}', '#{wordlist_type}');\n"
+            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{wordlist_name}', '#{wordlist_type}');\n".dup
             options.each do |key, value|
               plsql_value = case value
                             when String; "'#{value}'"
