@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 describe "OracleEnhancedAdapter context index" do
   include SchemaSpecHelper
   include LoggerSpecHelper

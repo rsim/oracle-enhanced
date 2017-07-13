@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 describe "OracleEnhancedAdapter structure dump" do
   include LoggerSpecHelper
 
