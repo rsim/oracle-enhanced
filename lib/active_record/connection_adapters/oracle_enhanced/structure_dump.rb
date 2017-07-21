@@ -234,8 +234,8 @@ module ActiveRecord #:nodoc:
 
       def temp_table_drop #:nodoc:
         join_with_statement_token(select_values(
-                  "SELECT table_name FROM all_tables
-                    WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N' AND temporary = 'Y' ORDER BY 1").map do |table|
+          "SELECT table_name FROM all_tables
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N' AND temporary = 'Y' ORDER BY 1").map do |table|
           "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS"
         end)
       end
@@ -282,16 +282,16 @@ module ActiveRecord #:nodoc:
         def drop_sql_for_feature(type)
           short_type = type == "materialized view" ? "mview" : type
           join_with_statement_token(
-          select_values("SELECT #{short_type}_name FROM all_#{short_type.tableize} where owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
-            "DROP #{type.upcase} \"#{name}\""
-          end)
+            select_values("SELECT #{short_type}_name FROM all_#{short_type.tableize} where owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
+              "DROP #{type.upcase} \"#{name}\""
+            end)
         end
 
         def drop_sql_for_object(type)
           join_with_statement_token(
-          select_values("SELECT object_name FROM all_objects WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
-            "DROP #{type.upcase} \"#{name}\""
-          end)
+            select_values("SELECT object_name FROM all_objects WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
+              "DROP #{type.upcase} \"#{name}\""
+            end)
         end
 
         def join_with_statement_token(array)
