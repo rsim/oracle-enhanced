@@ -113,7 +113,7 @@ describe "OracleEnhancedAdapter dirty object tracking" do
     @conn = nil
     @connection = nil
     @employee = TestEmployee.create!(
-        comments: "initial"
+      comments: "initial"
     )
     expect(@employee.save!).to be_truthy
     @employee.reload
