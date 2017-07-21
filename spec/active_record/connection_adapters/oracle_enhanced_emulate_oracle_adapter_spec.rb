@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 describe "OracleEnhancedAdapter emulate OracleAdapter" do
 
   before(:all) do

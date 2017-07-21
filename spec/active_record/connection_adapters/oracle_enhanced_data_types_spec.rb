@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 describe "OracleEnhancedAdapter date type detection based on column names" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)

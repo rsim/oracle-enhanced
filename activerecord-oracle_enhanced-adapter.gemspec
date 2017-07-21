@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 version = File.read(File.expand_path("../VERSION", __FILE__)).strip
 
 Gem::Specification.new do |s|
