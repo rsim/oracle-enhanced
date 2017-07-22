@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# oracle_enhanced_adapter.rb -- ActiveRecord adapter for Oracle 8i, 9i, 10g, 11g
+# oracle_enhanced_adapter.rb -- ActiveRecord adapter for Oracle 10g, 11g and 12c
 #
 # Authors or original oracle_adapter: Graham Jenkins, Michael Schoen
 #
@@ -103,9 +103,7 @@ module ActiveRecord
     # Ruby 1.8/1.9 ruby-oci8 gem (which provides interface to Oracle OCI client)
     # or with JRuby and Oracle JDBC driver.
     #
-    # It should work with Oracle 9i, 10g and 11g databases.
-    # Limited set of functionality should work on Oracle 8i as well but several features
-    # rely on newer functionality in Oracle database.
+    # It should work with Oracle 10g, 11g and 12c databases.
     #
     # Usage notes:
     # * Key generation assumes a "${table_name}_seq" sequence is available
