@@ -901,7 +901,7 @@ module ActiveRecord
 
       protected
 
-        def initialize_type_map(m)
+        def initialize_type_map(m = type_map)
           super
           # oracle
           register_class_with_precision m, %r(WITH TIME ZONE)i,       ActiveRecord::OracleEnhanced::Type::TimestampTz
