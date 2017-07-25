@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
@@ -62,7 +64,8 @@ module ActiveRecord
         end
 
         def explain(arel, binds = [])
-          sql = "EXPLAIN PLAN FOR #{to_sql(arel, binds)}"
+          sql, binds = to_sql(arel, binds)
+          sql = "EXPLAIN PLAN FOR #{sql}"
           return if sql =~ /FROM all_/
           if ORACLE_ENHANCED_CONNECTION == :jdbc
             exec_query(sql, "EXPLAIN", binds)
@@ -82,7 +85,7 @@ module ActiveRecord
           super
         end
 
-        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [])
+        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil)
           pk = nil if id_value
           super
         end

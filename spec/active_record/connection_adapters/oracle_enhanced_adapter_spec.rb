@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 describe "OracleEnhancedAdapter establish connection" do
 
   it "should connect to database" do
@@ -473,7 +475,7 @@ describe "OracleEnhancedAdapter" do
 
     it "should clear older cursors when statement limit is reached" do
       pk = TestPost.columns_hash[TestPost.primary_key]
-      sub = Arel::Nodes::BindParam.new.to_sql
+      sub = Arel::Nodes::BindParam.new(nil).to_sql
       binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
 
       expect {
@@ -486,7 +488,7 @@ describe "OracleEnhancedAdapter" do
     it "should cache UPDATE statements with bind variables" do
       expect {
         pk = TestPost.columns_hash[TestPost.primary_key]
-        sub = Arel::Nodes::BindParam.new.to_sql
+        sub = Arel::Nodes::BindParam.new(nil).to_sql
         binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
         @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
       }.to change(@statements, :length).by(+1)

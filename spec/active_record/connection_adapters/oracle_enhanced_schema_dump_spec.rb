@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 describe "OracleEnhancedAdapter schema dump" do
   include SchemaSpecHelper
 

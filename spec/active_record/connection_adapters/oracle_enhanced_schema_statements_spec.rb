@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 describe "OracleEnhancedAdapter schema definition" do
   include SchemaSpecHelper
   include LoggerSpecHelper
@@ -1064,7 +1066,7 @@ end
     end
 
     before(:each) do
-      @conn.instance_variable_set :@would_execute_sql, @would_execute_sql = ""
+      @conn.instance_variable_set :@would_execute_sql, @would_execute_sql = "".dup
       class <<@conn
         def execute(sql, name = nil); @would_execute_sql << sql << ";\n"; end
       end

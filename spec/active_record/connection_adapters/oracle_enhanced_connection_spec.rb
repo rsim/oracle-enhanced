@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 describe "OracleEnhancedConnection" do
 
   describe "create connection" do

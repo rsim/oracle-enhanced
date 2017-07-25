@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
@@ -87,7 +89,7 @@ module ActiveRecord
         def _quote(value) #:nodoc:
           case value
           when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data then
-            "N" << "'#{quote_string(value.to_s)}'"
+            "N".dup << "'#{quote_string(value.to_s)}'"
           when ActiveModel::Type::Binary::Data then
             "empty_blob()"
           when ActiveRecord::OracleEnhanced::Type::Text::Data then

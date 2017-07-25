@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 describe "OracleEnhancedAdapter context index" do
   include SchemaSpecHelper
   include LoggerSpecHelper
@@ -424,7 +426,7 @@ describe "OracleEnhancedAdapter context index" do
             ], options
         end
         expect(standard_dump).to match(/add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{
-          options.inspect[1..-2].gsub(/[{}]/) { |s| '\\' << s }}$/)
+          options.inspect[1..-2].gsub(/[{}]/) { |s| '\\'.dup << s }}$/)
         schema_define { remove_context_index :posts, name: "xxx_post_and_comments_i" }
       end
 

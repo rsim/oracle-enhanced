@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
@@ -11,7 +13,7 @@ module ActiveRecord
         #   add_synonym :employees, "hr.employees@dblink", :force => true
         #
         def add_synonym(name, table_name, options = {})
-          sql = "CREATE"
+          sql = "CREATE".dup
           if options[:force] == true
             sql << " OR REPLACE"
           end
