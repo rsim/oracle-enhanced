@@ -569,6 +569,15 @@ module ActiveRecord
         select_values("SELECT LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')")
       end
 
+      # get synonyms for schema dump
+      def synonyms
+        select_all("SELECT synonym_name, table_owner, table_name, db_link
+                   FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'session_user')").collect do |row|
+          OracleEnhanced::SynonymDefinition.new(oracle_downcase(row["synonym_name"]),
+          oracle_downcase(row["table_owner"]), oracle_downcase(row["table_name"]), oracle_downcase(row["db_link"]))
+        end
+      end
+
       cattr_accessor :all_schema_indexes #:nodoc:
 
       # This method selects all indexes at once, and caches them in a class variable.
