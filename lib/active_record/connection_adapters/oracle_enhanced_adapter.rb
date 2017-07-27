@@ -527,7 +527,7 @@ module ActiveRecord
       end
 
       def data_sources
-        super
+        super | synonyms.map(&:name)
       end
 
       def table_exists?(table_name)

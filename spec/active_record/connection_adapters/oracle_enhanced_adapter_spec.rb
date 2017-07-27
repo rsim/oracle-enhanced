@@ -729,4 +729,29 @@ describe "OracleEnhancedAdapter" do
       expect(TestLog.count).to eq 2
     end
   end
+
+  describe "synonym_names" do
+    before(:all) do
+      schema_define do
+        create_table :test_comments, force: true do |t|
+          t.string :comment
+        end
+        add_synonym :synonym_comments, :test_comments
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_comments
+        remove_synonym :synonym_comments
+      end
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    it "includes synonyms in data_source" do
+      conn = ActiveRecord::Base.connection
+      expect(conn).to be_data_source_exist("synonym_comments")
+      expect(conn.data_sources).to include("synonym_comments")
+    end
+  end
 end
