@@ -35,7 +35,6 @@ require "active_record/connection_adapters/statement_pool"
 require "active_record/connection_adapters/oracle_enhanced/connection"
 require "active_record/connection_adapters/oracle_enhanced/database_statements"
 require "active_record/connection_adapters/oracle_enhanced/schema_statements"
-require "active_record/connection_adapters/oracle_enhanced/schema_statements_ext"
 require "active_record/connection_adapters/oracle_enhanced/column_dumper"
 require "active_record/connection_adapters/oracle_enhanced/context_index"
 require "active_record/connection_adapters/oracle_enhanced/column"
@@ -162,7 +161,6 @@ module ActiveRecord
       # TODO: Use relative
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseStatements
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::SchemaStatements
-      include ActiveRecord::ConnectionAdapters::OracleEnhanced::SchemaStatementsExt
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::ColumnDumper
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::ContextIndex
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting
@@ -1014,7 +1012,6 @@ end
 
 # Implementation of standard schema definition statements and extensions for schema definition
 require "active_record/connection_adapters/oracle_enhanced/schema_statements"
-require "active_record/connection_adapters/oracle_enhanced/schema_statements_ext"
 
 # Extensions for schema definition
 require "active_record/connection_adapters/oracle_enhanced/schema_definitions"
