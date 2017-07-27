@@ -215,6 +215,32 @@ module ActiveRecord
           self.all_schema_indexes = nil
         end
 
+        # Add synonym to existing table or view or sequence. Can be used to create local synonym to
+        # remote table in other schema or in other database
+        # Examples:
+        #
+        #   add_synonym :posts, "blog.posts"
+        #   add_synonym :posts_seq, "blog.posts_seq"
+        #   add_synonym :employees, "hr.employees@dblink", :force => true
+        #
+        def add_synonym(name, table_name, options = {})
+          sql = "CREATE".dup
+          if options[:force] == true
+            sql << " OR REPLACE"
+          end
+          sql << " SYNONYM #{quote_table_name(name)} FOR #{quote_table_name(table_name)}"
+          execute sql
+        end
+
+        # Remove existing synonym to table or view or sequence
+        # Example:
+        #
+        #   remove_synonym :posts, "blog.posts"
+        #
+        def remove_synonym(name)
+          execute "DROP SYNONYM #{quote_table_name(name)}"
+        end
+
         def add_reference(table_name, *args)
           ActiveRecord::ConnectionAdapters::OracleEnhanced::ReferenceDefinition.new(*args).add_to(update_table_definition(table_name, self))
         end
