@@ -23,8 +23,4 @@ module ActiveRecord #:nodoc:
       end
     end
   end
-
-  module ColumnDumper #:nodoc:
-    prepend ConnectionAdapters::OracleEnhanced::ColumnDumper
-  end
 end
