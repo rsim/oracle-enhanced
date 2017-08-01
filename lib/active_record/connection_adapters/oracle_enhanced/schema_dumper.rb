@@ -54,7 +54,7 @@ module ActiveRecord #:nodoc:
             end
           end
 
-          def indexes(table, stream)
+          def _indexes(table, stream)
             if (indexes = @connection.indexes(table)).any?
               add_index_statements = indexes.map do |index|
                 case index.type
@@ -157,7 +157,7 @@ module ActiveRecord #:nodoc:
               tbl.puts "  end"
               tbl.puts
 
-              indexes(table, tbl)
+              _indexes(table, tbl)
 
               tbl.rewind
               stream.print tbl.read
