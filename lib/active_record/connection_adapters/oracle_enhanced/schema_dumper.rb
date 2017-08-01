@@ -13,8 +13,6 @@ module ActiveRecord #:nodoc:
             sorted_tables.each do |tbl|
               # add table prefix or suffix for schema_migrations
               next if ignored? tbl
-              # change table name inspect method
-              tbl.extend TableInspect
               table(tbl, stream)
             end
             # following table definitions
@@ -51,10 +49,10 @@ module ActiveRecord #:nodoc:
                   statement_parts = []
                 when "CTXSYS.CONTEXT"
                   if index.statement_parameters
-                    statement_parts = [ ("add_context_index " + table.inspect) ]
+                    statement_parts = [ ("add_context_index " + remove_prefix_and_suffix(table).inspect) ]
                     statement_parts << index.statement_parameters
                   else
-                    statement_parts = [ ("add_context_index " + table.inspect) ]
+                    statement_parts = [ ("add_context_index " + remove_prefix_and_suffix(table).inspect) ]
                     statement_parts << index.columns.inspect
                     statement_parts << ("name: " + index.name.inspect)
                   end
@@ -102,7 +100,7 @@ module ActiveRecord #:nodoc:
                 pk = @connection.primary_key(table)
               end
 
-              tbl.print "  create_table #{table.inspect}"
+              tbl.print "  create_table #{remove_prefix_and_suffix(table).inspect}"
 
               # addition to make temporary option work
               tbl.print ", temporary: true" if @connection.temporary_table?(table)
@@ -159,27 +157,15 @@ module ActiveRecord #:nodoc:
           end
 
           def remove_prefix_and_suffix(table)
-            table.gsub(/^(#{ActiveRecord::Base.table_name_prefix})(.+)(#{ActiveRecord::Base.table_name_suffix})$/,  "\\2")
+            if table =~ /\A#{ActiveRecord::Base.table_name_prefix.to_s.gsub('$', '\$')}(.*)#{ActiveRecord::Base.table_name_suffix.to_s.gsub('$', '\$')}\Z/
+              "#{$1}"
+            else
+              table
+            end
           end
 
           def oracle_enhanced_adapter?
             @connection.adapter_name.include?("Oracle")
-          end
-
-          # remove table name prefix and suffix when doing #inspect (which is used in tables method)
-          module TableInspect #:nodoc:
-            def inspect
-              remove_prefix_and_suffix(self)
-            end
-
-            private
-              def remove_prefix_and_suffix(table_name)
-                if table_name =~ /\A#{ActiveRecord::Base.table_name_prefix.to_s.gsub('$', '\$')}(.*)#{ActiveRecord::Base.table_name_suffix.to_s.gsub('$', '\$')}\Z/
-                  "\"#{$1}\""
-                else
-                  "\"#{table_name}\""
-                end
-              end
           end
       end
     end
