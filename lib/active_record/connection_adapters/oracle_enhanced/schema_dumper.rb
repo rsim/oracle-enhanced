@@ -7,7 +7,7 @@ module ActiveRecord #:nodoc:
         private
 
           def tables(stream)
-            return super unless @connection.respond_to?(:materialized_views)
+            return super unless oracle_enhanced_adapter?
             # do not include materialized views in schema dump - they should be created separately after schema creation
             sorted_tables = (@connection.tables - @connection.materialized_views).sort
             sorted_tables.each do |tbl|
@@ -29,7 +29,7 @@ module ActiveRecord #:nodoc:
           end
 
           def synonyms(stream)
-            if @connection.respond_to?(:synonyms)
+            if oracle_enhanced_adapter?
               syns = @connection.synonyms
               syns.each do |syn|
                 next if ignored? syn.name
@@ -42,7 +42,7 @@ module ActiveRecord #:nodoc:
             end
           end
 
-          def indexes(table, stream)
+          def _indexes(table, stream)
             if (indexes = @connection.indexes(table)).any?
               add_index_statements = indexes.map do |index|
                 case index.type
@@ -82,14 +82,14 @@ module ActiveRecord #:nodoc:
           end
 
           def index_parts(index)
-            return super unless @connection.respond_to?(:temporary_table?)
+            return super unless oracle_enhanced_adapter?
             index_parts = super
             index_parts << "tablespace: #{index.tablespace.inspect}" if index.tablespace
             index_parts
           end
 
           def table(table, stream)
-            return super unless @connection.respond_to?(:temporary_table?)
+            return super unless oracle_enhanced_adapter?
             columns = @connection.columns(table)
             begin
               tbl = StringIO.new
@@ -145,7 +145,7 @@ module ActiveRecord #:nodoc:
               tbl.puts "  end"
               tbl.puts
 
-              indexes(table, tbl)
+              _indexes(table, tbl)
 
               tbl.rewind
               stream.print tbl.read
@@ -160,6 +160,10 @@ module ActiveRecord #:nodoc:
 
           def remove_prefix_and_suffix(table)
             table.gsub(/^(#{ActiveRecord::Base.table_name_prefix})(.+)(#{ActiveRecord::Base.table_name_suffix})$/,  "\\2")
+          end
+
+          def oracle_enhanced_adapter?
+            @connection.adapter_name.include?("Oracle")
           end
 
           # remove table name prefix and suffix when doing #inspect (which is used in tables method)
