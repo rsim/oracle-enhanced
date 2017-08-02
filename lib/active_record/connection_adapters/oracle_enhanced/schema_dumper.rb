@@ -169,11 +169,7 @@ module ActiveRecord #:nodoc:
           end
 
           def remove_prefix_and_suffix(table)
-            if table =~ /\A#{ActiveRecord::Base.table_name_prefix.to_s.gsub('$', '\$')}(.*)#{ActiveRecord::Base.table_name_suffix.to_s.gsub('$', '\$')}\Z/
-              "#{$1}"
-            else
-              table
-            end
+            table.gsub(/^(#{@options[:table_name_prefix].to_s.gsub('$', '\$')})(.+)(#{@options[:table_name_suffix].to_s.gsub('$', '\$')})$/,  "\\2")
           end
 
           def oracle_enhanced_adapter?
