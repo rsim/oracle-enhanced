@@ -169,7 +169,9 @@ module ActiveRecord #:nodoc:
           end
 
           def remove_prefix_and_suffix(table)
-            table.gsub(/^(#{@options[:table_name_prefix].to_s.gsub('$', '\$')})(.+)(#{@options[:table_name_suffix].to_s.gsub('$', '\$')})$/,  "\\2")
+            prefix = Regexp.escape(@options[:table_name_prefix].to_s)
+            suffix = Regexp.escape(@options[:table_name_suffix].to_s)
+            table.sub(/\A(?:#{prefix})(.+)(?:#{suffix})\z/, "\\1")
           end
 
           def oracle_enhanced_adapter?
