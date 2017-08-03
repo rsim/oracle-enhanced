@@ -146,7 +146,7 @@ module ActiveRecord #:nodoc:
 
               timestamp_attributes_for_update_in_model.each do |column|
                 column = column.to_s
-                next if attribute_changed?(column)
+                next if will_save_change_to_attribute?(column)
                 write_attribute(column, current_time)
               end
             end
