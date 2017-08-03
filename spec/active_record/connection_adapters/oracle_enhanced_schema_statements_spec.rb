@@ -759,13 +759,15 @@ end
         create_table :test_posts, force: true
       end
 
+      default_tablespace = @conn.default_tablespace
+
       index_name = @conn.select_value(
         "SELECT index_name FROM all_constraints
             WHERE table_name = 'TEST_POSTS'
             AND constraint_type = 'P'
             AND owner = SYS_CONTEXT('userenv', 'current_schema')")
 
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'")).to eq("USERS")
+      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'").downcase).to eq(default_tablespace)
     end
 
     it "should use non default tablespace for primary key" do
