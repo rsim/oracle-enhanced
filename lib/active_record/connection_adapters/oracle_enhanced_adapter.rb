@@ -74,7 +74,7 @@ module ActiveRecord
 
       def record_changed_lobs
         @changed_lob_columns = self.class.lob_columns.select do |col|
-          self.attribute_changed?(col.name) && !self.class.readonly_attributes.to_a.include?(col.name)
+          self.will_save_change_to_attribute?(col.name) && !self.class.readonly_attributes.to_a.include?(col.name)
         end
       end
   end
