@@ -64,8 +64,8 @@ module ActiveRecord
         # and pound sign (#). Database links can also contain periods (.) and
         # "at" signs (@). Oracle strongly discourages you from using $ and # in
         # nonquoted identifiers.
-        NONQUOTED_OBJECT_NAME   = /[A-Za-z][A-z0-9$#]{0,29}/
-        NONQUOTED_DATABASE_LINK = /[A-Za-z][A-z0-9$#\.@]{0,127}/
+        NONQUOTED_OBJECT_NAME   = /[[:alpha:]][\w$#]{0,29}/
+        NONQUOTED_DATABASE_LINK = /[[:alpha:]][\w$#\.@]{0,127}/
         VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}(?:@#{NONQUOTED_DATABASE_LINK})?\Z/
 
         # unescaped table name should start with letter and
@@ -73,8 +73,13 @@ module ActiveRecord
         # can be prefixed with schema name
         # CamelCase table names should be quoted
         def self.valid_table_name?(name) #:nodoc:
-          name = name.to_s
-          name =~ VALID_TABLE_NAME && !(name =~ /[A-Z]/ && name =~ /[a-z]/) ? true : false
+          object_name = name.to_s
+          !!(object_name =~ VALID_TABLE_NAME && !mixed_case?(object_name))
+        end
+
+        def self.mixed_case?(name)
+          object_name = name.include?(".") ? name.split(".").second : name
+          !!(object_name =~ /[A-Z]/ && object_name =~ /[a-z]/)
         end
 
         def quote_table_name(name) #:nodoc:

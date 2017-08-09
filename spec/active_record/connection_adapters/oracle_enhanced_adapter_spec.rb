@@ -247,6 +247,10 @@ describe "OracleEnhancedAdapter" do
       expect(@adapter.valid_table_name?("abc_123.def_456")).to be_truthy
     end
 
+    it "should be valid with schema name and object name in different case" do
+      expect(@adapter.valid_table_name?("TEST_DBA.def_456")).to be_truthy
+    end
+
     it "should be valid with $ in name" do
       expect(@adapter.valid_table_name?("sys.v$session")).to be_truthy
     end

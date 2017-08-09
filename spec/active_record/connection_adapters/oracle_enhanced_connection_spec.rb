@@ -389,6 +389,10 @@ describe "OracleEnhancedConnection" do
       expect(@conn.describe("sys.dual")).to eq(["SYS", "DUAL"])
     end
 
+    it "should describe table in other schema if the schema and table are in different cases" do
+      expect(@conn.describe("SYS.dual")).to eq(["SYS", "DUAL"])
+    end
+
     it "should describe existing view" do
       @conn.exec "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
       @conn.exec "CREATE VIEW test_employees_v AS SELECT * FROM test_employees" rescue nil
