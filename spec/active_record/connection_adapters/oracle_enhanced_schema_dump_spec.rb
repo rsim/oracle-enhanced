@@ -73,52 +73,6 @@ describe "OracleEnhancedAdapter schema dump" do
       expect(standard_dump).to match(/t.string \"special_c\", default: "\\n"/)
     end
   end
-  describe "table prefixes and suffixes" do
-    after(:each) do
-      drop_test_posts_table
-      @conn.drop_table(ActiveRecord::SchemaMigration.table_name) if @conn.table_exists?(ActiveRecord::SchemaMigration.table_name)
-      @conn.drop_table(ActiveRecord::InternalMetadata.table_name) if @conn.table_exists?(ActiveRecord::InternalMetadata.table_name)
-      ActiveRecord::Base.table_name_prefix = ""
-      ActiveRecord::Base.table_name_suffix = ""
-    end
-
-    it "should remove table prefix in schema dump" do
-      ActiveRecord::Base.table_name_prefix = "xxx_"
-      create_test_posts_table
-      expect(standard_dump).to match(/create_table "test_posts"/m)
-    end
-
-    it "should remove table prefix with $ sign in schema dump" do
-      ActiveRecord::Base.table_name_prefix = "xxx$"
-      create_test_posts_table
-      expect(standard_dump).to match(/create_table "test_posts"/m)
-    end
-
-    it "should remove table suffix in schema dump" do
-      ActiveRecord::Base.table_name_suffix = "_xxx"
-      create_test_posts_table
-      expect(standard_dump).to match(/create_table "test_posts"/m)
-    end
-
-    it "should remove table suffix with $ sign in schema dump" do
-      ActiveRecord::Base.table_name_suffix = "$xxx"
-      create_test_posts_table
-      expect(standard_dump).to match(/create_table "test_posts"/m)
-    end
-
-    it "should not include schema_migrations table with prefix in schema dump" do
-      ActiveRecord::Base.table_name_prefix = "xxx_"
-      ActiveRecord::SchemaMigration.create_table
-      expect(standard_dump).not_to match(/schema_migrations/)
-    end
-
-    it "should not include schema_migrations table with suffix in schema dump" do
-      ActiveRecord::Base.table_name_suffix = "_xxx"
-      ActiveRecord::SchemaMigration.create_table
-      expect(standard_dump).not_to match(/schema_migrations/)
-    end
-
-  end
 
   describe "table with non-default primary key" do
     after(:each) do
