@@ -168,12 +168,6 @@ module ActiveRecord #:nodoc:
             stream
           end
 
-          def remove_prefix_and_suffix(table)
-            prefix = Regexp.escape(@options[:table_name_prefix].to_s)
-            suffix = Regexp.escape(@options[:table_name_suffix].to_s)
-            table.sub(/\A(?:#{prefix})(.+)(?:#{suffix})\z/, "\\1")
-          end
-
           def oracle_enhanced_adapter?
             @connection.adapter_name.include?("Oracle")
           end
