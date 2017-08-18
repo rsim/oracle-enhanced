@@ -64,8 +64,7 @@ module ActiveRecord
         end
 
         def explain(arel, binds = [])
-          sql, binds = to_sql(arel, binds)
-          sql = "EXPLAIN PLAN FOR #{sql}"
+          sql = "EXPLAIN PLAN FOR #{to_sql(arel, binds)}"
           return if sql =~ /FROM all_/
           if ORACLE_ENHANCED_CONNECTION == :jdbc
             exec_query(sql, "EXPLAIN", binds)
