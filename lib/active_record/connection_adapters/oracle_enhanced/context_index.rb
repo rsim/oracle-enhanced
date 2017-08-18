@@ -25,6 +25,7 @@ module ActiveRecord
         # * <tt>:lexer</tt> - Lexer options (e.g. <tt>:type => 'BASIC_LEXER', :base_letter => true</tt>).
         # * <tt>:wordlist</tt> - Wordlist options (e.g. <tt>:type => 'BASIC_WORDLIST', :prefix_index => true</tt>).
         # * <tt>:transactional</tt> - When +true+, the CONTAINS operator will process inserted and updated rows.
+        # * <tt>:stoplist</tt> - Name of stoplist to use
         #
         # ===== Examples
         #
@@ -73,6 +74,9 @@ module ActiveRecord
         # ====== Creating transactional index (will reindex changed rows when querying)
         #  add_context_index :posts, :title, :transactional => true
         #
+        # ====== Creating index using stoplist
+        #  add_context_index :posts, :title, :stoplist => 'CTXSYS.MY_STOPLIST'
+
         def add_context_index(table_name, column_name, options = {})
           self.all_schema_indexes = nil
           column_names = Array(column_name)
@@ -118,6 +122,10 @@ module ActiveRecord
             create_wordlist_preference(wordlist_name, wordlist_type, wordlist_options)
             parameters << "WORDLIST #{wordlist_name}"
           end
+          if options[:stoplist]
+            parameters << "STOPLIST #{options[:stoplist]}"
+          end
+
           if options[:transactional]
             parameters << "TRANSACTIONAL"
           end
