@@ -99,8 +99,6 @@ module ActiveRecord
             "empty_blob()"
           when ActiveRecord::OracleEnhanced::Type::Text::Data then
             "empty_clob()"
-          when ActiveRecord::OracleEnhanced::Type::NationalText::Data then
-            "empty_clob()"
           else
             super
           end
@@ -136,8 +134,6 @@ module ActiveRecord
               value
             end
           when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data
-            value.to_s
-          when ActiveRecord::OracleEnhanced::Type::NationalText::Data
             value.to_s
           else
             super
