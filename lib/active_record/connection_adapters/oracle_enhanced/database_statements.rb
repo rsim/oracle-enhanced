@@ -85,7 +85,7 @@ module ActiveRecord
           super
         end
 
-        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil)
+        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [])
           pk = nil if id_value
           super
         end
