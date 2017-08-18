@@ -338,7 +338,6 @@ module ActiveRecord
       NATIVE_DATABASE_TYPES = {
         primary_key: "NUMBER(38) NOT NULL PRIMARY KEY",
         string: { name: "VARCHAR2", limit: 255 },
-        nstring: { name: "NVARCHAR2", limit: 255 },
         text: { name: "CLOB" },
         ntext: { name: "NCLOB" },
         integer: { name: "NUMBER", limit: 38 },
@@ -1068,9 +1067,6 @@ require "active_record/oracle_enhanced/type/national_character_string"
 
 # Add OracleEnhanced::Type::Text
 require "active_record/oracle_enhanced/type/text"
-
-# Add OracleEnhanced::Type::NationalText
-require "active_record/oracle_enhanced/type/national_text"
 
 # Add OracleEnhanced::Type::Boolean
 require "active_record/oracle_enhanced/type/boolean"
