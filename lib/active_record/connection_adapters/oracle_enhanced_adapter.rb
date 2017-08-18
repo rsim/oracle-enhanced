@@ -339,6 +339,7 @@ module ActiveRecord
         primary_key: "NUMBER(38) NOT NULL PRIMARY KEY",
         string: { name: "VARCHAR2", limit: 255 },
         text: { name: "CLOB" },
+        ntext: { name: "NCLOB" },
         integer: { name: "NUMBER", limit: 38 },
         float: { name: "BINARY_FLOAT" },
         decimal: { name: "DECIMAL" },
@@ -916,6 +917,7 @@ module ActiveRecord
           register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
           register_class_with_limit m, %r(char)i,           ActiveRecord::OracleEnhanced::Type::String
           register_class_with_limit m, %r(clob)i,           ActiveRecord::OracleEnhanced::Type::Text
+          register_class_with_limit m, %r(clob)i,           ActiveRecord::OracleEnhanced::Type::NationalText
 
           m.register_type "NCHAR", ActiveRecord::OracleEnhanced::Type::NationalCharacterString.new
           m.alias_type %r(NVARCHAR2)i,    "NCHAR"
@@ -1066,6 +1068,9 @@ require "active_record/oracle_enhanced/type/national_character_string"
 
 # Add OracleEnhanced::Type::Text
 require "active_record/oracle_enhanced/type/text"
+
+# Add OracleEnhanced::Type::NationalText
+require "active_record/oracle_enhanced/type/national_text"
 
 # Add OracleEnhanced::Type::Boolean
 require "active_record/oracle_enhanced/type/boolean"
