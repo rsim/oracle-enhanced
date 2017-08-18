@@ -917,7 +917,7 @@ module ActiveRecord
           register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
           register_class_with_limit m, %r(char)i,           ActiveRecord::OracleEnhanced::Type::String
           register_class_with_limit m, %r(clob)i,           ActiveRecord::OracleEnhanced::Type::Text
-          register_class_with_limit m, %r(nclob)i,           ActiveRecord::OracleEnhanced::Type::NationalText
+          register_class_with_limit m, %r(clob)i,           ActiveRecord::OracleEnhanced::Type::NationalText
 
           m.register_type "NCHAR", ActiveRecord::OracleEnhanced::Type::NationalCharacterString.new
           m.alias_type %r(NVARCHAR2)i,    "NCHAR"
