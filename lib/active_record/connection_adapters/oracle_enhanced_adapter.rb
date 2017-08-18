@@ -1070,6 +1070,9 @@ require "active_record/oracle_enhanced/type/national_character_string"
 # Add OracleEnhanced::Type::Text
 require "active_record/oracle_enhanced/type/text"
 
+# Add OracleEnhanced::Type::NationalText
+require "active_record/oracle_enhanced/type/national_text"
+
 # Add OracleEnhanced::Type::Boolean
 require "active_record/oracle_enhanced/type/boolean"
 
