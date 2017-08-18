@@ -906,8 +906,8 @@ describe "OracleEnhancedAdapter handling of NCLOB columns" do
       add_column :test_serialize_employees, :comments, :ntext
     end
 
-    @nchar_data = '日オメヌ'
-    @nchar_data2 = '使セ転'
+    @nchar_data = "日オメヌ"
+    @nchar_data2 = "使セ転"
 
     class ::TestEmployee < ActiveRecord::Base; end
     class ::Test2Employee < ActiveRecord::Base
@@ -954,15 +954,15 @@ describe "OracleEnhancedAdapter handling of NCLOB columns" do
   it "should respect attr_readonly setting for NCLOB column" do
     @employee = TestEmployeeReadOnlyNClob.create!(
       first_name: "First",
-      comments: '日オメヌロ'
+      comments: "日オメヌロ"
     )
     expect(@employee).to be_valid
     @employee.reload
-    expect(@employee.comments).to eq('日オメヌロ')
+    expect(@employee.comments).to eq("日オメヌロ")
     @employee.comments = "勢はう"
     expect(@employee.save).to eq(true)
     @employee.reload
-    expect(@employee.comments).to eq('日オメヌロ')
+    expect(@employee.comments).to eq("日オメヌロ")
   end
 
   it "should work for serialized readonly NCLOB columns", serialized: true do
