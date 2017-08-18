@@ -843,6 +843,20 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     expect(@employee.comments).to eq(@char_data)
   end
 
+   it "queries on clob/:text field contents" do
+    @employee = TestEmployee.create!(
+      :first_name => "First",
+      :comments => "initial"
+    )
+
+    # fails
+    expect(TestEmployee.where(Arel::Table.new(:test_employees)[:comments].matches("%initial%")).first.comments).to eq(@employee.comments)
+    expect(TestEmployee.where(comments: 'initial').first.comments).to eq(@employee.comments)
+    # works
+    expect(TestEmployee.where("comments LIKE '%initial%'").first.comments).to eq(@employee.comments)
+    expect(TestEmployee.where("dbms_lob.compare(comments, 'initial') = 0").first.comments).to eq(@employee.comments)
+  end
+
   it "should store serializable ruby data structures" do
     ruby_data1 = { "arbitrary1" => ["ruby", :data, 123] }
     ruby_data2 = { "arbitrary2" => ["ruby", :data, 123] }
