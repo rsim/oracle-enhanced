@@ -137,6 +137,8 @@ module ActiveRecord
             end
           when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data
             value.to_s
+          when ActiveRecord::OracleEnhanced::Type::NationalText::Data
+            value
           else
             super
           end
