@@ -166,7 +166,7 @@ module ActiveRecord #:nodoc:
           def prepare_column_options(column)
             spec = super
 
-            if supports_virtual_columns? && column.virtual?
+            if @connection.supports_virtual_columns? && column.virtual?
               spec[:as] = column.virtual_column_data_default
               spec = { type: schema_type(column).inspect }.merge!(spec) unless column.type == :decimal
             end
