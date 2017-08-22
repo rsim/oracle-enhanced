@@ -459,6 +459,10 @@ module ActiveRecord
           ActiveRecord::ConnectionAdapters::OracleEnhanced::Table.new(table_name, base)
         end
 
+        def create_schema_dumper(options)
+          OracleEnhanced::SchemaDumper.create(self, options)
+        end
+
         private
 
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
