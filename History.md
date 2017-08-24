@@ -10,7 +10,7 @@
   * Bump ruby versions [#1346]
   * rubocop namespace changes from `Style` to `Layout` [#1347, #1351]
 
-* Changes and bug fixes
+* Known issues
   * No changes since 1.8.0.rc3
 
 ## 1.8.1 / 2017-05-11
