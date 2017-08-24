@@ -97,6 +97,7 @@ module ActiveRecord
           type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds) do
+            cached = false
             returning_id_col = returning_id_index = nil
             if without_prepared_statement?(binds)
               cursor = @connection.prepare(sql)
@@ -115,6 +116,7 @@ module ActiveRecord
                 cursor.bind_returning_param(returning_id_index, Integer) if ORACLE_ENHANCED_CONNECTION == :jdbc
               end
 
+              cached = true
             end
 
             cursor.exec_update
@@ -124,6 +126,7 @@ module ActiveRecord
               returning_id = cursor.get_returning_param(returning_id_index, Integer).to_i
               rows << [returning_id]
             end
+            cursor.close unless cached
             ActiveRecord::Result.new(returning_id_col || [], rows)
           end
         end
