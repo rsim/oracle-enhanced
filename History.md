@@ -1,3 +1,18 @@
+## 1.8.2 / 2017-08-24
+
+* Changes and bug fixes
+  * Fix cursor leak when using activerecord-import gem [#1409, #1433]
+  * Mention new statement_limit default [#1364, #1365]
+  * Add upgrade section for `:statement_limit` value at Rails 5.1 [#1362, #1363]
+  * Set `disk_asynch_io` to `false` [#1413, #1414]
+  * Update README.md [#1367 #1368]
+  * CI against JRuby 9.1.12.0 [#1359, #1360]
+  * Bump ruby versions [#1346]
+  * rubocop namespace changes from `Style` to `Layout` [#1347, #1351]
+
+* Changes and bug fixes
+  * No changes since 1.8.0.rc3
+
 ## 1.8.1 / 2017-05-11
 
 * Changes and bug fixes
