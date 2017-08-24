@@ -3,11 +3,10 @@
 module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhanced #:nodoc:
-      module SchemaDumper #:nodoc:
+      class SchemaDumper < ConnectionAdapters::SchemaDumper #:nodoc:
         private
 
           def tables(stream)
-            return super unless oracle_enhanced_adapter?
             # do not include materialized views in schema dump - they should be created separately after schema creation
             sorted_tables = (@connection.tables - @connection.materialized_views).sort
             sorted_tables.each do |tbl|
@@ -29,7 +28,7 @@ module ActiveRecord #:nodoc:
           end
 
           def primary_key_trigger(table_name, stream)
-            if oracle_enhanced_adapter? && @connection.has_primary_key_trigger?(table_name)
+            if @connection.has_primary_key_trigger?(table_name)
               pk, _pk_seq = @connection.pk_and_sequence_for(table_name)
               stream.print "  add_primary_key_trigger #{table_name.inspect}"
               stream.print ", primary_key: \"#{pk}\"" if pk != "id"
@@ -38,18 +37,16 @@ module ActiveRecord #:nodoc:
           end
 
           def synonyms(stream)
-            if oracle_enhanced_adapter?
-              syns = @connection.synonyms
-              syns.each do |syn|
-                next if ignored? syn.name
-                table_name = syn.table_name
-                table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
-                table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
-                stream.print "  add_synonym #{syn.name.inspect}, #{table_name.inspect}, force: true"
-                stream.puts
-              end
-              stream.puts unless syns.empty?
+            syns = @connection.synonyms
+            syns.each do |syn|
+              next if ignored? syn.name
+              table_name = syn.table_name
+              table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
+              table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
+              stream.print "  add_synonym #{syn.name.inspect}, #{table_name.inspect}, force: true"
+              stream.puts
             end
+            stream.puts unless syns.empty?
           end
 
           def _indexes(table, stream)
@@ -92,14 +89,12 @@ module ActiveRecord #:nodoc:
           end
 
           def index_parts(index)
-            return super unless oracle_enhanced_adapter?
             index_parts = super
             index_parts << "tablespace: #{index.tablespace.inspect}" if index.tablespace
             index_parts
           end
 
           def table(table, stream)
-            return super unless oracle_enhanced_adapter?
             columns = @connection.columns(table)
             begin
               tbl = StringIO.new
@@ -121,7 +116,7 @@ module ActiveRecord #:nodoc:
               when String
                 tbl.print ", primary_key: #{pk.inspect}" unless pk == "id"
                 pkcol = columns.detect { |c| c.name == pk }
-                pkcolspec = @connection.column_spec_for_primary_key(pkcol)
+                pkcolspec = column_spec_for_primary_key(pkcol)
                 if pkcolspec.present?
                   tbl.print ", #{format_colspec(pkcolspec)}"
                 end
@@ -144,7 +139,7 @@ module ActiveRecord #:nodoc:
               columns.each do |column|
                 raise StandardError, "Unknown type '#{column.sql_type}' for column '#{column.name}'" unless @connection.valid_type?(column.type)
                 next if column.name == pk
-                type, colspec = @connection.column_spec(column)
+                type, colspec = column_spec(column)
                 tbl.print "    t.#{type} #{column.name.inspect}"
                 tbl.print ", #{format_colspec(colspec)}" if colspec.present?
                 tbl.puts
@@ -168,14 +163,21 @@ module ActiveRecord #:nodoc:
             stream
           end
 
-          def oracle_enhanced_adapter?
-            @connection.adapter_name.include?("Oracle")
+          def prepare_column_options(column)
+            spec = super
+
+            if @connection.supports_virtual_columns? && column.virtual?
+              spec[:as] = column.virtual_column_data_default
+              spec = { type: schema_type(column).inspect }.merge!(spec) unless column.type == :decimal
+            end
+
+            spec
+          end
+
+          def default_primary_key?(column)
+            schema_type(column) == :integer
           end
       end
     end
-  end
-
-  class SchemaDumper #:nodoc:
-    prepend ConnectionAdapters::OracleEnhanced::SchemaDumper
   end
 end

@@ -34,9 +34,11 @@ require "active_record/connection_adapters/abstract_adapter"
 require "active_record/connection_adapters/statement_pool"
 require "active_record/connection_adapters/oracle_enhanced/connection"
 require "active_record/connection_adapters/oracle_enhanced/database_statements"
+require "active_record/connection_adapters/oracle_enhanced/schema_creation"
+require "active_record/connection_adapters/oracle_enhanced/schema_definitions"
+require "active_record/connection_adapters/oracle_enhanced/schema_dumper"
 require "active_record/connection_adapters/oracle_enhanced/schema_statements"
 require "active_record/connection_adapters/oracle_enhanced/schema_statements_ext"
-require "active_record/connection_adapters/oracle_enhanced/column_dumper"
 require "active_record/connection_adapters/oracle_enhanced/context_index"
 require "active_record/connection_adapters/oracle_enhanced/column"
 require "active_record/connection_adapters/oracle_enhanced/quoting"
@@ -163,7 +165,6 @@ module ActiveRecord
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseStatements
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::SchemaStatements
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::SchemaStatementsExt
-      include ActiveRecord::ConnectionAdapters::OracleEnhanced::ColumnDumper
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::ContextIndex
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseLimits
@@ -1021,19 +1022,6 @@ module ActiveRecord
   end
 end
 
-# Implementation of standard schema definition statements and extensions for schema definition
-require "active_record/connection_adapters/oracle_enhanced/schema_statements"
-require "active_record/connection_adapters/oracle_enhanced/schema_statements_ext"
-
-# Extensions for schema definition
-require "active_record/connection_adapters/oracle_enhanced/schema_definitions"
-
-# Extensions for context index definition
-require "active_record/connection_adapters/oracle_enhanced/context_index"
-
-# Patches and enhancements for schema dumper
-require "active_record/connection_adapters/oracle_enhanced/schema_dumper"
-
 # Implementation of structure dump
 require "active_record/connection_adapters/oracle_enhanced/structure_dump"
 
@@ -1042,15 +1030,6 @@ require "active_record/connection_adapters/oracle_enhanced/version"
 module ActiveRecord
   autoload :OracleEnhancedProcedures, "active_record/connection_adapters/oracle_enhanced/procedures"
 end
-
-# Patches and enhancements for column dumper
-require "active_record/connection_adapters/oracle_enhanced/column_dumper"
-
-# Moved SchemaCreation class
-require "active_record/connection_adapters/oracle_enhanced/schema_creation"
-
-# Moved DatabaseStetements
-require "active_record/connection_adapters/oracle_enhanced/database_statements"
 
 # Add Type:Raw
 require "active_record/oracle_enhanced/type/raw"
