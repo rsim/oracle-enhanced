@@ -128,9 +128,9 @@ module ActiveRecord #:nodoc:
 
               tbl.print ", force: :cascade"
 
-              table_comments = @connection.table_comment(table)
-              unless table_comments.blank?
-                tbl.print ", comment: #{table_comments.inspect}"
+              table_options = @connection.table_options(table)
+              if table_options.present?
+                tbl.print ", #{format_options(table_options)}"
               end
 
               tbl.puts " do |t|"
