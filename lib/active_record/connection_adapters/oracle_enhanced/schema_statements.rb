@@ -357,6 +357,12 @@ module ActiveRecord
           SQL
         end
 
+        def table_options(table_name) # :nodoc:
+          if comment = table_comment(table_name)
+            { comment: comment }
+          end
+        end
+
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
           (owner, table_name, db_link) = @connection.describe(table_name)
