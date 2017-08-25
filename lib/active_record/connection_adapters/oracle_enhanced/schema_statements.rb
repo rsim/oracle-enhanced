@@ -337,6 +337,12 @@ module ActiveRecord
           SQL
         end
 
+        def table_options(table_name) # :nodoc:
+          if comment = table_comment(table_name)
+            { comment: comment }
+          end
+        end
+
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
           (owner, table_name) = @connection.describe(table_name)
@@ -437,6 +443,10 @@ module ActiveRecord
 
         def update_table_definition(table_name, base)
           ActiveRecord::ConnectionAdapters::OracleEnhanced::Table.new(table_name, base)
+        end
+
+        def create_schema_dumper(options)
+          OracleEnhanced::SchemaDumper.create(self, options)
         end
 
         private
