@@ -159,8 +159,6 @@ module ActiveRecord #:nodoc:
               stream.puts "#   #{e.message}"
               stream.puts
             end
-
-            stream
           end
 
           def prepare_column_options(column)
