@@ -356,6 +356,8 @@ module ActiveRecord
             @raw_statement.setBlob(position, value)
           when Java::OracleSql::CLOB
             @raw_statement.setClob(position, value)
+          when Java::OracleSql::NCLOB
+            @raw_statement.setClob(position, value)
           when ActiveRecord::OracleEnhanced::Type::Raw
             @raw_statement.setString(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))
           when String
@@ -530,6 +532,8 @@ module ActiveRecord
             ts.nanos / 1000)
         when :CLOB
           get_lob_value ? lob_to_ruby_value(rset.getClob(i)) : rset.getClob(i)
+        when :NCLOB
+          get_lob_value ? lob_to_ruby_value(rset.getClob(i)) : rset.getClob(i)
         when :BLOB
           get_lob_value ? lob_to_ruby_value(rset.getBlob(i)) : rset.getBlob(i)
         when :RAW
@@ -545,6 +549,12 @@ module ActiveRecord
         def lob_to_ruby_value(val)
           case val
           when ::Java::OracleSql::CLOB
+            if val.isEmptyLob
+              nil
+            else
+              val.getSubString(1, val.length)
+            end
+          when ::Java::OracleSql::NCLOB
             if val.isEmptyLob
               nil
             else

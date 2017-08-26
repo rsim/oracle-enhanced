@@ -14,6 +14,10 @@ module ActiveRecord
             clob = Java::OracleSql::CLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::CLOB::DURATION_SESSION)
             clob.setString(1, value.to_s)
             clob
+          when ActiveRecord::OracleEnhanced::Type::NationalCharacterText::Data
+            clob = Java::OracleSql::NCLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::NCLOB::DURATION_SESSION)
+            clob.setString(1, value.to_s)
+            clob
           else
             super
           end
