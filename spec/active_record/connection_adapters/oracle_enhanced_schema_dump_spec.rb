@@ -86,6 +86,26 @@ describe "OracleEnhancedAdapter schema dump" do
 
   end
 
+  describe "table with ntext columns" do
+    before :each do
+      schema_define do
+        create_table "test_ntexts", force: true do |t|
+          t.ntext :ntext_column
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table "test_ntexts"
+      end
+    end
+
+    it "should be able to dump ntext columns" do
+      expect(standard_dump).to match(/t.ntext \"ntext_column\"/)
+    end
+  end
+
   describe "table with primary key trigger" do
 
     after(:each) do

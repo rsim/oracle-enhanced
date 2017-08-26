@@ -713,28 +713,50 @@ end
     end
     it "should use default tablespace for clobs" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:nclob] = nil
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:blob] = nil
       schema_define do
         create_table :test_posts, force: true do |t|
           t.text :test_clob
+          t.ntext :test_nclob
           t.binary :test_blob
         end
       end
       expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_NCLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+    end
+
+    it "should use default tablespace for nclobs" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:nclob] = DATABASE_NON_DEFAULT_TABLESPACE
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = nil
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:blob] = nil
+      schema_define do
+        create_table :test_posts, force: true do |t|
+          t.text :test_clob
+          t.ntext :test_nclob
+          t.binary :test_blob
+        end
+      end
+      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_NCLOB'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
       expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
     it "should use default tablespace for blobs" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:blob] = DATABASE_NON_DEFAULT_TABLESPACE
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = nil
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:nclob] = nil
       schema_define do
         create_table :test_posts, force: true do |t|
           t.text :test_clob
+          t.ntext :test_nclob
           t.binary :test_blob
         end
       end
       expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
       expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_NCLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
     after do
@@ -988,12 +1010,14 @@ end
     before(:all) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:clob)
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:nclob)
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:blob)
     end
 
     after(:all) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:clob)
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:nclob)
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:blob)
     end
 
@@ -1034,6 +1058,14 @@ end
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
       schema_define do
         add_column :test_posts, :body, :text
+      end
+      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'BODY'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+    end
+
+    it "should add lob column with non_default tablespace" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:nclob] = DATABASE_NON_DEFAULT_TABLESPACE
+      schema_define do
+        add_column :test_posts, :body, :ntext
       end
       expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'BODY'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end

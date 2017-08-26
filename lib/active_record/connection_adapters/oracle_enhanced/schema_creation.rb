@@ -7,7 +7,7 @@ module ActiveRecord
         private
 
           def visit_ColumnDefinition(o)
-            if [:blob, :clob].include?(sql_type = type_to_sql(o.type,  o.options).downcase.to_sym)
+            if [:blob, :clob, :nclob].include?(sql_type = type_to_sql(o.type,  o.options).downcase.to_sym)
               if (tablespace = default_tablespace_for(sql_type))
                 @lob_tablespaces ||= {}
                 @lob_tablespaces[o.name] = tablespace
@@ -49,9 +49,11 @@ module ActiveRecord
           def add_column_options!(sql, options)
             type = options[:type] || ((column = options[:column]) && column.type)
             type = type && type.to_sym
-            # handle case of defaults for CLOB columns, which would otherwise get "quoted" incorrectly
+            # handle case of defaults for CLOB/NCLOB columns, which would otherwise get "quoted" incorrectly
             if options_include_default?(options)
               if type == :text
+                sql << " DEFAULT #{@conn.quote(options[:default])}"
+              elsif type == :ntext
                 sql << " DEFAULT #{@conn.quote(options[:default])}"
               else
                 sql << " DEFAULT #{quote_default_expression(options[:default], options[:column])}"
