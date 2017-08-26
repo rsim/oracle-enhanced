@@ -18,6 +18,12 @@ module ActiveRecord
             ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
             ora_value.size = 0 if value.to_s == ""
             ora_value
+          when ActiveRecord::OracleEnhanced::Type::NationalCharacterText::Data
+            lob_value = value.to_s == "" ? " " : value.to_s
+            bind_type = OCI8::NCLOB
+            ora_value = bind_type.new(@connection.raw_oci_connection, lob_value)
+            ora_value.size = 0 if value.to_s == ""
+            ora_value
           else
             super
           end

@@ -152,6 +152,18 @@ describe "OracleEnhancedAdapter structure dump" do
       expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/)
     end
 
+    it "should dump NCLOB columns" do
+      @conn.execute <<-SQL
+        CREATE TABLE bars (
+          id          NUMBER(38,0) NOT NULL,
+          nclob_text  NCLOB,
+          PRIMARY KEY (ID)
+        )
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump
+      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"NCLOB_TEXT\" NCLOB/)
+    end
+
     it "should dump unique keys" do
       @conn.execute <<-SQL
         ALTER TABLE test_posts

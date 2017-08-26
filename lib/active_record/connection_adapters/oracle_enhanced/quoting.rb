@@ -99,6 +99,8 @@ module ActiveRecord
             "empty_blob()"
           when ActiveRecord::OracleEnhanced::Type::Text::Data then
             "empty_clob()"
+          when ActiveRecord::OracleEnhanced::Type::NationalCharacterText::Data then
+            "empty_nclob()"
           else
             super
           end

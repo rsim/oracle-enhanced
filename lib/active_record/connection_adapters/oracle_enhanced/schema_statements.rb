@@ -356,8 +356,8 @@ module ActiveRecord
 
         # Maps logical Rails types to Oracle-specific data types.
         def type_to_sql(type, limit: nil, precision: nil, scale: nil, **) #:nodoc:
-          # Ignore options for :text and :binary columns
-          return super(type) if ["text", "binary"].include?(type.to_s)
+          # Ignore options for :text, :ntext and :binary columns
+          return super(type) if ["text", "ntext", "binary"].include?(type.to_s)
 
           super
         end
@@ -454,7 +454,7 @@ module ActiveRecord
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
             tablespace_sql = "".dup
             if tablespace = (tablespace_option || default_tablespace_for(obj_type))
-              if [:blob, :clob].include?(obj_type.to_sym)
+              if [:blob, :clob, :nclob].include?(obj_type.to_sym)
                 tablespace_sql << " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
               else
                 tablespace_sql << " TABLESPACE #{tablespace}"
