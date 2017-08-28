@@ -60,7 +60,7 @@ module ActiveRecord
 
         # convert Date value to Time for :datetime columns
         def self.string_to_time(string) #:nodoc:
-          return string.to_time if string.is_a?(Date) && !OracleEnhancedAdapter.emulate_dates
+          return string.to_time if string.is_a?(Date)
           super
         end
 
