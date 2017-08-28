@@ -766,7 +766,7 @@ module ActiveRecord
       end
 
       def new_column(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual = false, returning_id = false, comment = nil) # :nodoc:
-        OracleEnhancedColumn.new(name, default, sql_type_metadata, null, table_name, virtual, returning_id, comment)
+        OracleEnhanced::Column.new(name, default, sql_type_metadata, null, table_name, virtual, returning_id, comment)
       end
 
       # used just in tests to clear column cache
