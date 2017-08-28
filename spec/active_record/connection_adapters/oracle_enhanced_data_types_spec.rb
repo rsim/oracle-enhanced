@@ -84,7 +84,7 @@ describe "OracleEnhancedAdapter date and datetime type detection based on attrib
   end
 end
 
-describe "OracleEnhancedAdapter integer type detection based on column names" do
+describe "OracleEnhancedAdapter integer type detection based on attribute settings" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
@@ -141,12 +141,12 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       @employee2.reload
     end
 
-    it "should return BigDecimal value from NUMBER column if emulate_integers_by_column_name is false" do
+    it "should return BigDecimal value from NUMBER column if by default" do
       create_employee2
       expect(@employee2.job_id.class).to eq(BigDecimal)
     end
 
-    it "should return Integer value from NUMBER column if column name contains 'id' and emulate_integers_by_column_name is true" do
+    it "should return Integer value from NUMBER column if attribute is set to integer" do
       class ::Test2Employee < ActiveRecord::Base
         attribute :job_id, :integer
       end
@@ -159,42 +159,19 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       expect(@employee2.job_id_before_type_cast).to be_a(Integer)
     end
 
-    it "should return BigDecimal value from NUMBER column if column name does not contain 'id' and emulate_integers_by_column_name is true" do
-      create_employee2
-      expect(@employee2.salary.class).to eq(BigDecimal)
-    end
-
-    it "should return Integer value from NUMBER column if column specified in set_integer_columns" do
-      class ::Test2Employee < ActiveRecord::Base
-        attribute :job_id, :integer
-      end
-      create_employee2
-      expect(@employee2.job_id).to be_a(Integer)
-    end
-
     it "should return Boolean value from NUMBER(1) column if emulate booleans is used" do
       create_employee2
       expect(@employee2.is_manager.class).to eq(TrueClass)
     end
 
-    it "should return Integer value from NUMBER(1) column if emulate booleans is not used" do
+    it "should return Integer value from NUMBER(1) column if attribute is set to integer" do
       class ::Test2Employee < ActiveRecord::Base
         attribute :is_manager, :integer
       end
       create_employee2
       expect(@employee2.is_manager).to be_a(Integer)
     end
-
-    it "should return Integer value from NUMBER(1) column if column specified in set_integer_columns" do
-      class ::Test2Employee < ActiveRecord::Base
-        attribute :is_manager, :integer
-      end
-      create_employee2
-      expect(@employee2.is_manager).to be_a(Integer)
-    end
-
   end
-
 end
 
 describe "OracleEnhancedAdapter boolean type detection based on string column types and names" do
