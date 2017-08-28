@@ -164,7 +164,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       expect(@employee2.salary.class).to eq(BigDecimal)
     end
 
-    it "should return Integer value from NUMBER column if column specified in set_integer_columns" do
+    it "should return Integer value from NUMBER column if attribute is set to :integer" do
       class ::Test2Employee < ActiveRecord::Base
         attribute :job_id, :integer
       end
@@ -185,7 +185,7 @@ describe "OracleEnhancedAdapter integer type detection based on column names" do
       expect(@employee2.is_manager).to be_a(Integer)
     end
 
-    it "should return Integer value from NUMBER(1) column if column specified in set_integer_columns" do
+    it "should return Integer value from NUMBER(1) column if attribute is set to :integer" do
       class ::Test2Employee < ActiveRecord::Base
         attribute :is_manager, :integer
       end
