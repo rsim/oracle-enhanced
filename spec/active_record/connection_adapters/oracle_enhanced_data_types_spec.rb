@@ -335,7 +335,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       expect(@employee3.first_name.class).to eq(String)
     end
 
-    it "should return boolean value from VARCHAR2 boolean column if column specified in set_boolean_columns" do
+    it "should return boolean value from VARCHAR2 boolean column if attribute is set to :boolean" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
       class ::Test3Employee < ActiveRecord::Base
         attribute :test_boolean, :boolean
