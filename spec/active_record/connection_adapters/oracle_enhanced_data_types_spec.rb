@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter date type detection based on column names" do
+describe "OracleEnhancedAdapter date and datetime type detection based on attribute settings" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
@@ -54,41 +54,22 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
     end
 
     after(:each) do
-      # @employee.destroy if @employee
       Object.send(:remove_const, "TestEmployee")
       ActiveRecord::Base.clear_cache!
     end
 
-    it "should return Time value from DATE column if emulate_dates_by_column_name is false" do
-      class ::TestEmployee < ActiveRecord::Base
-        attribute :hire_date, :datetime
-      end
-      create_test_employee
-      expect(@employee.hire_date.class).to eq(Time)
-    end
-
-    it "should return Date value from DATE column if column name contains 'date' and emulate_dates_by_column_name is true" do
+    it "should return Date value from DATE column by default" do
       create_test_employee
       expect(@employee.hire_date.class).to eq(Date)
     end
 
-    it "should return Date value from DATE column with old date value if column name contains 'date' and emulate_dates_by_column_name is true" do
+    it "should return Date value from DATE column with old date value by default" do
       create_test_employee(today: Date.new(1900, 1, 1))
       expect(@employee.hire_date.class).to eq(Date)
     end
 
-    it "should return Time value from DATE column if column name does not contain 'date' and emulate_dates_by_column_name is true" do
+    it "should return Time value from DATE column if attribute is set to :datetime" do
       class ::TestEmployee < ActiveRecord::Base
-        # set_date_columns :created_at
-        attribute :created_at, :datetime
-      end
-      create_test_employee
-      expect(@employee.created_at.class).to eq(Time)
-    end
-
-    it "should return Time value from DATE column if emulate_dates_by_column_name is true but column is defined as datetime" do
-      class ::TestEmployee < ActiveRecord::Base
-        # set_datetime_columns :hire_date
         attribute :hire_date, :datetime
       end
       create_test_employee
@@ -100,19 +81,7 @@ describe "OracleEnhancedAdapter date type detection based on column names" do
       expect(@employee.hire_date.class).to eq(Time)
       expect(@employee.hire_date).to eq(@now)
     end
-
-    it "should guess Date or Time value if emulate_dates is true" do
-      class ::TestEmployee < ActiveRecord::Base
-        attribute :hire_date, :date
-        attribute :created_at, :datetime
-      end
-      create_test_employee
-      expect(@employee.hire_date.class).to eq(Date)
-      expect(@employee.created_at.class).to eq(Time)
-    end
-
   end
-
 end
 
 describe "OracleEnhancedAdapter integer type detection based on column names" do
