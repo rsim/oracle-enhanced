@@ -72,7 +72,7 @@ module ActiveRecord
           create_sequence = create_sequence || td.create_sequence
 
           if options[:force] && data_source_exists?(table_name)
-            drop_table(table_name, options)
+            drop_table(table_name, options.merge({ if_exists: true }))
           end
 
           execute schema_creation.accept td
