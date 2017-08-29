@@ -246,7 +246,7 @@ describe "OracleEnhancedAdapter structure dump" do
   end
   describe "temporary tables" do
     after(:all) do
-      @conn.drop_table :test_comments rescue nil
+      @conn.drop_table :test_comments, if_exists: true
     end
     it "should dump correctly" do
       @conn.create_table :test_comments, temporary: true, id: false do |t|

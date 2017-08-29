@@ -328,8 +328,8 @@ describe "OracleEnhancedAdapter" do
     after(:each) do
       ActiveRecord::Schema.define do
         suppress_messages do
-          drop_table "warehouse-things" rescue nil
-          drop_table "CamelCase" rescue nil
+          drop_table "warehouse-things", if_exists: true
+          drop_table "CamelCase", if_exists: true
         end
       end
       Object.send(:remove_const, "WarehouseThing") rescue nil
@@ -392,7 +392,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     after(:each) do
-      @conn.drop_table :foos rescue nil
+      @conn.drop_table :foos, if_exists: true
     end
     it "should create ok" do
       @conn.create_table :foos, temporary: true, id: false do |t|
@@ -457,7 +457,7 @@ describe "OracleEnhancedAdapter" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(statement_limit: 3))
       @conn = ActiveRecord::Base.connection
       schema_define do
-        drop_table :test_posts rescue nil
+        drop_table :test_posts, if_exists: true
         create_table :test_posts
       end
       class ::TestPost < ActiveRecord::Base
@@ -510,7 +510,7 @@ describe "OracleEnhancedAdapter" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
       schema_define do
-        drop_table :test_posts rescue nil
+        drop_table :test_posts, if_exists: true
         create_table :test_posts
       end
       class ::TestPost < ActiveRecord::Base

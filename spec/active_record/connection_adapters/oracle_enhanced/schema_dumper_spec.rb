@@ -131,8 +131,8 @@ describe "OracleEnhancedAdapter schema dump" do
     end
     after(:all) do
       schema_define do
-        drop_table :test_comments rescue nil
-        drop_table :test_posts rescue nil
+        drop_table :test_comments, if_exists: true
+        drop_table :test_posts, if_exists: true
       end
     end
 
@@ -486,7 +486,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     after do
       schema_define do
-        drop_table :test_comments rescue nil
+        drop_table :test_comments, if_exists: true
       end
 
       drop_test_posts_table

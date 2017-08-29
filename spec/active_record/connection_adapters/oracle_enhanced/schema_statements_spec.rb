@@ -448,8 +448,8 @@ end
       Object.send(:remove_const, "TestPost")
       Object.send(:remove_const, "TestComment")
       schema_define do
-        drop_table :test_comments rescue nil
-        drop_table :test_posts rescue nil
+        drop_table :test_comments, if_exists: true
+        drop_table :test_posts, if_exists: true
       end
       ActiveRecord::Base.table_name_prefix = ""
       ActiveRecord::Base.table_name_suffix = ""
@@ -595,7 +595,7 @@ end
     after do
       Object.send(:remove_const, "TestPost")
       schema_define do
-        drop_table :test_posts rescue nil
+        drop_table :test_posts, if_exists: true
       end
     end
   end
@@ -641,7 +641,7 @@ end
     after do
       Object.send(:remove_const, "TestPost")
       schema_define do
-        drop_table :test_posts rescue nil
+        drop_table :test_posts, if_exists: true
       end
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:index] = nil
     end
@@ -666,8 +666,8 @@ end
       Object.send(:remove_const, "TestPost")
       Object.send(:remove_const, "TestComment")
       schema_define do
-        drop_table :test_comments rescue nil
-        drop_table :test_posts rescue nil
+        drop_table :test_comments, if_exists: true
+        drop_table :test_posts, if_exists: true
       end
       ActiveRecord::Base.clear_cache!
     end
@@ -751,9 +751,9 @@ end
 
     after(:each) do
       schema_define do
-        drop_table "test_Mixed_Comments" rescue nil
-        drop_table :test_comments rescue nil
-        drop_table :test_posts rescue nil
+        drop_table "test_Mixed_Comments", if_exists: true
+        drop_table :test_comments, if_exists: true
+        drop_table :test_posts, if_exists: true
       end
     end
 
@@ -1131,7 +1131,7 @@ end
 
     describe "creating a table with a tablespace defaults set" do
       after(:each) do
-        @conn.drop_table :tablespace_tests rescue nil
+        @conn.drop_table :tablespace_tests, if_exists: true
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:table)
       end
       it "should use correct tablespace" do
@@ -1145,7 +1145,7 @@ end
 
     describe "creating an index-organized table" do
       after(:each) do
-        @conn.drop_table :tablespace_tests rescue nil
+        @conn.drop_table :tablespace_tests, if_exists: true
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:table)
       end
       it "should use correct tablespace" do
