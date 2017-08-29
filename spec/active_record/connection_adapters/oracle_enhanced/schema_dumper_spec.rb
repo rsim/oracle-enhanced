@@ -2,6 +2,7 @@
 
 describe "OracleEnhancedAdapter schema dump" do
   include SchemaSpecHelper
+  include SchemaDumpingHelper
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -70,7 +71,8 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should be able to dump default values using special characters" do
-      expect(standard_dump).to match(/t.string \"special_c\", default: "\\n"/)
+      output = dump_table_schema "test_defaults"
+      expect(output).to match(/t.string \"special_c\", default: "\\n"/)
     end
   end
 
@@ -81,7 +83,8 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should include non-default primary key in schema dump" do
       create_test_posts_table(primary_key: "post_id")
-      expect(standard_dump).to match(/create_table "test_posts", primary_key: "post_id"/)
+      output = dump_table_schema "test_posts"
+      expect(output).to match(/create_table "test_posts", primary_key: "post_id"/)
     end
 
   end
@@ -102,7 +105,8 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should be able to dump ntext columns" do
-      expect(standard_dump).to match(/t.ntext \"ntext_column\"/)
+      output = dump_table_schema "test_ntexts"
+      expect(output).to match(/t.ntext \"ntext_column\"/)
     end
   end
 
@@ -136,21 +140,24 @@ describe "OracleEnhancedAdapter schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts"/)
+      output = dump_table_schema "test_comments"
+      expect(output).to match(/add_foreign_key "test_comments", "test_posts"/)
     end
 
     it "should include foreign key with delete dependency in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts, on_delete: :cascade
       end
-      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", on_delete: :cascade/)
+      output = dump_table_schema "test_comments"
+      expect(output).to match(/add_foreign_key "test_comments", "test_posts", on_delete: :cascade/)
     end
 
     it "should include foreign key with nullify dependency in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts, on_delete: :nullify
       end
-      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", on_delete: :nullify/)
+      output = dump_table_schema "test_comments"
+      expect(output).to match(/add_foreign_key "test_comments", "test_posts", on_delete: :nullify/)
     end
 
     it "should not include foreign keys on ignored table names in schema dump" do
@@ -207,7 +214,8 @@ describe "OracleEnhancedAdapter schema dump" do
         ADD CONSTRAINT TEST_COMMENTS_BAZ_ID_FK FOREIGN KEY (baz_id) REFERENCES test_posts(baz_id)
       SQL
 
-      expect(standard_dump).to match(/add_foreign_key "test_comments", "test_posts", column: "baz_id", primary_key: "baz_id", name: "test_comments_baz_id_fk"/)
+      output = dump_table_schema "test_comments"
+      expect(output).to match(/add_foreign_key "test_comments", "test_posts", column: "baz_id", primary_key: "baz_id", name: "test_comments_baz_id_fk"/)
     end
 
   end
@@ -263,7 +271,8 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should include temporary options" do
       create_test_posts_table(temporary: true)
-      expect(standard_dump).to match(/create_table "test_posts", temporary: true/)
+      output = dump_table_schema "test_posts"
+      expect(output).to match(/create_table "test_posts", temporary: true/)
     end
   end
 
@@ -274,20 +283,23 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should not specify default tablespace in add index" do
       create_test_posts_table
-      expect(standard_dump).to match(/t\.index \["title"\], name: "index_test_posts_on_title"$/)
+      output = dump_table_schema "test_posts"
+      expect(output).to match(/t\.index \["title"\], name: "index_test_posts_on_title"$/)
     end
 
     it "should specify non-default tablespace in add index" do
       tablespace_name = @conn.default_tablespace
       allow(@conn).to receive(:default_tablespace).and_return("dummy")
       create_test_posts_table
-      expect(standard_dump).to match(/t\.index \["title"\], name: "index_test_posts_on_title", tablespace: "#{tablespace_name}"$/)
+      output = dump_table_schema "test_posts"
+      expect(output).to match(/t\.index \["title"\], name: "index_test_posts_on_title", tablespace: "#{tablespace_name}"$/)
     end
 
     it "should create and dump function-based indexes" do
       create_test_posts_table
       @conn.add_index :test_posts, "NVL(created_at, updated_at)", name: "index_test_posts_cr_upd_at"
-      expect(standard_dump).to match(/t\.index \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], name: "index_test_posts_cr_upd_at"$/)
+      output = dump_table_schema "test_posts"
+      expect(output).to match(/t\.index \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], name: "index_test_posts_cr_upd_at"$/)
     end
 
   end
@@ -339,12 +351,13 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should dump correctly" do
-      expect(standard_dump).to match(/t\.virtual "full_name",(\s*)type: :string,(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\""/)
-      expect(standard_dump).to match(/t\.virtual "short_name",(\s*)type: :string,(\s*)limit: 300,(\s*)as:(.*)/)
-      expect(standard_dump).to match(/t\.virtual "full_name_length",(\s*)type: :integer,(\s*)precision: 38,(\s*)as:(.*)/)
-      expect(standard_dump).to match(/t\.virtual "name_ratio",(\s*)as:(.*)\"$/) # no :type
-      expect(standard_dump).to match(/t\.virtual "abbrev_name",(\s*)type: :string,(\s*)limit: 100,(\s*)as:(.*)/)
-      expect(standard_dump).to match(/t\.virtual "field_with_leading_space",(\s*)type: :string,(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '"/)
+      output = dump_table_schema "test_names"
+      expect(output).to match(/t\.virtual "full_name",(\s*)type: :string,(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\""/)
+      expect(output).to match(/t\.virtual "short_name",(\s*)type: :string,(\s*)limit: 300,(\s*)as:(.*)/)
+      expect(output).to match(/t\.virtual "full_name_length",(\s*)type: :integer,(\s*)precision: 38,(\s*)as:(.*)/)
+      expect(output).to match(/t\.virtual "name_ratio",(\s*)as:(.*)\"$/) # no :type
+      expect(output).to match(/t\.virtual "abbrev_name",(\s*)type: :string,(\s*)limit: 100,(\s*)as:(.*)/)
+      expect(output).to match(/t\.virtual "field_with_leading_space",(\s*)type: :string,(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '"/)
     end
 
     context "with column cache" do
@@ -384,8 +397,9 @@ describe "OracleEnhancedAdapter schema dump" do
         end
       end
       it "should dump correctly" do
-        expect(standard_dump).not_to match(/t\.index .+FIRST_NAME.+$/)
-        expect(standard_dump).to     match(/t\.index .+field_with_leading_space.+$/)
+        output = dump_table_schema "test_names"
+        expect(output).not_to match(/t\.index .+FIRST_NAME.+$/)
+        expect(output).to     match(/t\.index .+field_with_leading_space.+$/)
       end
     end
   end
@@ -406,7 +420,8 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should dump float type correctly" do
-      expect(standard_dump).to match(/t\.float "hourly_rate"$/)
+      output = dump_table_schema "test_floats"
+      expect(output).to match(/t\.float "hourly_rate"$/)
     end
   end
 
@@ -426,7 +441,8 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should dump table comments" do
-      expect(standard_dump).to match(/comment: "this is a \\"table comment\\"!"/)
+      output = dump_table_schema "test_table_comments"
+      expect(output).to match(/comment: "this is a \\"table comment\\"!"/)
     end
   end
 
@@ -446,7 +462,8 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     it "should dump column comments" do
-      expect(standard_dump).to match(/comment: "this is a \\"column comment\\"!"/)
+      output = dump_table_schema "test_column_comments"
+      expect(output).to match(/comment: "this is a \\"column comment\\"!"/)
     end
   end
 

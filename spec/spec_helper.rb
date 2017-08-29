@@ -117,6 +117,18 @@ module SchemaSpecHelper
   end
 end
 
+module SchemaDumpingHelper
+  def dump_table_schema(table, connection = ActiveRecord::Base.connection)
+    old_ignore_tables = ActiveRecord::SchemaDumper.ignore_tables
+    ActiveRecord::SchemaDumper.ignore_tables = connection.data_sources - [table]
+    stream = StringIO.new
+    ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
+    stream.string
+  ensure
+    ActiveRecord::SchemaDumper.ignore_tables = old_ignore_tables
+  end
+end
+
 DATABASE_NAME         = config["database"]["name"]         || ENV["DATABASE_NAME"]         || "orcl"
 DATABASE_HOST         = config["database"]["host"]         || ENV["DATABASE_HOST"]         || "127.0.0.1"
 DATABASE_PORT         = config["database"]["port"]         || ENV["DATABASE_PORT"]         || 1521
