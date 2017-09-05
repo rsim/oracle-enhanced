@@ -2,7 +2,7 @@
 
 require "ruby-plsql"
 
-describe "OracleEnhancedAdapter custom methods for create, update and destroy" do
+xdescribe "OracleEnhancedAdapter custom methods for create, update and destroy" do
   include LoggerSpecHelper
   include SchemaSpecHelper
 
