@@ -10,7 +10,7 @@ module ActiveRecord
           when :oci
             OracleEnhanced::OCIConnection.new(config)
           when :jdbc
-            OracleEnhancedJDBCConnection.new(config)
+            OracleEnhanced::JDBCConnection.new(config)
           else
             nil
           end
