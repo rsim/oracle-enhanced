@@ -8,7 +8,7 @@ module ActiveRecord
         def self.create(config)
           case ORACLE_ENHANCED_CONNECTION
           when :oci
-            OracleEnhancedOCIConnection.new(config)
+            OracleEnhanced::OCIConnection.new(config)
           when :jdbc
             OracleEnhancedJDBCConnection.new(config)
           else
