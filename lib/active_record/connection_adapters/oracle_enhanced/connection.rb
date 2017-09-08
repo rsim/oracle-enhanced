@@ -105,8 +105,8 @@ module ActiveRecord
       def database_version
         raise NoMethodError, "Not implemented for this raw driver"
       end
-    class ConnectionException < StandardError #:nodoc:
-    end
+      class ConnectionException < StandardError #:nodoc:
+      end
     end
   end
 end
