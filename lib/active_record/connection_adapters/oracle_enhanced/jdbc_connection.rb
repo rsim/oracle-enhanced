@@ -211,7 +211,7 @@ module ActiveRecord
       rescue NativeException => e
         @active = false
         if e.message =~ /^java\.sql\.SQL(Recoverable)?Exception/
-          raise OracleEnhancedConnectionException, e.message
+          raise OracleEnhanced::ConnectionException, e.message
         else
           raise
         end
@@ -226,7 +226,7 @@ module ActiveRecord
         rescue NativeException => e
           @active = false
           if e.message =~ /^java\.sql\.SQL(Recoverable)?Exception/
-            raise OracleEnhancedConnectionException, e.message
+            raise OracleEnhanced::ConnectionException, e.message
           else
             raise
           end

@@ -21,7 +21,7 @@ end
 module ActiveRecord
   module ConnectionAdapters
     # OCI database interface for MRI
-    class OracleEnhancedOCIConnection < OracleEnhancedConnection #:nodoc:
+    class OracleEnhancedOCIConnection < OracleEnhanced::Connection #:nodoc:
       def initialize(config)
         @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
         # default schema owner
@@ -75,7 +75,7 @@ module ActiveRecord
       def ping
         @raw_connection.ping
       rescue OCIException => e
-        raise OracleEnhancedConnectionException, e.message
+        raise OracleEnhanced::ConnectionException, e.message
       end
 
       def active?
@@ -85,7 +85,7 @@ module ActiveRecord
       def reset!
         @raw_connection.reset!
       rescue OCIException => e
-        raise OracleEnhancedConnectionException, e.message
+        raise OracleEnhanced::ConnectionException, e.message
       end
 
       def exec(sql, *bindvars, &block)
@@ -216,7 +216,7 @@ module ActiveRecord
         @raw_connection.describe(quoted_name)
       rescue OCIException => e
         if e.code == 4043
-          raise OracleEnhancedConnectionException, %Q{"DESC #{name}" failed; does it exist?}
+          raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?}
         else
           # fall back to SELECT which can handle synonyms to database links
           super
