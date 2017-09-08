@@ -80,22 +80,22 @@ module ActiveRecord
 
       # Returns a record hash with the column names as keys and column values
       # as values.
-      def select_one(sql)
-        result = select(sql)
+      def select_one(arel, name = nil, binds = [])
+        result = select(arel)
         result.first if result
       end
 
       # Returns a single value from a record
-      def select_value(sql)
-        if result = select_one(sql)
+      def select_value(arel, name = nil, binds = [])
+        if result = select_one(arel)
           result.values.first
         end
       end
 
       # Returns an array of the values of the first column in a select:
       #   select_values("SELECT id FROM companies LIMIT 3") => [1,2,3]
-      def select_values(sql, name = nil)
-        result = select(sql, name = nil)
+      def select_values(arel, name = nil, binds = [])
+        result = select(arel, name = nil)
         result.map { |r| r.values.first }
       end
     end
