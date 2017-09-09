@@ -41,7 +41,7 @@ module ActiveRecord
       private
 
         def set_dbms_output_plsql_connection
-          raise OracleEnhancedConnectionException, "ruby-plsql gem is required for logging DBMS output" unless self.respond_to?(:plsql)
+          raise OracleEnhanced::ConnectionException, "ruby-plsql gem is required for logging DBMS output" unless self.respond_to?(:plsql)
           # do not reset plsql connection if it is the same (as resetting will clear PL/SQL metadata cache)
           unless plsql(:dbms_output).connection && plsql(:dbms_output).connection.raw_connection == raw_connection
             plsql(:dbms_output).connection = raw_connection
