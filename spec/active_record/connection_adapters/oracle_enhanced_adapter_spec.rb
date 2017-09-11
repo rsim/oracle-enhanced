@@ -1,38 +1,5 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter establish connection" do
-
-  it "should connect to database" do
-    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.connection).not_to be_nil
-    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
-  end
-
-  it "should connect to database as SYSDBA" do
-    ActiveRecord::Base.establish_connection(SYS_CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.connection).not_to be_nil
-    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
-  end
-
-  it "should be active after connection to database" do
-    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.connection).to be_active
-  end
-
-  it "should not be active after disconnection to database" do
-    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    ActiveRecord::Base.connection.disconnect!
-    expect(ActiveRecord::Base.connection).not_to be_active
-  end
-
-  it "should be active after reconnection to database" do
-    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    ActiveRecord::Base.connection.reconnect!
-    expect(ActiveRecord::Base.connection).to be_active
-  end
-
-end
-
 describe "OracleEnhancedAdapter" do
   include LoggerSpecHelper
   include SchemaSpecHelper

@@ -92,10 +92,10 @@ module ActiveRecord
         # conditionals in the rails activerecord test suite
         require "active_record/connection_adapters/emulation/oracle_adapter"
         ConnectionAdapters::OracleAdapter.new(
-          ConnectionAdapters::OracleEnhancedConnection.create(config), logger, config)
+          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
       else
         ConnectionAdapters::OracleEnhancedAdapter.new(
-          ConnectionAdapters::OracleEnhancedConnection.create(config), logger, config)
+          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
       end
     end
   end
@@ -399,7 +399,7 @@ module ActiveRecord
         # last known state, which isn't good enough if the connection has
         # gone stale since the last use.
         @connection.ping
-      rescue OracleEnhancedConnectionException
+      rescue OracleEnhanced::ConnectionException
         false
       end
 
@@ -407,7 +407,7 @@ module ActiveRecord
       def reconnect! #:nodoc:
         super
         @connection.reset!
-      rescue OracleEnhancedConnectionException => e
+      rescue OracleEnhanced::ConnectionException => e
         @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
       end
 

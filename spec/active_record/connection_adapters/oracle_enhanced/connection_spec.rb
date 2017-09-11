@@ -1,14 +1,46 @@
 # frozen_string_literal: true
 
+describe "OracleEnhancedAdapter establish connection" do
+
+  it "should connect to database" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    expect(ActiveRecord::Base.connection).not_to be_nil
+    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+  end
+
+  it "should connect to database as SYSDBA" do
+    ActiveRecord::Base.establish_connection(SYS_CONNECTION_PARAMS)
+    expect(ActiveRecord::Base.connection).not_to be_nil
+    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+  end
+
+  it "should be active after connection to database" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    expect(ActiveRecord::Base.connection).to be_active
+  end
+
+  it "should not be active after disconnection to database" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    ActiveRecord::Base.connection.disconnect!
+    expect(ActiveRecord::Base.connection).not_to be_active
+  end
+
+  it "should be active after reconnection to database" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    ActiveRecord::Base.connection.reconnect!
+    expect(ActiveRecord::Base.connection).to be_active
+  end
+end
+
 describe "OracleEnhancedConnection" do
 
   describe "create connection" do
     before(:all) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
     end
 
     before(:each) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS) unless @conn.active?
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS) unless @conn.active?
     end
 
     it "should create new connection" do
@@ -21,7 +53,7 @@ describe "OracleEnhancedConnection" do
 
     it "should not ping inactive connection" do
       @conn.logoff
-      expect { @conn.ping }.to raise_error(ActiveRecord::ConnectionAdapters::OracleEnhancedConnectionException)
+      expect { @conn.ping }.to raise_error(ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException)
     end
 
     it "should reset active connection" do
@@ -37,11 +69,11 @@ describe "OracleEnhancedConnection" do
 
   describe "create connection with schema option" do
     before(:all) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_WITH_SCHEMA_PARAMS)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_WITH_SCHEMA_PARAMS)
     end
 
     before(:each) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_WITH_SCHEMA_PARAMS) unless @conn.active?
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_WITH_SCHEMA_PARAMS) unless @conn.active?
     end
 
     it "should create new connection" do
@@ -66,19 +98,19 @@ describe "OracleEnhancedConnection" do
 
     it "should use NLS_DATE_FORMAT environment variable" do
       ENV["NLS_DATE_FORMAT"] = "YYYY-MM-DD"
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
       expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{ "value" => "YYYY-MM-DD" }])
     end
 
     it "should use configuration value and ignore NLS_DATE_FORMAT environment variable" do
       ENV["NLS_DATE_FORMAT"] = "YYYY-MM-DD"
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS.merge(nls_date_format: "YYYY-MM-DD HH24:MI"))
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS.merge(nls_date_format: "YYYY-MM-DD HH24:MI"))
       expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{ "value" => "YYYY-MM-DD HH24:MI" }])
     end
 
     it "should use default value when NLS_DATE_FORMAT environment variable is not set" do
       ENV["NLS_DATE_FORMAT"] = nil
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
       default = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS[:nls_date_format]
       expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{ "value" => default }])
     end
@@ -90,7 +122,7 @@ describe "OracleEnhancedConnection" do
       params[:username] = params[:username].to_sym
       params[:password] = params[:password].to_sym
       params[:database] = params[:database].to_sym
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
     end
 
     it "should create new connection" do
@@ -102,7 +134,7 @@ describe "OracleEnhancedConnection" do
     before(:all) do
       params = CONNECTION_PARAMS.dup
       params[:database] = "/#{params[:database]}" unless params[:database].match(/^\//)
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
     end
 
     it "should create new connection" do
@@ -131,7 +163,7 @@ describe "OracleEnhancedConnection" do
 
     it "should respect default_timezone = :utc than time_zone setting" do
       # it expects that ActiveRecord::Base.default_timezone = :utc
-      ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_WITH_TIMEZONE_PARAMS)
+      ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_WITH_TIMEZONE_PARAMS)
       post = Post.create!
       created_at = post.created_at
       expect(post).to eq(Post.find_by!(created_at: created_at))
@@ -151,7 +183,7 @@ describe "OracleEnhancedConnection" do
       else
         expect(OCI8).to receive(:new).with(username, password, connection_string, nil).and_call_original
       end
-      conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
       expect(conn).to be_active
     end
   end
@@ -166,7 +198,7 @@ describe "OracleEnhancedConnection" do
 
         params[:host] = nil
         params[:database] = nil
-        @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+        @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
         expect(@conn).to be_active
       end
 
@@ -175,14 +207,14 @@ describe "OracleEnhancedConnection" do
         params[:url] = "jdbc:oracle:thin:@#{DATABASE_NAME}"
         params[:host] = nil
         params[:database] = nil
-        @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+        @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
         expect(@conn).to be_active
       end
 
       it "should create new connection using just tnsnames alias" do
         params = CONNECTION_PARAMS.dup
         params[:host] = nil
-        @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+        @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
         expect(@conn).to be_active
       end
 
@@ -220,7 +252,7 @@ describe "OracleEnhancedConnection" do
 
         params = {}
         params[:jndi] = "java:comp/env/jdbc/test"
-        @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+        @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
         expect(@conn).to be_active
       end
 
@@ -232,7 +264,7 @@ describe "OracleEnhancedConnection" do
       params[:host] = nil
       params[:database] = nil
       allow(java.sql.DriverManager).to receive(:getConnection).and_raise("no suitable driver found")
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(params)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
       expect(@conn).to be_active
     end
 
@@ -240,7 +272,7 @@ describe "OracleEnhancedConnection" do
 
   describe "SQL execution" do
     before(:all) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
     end
 
     it "should execute SQL statement" do
@@ -259,7 +291,7 @@ describe "OracleEnhancedConnection" do
 
   describe "SQL with bind parameters" do
     before(:all) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
     end
 
     it "should execute SQL statement with bind parameter" do
@@ -286,7 +318,7 @@ describe "OracleEnhancedConnection" do
   describe "SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', '" do
     before(:all) do
       ENV["NLS_NUMERIC_CHARACTERS"] = ", "
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
       @conn.exec "CREATE TABLE test_employees (age NUMBER(10,2))"
     end
 
@@ -316,7 +348,7 @@ describe "OracleEnhancedConnection" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       @conn = ActiveRecord::Base.connection.instance_variable_get("@connection")
-      @sys_conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(SYS_CONNECTION_PARAMS)
+      @sys_conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(SYS_CONNECTION_PARAMS)
     end
 
     before(:each) do
@@ -371,7 +403,7 @@ describe "OracleEnhancedConnection" do
 
   describe "describe table" do
     before(:all) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(CONNECTION_PARAMS)
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
       @owner = CONNECTION_PARAMS[:username].upcase
     end
 
@@ -382,7 +414,7 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should not describe non-existing table" do
-      expect { @conn.describe("test_xxx") }.to raise_error(ActiveRecord::ConnectionAdapters::OracleEnhancedConnectionException)
+      expect { @conn.describe("test_xxx") }.to raise_error(ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException)
     end
 
     it "should describe table in other schema" do
@@ -420,7 +452,7 @@ describe "OracleEnhancedConnection" do
 
         it "should not fallback to SELECT-based logic when querying non-existent table information" do
           expect(@conn).not_to receive(:select_one)
-          @conn.describe("non_existent") rescue ActiveRecord::ConnectionAdapters::OracleEnhancedConnectionException
+          @conn.describe("non_existent") rescue ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException
         end
 
       end
