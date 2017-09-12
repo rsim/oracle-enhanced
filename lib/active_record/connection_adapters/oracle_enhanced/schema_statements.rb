@@ -45,27 +45,13 @@ module ActiveRecord
             end
           end
 
-          # store that primary key was defined in create_table block
-          unless create_sequence
-            class << td
-              attr_accessor :create_sequence
-              def primary_key(*args)
-                self.create_sequence = true
-                super(*args)
-              end
-            end
-          end
-
           yield td if block_given?
-          create_sequence = create_sequence || td.create_sequence
 
           if options[:force] && data_source_exists?(table_name)
             drop_table(table_name, options)
           end
 
           execute schema_creation.accept td
-
-          create_sequence_and_trigger(table_name, options) if create_sequence
 
           if supports_comments? && !supports_comments_in_create?
             change_table_comment(table_name, comment) if comment
@@ -252,7 +238,7 @@ module ActiveRecord
           add_column_sql = schema_creation.accept at
           add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name)
           execute add_column_sql
-          create_sequence_and_trigger(table_name, options) if type && type.to_sym == :primary_key
+          #          create_sequence_and_trigger(table_name, options) if type && type.to_sym == :primary_key
           change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
         ensure
           clear_table_columns_cache(table_name)
@@ -472,14 +458,6 @@ module ActiveRecord
               raise "No such column: #{table_name}.#{column_name}"
             end
             column
-          end
-
-          def create_sequence_and_trigger(table_name, options)
-            # TODO: Needs rename since no triggers created
-            # This method will be removed since sequence will not be created separately
-            seq_name = options[:sequence_name] || default_sequence_name(table_name)
-            seq_start_value = options[:sequence_start_value] || default_sequence_start_value
-            execute "CREATE SEQUENCE #{quote_table_name(seq_name)} START WITH #{seq_start_value}"
           end
 
           def rebuild_primary_key_index_to_default_tablespace(table_name, options)

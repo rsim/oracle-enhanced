@@ -456,7 +456,7 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute "DROP PROCEDURE FULL_DROP_TEST_PROCEDURE" rescue nil
       @conn.execute "DROP TYPE FULL_DROP_TEST_TYPE" rescue nil
     end
-    it "should contain correct sql" do
+    xit "should contain correct sql" do
       drop = @conn.full_drop
       expect(drop).to match(/DROP TABLE "FULL_DROP_TEST" CASCADE CONSTRAINTS/)
       expect(drop).to match(/DROP SEQUENCE "FULL_DROP_TEST_SEQ"/)

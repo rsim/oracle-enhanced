@@ -22,7 +22,7 @@ describe "OracleEnhancedAdapter schema definition" do
       class ::Keyboard < ActiveRecord::Base; end
     end
 
-    it "creates a sequence when adding a column with create_sequence = true" do
+    xit "creates a sequence when adding a column with create_sequence = true" do
       _, sequence_name = ActiveRecord::Base.connection.pk_and_sequence_for_without_cache(:keyboards)
 
       expect(sequence_name).to eq(Keyboard.sequence_name)
@@ -70,7 +70,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "default sequence name" do
 
-    it "should return sequence name without truncating too much" do
+    xit "should return sequence name without truncating too much" do
       seq_name_length = ActiveRecord::Base.connection.sequence_name_length
       tname = "#{DATABASE_USER}" + "." + "a" * (seq_name_length - DATABASE_USER.length) + "z" * (DATABASE_USER).length
       expect(ActiveRecord::Base.connection.default_sequence_name(tname)).to match (/z_seq$/)
@@ -113,7 +113,7 @@ describe "OracleEnhancedAdapter schema definition" do
       ActiveRecord::Base.clear_cache!
     end
 
-    it "should use default sequence start value 10000" do
+    xit "should use default sequence start value 10000" do
       expect(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value).to eq(10000)
 
       create_test_employees_table
@@ -133,7 +133,7 @@ describe "OracleEnhancedAdapter schema definition" do
       expect(employee.id).to eq(1)
     end
 
-    it "should use sequence start value from table definition" do
+    xit "should use sequence start value from table definition" do
       create_test_employees_table(10)
       class ::TestEmployee < ActiveRecord::Base; end
 
@@ -141,7 +141,7 @@ describe "OracleEnhancedAdapter schema definition" do
       expect(employee.id).to eq(10)
     end
 
-    it "should use sequence start value and other options from table definition" do
+    xit "should use sequence start value and other options from table definition" do
       create_test_employees_table("100 NOCACHE INCREMENT BY 10")
       class ::TestEmployee < ActiveRecord::Base; end
 
@@ -775,7 +775,7 @@ end
 
   end
 
-  describe "synonyms" do
+  xdescribe "synonyms" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
       @db_link = "db_link"

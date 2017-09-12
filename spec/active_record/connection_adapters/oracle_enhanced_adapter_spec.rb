@@ -84,12 +84,12 @@ describe "OracleEnhancedAdapter" do
         expect(@logger.logged(:debug).last).to match(/select .* from all_tab_cols/im)
       end
 
-      it "should get primary key from database at first time" do
+      xit "should get primary key from database at first time" do
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
-      it "should get primary key from database at first time" do
+      xit "should get primary key from database at first time" do
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         @logger.clear(:debug)
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
@@ -123,12 +123,12 @@ describe "OracleEnhancedAdapter" do
         expect(@logger.logged(:debug).last).to be_blank
       end
 
-      it "should get primary key from database at first time" do
+      xit "should get primary key from database at first time" do
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
-      it "should get primary key from cache at first time" do
+      xit "should get primary key from cache at first time" do
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         @logger.clear(:debug)
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])

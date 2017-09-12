@@ -203,7 +203,8 @@ module ActiveRecord
         # Returns default sequence name for table.
         # Will take all or first 26 characters of table name and append _seq suffix
         def default_sequence_name(table_name, primary_key = nil)
-          table_name.to_s.gsub((/(^|\.)([\w$-]{1,#{sequence_name_length - 4}})([\w$-]*)$/), '\1\2_seq')
+          real_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(table_name) ? table_name.upcase : table_name
+          @connection.select_value("select sequence_name from all_tab_identity_cols where table_name = q'[#{real_name}]' and owner = sys_context('userenv', 'current_schema')")
         end
 
         # Inserts the given fixture into the table. Overridden to properly handle lobs.
