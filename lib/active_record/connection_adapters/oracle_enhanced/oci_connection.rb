@@ -332,6 +332,11 @@ module ActiveRecord
           else
             database
           end
+          OCI8.properties[:tcp_keepalive] = true
+          begin
+            OCI8.properties[:tcp_keepalive_time] = 600
+          rescue NotImplementedError
+          end
           conn = OCI8.new username, password, connection_string, privilege
           conn.autocommit = true
           conn.non_blocking = true if async
