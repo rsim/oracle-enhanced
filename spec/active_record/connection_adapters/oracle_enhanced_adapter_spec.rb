@@ -46,14 +46,12 @@ describe "OracleEnhancedAdapter" do
       Object.send(:remove_const, "TestEmployee2")
       @conn.drop_table :test_employees, if_exists: true
       @conn.drop_table :test_employees_without_pk, if_exists: true
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
       ActiveRecord::Base.clear_cache!
     end
 
     before(:each) do
       set_logger
       @conn = ActiveRecord::Base.connection
-      @conn.clear_columns_cache
     end
 
     after(:each) do
@@ -63,7 +61,6 @@ describe "OracleEnhancedAdapter" do
     describe "without column caching" do
 
       before(:each) do
-        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = false
       end
 
       it "should identify virtual columns as such" do
@@ -105,10 +102,9 @@ describe "OracleEnhancedAdapter" do
 
     end
 
-    describe "with column caching" do
+    xdescribe "with column caching" do
 
       before(:each) do
-        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
       end
 
       it "should get columns from database at first time" do
@@ -116,7 +112,7 @@ describe "OracleEnhancedAdapter" do
         expect(@logger.logged(:debug).last).to match(/select .* from all_tab_cols/im)
       end
 
-      it "should get columns from cache at second time" do
+      xit "should get columns from cache at second time" do
         TestEmployee.connection.columns("test_employees")
         @logger.clear(:debug)
         expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
@@ -128,14 +124,14 @@ describe "OracleEnhancedAdapter" do
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
-      it "should get primary key from cache at first time" do
+      xit "should get primary key from cache at first time" do
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         @logger.clear(:debug)
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         expect(@logger.logged(:debug).last).to be_blank
       end
 
-      it "should store primary key as nil in cache at first time for table without primary key" do
+      xit "should store primary key as nil in cache at first time for table without primary key" do
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees_without_pk")).to eq(nil)
         @logger.clear(:debug)
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees_without_pk")).to eq(nil)

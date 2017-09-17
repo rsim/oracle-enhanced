@@ -381,13 +381,10 @@ describe "OracleEnhancedAdapter schema dump" do
 
     context "with column cache" do
       before(:all) do
-        @old_cache = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns
-        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
       end
       after(:all) do
-        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = @old_cache
       end
-      it "should not change column defaults after several dumps" do
+      xit "should not change column defaults after several dumps" do
         col = TestName.columns.detect { |c| c.name == "full_name" }
         expect(col).not_to be_nil
         expect(col.virtual_column_data_default).not_to match(/:as/)

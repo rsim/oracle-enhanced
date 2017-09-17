@@ -111,7 +111,6 @@ module ActiveRecord
         rescue ActiveRecord::StatementInvalid => e
           raise e unless options[:if_exists]
         ensure
-          clear_table_columns_cache(table_name)
           self.all_schema_indexes = nil
         end
 
@@ -274,8 +273,6 @@ module ActiveRecord
           execute add_column_sql
           create_sequence_and_trigger(table_name, options) if type && type.to_sym == :primary_key
           change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
-        ensure
-          clear_table_columns_cache(table_name)
         end
 
         def aliased_types(name, fallback)
@@ -285,8 +282,6 @@ module ActiveRecord
         def change_column_default(table_name, column_name, default_or_changes) #:nodoc:
           default = extract_new_default_value(default_or_changes)
           execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
-        ensure
-          clear_table_columns_cache(table_name)
         end
 
         def change_column_null(table_name, column_name, null, default = nil) #:nodoc:
@@ -319,22 +314,17 @@ module ActiveRecord
           execute(change_column_sql)
 
           change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
-        ensure
-          clear_table_columns_cache(table_name)
         end
 
         def rename_column(table_name, column_name, new_column_name) #:nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
           self.all_schema_indexes = nil
           rename_column_indexes(table_name, column_name, new_column_name)
-        ensure
-          clear_table_columns_cache(table_name)
         end
 
         def remove_column(table_name, column_name, type = nil, options = {}) #:nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)} CASCADE CONSTRAINTS"
         ensure
-          clear_table_columns_cache(table_name)
           self.all_schema_indexes = nil
         end
 

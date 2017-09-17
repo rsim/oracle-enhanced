@@ -680,26 +680,7 @@ module ActiveRecord
         select_value(pkt_sql, "Primary Key Trigger") ? true : false
       end
 
-      ##
-      # :singleton-method:
-      # Cache column description between requests.
-      # Could be used in development environment to avoid selecting table columns from data dictionary tables for each request.
-      # This can speed up request processing in development mode if development database is not on local computer.
-      #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
-      cattr_accessor :cache_columns
-      self.cache_columns = false
-
       def columns(table_name, name = nil) #:nodoc:
-        if @@cache_columns
-          @@columns_cache ||= {}
-          @@columns_cache[table_name] ||= columns_without_cache(table_name, name)
-        else
-          columns_without_cache(table_name, name)
-        end
-      end
-
-      def columns_without_cache(table_name, name = nil) #:nodoc:
         table_name = table_name.to_s
 
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
@@ -771,20 +752,6 @@ module ActiveRecord
         OracleEnhanced::Column.new(name, default, sql_type_metadata, null, table_name, virtual, returning_id, comment)
       end
 
-      # used just in tests to clear column cache
-      def clear_columns_cache #:nodoc:
-        @@columns_cache = nil
-        @@pk_and_sequence_for_cache = nil
-      end
-
-      # used in migrations to clear column cache for specified table
-      def clear_table_columns_cache(table_name)
-        if @@cache_columns
-          @@columns_cache ||= {}
-          @@columns_cache[table_name.to_s] = nil
-        end
-      end
-
       ##
       # :singleton-method:
       # Specify default sequence start with value (by default 10000 if not explicitly set), e.g.:
@@ -796,19 +763,6 @@ module ActiveRecord
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil, db_link = nil) #:nodoc:
-        if @@cache_columns
-          @@pk_and_sequence_for_cache ||= {}
-          if @@pk_and_sequence_for_cache.key?(table_name)
-            @@pk_and_sequence_for_cache[table_name]
-          else
-            @@pk_and_sequence_for_cache[table_name] = pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link)
-          end
-        else
-          pk_and_sequence_for_without_cache(table_name, owner, desc_table_name, db_link)
-        end
-      end
-
-      def pk_and_sequence_for_without_cache(table_name, owner = nil, desc_table_name = nil, db_link = nil) #:nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
         seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence")
