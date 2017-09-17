@@ -12,10 +12,14 @@ rescue LoadError => e
 end
 
 # check ruby-oci8 version
-required_oci8_version = [2, 2, 0]
+required_oci8_version = [2, 2, 4]
 oci8_version_ints = OCI8::VERSION.scan(/\d+/).map { |s| s.to_i }
 if (oci8_version_ints <=> required_oci8_version) < 0
-  raise LoadError, "ERROR: ruby-oci8 version #{OCI8::VERSION} is too old. Please install ruby-oci8 version #{required_oci8_version.join('.')} or later."
+  $stderr.puts <<-EOS.strip_heredoc
+    "ERROR: ruby-oci8 version #{OCI8::VERSION} is too old. Please install ruby-oci8 version #{required_oci8_version.join('.')} or later."
+  EOS
+
+  exit!
 end
 
 module ActiveRecord
@@ -327,6 +331,11 @@ module ActiveRecord
           # database parameter is TNS alias or TNS connection string
           else
             database
+          end
+          OCI8.properties[:tcp_keepalive] = true
+          begin
+            OCI8.properties[:tcp_keepalive_time] = 600
+          rescue NotImplementedError
           end
           conn = OCI8.new username, password, connection_string, privilege
           conn.autocommit = true
