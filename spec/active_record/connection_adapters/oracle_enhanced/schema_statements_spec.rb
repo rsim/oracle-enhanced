@@ -23,7 +23,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "creates a sequence when adding a column with create_sequence = true" do
-      _, sequence_name = ActiveRecord::Base.connection.pk_and_sequence_for_without_cache(:keyboards)
+      _, sequence_name = ActiveRecord::Base.connection.pk_and_sequence_for(:keyboards)
 
       expect(sequence_name).to eq(Keyboard.sequence_name)
     end
@@ -1008,14 +1008,12 @@ end
     include LoggerSpecHelper
 
     before(:all) do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = true
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:clob)
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:nclob)
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:blob)
     end
 
     after(:all) do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.cache_columns = nil
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:clob)
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:nclob)
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:blob)
