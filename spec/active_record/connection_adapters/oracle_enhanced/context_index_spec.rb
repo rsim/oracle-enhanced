@@ -3,6 +3,7 @@
 describe "OracleEnhancedAdapter context index" do
   include SchemaSpecHelper
   include LoggerSpecHelper
+  include SchemaDumpingHelper
 
   def create_table_posts
     schema_define do
@@ -315,13 +316,6 @@ describe "OracleEnhancedAdapter context index" do
 
   describe "schema dump" do
 
-    def standard_dump
-      stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = []
-      ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
-      stream.string
-    end
-
     describe "without table prefixe and suffix" do
 
       before(:all) do
@@ -335,13 +329,15 @@ describe "OracleEnhancedAdapter context index" do
 
       it "should dump definition of single column index" do
         @conn.add_context_index :posts, :title
-        expect(standard_dump).to match(/add_context_index "posts", \["title"\], name: \"index_posts_on_title\"$/)
+        output = dump_table_schema "posts"
+        expect(output).to match(/add_context_index "posts", \["title"\], name: \"index_posts_on_title\"$/)
         @conn.remove_context_index :posts, :title
       end
 
       it "should dump definition of multiple column index" do
         @conn.add_context_index :posts, [:title, :body]
-        expect(standard_dump).to match(/add_context_index "posts", \[:title, :body\]$/)
+        output = dump_table_schema "posts"
+        expect(output).to match(/add_context_index "posts", \[:title, :body\]$/)
         @conn.remove_context_index :posts, [:title, :body]
       end
 
@@ -354,7 +350,8 @@ describe "OracleEnhancedAdapter context index" do
         }
         sub_query = "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
         @conn.add_context_index :posts, [:title, :body, sub_query], options
-        expect(standard_dump).to match(/add_context_index "posts", \[:title, :body, "#{sub_query}"\], #{options.inspect[1..-2]}$/)
+        output = dump_table_schema "posts"
+        expect(output).to match(/add_context_index "posts", \[:title, :body, "#{sub_query}"\], #{options.inspect[1..-2]}$/)
         @conn.remove_context_index :posts, name: "post_and_comments_index"
       end
 
@@ -367,7 +364,8 @@ describe "OracleEnhancedAdapter context index" do
         }
         sub_query = "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id#{' AND 1=1' * 500}"
         @conn.add_context_index :posts, [:title, :body, sub_query], options
-        expect(standard_dump).to match(/add_context_index "posts", \[:title, :body, "#{sub_query}"\], #{options.inspect[1..-2]}$/)
+        output = dump_table_schema "posts"
+        expect(output).to match(/add_context_index "posts", \[:title, :body, "#{sub_query}"\], #{options.inspect[1..-2]}$/)
         @conn.remove_context_index :posts, name: "post_and_comments_index"
       end
 
@@ -380,7 +378,8 @@ describe "OracleEnhancedAdapter context index" do
         }
         sub_query = "SELECT comments.author AS comment_author, comments.body AS comment_body\nFROM comments\nWHERE comments.post_id = :id"
         @conn.add_context_index :posts, [:title, :body, sub_query], options
-        expect(standard_dump).to match(/add_context_index "posts", \[:title, :body, "#{sub_query.gsub(/\n/, ' ')}"\], #{options.inspect[1..-2]}$/)
+        output = dump_table_schema "posts"
+        expect(output).to match(/add_context_index "posts", \[:title, :body, "#{sub_query.gsub(/\n/, ' ')}"\], #{options.inspect[1..-2]}$/)
         @conn.remove_context_index :posts, name: "post_and_comments_index"
       end
 
@@ -401,13 +400,15 @@ describe "OracleEnhancedAdapter context index" do
 
       it "should dump definition of single column index" do
         schema_define { add_context_index :posts, :title }
-        expect(standard_dump).to match(/add_context_index "posts", \["title"\], name: "i_xxx_posts_xxx_title"$/)
+        output = dump_table_schema "posts"
+        expect(output).to match(/add_context_index "posts", \["title"\], name: "i_xxx_posts_xxx_title"$/)
         schema_define { remove_context_index :posts, :title }
       end
 
       it "should dump definition of multiple column index" do
         schema_define { add_context_index :posts, [:title, :body] }
-        expect(standard_dump).to match(/add_context_index "posts", \[:title, :body\]$/)
+        output = dump_table_schema "posts"
+        expect(output).to match(/add_context_index "posts", \[:title, :body\]$/)
         schema_define { remove_context_index :posts, [:title, :body] }
       end
 
@@ -425,7 +426,8 @@ describe "OracleEnhancedAdapter context index" do
             "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"
             ], options
         end
-        expect(standard_dump).to match(/add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{
+        output = dump_table_schema "posts"
+        expect(output).to match(/add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{
           options.inspect[1..-2].gsub(/[{}]/) { |s| '\\'.dup << s }}$/)
         schema_define { remove_context_index :posts, name: "xxx_post_and_comments_i" }
       end
