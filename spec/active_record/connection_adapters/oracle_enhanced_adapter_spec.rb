@@ -60,9 +60,6 @@ describe "OracleEnhancedAdapter" do
 
     describe "without column caching" do
 
-      before(:each) do
-      end
-
       it "should identify virtual columns as such" do
         skip "Not supported in this database version" unless @conn.supports_virtual_columns?
         te = TestEmployee.connection.columns("test_employees").detect(&:virtual?)
@@ -99,47 +96,7 @@ describe "OracleEnhancedAdapter" do
           expect(TestEmployee2.columns.map(&:sql_type)).to eq(@column_sql_types)
         end
       end
-
     end
-
-    xdescribe "with column caching" do
-
-      before(:each) do
-      end
-
-      it "should get columns from database at first time" do
-        expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
-        expect(@logger.logged(:debug).last).to match(/select .* from all_tab_cols/im)
-      end
-
-      xit "should get columns from cache at second time" do
-        TestEmployee.connection.columns("test_employees")
-        @logger.clear(:debug)
-        expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
-        expect(@logger.logged(:debug).last).to be_blank
-      end
-
-      it "should get primary key from database at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
-        expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
-      end
-
-      xit "should get primary key from cache at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
-        @logger.clear(:debug)
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
-        expect(@logger.logged(:debug).last).to be_blank
-      end
-
-      xit "should store primary key as nil in cache at first time for table without primary key" do
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees_without_pk")).to eq(nil)
-        @logger.clear(:debug)
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees_without_pk")).to eq(nil)
-        expect(@logger.logged(:debug).last).to be_blank
-      end
-
-    end
-
   end
 
   describe "access table over database link" do

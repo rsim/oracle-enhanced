@@ -379,24 +379,6 @@ describe "OracleEnhancedAdapter schema dump" do
       expect(output).to match(/t\.virtual "field_with_leading_space",(\s*)type: :string,(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '"/)
     end
 
-    context "with column cache" do
-      before(:all) do
-      end
-      after(:all) do
-      end
-      xit "should not change column defaults after several dumps" do
-        col = TestName.columns.detect { |c| c.name == "full_name" }
-        expect(col).not_to be_nil
-        expect(col.virtual_column_data_default).not_to match(/:as/)
-
-        standard_dump
-        expect(col.virtual_column_data_default).not_to match(/:as/)
-
-        standard_dump
-        expect(col.virtual_column_data_default).not_to match(/:as/)
-      end
-    end
-
     context "with index on virtual column" do
       before(:all) do
         if @oracle11g_or_higher
