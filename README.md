@@ -639,6 +639,12 @@ development:
   )"
 ```
 
+### Schema cache
+
+`rails db:schema:cache:dump` generates `db/schema_cache.yml` to avoid queries for Oracle database dictionary, which could help your application response time if it takes time to look up database structure.
+
+if any database structure changed by migrations, execute `rails db:schema:cache:dump` again and restart Rails server to reflect changes.
+
 UPGRADE
 ---------------
 ### Upgrade Rails 5.0 or older version to Rails 5.1
