@@ -582,15 +582,10 @@ module ActiveRecord
         end
       end
 
-      cattr_accessor :all_schema_indexes #:nodoc:
-
-      # This method selects all indexes at once, and caches them in a class variable.
-      # Subsequent index calls get them from the variable, without going to the DB.
       def indexes(table_name, name = nil) #:nodoc:
         (owner, table_name, db_link) = @connection.describe(table_name)
-        unless all_schema_indexes
-          default_tablespace_name = default_tablespace
-          result = select_all(<<-SQL.strip.gsub(/\s+/, " "))
+        default_tablespace_name = default_tablespace
+        result = select_all(<<-SQL.strip.gsub(/\s+/, " "))
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
@@ -609,52 +604,51 @@ module ActiveRecord
             ORDER BY i.index_name, c.column_position
           SQL
 
-          current_index = nil
-          self.all_schema_indexes = []
+        current_index = nil
+        all_schema_indexes = []
 
-          result.each do |row|
-            # have to keep track of indexes because above query returns dups
-            # there is probably a better query we could figure out
-            if current_index != row["index_name"]
-              statement_parameters = nil
-              if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
-                procedure_name = default_datastore_procedure(row["index_name"])
-                source = select_values(<<-SQL).join
+        result.each do |row|
+          # have to keep track of indexes because above query returns dups
+          # there is probably a better query we could figure out
+          if current_index != row["index_name"]
+            statement_parameters = nil
+            if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
+              procedure_name = default_datastore_procedure(row["index_name"])
+              source = select_values(<<-SQL).join
                   SELECT text
                   FROM all_source#{db_link}
                   WHERE owner = '#{owner}'
                     AND name = '#{procedure_name.upcase}'
                   ORDER BY line
                 SQL
-                if source =~ /-- add_context_index_parameters (.+)\n/
-                  statement_parameters = $1
-                end
+              if source =~ /-- add_context_index_parameters (.+)\n/
+                statement_parameters = $1
               end
-              all_schema_indexes << OracleEnhanced::IndexDefinition.new(
-                row["table_name"],
-                row["index_name"],
-                row["uniqueness"] == "UNIQUE",
-                [],
-                nil,
-                nil,
-                nil,
-                row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
-                nil,
-                row["parameters"],
-                statement_parameters,
-                row["tablespace_name"] == default_tablespace_name ? nil : row["tablespace_name"])
-              current_index = row["index_name"]
             end
+            all_schema_indexes << OracleEnhanced::IndexDefinition.new(
+              row["table_name"],
+              row["index_name"],
+              row["uniqueness"] == "UNIQUE",
+              [],
+              nil,
+              nil,
+              nil,
+              row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
+              nil,
+              row["parameters"],
+              statement_parameters,
+              row["tablespace_name"] == default_tablespace_name ? nil : row["tablespace_name"])
+            current_index = row["index_name"]
+          end
 
-            # Functional index columns and virtual columns both get stored as column expressions,
-            # but re-creating a virtual column index as an expression (instead of using the virtual column's name)
-            # results in a ORA-54018 error.  Thus, we only want the column expression value returned
-            # when the column is not virtual.
-            if row["column_expression"] && row["virtual_column"] != "YES"
-              all_schema_indexes.last.columns << row["column_expression"]
-            else
-              all_schema_indexes.last.columns << row["column_name"].downcase
-            end
+          # Functional index columns and virtual columns both get stored as column expressions,
+          # but re-creating a virtual column index as an expression (instead of using the virtual column's name)
+          # results in a ORA-54018 error.  Thus, we only want the column expression value returned
+          # when the column is not virtual.
+          if row["column_expression"] && row["virtual_column"] != "YES"
+            all_schema_indexes.last.columns << row["column_expression"]
+          else
+            all_schema_indexes.last.columns << row["column_name"].downcase
           end
         end
 

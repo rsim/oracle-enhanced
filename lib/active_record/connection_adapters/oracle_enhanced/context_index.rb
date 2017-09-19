@@ -74,7 +74,6 @@ module ActiveRecord
         #  add_context_index :posts, :title, :transactional => true
         #
         def add_context_index(table_name, column_name, options = {})
-          self.all_schema_indexes = nil
           column_names = Array(column_name)
           index_name = options[:name] || index_name(table_name, column: options[:index_column] || column_names,
             # CONEXT index name max length is 25
@@ -129,7 +128,6 @@ module ActiveRecord
 
         # Drop full text index with Oracle specific CONTEXT index type
         def remove_context_index(table_name, options = {})
-          self.all_schema_indexes = nil
           unless Hash === options # if column names passed as argument
             options = { column: Array(options) }
           end

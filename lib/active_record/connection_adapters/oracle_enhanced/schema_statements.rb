@@ -110,8 +110,6 @@ module ActiveRecord
           execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
         rescue ActiveRecord::StatementInvalid => e
           raise e unless options[:if_exists]
-        ensure
-          self.all_schema_indexes = nil
         end
 
         def insert_versions_sql(versions) # :nodoc:
@@ -142,8 +140,6 @@ module ActiveRecord
               execute "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(index_name)} #{index_type} (#{quoted_column_names})"
             end
           end
-        ensure
-          self.all_schema_indexes = nil
         end
 
         def add_index_options(table_name, column_name, comment: nil, **options) #:nodoc:
@@ -177,8 +173,6 @@ module ActiveRecord
           #TODO: It should execute only when index_type == "UNIQUE"
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(index_name)}" rescue nil
           execute "DROP INDEX #{quote_column_name(index_name)}"
-        ensure
-          self.all_schema_indexes = nil
         end
 
         # returned shortened index name if default is too large
@@ -230,8 +224,6 @@ module ActiveRecord
         def rename_index(table_name, old_name, new_name) #:nodoc:
           validate_index_length!(table_name, new_name)
           execute "ALTER INDEX #{quote_column_name(old_name)} rename to #{quote_column_name(new_name)}"
-        ensure
-          self.all_schema_indexes = nil
         end
 
         # Add synonym to existing table or view or sequence. Can be used to create local synonym to
@@ -318,14 +310,11 @@ module ActiveRecord
 
         def rename_column(table_name, column_name, new_column_name) #:nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
-          self.all_schema_indexes = nil
           rename_column_indexes(table_name, column_name, new_column_name)
         end
 
         def remove_column(table_name, column_name, type = nil, options = {}) #:nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)} CASCADE CONSTRAINTS"
-        ensure
-          self.all_schema_indexes = nil
         end
 
         def change_table_comment(table_name, comment)
