@@ -181,7 +181,6 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :test_employees, (seq_name ? { sequence_name: seq_name } : {})
       end
       Object.send(:remove_const, "TestEmployee")
-      @conn.clear_prefetch_primary_key
       ActiveRecord::Base.clear_cache!
     end
 

@@ -429,26 +429,14 @@ module ActiveRecord
         @connection.select_value("SELECT #{quote_table_name(sequence_name)}.NEXTVAL FROM dual")
       end
 
-      @@do_not_prefetch_primary_key = {}
-
       # Returns true for Oracle adapter (since Oracle requires primary key
       # values to be pre-fetched before insert). See also #next_sequence_value.
       def prefetch_primary_key?(table_name = nil)
         return true if table_name.nil?
         table_name = table_name.to_s
-        do_not_prefetch = @@do_not_prefetch_primary_key[table_name]
-        if do_not_prefetch.nil?
-          owner, desc_table_name, db_link = @connection.describe(table_name)
-          @@do_not_prefetch_primary_key[table_name] = do_not_prefetch =
-            !has_primary_key?(table_name, owner, desc_table_name, db_link) ||
-            has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
-        end
+        owner, desc_table_name, db_link = @connection.describe(table_name)
+        do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name, db_link) || has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
         !do_not_prefetch
-      end
-
-      # used just in tests to clear prefetch primary key flag for all tables
-      def clear_prefetch_primary_key #:nodoc:
-        @@do_not_prefetch_primary_key = {}
       end
 
       def reset_pk_sequence!(table_name, primary_key = nil, sequence_name = nil) #:nodoc:
@@ -678,9 +666,6 @@ module ActiveRecord
         table_name = table_name.to_s
 
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
-
-        # reset do_not_prefetch_primary_key cache for this table
-        @@do_not_prefetch_primary_key[table_name] = nil
 
         table_cols = <<-SQL.strip.gsub(/\s+/, " ")
           SELECT cols.column_name AS name, cols.data_type AS sql_type,
