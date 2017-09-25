@@ -584,11 +584,15 @@ module ActiveRecord
         else
           table_owner, table_name = default_owner, real_name
         end
-        select_values(<<-SQL, "SCHEMA").any?
+
+        bind_owner       = ActiveRecord::Relation::QueryAttribute.new('owner',      table_owner,  ActiveRecord::OracleEnhanced::Type::String.new)
+        bind_table_name  = ActiveRecord::Relation::QueryAttribute.new('table_name', table_name,   ActiveRecord::OracleEnhanced::Type::String.new)
+
+        select_values(<<-SQL, "SCHEMA", [bind_owner, bind_table_name]).any?
           SELECT owner, table_name
           FROM all_tables
-          WHERE owner = '#{table_owner}'
-          AND table_name = q'[#{table_name}]'
+          WHERE owner = :owner
+          AND table_name = :table_name
         SQL
       end
 
@@ -616,7 +620,10 @@ module ActiveRecord
         (owner, table_name, db_link) = @connection.describe(table_name)
         unless all_schema_indexes
           default_tablespace_name = default_tablespace
-          result = select_all(<<-SQL.strip.gsub(/\s+/, " "))
+
+          bind_owner       = ActiveRecord::Relation::QueryAttribute.new('owner',         owner,            ActiveRecord::OracleEnhanced::Type::String.new)
+
+          result = select_all(<<-SQL.strip.gsub(/\s+/, " "), 'indexes', [bind_owner, bind_owner])
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
@@ -628,8 +635,8 @@ module ActiveRecord
                 e.index_owner = i.owner AND e.column_position = c.column_position
               LEFT OUTER JOIN all_tab_cols#{db_link} atc ON i.table_name = atc.table_name AND
                 c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
-            WHERE i.owner = '#{owner}'
-               AND i.table_owner = '#{owner}'
+            WHERE i.owner = :owner
+               AND i.table_owner = :owner
                AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
                 WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
             ORDER BY i.index_name, c.column_position
@@ -645,11 +652,12 @@ module ActiveRecord
               statement_parameters = nil
               if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
                 procedure_name = default_datastore_procedure(row["index_name"])
-                source = select_values(<<-SQL).join
+                bind_procedure_name = ActiveRecord::Relation::QueryAttribute.new('procedure_name', procedure_name.upcase, ActiveRecord::OracleEnhanced::Type::String.new)
+                source = select_values(<<-SQL, 'procedure', [bind_owner, bind_procedure_name]).join
                   SELECT text
                   FROM all_source#{db_link}
-                  WHERE owner = '#{owner}'
-                    AND name = '#{procedure_name.upcase}'
+                  WHERE owner = :owner
+                    AND name = :procedure_name
                   ORDER BY line
                 SQL
                 if source =~ /-- add_context_index_parameters (.+)\n/
@@ -694,16 +702,21 @@ module ActiveRecord
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
         trigger_name = default_trigger_name(table_name).upcase
+
+        bind_owner         = ActiveRecord::Relation::QueryAttribute.new('owner',        owner,            ActiveRecord::OracleEnhanced::Type::String.new)
+        bind_table_name    = ActiveRecord::Relation::QueryAttribute.new('table_name',   desc_table_name,  ActiveRecord::OracleEnhanced::Type::String.new)
+        bind_trigger_name  = ActiveRecord::Relation::QueryAttribute.new('trigger_name', trigger_name,     ActiveRecord::OracleEnhanced::Type::String.new)
+
         pkt_sql = <<-SQL
           SELECT trigger_name
           FROM all_triggers#{db_link}
-          WHERE owner = '#{owner}'
-            AND trigger_name = q'[#{trigger_name}]'
-            AND table_owner = '#{owner}'
-            AND table_name = q'[#{desc_table_name}]'
+          WHERE owner = :owner
+            AND trigger_name = :trigger_name
+            AND table_owner = :owner
+            AND table_name = :table_name
             AND status = 'ENABLED'
         SQL
-        select_value(pkt_sql, "Primary Key Trigger") ? true : false
+        select_value(pkt_sql, "Primary Key Trigger", [bind_owner, bind_trigger_name, bind_owner, bind_table_name]) ? true : false
       end
 
       ##
@@ -733,6 +746,9 @@ module ActiveRecord
         # reset do_not_prefetch_primary_key cache for this table
         @@do_not_prefetch_primary_key[table_name] = nil
 
+        bind_owner       = ActiveRecord::Relation::QueryAttribute.new('owner',      owner,            ActiveRecord::OracleEnhanced::Type::String.new)
+        bind_table_name  = ActiveRecord::Relation::QueryAttribute.new('table_name', desc_table_name,  ActiveRecord::OracleEnhanced::Type::String.new)
+
         table_cols = <<-SQL.strip.gsub(/\s+/, " ")
           SELECT cols.column_name AS name, cols.data_type AS sql_type,
                  cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
@@ -746,8 +762,8 @@ module ActiveRecord
                  DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
                  comments.comments as column_comment
             FROM all_tab_cols#{db_link} cols, all_col_comments#{db_link} comments
-           WHERE cols.owner      = '#{owner}'
-             AND cols.table_name = #{quote(desc_table_name)}
+           WHERE cols.owner      = :owner
+             AND cols.table_name = :table_name
              AND cols.hidden_column = 'NO'
              AND cols.owner = comments.owner
              AND cols.table_name = comments.table_name
@@ -756,7 +772,7 @@ module ActiveRecord
         SQL
 
         # added deletion of ignored columns
-        select_all(table_cols, name).to_a.map do |row|
+        select_all(table_cols, name, [bind_owner, bind_table_name]).to_a.map do |row|
           limit, scale = row["limit"], row["scale"]
           if limit || scale
             row["sql_type"] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
@@ -837,19 +853,23 @@ module ActiveRecord
       def pk_and_sequence_for_without_cache(table_name, owner = nil, desc_table_name = nil, db_link = nil) #:nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
-        seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence")
+        bind_owner          = ActiveRecord::Relation::QueryAttribute.new('owner',         owner,                                          ActiveRecord::OracleEnhanced::Type::String.new)
+        bind_sequence_name  = ActiveRecord::Relation::QueryAttribute.new('sequence_name', default_sequence_name(desc_table_name).upcase,  ActiveRecord::OracleEnhanced::Type::String.new)
+        bind_table_name     = ActiveRecord::Relation::QueryAttribute.new('table_name',    desc_table_name.upcase,                         ActiveRecord::OracleEnhanced::Type::String.new)
+
+        seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence" , [bind_owner, bind_sequence_name])
           select us.sequence_name
           from all_sequences#{db_link} us
-          where us.sequence_owner = '#{owner}'
-          and us.sequence_name = upper(#{quote(default_sequence_name(desc_table_name))})
+          where us.sequence_owner = :owner
+          and us.sequence_name = :sequence_name
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
-        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key")
+        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key", [bind_owner, bind_table_name])
           SELECT cc.column_name
             FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
-           WHERE c.owner = '#{owner}'
-             AND c.table_name = #{quote(desc_table_name)}
+           WHERE c.owner = :owner
+             AND c.table_name = :table_name
              AND c.constraint_type = 'P'
              AND cc.owner = c.owner
              AND cc.constraint_name = c.constraint_name
@@ -879,11 +899,14 @@ module ActiveRecord
       def primary_keys(table_name) # :nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
-        pks = select_values(<<-SQL.strip_heredoc, "Primary Keys")
+        bind_owner       = ActiveRecord::Relation::QueryAttribute.new('owner',      owner,            ActiveRecord::OracleEnhanced::Type::String.new)
+        bind_table_name  = ActiveRecord::Relation::QueryAttribute.new('table_name', desc_table_name,  ActiveRecord::OracleEnhanced::Type::String.new)
+
+        pks = select_values(<<-SQL.strip_heredoc, "Primary Keys", [bind_owner, bind_table_name])
           SELECT cc.column_name
             FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
-           WHERE c.owner = '#{owner}'
-             AND c.table_name = '#{desc_table_name}'
+           WHERE c.owner = :owner
+             AND c.table_name = :table_name
              AND c.constraint_type = 'P'
              AND cc.owner = c.owner
              AND cc.constraint_name = c.constraint_name
@@ -909,7 +932,9 @@ module ActiveRecord
       end
 
       def temporary_table?(table_name) #:nodoc:
-        select_value("SELECT temporary FROM all_tables WHERE table_name = '#{table_name.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')") == "Y"
+        bind_table_name    = ActiveRecord::Relation::QueryAttribute.new('table_name',   table_name.upcase,  ActiveRecord::OracleEnhanced::Type::String.new)
+
+        select_value("SELECT temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'session_user')", 'temp tables', [bind_table_name]) == "Y"
       end
 
       def combine_bind_parameters(
