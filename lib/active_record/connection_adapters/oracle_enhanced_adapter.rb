@@ -538,7 +538,7 @@ module ActiveRecord
           table_owner, table_name = default_owner, real_name
         end
 
-        select_values(<<-SQL, "SCHEMA", [bind_string("owner", table_owner), bind_string("table_name",table_name)]).any?
+        select_values(<<-SQL, "SCHEMA", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
           SELECT owner, table_name
           FROM all_tables
           WHERE owner = :owner
@@ -604,7 +604,7 @@ module ActiveRecord
             statement_parameters = nil
             if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
               procedure_name = default_datastore_procedure(row["index_name"])
-              source = select_values(<<-SQL, 'procedure', [bind_string("owner", owner), bind_string("procedure_name", procedure_name.upcase)]).join
+              source = select_values(<<-SQL, "procedure", [bind_string("owner", owner), bind_string("procedure_name", procedure_name.upcase)]).join
                   SELECT text
                   FROM all_source#{db_link}
                   WHERE owner = :owner
