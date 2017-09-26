@@ -538,7 +538,7 @@ module ActiveRecord
           table_owner, table_name = default_owner, real_name
         end
 
-        select_values(<<-SQL, "SCHEMA", [bind_string('owner', table_owner), bind_string('table_name',table_name )]).any?
+        select_values(<<-SQL, "SCHEMA", [bind_string("owner", table_owner), bind_string("table_name",table_name)]).any?
           SELECT owner, table_name
           FROM all_tables
           WHERE owner = :owner
@@ -575,7 +575,7 @@ module ActiveRecord
         (owner, table_name, db_link) = @connection.describe(table_name)
         default_tablespace_name = default_tablespace
 
-        result = select_all(<<-SQL.strip.gsub(/\s+/, " "), 'indexes', [bind_string('owner', owner), bind_string('owner', owner)])
+        result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "indexes", [bind_string("owner", owner), bind_string("owner", owner)])
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
@@ -604,7 +604,7 @@ module ActiveRecord
             statement_parameters = nil
             if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
               procedure_name = default_datastore_procedure(row["index_name"])
-              source = select_values(<<-SQL, 'procedure', [bind_string('owner', owner), bind_string('procedure_name', procedure_name.upcase)]).join
+              source = select_values(<<-SQL, 'procedure', [bind_string("owner", owner), bind_string("procedure_name", procedure_name.upcase)]).join
                   SELECT text
                   FROM all_source#{db_link}
                   WHERE owner = :owner
@@ -662,7 +662,7 @@ module ActiveRecord
             AND table_name = :table_name
             AND status = 'ENABLED'
         SQL
-        select_value(pkt_sql, "Primary Key Trigger", [bind_string('owner', owner), bind_string('trigger_name', trigger_name), bind_string('owner', owner), bind_string('table_name', desc_table_name)]) ? true : false
+        select_value(pkt_sql, "Primary Key Trigger", [bind_string("owner", owner), bind_string("trigger_name", trigger_name), bind_string("owner", owner), bind_string("table_name", desc_table_name)]) ? true : false
       end
 
       def columns(table_name, name = nil) #:nodoc:
@@ -693,7 +693,7 @@ module ActiveRecord
         SQL
 
         # added deletion of ignored columns
-        select_all(table_cols, name, [bind_string('owner', owner), bind_string('table_name', desc_table_name)]).to_a.map do |row|
+        select_all(table_cols, name, [bind_string("owner", owner), bind_string("table_name", desc_table_name)]).to_a.map do |row|
           limit, scale = row["limit"], row["scale"]
           if limit || scale
             row["sql_type"] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
@@ -747,7 +747,7 @@ module ActiveRecord
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil, db_link = nil) #:nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
-        seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence" , [bind_string('owner', owner), bind_string('sequence_name', default_sequence_name(desc_table_name).upcase)])
+        seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name).upcase)])
           select us.sequence_name
           from all_sequences#{db_link} us
           where us.sequence_owner = :owner
@@ -755,7 +755,7 @@ module ActiveRecord
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
-        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key", [bind_string('owner', owner), bind_string('table_name', desc_table_name)])
+        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
             FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
            WHERE c.owner = :owner
@@ -789,7 +789,7 @@ module ActiveRecord
       def primary_keys(table_name) # :nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
-        pks = select_values(<<-SQL.strip_heredoc, "Primary Keys", [bind_string('owner', owner), bind_string('table_name', desc_table_name)])
+        pks = select_values(<<-SQL.strip_heredoc, "Primary Keys", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
             FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
            WHERE c.owner = :owner
@@ -819,7 +819,7 @@ module ActiveRecord
       end
 
       def temporary_table?(table_name) #:nodoc:
-        select_value("SELECT temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'session_user')", 'temp tables', [bind_string('table_name', table_name.upcase)]) == "Y"
+        select_value("SELECT temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'session_user')", "temp tables", [bind_string("table_name", table_name.upcase)]) == "Y"
       end
 
       def combine_bind_parameters(
@@ -908,10 +908,11 @@ module ActiveRecord
         end
 
       private
-      # create bind object for type String
-      def bind_string(name, value)
-        ActiveRecord::Relation::QueryAttribute.new(name, value, ActiveRecord::OracleEnhanced::Type::String.new)
-      end
+
+        # create bind object for type String
+        def bind_string(name, value)
+          ActiveRecord::Relation::QueryAttribute.new(name, value, ActiveRecord::OracleEnhanced::Type::String.new)
+        end
     end
   end
 end
