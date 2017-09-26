@@ -264,7 +264,8 @@ describe "OracleEnhancedAdapter" do
       pk = TestPost.columns_hash[TestPost.primary_key]
       sub = Arel::Nodes::BindParam.new(nil).to_sql
       binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
-
+      # free statement pool from dictionary selections  to ensure next selects will increase statement pool
+      @statements.clear
       expect {
         4.times do |i|
           @conn.exec_query("SELECT * FROM test_posts WHERE #{i}=#{i} AND id = #{sub}", "SQL", binds)
