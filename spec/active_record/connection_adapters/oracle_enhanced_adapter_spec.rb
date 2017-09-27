@@ -493,4 +493,60 @@ describe "OracleEnhancedAdapter" do
       expect(conn.data_sources).to include("synonym_comments")
     end
   end
+
+  describe "dictionary selects with bind variables" do
+    before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        drop_table :test_posts, if_exists: true
+        create_table :test_posts
+      end
+      class ::TestPost < ActiveRecord::Base
+      end
+    end
+
+    before(:each) do
+      @conn.clear_cache!
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_posts
+      end
+      Object.send(:remove_const, "TestPost")
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "should test table existence" do
+      expect(@conn.table_exists?("TEST_POSTS")).to eq true
+      expect(@conn.table_exists?("NOT_EXISTING")).to eq false
+    end
+
+    it "should return array from indexes" do
+      expect(@conn.indexes("TEST_POSTS").class).to eq Array
+    end
+
+    it "should not have primary key trigger" do
+      expect(@conn.has_primary_key_trigger?("TEST_POSTS")).to eq false
+    end
+
+    it "should return content from columns" do
+      expect(@conn.columns("TEST_POSTS").length).to be > 0
+    end
+
+    it "should return pk and sequence from pk_and_sequence_for" do
+      expect(@conn.pk_and_sequence_for("TEST_POSTS").length).to eq 2
+    end
+
+    it "should return pk from primary_keys" do
+      expect(@conn.primary_keys("TEST_POSTS")).to eq ["id"]
+    end
+
+    it "should return false from temporary_table?" do
+      expect(@conn.temporary_table?("TEST_POSTS")).to eq false
+    end
+
+  end
+
 end
