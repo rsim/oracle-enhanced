@@ -334,7 +334,13 @@ describe "OracleEnhancedAdapter schema definition" do
       @conn = ActiveRecord::Base.connection
     end
 
+    before(:each) do
+      @conn.clear_cache!
+      set_logger
+    end
+
     after(:each) do
+      clear_logger
       schema_define do
         drop_table :test_employees
       end
@@ -347,7 +353,6 @@ describe "OracleEnhancedAdapter schema definition" do
       table_comment = "Test Employees"
       create_test_employees_table(table_comment)
       class ::TestEmployee < ActiveRecord::Base; end
-
       expect(@conn.table_comment("test_employees")).to eq(table_comment)
     end
 
@@ -378,6 +383,28 @@ describe "OracleEnhancedAdapter schema definition" do
       [:first_name, :last_name].each do |attr|
         expect(TestEmployee.columns_hash[attr.to_s].comment).to eq(column_comments[attr])
       end
+    end
+
+    it "should query table_comment using bind variables" do
+      table_comment = "Test Employees"
+      create_test_employees_table(table_comment)
+      class ::TestEmployee < ActiveRecord::Base; end
+      expect(@conn.table_comment(TestEmployee.table_name)).to eq(table_comment)
+      expect(@logger.logged(:debug).last).to match(/:owner/)
+      expect(@logger.logged(:debug).last).to match(/:table_name/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_EMPLOYEES"\]\]/)
+    end
+
+    it "should query column_comment using bind variables" do
+      table_comment = "Test Employees"
+      column_comment = { first_name: "Given Name" }
+      create_test_employees_table(table_comment, column_comment)
+      class ::TestEmployee < ActiveRecord::Base; end
+      expect(@conn.column_comment(TestEmployee.table_name, :first_name)).to eq(column_comment[:first_name])
+      expect(@logger.logged(:debug).last).to match(/:owner/)
+      expect(@logger.logged(:debug).last).to match(/:table_name/)
+      expect(@logger.logged(:debug).last).to match(/:column_name/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_EMPLOYEES"\], \["column_name", "FIRST_NAME"\]\]/)
     end
 
   end
@@ -608,6 +635,7 @@ end
       class ::TestComment < ActiveRecord::Base
         belongs_to :test_post
       end
+      set_logger
     end
 
     after(:each) do
@@ -620,6 +648,7 @@ end
       ActiveRecord::Base.table_name_prefix = ""
       ActiveRecord::Base.table_name_suffix = ""
       ActiveRecord::Base.clear_cache!
+      clear_logger
     end
 
     it "should add foreign key" do
@@ -701,6 +730,18 @@ end
       expect do
         TestComment.create(body: "test", test_post_id: 1)
       end.not_to raise_error
+    end
+
+    it "should query foreign_keys using bind variables" do
+      fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_test_post_id_fk").first(10)}"
+
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      ActiveRecord::Base.connection.foreign_keys(:test_comments)
+      expect(@logger.logged(:debug).last).to match(/:owner/)
+      expect(@logger.logged(:debug).last).to match(/:desc_table_name/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["desc_table_name", "TEST_COMMENTS"\]\]/)
     end
 
   end
