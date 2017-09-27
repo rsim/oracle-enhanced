@@ -264,7 +264,8 @@ describe "OracleEnhancedAdapter" do
       pk = TestPost.columns_hash[TestPost.primary_key]
       sub = Arel::Nodes::BindParam.new(nil).to_sql
       binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
-
+      # free statement pool from dictionary selections  to ensure next selects will increase statement pool
+      @statements.clear
       expect {
         4.times do |i|
           @conn.exec_query("SELECT * FROM test_posts WHERE #{i}=#{i} AND id = #{sub}", "SQL", binds)
@@ -492,4 +493,79 @@ describe "OracleEnhancedAdapter" do
       expect(conn.data_sources).to include("synonym_comments")
     end
   end
+
+  describe "dictionary selects with bind variables" do
+    before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        drop_table :test_posts, if_exists: true
+        create_table :test_posts
+      end
+      class ::TestPost < ActiveRecord::Base
+      end
+    end
+
+    before(:each) do
+      @conn.clear_cache!
+      set_logger
+    end
+
+    after(:each) do
+      clear_logger
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_posts
+      end
+      Object.send(:remove_const, "TestPost")
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "should test table existence" do
+      expect(@conn.table_exists?("TEST_POSTS")).to eq true
+      expect(@conn.table_exists?("NOT_EXISTING")).to eq false
+    end
+
+    it "should return array from indexes with bind usage" do
+      expect(@conn.indexes("TEST_POSTS").class).to eq Array
+      expect(@logger.logged(:debug).last).to match(/:owner/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["owner", "#{DATABASE_USER.upcase}"\]\]/)
+    end
+
+    it "should not have primary key trigger with bind usage" do
+      expect(@conn.has_primary_key_trigger?("TEST_POSTS")).to eq false
+      expect(@logger.logged(:debug).last).to match(/:owner/)
+      expect(@logger.logged(:debug).last).to match(/:table_name/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["trigger_name", "TEST_POSTS_PKT"\], \["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_POSTS"\]\]/)
+    end
+
+    it "should return content from columns with bind usage" do
+      expect(@conn.columns("TEST_POSTS").length).to be > 0
+      expect(@logger.logged(:debug).last).to match(/:owner/)
+      expect(@logger.logged(:debug).last).to match(/:table_name/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_POSTS"\]\]/)
+    end
+
+    it "should return pk and sequence from pk_and_sequence_for with bind usage" do
+      expect(@conn.pk_and_sequence_for("TEST_POSTS").length).to eq 2
+      expect(@logger.logged(:debug).last).to match(/:owner/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_POSTS"\]\]/)
+    end
+
+    it "should return pk from primary_keys with bind usage" do
+      expect(@conn.primary_keys("TEST_POSTS")).to eq ["id"]
+      expect(@logger.logged(:debug).last).to match(/:owner/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_POSTS"\]\]/)
+    end
+
+    it "should return false from temporary_table? with bind usage" do
+      expect(@conn.temporary_table?("TEST_POSTS")).to eq false
+      expect(@logger.logged(:debug).last).to match(/:table_name/)
+      expect(@logger.logged(:debug).last).to match(/\[\["table_name", "TEST_POSTS"\]\]/)
+    end
+
+  end
+
 end
