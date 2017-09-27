@@ -9,6 +9,9 @@ end
 
 gemfile(true) do
   source "https://rubygems.org"
+
+  git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+
   gem "rails", github: "rails/rails", branch: "master"
   gem "arel", github: "rails/arel", branch: "master"
   gem "activerecord-oracle_enhanced-adapter",  github: "rsim/oracle-enhanced", branch: "master"
