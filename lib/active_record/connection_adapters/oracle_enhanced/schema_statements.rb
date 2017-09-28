@@ -329,10 +329,10 @@ module ActiveRecord
 
         def table_comment(table_name) #:nodoc:
           (owner, table_name, db_link) = @connection.describe(table_name)
-          select_value <<-SQL
+          select_value(<<-SQL, "Table comment", [bind_string("owner", owner), bind_string("table_name", table_name)])
             SELECT comments FROM all_tab_comments#{db_link}
-            WHERE owner = '#{owner}'
-              AND table_name = '#{table_name}'
+            WHERE owner = :owner
+              AND table_name = :table_name
           SQL
         end
 
@@ -345,11 +345,11 @@ module ActiveRecord
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
           (owner, table_name, db_link) = @connection.describe(table_name)
-          select_value <<-SQL
+          select_value(<<-SQL, "Column comment", [bind_string("owner", owner), bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
             SELECT comments FROM all_col_comments#{db_link}
-            WHERE owner = '#{owner}'
-              AND table_name = '#{table_name}'
-              AND column_name = '#{column_name.upcase}'
+            WHERE owner = :owner
+              AND table_name = :table_name
+              AND column_name = :column_name
           SQL
         end
 
@@ -374,7 +374,7 @@ module ActiveRecord
         def foreign_keys(table_name) #:nodoc:
           (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
-          fk_info = select_all(<<-SQL, "Foreign Keys")
+          fk_info = select_all(<<-SQL, "Foreign Keys", [bind_string("owner", owner), bind_string("desc_table_name", desc_table_name)])
             SELECT r.table_name to_table
                   ,rc.column_name references_column
                   ,cc.column_name
@@ -382,8 +382,8 @@ module ActiveRecord
                   ,c.delete_rule
               FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc,
                    all_constraints#{db_link} r, all_cons_columns#{db_link} rc
-             WHERE c.owner = '#{owner}'
-               AND c.table_name = q'[#{desc_table_name}]'
+             WHERE c.owner = :owner
+               AND c.table_name = :desc_table_name
                AND c.constraint_type = 'R'
                AND cc.owner = c.owner
                AND cc.constraint_name = c.constraint_name
@@ -508,11 +508,12 @@ module ActiveRecord
 
             return unless tablespace
 
-            index_name = Base.connection.select_value(
-              "SELECT index_name FROM all_constraints
-                  WHERE table_name = #{quote(table_name.upcase)}
+            index_name = select_value(<<-SQL, "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
+              SELECT index_name FROM all_constraints
+                  WHERE table_name = :table_name
                   AND constraint_type = 'P'
-                  AND owner = SYS_CONTEXT('userenv', 'current_schema')")
+                  AND owner = SYS_CONTEXT('userenv', 'current_schema')
+            SQL
 
             return unless index_name
 
