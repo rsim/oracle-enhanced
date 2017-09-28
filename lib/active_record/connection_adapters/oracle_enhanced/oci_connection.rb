@@ -313,7 +313,7 @@ module ActiveRecord
           privilege = config[:privilege] && config[:privilege].to_sym
           async = config[:allow_concurrency]
           prefetch_rows = config[:prefetch_rows] || 100
-          cursor_sharing = config[:cursor_sharing] || "force"
+          cursor_sharing = config[:cursor_sharing]
           # get session time_zone from configuration or from TZ environment variable
           time_zone = config[:time_zone] || ENV["TZ"]
 
@@ -341,7 +341,7 @@ module ActiveRecord
           conn.autocommit = true
           conn.non_blocking = true if async
           conn.prefetch_rows = prefetch_rows
-          conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil
+          conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil if cursor_sharing
           if ActiveRecord::Base.default_timezone == :local
             conn.exec "alter session set time_zone = '#{time_zone}'" unless time_zone.blank?
           elsif ActiveRecord::Base.default_timezone == :utc

@@ -150,8 +150,8 @@ module ActiveRecord
             # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
           end
 
-          cursor_sharing = config[:cursor_sharing] || "force"
-          exec "alter session set cursor_sharing = #{cursor_sharing}"
+          cursor_sharing = config[:cursor_sharing]
+          exec "alter session set cursor_sharing = #{cursor_sharing}" if cursor_sharing
 
           # Initialize NLS parameters
           OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS.each do |key, default_value|

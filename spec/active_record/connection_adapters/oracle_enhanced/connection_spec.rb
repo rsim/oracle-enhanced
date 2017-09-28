@@ -30,6 +30,17 @@ describe "OracleEnhancedAdapter establish connection" do
     ActiveRecord::Base.connection.reconnect!
     expect(ActiveRecord::Base.connection).to be_active
   end
+
+  it "should use database default cursor_sharing parameter value exact by default" do
+    # Use `SYSTEM_CONNECTION_PARAMS` to query v$parameter
+    conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(SYSTEM_CONNECTION_PARAMS)
+    expect(conn.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
+  end
+
+  it "should use modified cursor_sharing value force" do
+    conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(SYSTEM_CONNECTION_PARAMS.merge(cursor_sharing: :force))
+    expect(conn.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("FORCE")
+  end
 end
 
 describe "OracleEnhancedConnection" do
