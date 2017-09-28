@@ -319,7 +319,11 @@ module ActiveRecord
 
         def change_table_comment(table_name, comment)
           clear_cache!
-          execute "COMMENT ON TABLE #{quote_table_name(table_name)} IS #{quote(comment)}"
+          if comment.nil?
+            execute "COMMENT ON TABLE #{quote_table_name(table_name)} IS ''"
+          else
+            execute "COMMENT ON TABLE #{quote_table_name(table_name)} IS #{quote(comment)}"
+          end
         end
 
         def change_column_comment(table_name, column_name, comment) #:nodoc:
