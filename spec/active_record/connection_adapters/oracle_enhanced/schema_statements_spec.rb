@@ -733,8 +733,6 @@ end
     end
 
     it "should query foreign_keys using bind variables" do
-      fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_test_post_id_fk").first(10)}"
-
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
