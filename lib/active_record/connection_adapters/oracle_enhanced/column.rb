@@ -50,11 +50,6 @@ module ActiveRecord
             default
           end
         end
-
-        def guess_date_or_time(value)
-          value.respond_to?(:hour) && ((value.hour == 0) && (value.min == 0) && (value.sec == 0)) ?
-            Date.new(value.year, value.month, value.day) : value
-        end
       end
     end
   end
