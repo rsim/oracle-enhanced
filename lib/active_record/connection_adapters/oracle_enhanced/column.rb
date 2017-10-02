@@ -40,12 +40,6 @@ module ActiveRecord
           @object_type
         end
 
-        # convert Date value to Time for :datetime columns
-        def self.string_to_time(string) #:nodoc:
-          return string.to_time if string.is_a?(Date)
-          super
-        end
-
       private
 
         def self.extract_value_from_default(default)
