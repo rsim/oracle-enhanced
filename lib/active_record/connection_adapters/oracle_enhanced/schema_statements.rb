@@ -94,6 +94,10 @@ module ActiveRecord
           ActiveRecord::ConnectionAdapters::OracleEnhanced::TableDefinition.new(*args)
         end
 
+        def fetch_type_metadata(sql_type)
+          OracleEnhanced::TypeMetadata.new(super(sql_type))
+        end
+
         def rename_table(table_name, new_name) #:nodoc:
           if new_name.to_s.length > table_name_length
             raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{table_name_length} characters"
