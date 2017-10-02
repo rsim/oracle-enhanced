@@ -40,18 +40,6 @@ module ActiveRecord
           @object_type
         end
 
-        # convert something to a boolean
-        # added y as boolean value
-        def self.value_to_boolean(value) #:nodoc:
-          if value == true || value == false
-            value
-          elsif value.is_a?(String) && value.blank?
-            nil
-          else
-            %w(true t 1 y +).include?(value.to_s.downcase)
-          end
-        end
-
         # convert Time or DateTime value to Date for :date columns
         def self.string_to_date(string) #:nodoc:
           return string.to_date if string.is_a?(Time) || string.is_a?(DateTime)
