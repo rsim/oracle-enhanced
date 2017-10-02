@@ -18,10 +18,6 @@ module ActiveRecord
           super(name, default_value, sql_type_metadata, null, table_name, comment: comment)
           # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
           # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
-          if sql_type_metadata
-            @object_type = sql_type_metadata.sql_type.include? "."
-          end
-          # TODO: Need to investigate when `sql_type` becomes nil
         end
 
         def virtual?
@@ -34,10 +30,6 @@ module ActiveRecord
 
         def lob?
           self.sql_type =~ /LOB$/i
-        end
-
-        def object_type?
-          @object_type
         end
 
       private
