@@ -458,6 +458,10 @@ module ActiveRecord
 
         private
 
+          def schema_creation
+            OracleEnhanced::SchemaCreation.new self
+          end
+
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
             tablespace_sql = "".dup
             if tablespace = (tablespace_option || default_tablespace_for(obj_type))

@@ -172,10 +172,6 @@ module ActiveRecord
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseLimits
       include ActiveRecord::ConnectionAdapters::OracleEnhanced::DbmsOutput
 
-      def schema_creation
-        OracleEnhanced::SchemaCreation.new self
-      end
-
       ##
       # :singleton-method:
       # By default, the OracleEnhancedAdapter will consider all columns of type <tt>NUMBER(1)</tt>
