@@ -16,8 +16,6 @@ module ActiveRecord
             default_value = self.class.extract_value_from_default(default)
           end
           super(name, default_value, sql_type_metadata, null, table_name, comment: comment)
-          # Is column NCHAR or NVARCHAR2 (will need to use N'...' value quoting for these data types)?
-          # Define only when needed as adapter "quote" method will check at first if instance variable is defined.
         end
 
         def virtual?
