@@ -666,7 +666,7 @@ module ActiveRecord
         select_value(pkt_sql, "Primary Key Trigger", [bind_string("owner", owner), bind_string("trigger_name", trigger_name), bind_string("owner", owner), bind_string("table_name", desc_table_name)]) ? true : false
       end
 
-      def columns(table_name, name = nil) #:nodoc:
+      def columns(table_name) #:nodoc:
         table_name = table_name.to_s
 
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
