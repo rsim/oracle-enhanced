@@ -90,14 +90,6 @@ module ActiveRecord
           rebuild_primary_key_index_to_default_tablespace(table_name, options)
         end
 
-        def create_table_definition(*args)
-          ActiveRecord::ConnectionAdapters::OracleEnhanced::TableDefinition.new(*args)
-        end
-
-        def fetch_type_metadata(sql_type)
-          OracleEnhanced::TypeMetadata.new(super(sql_type))
-        end
-
         def rename_table(table_name, new_name) #:nodoc:
           if new_name.to_s.length > table_name_length
             raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{table_name_length} characters"
@@ -460,6 +452,14 @@ module ActiveRecord
 
           def schema_creation
             OracleEnhanced::SchemaCreation.new self
+          end
+
+          def create_table_definition(*args)
+            ActiveRecord::ConnectionAdapters::OracleEnhanced::TableDefinition.new(*args)
+          end
+
+          def fetch_type_metadata(sql_type)
+            OracleEnhanced::TypeMetadata.new(super(sql_type))
           end
 
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
