@@ -662,9 +662,7 @@ module ActiveRecord
         select_value(pkt_sql, "Primary Key Trigger", [bind_string("owner", owner), bind_string("trigger_name", trigger_name), bind_string("owner", owner), bind_string("table_name", desc_table_name)]) ? true : false
       end
 
-      def columns(table_name) #:nodoc:
-        table_name = table_name.to_s
-
+      def column_definitions(table_name)
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
         table_cols = <<-SQL.strip.gsub(/\s+/, " ")
@@ -690,45 +688,7 @@ module ActiveRecord
         SQL
 
         # added deletion of ignored columns
-        select_all(table_cols, nil, [bind_string("owner", owner), bind_string("table_name", desc_table_name)]).to_a.map do |row|
-          limit, scale = row["limit"], row["scale"]
-          if limit || scale
-            row["sql_type"] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
-          end
-
-          if row["sql_type_owner"]
-            row["sql_type"] = row["sql_type_owner"] + "." + row["sql_type"]
-          end
-
-          is_virtual = row["virtual_column"] == "YES"
-
-          # clean up odd default spacing from Oracle
-          if row["data_default"] && !is_virtual
-            row["data_default"].sub!(/^(.*?)\s*$/, '\1')
-
-            # If a default contains a newline these cleanup regexes need to
-            # match newlines.
-            row["data_default"].sub!(/^'(.*)'$/m, '\1')
-            row["data_default"] = nil if row["data_default"] =~ /^(null|empty_[bc]lob\(\))$/i
-            # TODO: Needs better fix to fallback "N" to false
-            row["data_default"] = false if (row["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings)
-          end
-
-          type_metadata = fetch_type_metadata(row["sql_type"])
-          new_column(oracle_downcase(row["name"]),
-                           row["data_default"],
-                           type_metadata,
-                           row["nullable"] == "Y",
-                           table_name,
-                           is_virtual,
-                           false,
-                           row["column_comment"]
-                    )
-        end
-      end
-
-      def new_column(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual = false, returning_id = false, comment = nil) # :nodoc:
-        OracleEnhanced::Column.new(name, default, sql_type_metadata, null, table_name, virtual, returning_id, comment)
+        select_all(table_cols, nil, [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
       end
 
       ##
