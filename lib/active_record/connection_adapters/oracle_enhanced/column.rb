@@ -4,7 +4,7 @@ module ActiveRecord
   module ConnectionAdapters #:nodoc:
     module OracleEnhanced
       class Column < ActiveRecord::ConnectionAdapters::Column
-        attr_reader :table_name, :virtual_column_data_default #:nodoc:
+        attr_reader :virtual_column_data_default #:nodoc:
 
         def initialize(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual = false, returning_id = nil, comment = nil) #:nodoc:
           @virtual = virtual
