@@ -458,6 +458,42 @@ module ActiveRecord
             ActiveRecord::ConnectionAdapters::OracleEnhanced::TableDefinition.new(*args)
           end
 
+          def new_column_from_field(table_name, field)
+            limit, scale = field["limit"], field["scale"]
+            if limit || scale
+              field["sql_type"] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
+            end
+
+            if field["sql_type_owner"]
+              field["sql_type"] = field["sql_type_owner"] + "." + field["sql_type"]
+            end
+
+            is_virtual = field["virtual_column"] == "YES"
+
+            # clean up odd default spacing from Oracle
+            if field["data_default"] && !is_virtual
+              field["data_default"].sub!(/^(.*?)\s*$/, '\1')
+
+              # If a default contains a newline these cleanup regexes need to
+              # match newlines.
+              field["data_default"].sub!(/^'(.*)'$/m, '\1')
+              field["data_default"] = nil if field["data_default"] =~ /^(null|empty_[bc]lob\(\))$/i
+              # TODO: Needs better fix to fallback "N" to false
+              field["data_default"] = false if (field["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings)
+            end
+
+            type_metadata = fetch_type_metadata(field["sql_type"])
+            OracleEnhanced::Column.new(oracle_downcase(field["name"]),
+                             field["data_default"],
+                             type_metadata,
+                             field["nullable"] == "Y",
+                             table_name,
+                             is_virtual,
+                             false,
+                             field["column_comment"]
+                      )
+          end
+
           def fetch_type_metadata(sql_type)
             OracleEnhanced::TypeMetadata.new(super(sql_type))
           end
