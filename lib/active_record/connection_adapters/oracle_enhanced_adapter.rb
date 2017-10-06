@@ -56,7 +56,7 @@ module ActiveRecord
   class Base
     def self.lob_columns
       columns.select do |column|
-        column.respond_to?(:lob?) && column.lob?
+        column.sql_type_metadata.sql_type =~ /LOB$/
       end
     end
 

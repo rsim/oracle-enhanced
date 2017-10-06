@@ -26,10 +26,6 @@ module ActiveRecord
           @returning_id
         end
 
-        def lob?
-          self.sql_type =~ /LOB$/i
-        end
-
       private
 
         def self.extract_value_from_default(default)
