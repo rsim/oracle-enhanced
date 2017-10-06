@@ -6,10 +6,9 @@ module ActiveRecord
       class Column < ActiveRecord::ConnectionAdapters::Column
         attr_reader :virtual_column_data_default #:nodoc:
 
-        def initialize(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual = false, returning_id = nil, comment = nil) #:nodoc:
+        def initialize(name, default, sql_type_metadata = nil, null = true, table_name = nil, virtual = false, comment = nil) #:nodoc:
           @virtual = virtual
           @virtual_column_data_default = default.inspect if virtual
-          @returning_id = returning_id
           if virtual
             default_value = nil
           else
