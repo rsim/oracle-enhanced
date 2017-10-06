@@ -489,7 +489,6 @@ module ActiveRecord
                              field["nullable"] == "Y",
                              table_name,
                              is_virtual,
-                             false,
                              field["column_comment"]
                       )
           end
