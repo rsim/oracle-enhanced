@@ -482,19 +482,20 @@ module ActiveRecord
               field["data_default"] = false if (field["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings)
             end
 
-            type_metadata = fetch_type_metadata(field["sql_type"])
+            type_metadata = fetch_type_metadata(field["sql_type"], is_virtual)
+            default_value = extract_value_from_default(field["data_default"])
+            default_value = nil if is_virtual
             OracleEnhanced::Column.new(oracle_downcase(field["name"]),
-                             field["data_default"],
+                             default_value,
                              type_metadata,
                              field["nullable"] == "Y",
                              table_name,
-                             is_virtual,
                              field["column_comment"]
                       )
           end
 
-          def fetch_type_metadata(sql_type)
-            OracleEnhanced::TypeMetadata.new(super(sql_type))
+          def fetch_type_metadata(sql_type, virtual = nil)
+            OracleEnhanced::TypeMetadata.new(super(sql_type), virtual: virtual)
           end
 
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
