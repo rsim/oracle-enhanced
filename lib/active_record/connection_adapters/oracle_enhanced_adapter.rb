@@ -838,6 +838,15 @@ module ActiveRecord
           end
         end
 
+        def extract_value_from_default(default)
+          case default
+          when String
+            default.gsub("''", "'")
+          else
+            default
+          end
+        end
+
         def extract_limit(sql_type) #:nodoc:
           case sql_type
           when /^bigint/i
