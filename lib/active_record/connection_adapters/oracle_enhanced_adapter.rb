@@ -47,6 +47,17 @@ require "active_record/connection_adapters/oracle_enhanced/dbms_output"
 require "active_record/connection_adapters/oracle_enhanced/type_metadata"
 require "active_record/connection_adapters/oracle_enhanced/structure_dump"
 
+require "active_record/oracle_enhanced/type/raw"
+require "active_record/oracle_enhanced/type/integer"
+require "active_record/oracle_enhanced/type/string"
+require "active_record/oracle_enhanced/type/national_character_string"
+require "active_record/oracle_enhanced/type/text"
+require "active_record/oracle_enhanced/type/national_character_text"
+require "active_record/oracle_enhanced/type/boolean"
+require "active_record/oracle_enhanced/type/json"
+require "active_record/oracle_enhanced/type/timestamptz"
+require "active_record/oracle_enhanced/type/timestampltz"
+
 require "digest/sha1"
 
 ActiveRecord::Base.class_eval do
@@ -850,6 +861,9 @@ module ActiveRecord
         def bind_string(name, value)
           ActiveRecord::Relation::QueryAttribute.new(name, value, ActiveRecord::OracleEnhanced::Type::String.new)
         end
+
+        ActiveRecord::Type.register(:boolean, ActiveRecord::OracleEnhanced::Type::Boolean, adapter: :oracleenhanced)
+        ActiveRecord::Type.register(:json, ActiveRecord::OracleEnhanced::Type::Json, adapter: :oracleenhanced)
     end
   end
 end
@@ -859,37 +873,3 @@ require "active_record/connection_adapters/oracle_enhanced/version"
 module ActiveRecord
   autoload :OracleEnhancedProcedures, "active_record/connection_adapters/oracle_enhanced/procedures"
 end
-
-# Add Type:Raw
-require "active_record/oracle_enhanced/type/raw"
-
-# Add OracleEnhanced::Type::Integer
-require "active_record/oracle_enhanced/type/integer"
-
-# Add OracleEnhanced::Type::String
-require "active_record/oracle_enhanced/type/string"
-
-# Add OracleEnhanced::Type::NationalCharacterString
-require "active_record/oracle_enhanced/type/national_character_string"
-
-# Add OracleEnhanced::Type::Text
-require "active_record/oracle_enhanced/type/text"
-
-# Add OracleEnhanced::Type::NationalCharacterText
-require "active_record/oracle_enhanced/type/national_character_text"
-
-# Add OracleEnhanced::Type::Boolean
-require "active_record/oracle_enhanced/type/boolean"
-
-# To use :boolean type for Attribute API, each type needs registered explicitly.
-ActiveRecord::Type.register(:boolean, ActiveRecord::OracleEnhanced::Type::Boolean, adapter: :oracleenhanced)
-
-# Add JSON attribute support
-require "active_record/oracle_enhanced/type/json"
-ActiveRecord::Type.register(:json, ActiveRecord::OracleEnhanced::Type::Json, adapter: :oracleenhanced)
-
-# Add Type:TimestampTz
-require "active_record/oracle_enhanced/type/timestamptz"
-
-# Add Type:TimestampLtz
-require "active_record/oracle_enhanced/type/timestampltz"
