@@ -249,7 +249,7 @@ module ActiveRecord
         end
 
         def add_reference(table_name, *args)
-          ActiveRecord::ConnectionAdapters::OracleEnhanced::ReferenceDefinition.new(*args).add_to(update_table_definition(table_name, self))
+          OracleEnhanced::ReferenceDefinition.new(*args).add_to(update_table_definition(table_name, self))
         end
 
         def add_column(table_name, column_name, type, options = {}) #:nodoc:
@@ -437,11 +437,11 @@ module ActiveRecord
         end
 
         def create_alter_table(name)
-          ActiveRecord::ConnectionAdapters::OracleEnhanced::AlterTable.new create_table_definition(name, false, {})
+          OracleEnhanced::AlterTable.new create_table_definition(name, false, {})
         end
 
         def update_table_definition(table_name, base)
-          ActiveRecord::ConnectionAdapters::OracleEnhanced::Table.new(table_name, base)
+          OracleEnhanced::Table.new(table_name, base)
         end
 
         def create_schema_dumper(options)
@@ -455,7 +455,7 @@ module ActiveRecord
           end
 
           def create_table_definition(*args)
-            ActiveRecord::ConnectionAdapters::OracleEnhanced::TableDefinition.new(*args)
+            OracleEnhanced::TableDefinition.new(*args)
           end
 
           def new_column_from_field(table_name, field)

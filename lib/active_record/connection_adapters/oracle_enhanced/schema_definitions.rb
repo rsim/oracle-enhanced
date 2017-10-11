@@ -50,7 +50,7 @@ module ActiveRecord
       end
 
       class TableDefinition < ActiveRecord::ConnectionAdapters::TableDefinition
-        include ActiveRecord::ConnectionAdapters::OracleEnhanced::ColumnMethods
+        include OracleEnhanced::ColumnMethods
 
         attr_accessor :tablespace, :organization
         def initialize(name, temporary = false, options = nil, as = nil, tablespace = nil, organization = nil, comment: nil)
@@ -72,7 +72,7 @@ module ActiveRecord
       end
 
       class Table < ActiveRecord::ConnectionAdapters::Table
-        include ActiveRecord::ConnectionAdapters::OracleEnhanced::ColumnMethods
+        include OracleEnhanced::ColumnMethods
       end
     end
   end
