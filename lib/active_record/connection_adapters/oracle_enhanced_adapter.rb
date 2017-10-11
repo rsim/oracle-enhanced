@@ -45,6 +45,7 @@ require "active_record/connection_adapters/oracle_enhanced/quoting"
 require "active_record/connection_adapters/oracle_enhanced/database_limits"
 require "active_record/connection_adapters/oracle_enhanced/dbms_output"
 require "active_record/connection_adapters/oracle_enhanced/type_metadata"
+require "active_record/connection_adapters/oracle_enhanced/structure_dump"
 
 require "digest/sha1"
 
@@ -170,6 +171,7 @@ module ActiveRecord
       include OracleEnhanced::Quoting
       include OracleEnhanced::DatabaseLimits
       include OracleEnhanced::DbmsOutput
+      include OracleEnhanced::StructureDump
 
       ##
       # :singleton-method:
@@ -851,9 +853,6 @@ module ActiveRecord
     end
   end
 end
-
-# Implementation of structure dump
-require "active_record/connection_adapters/oracle_enhanced/structure_dump"
 
 require "active_record/connection_adapters/oracle_enhanced/version"
 
