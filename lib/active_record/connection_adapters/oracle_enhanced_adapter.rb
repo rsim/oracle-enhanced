@@ -785,7 +785,7 @@ module ActiveRecord
         select_value("SELECT temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'session_user')", "temp tables", [bind_string("table_name", table_name.upcase)]) == "Y"
       end
 
-      protected
+      private
 
         def initialize_type_map(m = type_map)
           super
@@ -854,8 +854,6 @@ module ActiveRecord
             super
           end
         end
-
-      private
 
         # create bind object for type String
         def bind_string(name, value)
