@@ -360,7 +360,7 @@ module ActiveRecord
             when Java::OracleSql::NCLOB
               @raw_statement.setClob(position, value)
             when ActiveRecord::OracleEnhanced::Type::Raw
-              @raw_statement.setString(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))
+              @raw_statement.setString(position, OracleEnhanced::Quoting.encode_raw(value))
             when String
               @raw_statement.setString(position, value)
             when Java::OracleSql::DATE

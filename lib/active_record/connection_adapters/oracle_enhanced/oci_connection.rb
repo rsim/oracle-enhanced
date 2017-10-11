@@ -137,7 +137,7 @@ module ActiveRecord
           def bind_param(position, value)
             case value
             when ActiveRecord::OracleEnhanced::Type::Raw
-              @raw_cursor.bind_param(position, ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.encode_raw(value))
+              @raw_cursor.bind_param(position, OracleEnhanced::Quoting.encode_raw(value))
             when ActiveModel::Type::Decimal
               @raw_cursor.bind_param(position, BigDecimal.new(value.to_s))
             when NilClass
@@ -217,7 +217,7 @@ module ActiveRecord
         def describe(name)
           # fall back to SELECT based describe if using database link
           return super if name.to_s.include?("@")
-          quoted_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(name) ? name : "\"#{name}\""
+          quoted_name = OracleEnhanced::Quoting.valid_table_name?(name) ? name : "\"#{name}\""
           @raw_connection.describe(quoted_name)
         rescue OCIException => e
           if e.code == 4043

@@ -163,14 +163,13 @@ module ActiveRecord
     # * <tt>:nls_time_tz_format</tt>
     #
     class OracleEnhancedAdapter < AbstractAdapter
-      # TODO: Use relative
-      include ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseStatements
-      include ActiveRecord::ConnectionAdapters::OracleEnhanced::SchemaStatements
-      include ActiveRecord::ConnectionAdapters::OracleEnhanced::SchemaStatementsExt
-      include ActiveRecord::ConnectionAdapters::OracleEnhanced::ContextIndex
-      include ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting
-      include ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseLimits
-      include ActiveRecord::ConnectionAdapters::OracleEnhanced::DbmsOutput
+      include OracleEnhanced::DatabaseStatements
+      include OracleEnhanced::SchemaStatements
+      include OracleEnhanced::SchemaStatementsExt
+      include OracleEnhanced::ContextIndex
+      include OracleEnhanced::Quoting
+      include OracleEnhanced::DatabaseLimits
+      include OracleEnhanced::DbmsOutput
 
       ##
       # :singleton-method:
@@ -527,7 +526,7 @@ module ActiveRecord
         else
           default_owner = current_schema
         end
-        real_name = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name?(table_name) ?
+        real_name = OracleEnhanced::Quoting.valid_table_name?(table_name) ?
           table_name.upcase : table_name
         if real_name.include?(".")
           table_owner, table_name = real_name.split(".")
