@@ -618,10 +618,7 @@ module ActiveRecord
               row["uniqueness"] == "UNIQUE",
               [],
               nil,
-              nil,
-              nil,
               row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
-              nil,
               row["parameters"],
               statement_parameters,
               row["tablespace_name"] == default_tablespace_name ? nil : row["tablespace_name"])
