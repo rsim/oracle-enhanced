@@ -41,11 +41,11 @@ module ActiveRecord
       class IndexDefinition < ActiveRecord::ConnectionAdapters::IndexDefinition
         attr_accessor :parameters, :statement_parameters, :tablespace
 
-        def initialize(table, name, unique, columns, lengths, orders, where, type, using, parameters, statement_parameters, tablespace)
+        def initialize(table, name, unique, columns, orders, type, parameters, statement_parameters, tablespace)
           @parameters = parameters
           @statement_parameters = statement_parameters
           @tablespace = tablespace
-          super(table, name, unique, columns, lengths: lengths, orders: orders, where: where, type: type, using: using)
+          super(table, name, unique, columns, orders: orders, type: type)
         end
       end
 
