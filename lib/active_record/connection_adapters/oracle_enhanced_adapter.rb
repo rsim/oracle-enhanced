@@ -665,7 +665,7 @@ module ActiveRecord
       def column_definitions(table_name)
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
-        table_cols = <<-SQL.strip.gsub(/\s+/, " ")
+        select_all(<<-SQL.strip.gsub(/\s+/, " "), "Column definitions", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cols.column_name AS name, cols.data_type AS sql_type,
                  cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
                  cols.data_type_owner AS sql_type_owner,
@@ -686,9 +686,6 @@ module ActiveRecord
              AND cols.column_name = comments.column_name
            ORDER BY cols.column_id
         SQL
-
-        # added deletion of ignored columns
-        select_all(table_cols, nil, [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
       end
 
       ##
