@@ -779,30 +779,6 @@ module ActiveRecord
         select_value("SELECT temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'session_user')", "temp tables", [bind_string("table_name", table_name.upcase)]) == "Y"
       end
 
-      def combine_bind_parameters(
-        from_clause: [],
-        join_clause: [],
-        where_clause: [],
-        having_clause: [],
-        limit: nil,
-        offset: nil
-      ) # :nodoc:
-        result = from_clause + join_clause + where_clause + having_clause
-        if RUBY_ENGINE == "jruby" && !supports_fetch_first_n_rows_and_offset? && offset && limit
-          result << offset
-          result << limit
-          result << offset
-        else
-          if offset
-            result << offset
-          end
-          if limit
-            result << limit
-          end
-        end
-        result
-      end
-
       protected
 
         def initialize_type_map(m = type_map)
