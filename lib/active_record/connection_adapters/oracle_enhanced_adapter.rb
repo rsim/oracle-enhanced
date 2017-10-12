@@ -227,6 +227,14 @@ module ActiveRecord
       cattr_accessor :use_old_oracle_visitor
       self.use_old_oracle_visitor = false
 
+      ##
+      # :singleton-method:
+      # Specify default sequence start with value (by default 10000 if not explicitly set), e.g.:
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 1
+      cattr_accessor :default_sequence_start_value
+      self.default_sequence_start_value = 10000
+
       class StatementPool < ConnectionAdapters::StatementPool
         private
 
@@ -696,14 +704,6 @@ module ActiveRecord
            ORDER BY cols.column_id
         SQL
       end
-
-      ##
-      # :singleton-method:
-      # Specify default sequence start with value (by default 10000 if not explicitly set), e.g.:
-      #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 1
-      cattr_accessor :default_sequence_start_value
-      self.default_sequence_start_value = 10000
 
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
