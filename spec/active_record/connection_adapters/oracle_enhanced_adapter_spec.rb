@@ -312,13 +312,10 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should explain query with binds" do
-      skip "Skip until further investigation made for #908 JRuby and #1386 for CRuby"
-      pk = TestPost.columns_hash[TestPost.primary_key]
-      sub = Arel::Nodes::BindParam.new.to_sql
-      binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
-      explain = @conn.explain(TestPost.where(TestPost.arel_table[pk.name].eq(sub)), binds)
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::OracleEnhanced::Type::Integer.new)]
+      explain = TestPost.where(id: binds).explain
       expect(explain).to include("Cost")
-      expect(explain).to include("INDEX UNIQUE SCAN")
+      expect(explain).to include("INDEX UNIQUE SCAN").or include("TABLE ACCESS FULL")
     end
   end
 
