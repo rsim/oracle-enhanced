@@ -261,24 +261,20 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should clear older cursors when statement limit is reached" do
-      pk = TestPost.columns_hash[TestPost.primary_key]
-      sub = Arel::Nodes::BindParam.new(nil).to_sql
-      binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::OracleEnhanced::Type::Integer.new)]
       # free statement pool from dictionary selections  to ensure next selects will increase statement pool
       @statements.clear
       expect {
         4.times do |i|
-          @conn.exec_query("SELECT * FROM test_posts WHERE #{i}=#{i} AND id = #{sub}", "SQL", binds)
+          @conn.exec_query("SELECT * FROM test_posts WHERE #{i}=#{i} AND id = :id", "SQL", binds)
         end
       }.to change(@statements, :length).by(+3)
     end
 
     it "should cache UPDATE statements with bind variables" do
       expect {
-        pk = TestPost.columns_hash[TestPost.primary_key]
-        sub = Arel::Nodes::BindParam.new(nil).to_sql
-        binds = [ActiveRecord::Relation::QueryAttribute.new(pk, 1, ActiveRecord::Type::Integer.new)]
-        @conn.exec_update("UPDATE test_posts SET id = #{sub}", "SQL", binds)
+        binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::OracleEnhanced::Type::Integer.new)]
+        @conn.exec_update("UPDATE test_posts SET id = :id", "SQL", binds)
       }.to change(@statements, :length).by(+1)
     end
 
