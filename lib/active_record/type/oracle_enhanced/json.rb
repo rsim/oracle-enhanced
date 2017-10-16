@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module ActiveRecord
-  module OracleEnhanced
-    module Type
+  module Type
+    module OracleEnhanced
       class Json < ActiveRecord::Type::Json
       end
     end

@@ -79,7 +79,7 @@ module ActiveRecord
         def sql_for_insert(sql, pk, id_value, sequence_name, binds)
           unless id_value || pk == false || pk.nil? ||  pk.is_a?(Array)
             sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
-            (binds = binds.dup) << ActiveRecord::Relation::QueryAttribute.new("returning_id", nil, ActiveRecord::OracleEnhanced::Type::Integer.new)
+            (binds = binds.dup) << ActiveRecord::Relation::QueryAttribute.new("returning_id", nil, Type::OracleEnhanced::Integer.new)
           end
           super
         end

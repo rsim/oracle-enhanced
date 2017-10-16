@@ -186,7 +186,7 @@ module ActiveRecord #:nodoc:
           end
 
           def bind_string(name, value)
-            ActiveRecord::Relation::QueryAttribute.new(name, value, ActiveRecord::OracleEnhanced::Type::String.new)
+            ActiveRecord::Relation::QueryAttribute.new(name, value, Type::OracleEnhanced::String.new)
           end
       end
     end

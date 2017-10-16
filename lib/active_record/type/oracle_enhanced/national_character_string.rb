@@ -3,9 +3,9 @@
 require "active_model/type/string"
 
 module ActiveRecord
-  module OracleEnhanced
-    module Type
-      class NationalCharacterString < ActiveRecord::OracleEnhanced::Type::String # :nodoc:
+  module Type
+    module OracleEnhanced
+      class NationalCharacterString < ActiveRecord::Type::OracleEnhanced::String # :nodoc:
         def serialize(value)
           return unless value
           Data.new(super)

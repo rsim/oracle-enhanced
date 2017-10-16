@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module ActiveRecord
-  module OracleEnhanced
-    module Type
+  module Type
+    module OracleEnhanced
       class Integer < ActiveModel::Type::Integer # :nodoc:
         private
 

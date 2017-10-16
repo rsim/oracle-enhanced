@@ -10,11 +10,11 @@ module ActiveRecord
             blob = Java::OracleSql::BLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::BLOB::DURATION_SESSION)
             blob.setBytes(1, value.to_s.to_java_bytes)
             blob
-          when ActiveRecord::OracleEnhanced::Type::Text::Data
+          when Type::OracleEnhanced::Text::Data
             clob = Java::OracleSql::CLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::CLOB::DURATION_SESSION)
             clob.setString(1, value.to_s)
             clob
-          when ActiveRecord::OracleEnhanced::Type::NationalCharacterText::Data
+          when Type::OracleEnhanced::NationalCharacterText::Data
             clob = Java::OracleSql::NCLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::NCLOB::DURATION_SESSION)
             clob.setString(1, value.to_s)
             clob

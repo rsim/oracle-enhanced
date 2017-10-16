@@ -261,7 +261,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should clear older cursors when statement limit is reached" do
-      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::OracleEnhanced::Type::Integer.new)]
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
       # free statement pool from dictionary selections  to ensure next selects will increase statement pool
       @statements.clear
       expect {
@@ -273,7 +273,7 @@ describe "OracleEnhancedAdapter" do
 
     it "should cache UPDATE statements with bind variables" do
       expect {
-        binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::OracleEnhanced::Type::Integer.new)]
+        binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
         @conn.exec_update("UPDATE test_posts SET id = :id", "SQL", binds)
       }.to change(@statements, :length).by(+1)
     end
@@ -312,7 +312,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should explain query with binds" do
-      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::OracleEnhanced::Type::Integer.new)]
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
       explain = TestPost.where(id: binds).explain
       expect(explain).to include("Cost")
       expect(explain).to include("INDEX UNIQUE SCAN").or include("TABLE ACCESS FULL")
