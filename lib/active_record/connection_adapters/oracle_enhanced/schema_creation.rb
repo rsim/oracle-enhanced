@@ -37,7 +37,7 @@ module ActiveRecord
               end
             end
             add_table_options!(create_sql, table_options(o))
-            create_sql << " AS #{@conn.to_sql(o.as)}" if o.as
+            create_sql << " AS #{to_sql(o.as)}" if o.as
             create_sql
           end
 
