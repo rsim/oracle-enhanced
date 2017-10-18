@@ -47,16 +47,16 @@ require "active_record/connection_adapters/oracle_enhanced/dbms_output"
 require "active_record/connection_adapters/oracle_enhanced/type_metadata"
 require "active_record/connection_adapters/oracle_enhanced/structure_dump"
 
-require "active_record/oracle_enhanced/type/raw"
-require "active_record/oracle_enhanced/type/integer"
-require "active_record/oracle_enhanced/type/string"
-require "active_record/oracle_enhanced/type/national_character_string"
-require "active_record/oracle_enhanced/type/text"
-require "active_record/oracle_enhanced/type/national_character_text"
-require "active_record/oracle_enhanced/type/boolean"
-require "active_record/oracle_enhanced/type/json"
-require "active_record/oracle_enhanced/type/timestamptz"
-require "active_record/oracle_enhanced/type/timestampltz"
+require "active_record/type/oracle_enhanced/raw"
+require "active_record/type/oracle_enhanced/integer"
+require "active_record/type/oracle_enhanced/string"
+require "active_record/type/oracle_enhanced/national_character_string"
+require "active_record/type/oracle_enhanced/text"
+require "active_record/type/oracle_enhanced/national_character_text"
+require "active_record/type/oracle_enhanced/boolean"
+require "active_record/type/oracle_enhanced/json"
+require "active_record/type/oracle_enhanced/timestamptz"
+require "active_record/type/oracle_enhanced/timestampltz"
 
 require "digest/sha1"
 
@@ -492,7 +492,7 @@ module ActiveRecord
           value = attributes[col.name]
           # changed sequence of next two lines - should check if value is nil before converting to yaml
           next if value.blank?
-          if klass.attribute_types[col.name].is_a? ActiveRecord::Type::Serialized
+          if klass.attribute_types[col.name].is_a? Type::Serialized
             value = klass.attribute_types[col.name].serialize(value)
           end
           uncached do
@@ -790,14 +790,14 @@ module ActiveRecord
         def initialize_type_map(m = type_map)
           super
           # oracle
-          register_class_with_precision m, %r(WITH TIME ZONE)i,       ActiveRecord::OracleEnhanced::Type::TimestampTz
-          register_class_with_precision m, %r(WITH LOCAL TIME ZONE)i, ActiveRecord::OracleEnhanced::Type::TimestampLtz
-          register_class_with_limit m, %r(raw)i,            ActiveRecord::OracleEnhanced::Type::Raw
-          register_class_with_limit m, %r(char)i,           ActiveRecord::OracleEnhanced::Type::String
-          register_class_with_limit m, %r(clob)i,           ActiveRecord::OracleEnhanced::Type::Text
-          register_class_with_limit m, %r(nclob)i,           ActiveRecord::OracleEnhanced::Type::NationalCharacterText
+          register_class_with_precision m, %r(WITH TIME ZONE)i,       Type::OracleEnhanced::TimestampTz
+          register_class_with_precision m, %r(WITH LOCAL TIME ZONE)i, Type::OracleEnhanced::TimestampLtz
+          register_class_with_limit m, %r(raw)i,            Type::OracleEnhanced::Raw
+          register_class_with_limit m, %r(char)i,           Type::OracleEnhanced::String
+          register_class_with_limit m, %r(clob)i,           Type::OracleEnhanced::Text
+          register_class_with_limit m, %r(nclob)i,           Type::OracleEnhanced::NationalCharacterText
 
-          m.register_type "NCHAR", ActiveRecord::OracleEnhanced::Type::NationalCharacterString.new
+          m.register_type "NCHAR", Type::OracleEnhanced::NationalCharacterString.new
           m.alias_type %r(NVARCHAR2)i,    "NCHAR"
 
           m.register_type(%r(NUMBER)i) do |sql_type|
@@ -805,7 +805,7 @@ module ActiveRecord
             precision = extract_precision(sql_type)
             limit = extract_limit(sql_type)
             if scale == 0
-              ActiveRecord::OracleEnhanced::Type::Integer.new(precision: precision, limit: limit)
+              Type::OracleEnhanced::Integer.new(precision: precision, limit: limit)
             else
               Type::Decimal.new(precision: precision, scale: scale)
             end
@@ -813,7 +813,7 @@ module ActiveRecord
 
           if OracleEnhancedAdapter.emulate_booleans
             if OracleEnhancedAdapter.emulate_booleans_from_strings
-              m.register_type %r(^VARCHAR2\(1\))i, ActiveRecord::OracleEnhanced::Type::Boolean.new
+              m.register_type %r(^VARCHAR2\(1\))i, Type::OracleEnhanced::Boolean.new
             else
               m.register_type %r(^NUMBER\(1\))i, Type::Boolean.new
             end
@@ -857,11 +857,11 @@ module ActiveRecord
 
         # create bind object for type String
         def bind_string(name, value)
-          ActiveRecord::Relation::QueryAttribute.new(name, value, ActiveRecord::OracleEnhanced::Type::String.new)
+          ActiveRecord::Relation::QueryAttribute.new(name, value, Type::OracleEnhanced::String.new)
         end
 
-        ActiveRecord::Type.register(:boolean, ActiveRecord::OracleEnhanced::Type::Boolean, adapter: :oracleenhanced)
-        ActiveRecord::Type.register(:json, ActiveRecord::OracleEnhanced::Type::Json, adapter: :oracleenhanced)
+        ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracleenhanced)
+        ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracleenhanced)
     end
   end
 end

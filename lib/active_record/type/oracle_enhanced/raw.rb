@@ -3,8 +3,8 @@
 require "active_model/type/string"
 
 module ActiveRecord
-  module OracleEnhanced
-    module Type
+  module Type
+    module OracleEnhanced
       class Raw < ActiveModel::Type::String # :nodoc:
         def type
           :raw

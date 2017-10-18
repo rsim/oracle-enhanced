@@ -136,7 +136,7 @@ module ActiveRecord
 
           def bind_param(position, value)
             case value
-            when ActiveRecord::OracleEnhanced::Type::Raw
+            when Type::OracleEnhanced::Raw
               @raw_cursor.bind_param(position, OracleEnhanced::Quoting.encode_raw(value))
             when ActiveModel::Type::Decimal
               @raw_cursor.bind_param(position, BigDecimal.new(value.to_s))

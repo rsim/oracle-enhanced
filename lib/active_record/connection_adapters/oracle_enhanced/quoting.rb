@@ -93,13 +93,13 @@ module ActiveRecord
 
         def _quote(value) #:nodoc:
           case value
-          when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data then
+          when Type::OracleEnhanced::NationalCharacterString::Data then
             "N".dup << "'#{quote_string(value.to_s)}'"
           when ActiveModel::Type::Binary::Data then
             "empty_blob()"
-          when ActiveRecord::OracleEnhanced::Type::Text::Data then
+          when Type::OracleEnhanced::Text::Data then
             "empty_clob()"
-          when ActiveRecord::OracleEnhanced::Type::NationalCharacterText::Data then
+          when Type::OracleEnhanced::NationalCharacterText::Data then
             "empty_nclob()"
           else
             super
@@ -128,14 +128,14 @@ module ActiveRecord
 
         def _type_cast(value)
           case value
-          when ActiveRecord::OracleEnhanced::Type::TimestampTz::Data, ActiveRecord::OracleEnhanced::Type::TimestampLtz::Data
+          when Type::OracleEnhanced::TimestampTz::Data, Type::OracleEnhanced::TimestampLtz::Data
             if value.acts_like?(:time)
               zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
               value.respond_to?(zone_conversion_method) ? value.send(zone_conversion_method) : value
             else
               value
             end
-          when ActiveRecord::OracleEnhanced::Type::NationalCharacterString::Data
+          when Type::OracleEnhanced::NationalCharacterString::Data
             value.to_s
           else
             super

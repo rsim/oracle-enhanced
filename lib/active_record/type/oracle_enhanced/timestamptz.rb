@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module ActiveRecord
-  module OracleEnhanced
-    module Type
-      class TimestampLtz < ActiveRecord::Type::DateTime
+  module Type
+    module OracleEnhanced
+      class TimestampTz < ActiveRecord::Type::DateTime
         def type
-          :timestampltz
+          :timestamptz
         end
 
         class Data < DelegateClass(::Time) # :nodoc:
