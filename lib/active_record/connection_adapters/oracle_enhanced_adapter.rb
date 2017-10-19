@@ -58,8 +58,6 @@ require "active_record/type/oracle_enhanced/json"
 require "active_record/type/oracle_enhanced/timestamptz"
 require "active_record/type/oracle_enhanced/timestampltz"
 
-require "digest/sha1"
-
 ActiveRecord::Base.class_eval do
   class_attribute :custom_create_method, :custom_update_method, :custom_delete_method
 end
