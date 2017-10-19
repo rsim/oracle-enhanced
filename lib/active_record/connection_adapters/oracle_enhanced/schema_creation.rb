@@ -42,8 +42,7 @@ module ActiveRecord
           end
 
           def default_tablespace_for(type)
-            (ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[type] ||
-             ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[native_database_types[type][:name]]) rescue nil
+            OracleEnhancedAdapter.default_tablespaces[type]
           end
 
           def add_column_options!(sql, options)
