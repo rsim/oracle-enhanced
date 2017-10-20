@@ -565,7 +565,7 @@ module ActiveRecord
         end
       end
 
-      def indexes(table_name, name = nil) #:nodoc:
+      def indexes(table_name) #:nodoc:
         (owner, table_name, db_link) = @connection.describe(table_name)
         default_tablespace_name = default_tablespace
 
