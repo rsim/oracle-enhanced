@@ -483,27 +483,6 @@ module ActiveRecord
         end
       end
 
-      # Writes LOB values from attributes for specified columns
-      def write_lobs(table_name, klass, attributes, columns) #:nodoc:
-        id = quote(attributes[klass.primary_key])
-        columns.each do |col|
-          value = attributes[col.name]
-          # changed sequence of next two lines - should check if value is nil before converting to yaml
-          next if value.blank?
-          if klass.attribute_types[col.name].is_a? Type::Serialized
-            value = klass.attribute_types[col.name].serialize(value)
-          end
-          uncached do
-            sql = "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE"
-            unless lob_record = select_one(sql, "Writable Large Object")
-              raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
-            end
-            lob = lob_record[col.name]
-            @connection.write_lob(lob, value.to_s, col.type == :binary)
-          end
-        end
-      end
-
       # Current database name
       def current_database
         select_value("SELECT SYS_CONTEXT('userenv', 'con_name') FROM dual")
