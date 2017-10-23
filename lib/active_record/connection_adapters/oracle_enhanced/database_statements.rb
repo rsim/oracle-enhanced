@@ -247,7 +247,7 @@ module ActiveRecord
               value = klass.attribute_types[col.name].serialize(value)
             end
             uncached do
-              unless lob_record = select_one(<<-SQL, "Writable Large Object")
+              unless lob_record = select_one(<<-SQL.strip.gsub(/\s+/, " "), "Writable Large Object")
                 SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)}
                 WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE
               SQL
