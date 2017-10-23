@@ -46,6 +46,7 @@ require "active_record/connection_adapters/oracle_enhanced/database_limits"
 require "active_record/connection_adapters/oracle_enhanced/dbms_output"
 require "active_record/connection_adapters/oracle_enhanced/type_metadata"
 require "active_record/connection_adapters/oracle_enhanced/structure_dump"
+require "active_record/connection_adapters/oracle_enhanced/lob"
 
 require "active_record/type/oracle_enhanced/raw"
 require "active_record/type/oracle_enhanced/integer"
@@ -57,43 +58,6 @@ require "active_record/type/oracle_enhanced/boolean"
 require "active_record/type/oracle_enhanced/json"
 require "active_record/type/oracle_enhanced/timestamptz"
 require "active_record/type/oracle_enhanced/timestampltz"
-
-ActiveRecord::Base.class_eval do
-  class_attribute :custom_create_method, :custom_update_method, :custom_delete_method
-end
-
-module ActiveRecord
-  class Base
-    def self.lob_columns
-      columns.select do |column|
-        column.sql_type_metadata.sql_type =~ /LOB$/
-      end
-    end
-
-    # After setting large objects to empty, select the OCI8::LOB
-    # and write back the data.
-    before_update :record_changed_lobs
-    after_update :enhanced_write_lobs
-
-    private
-
-      def enhanced_write_lobs
-        if self.class.connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
-            !(
-              (self.class.custom_create_method || self.class.custom_create_method) ||
-              (self.class.custom_update_method || self.class.custom_update_method)
-            )
-          self.class.connection.write_lobs(self.class.table_name, self.class, attributes, @changed_lob_columns)
-        end
-      end
-
-      def record_changed_lobs
-        @changed_lob_columns = self.class.lob_columns.select do |col|
-          self.will_save_change_to_attribute?(col.name) && !self.class.readonly_attributes.to_a.include?(col.name)
-        end
-      end
-  end
-end
 
 module ActiveRecord
   module ConnectionHandling #:nodoc:
