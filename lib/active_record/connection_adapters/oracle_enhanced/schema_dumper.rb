@@ -177,7 +177,7 @@ module ActiveRecord #:nodoc:
           def extract_expression_for_virtual_column(column)
             column_name = column.name
             table_name = column.table_name
-            @connection.select_value(<<-SQL, "Table comment", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
+            @connection.select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
               select data_default from all_tab_columns
               where owner = SYS_CONTEXT('userenv', 'session_user')
               and table_name = :table_name

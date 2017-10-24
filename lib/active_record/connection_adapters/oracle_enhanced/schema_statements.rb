@@ -202,7 +202,7 @@ module ActiveRecord
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
           (owner, table_name, db_link) = @connection.describe(table_name)
-          result = select_value(<<-SQL)
+          result = select_value(<<-SQL.strip.gsub(/\s+/, " "), "index name exists")
             SELECT 1 FROM all_indexes#{db_link} i
             WHERE i.owner = '#{owner}'
                AND i.table_owner = '#{owner}'
@@ -324,7 +324,7 @@ module ActiveRecord
 
         def table_comment(table_name) #:nodoc:
           (owner, table_name, db_link) = @connection.describe(table_name)
-          select_value(<<-SQL, "Table comment", [bind_string("owner", owner), bind_string("table_name", table_name)])
+          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("owner", owner), bind_string("table_name", table_name)])
             SELECT comments FROM all_tab_comments#{db_link}
             WHERE owner = :owner
               AND table_name = :table_name
@@ -340,7 +340,7 @@ module ActiveRecord
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
           (owner, table_name, db_link) = @connection.describe(table_name)
-          select_value(<<-SQL, "Column comment", [bind_string("owner", owner), bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
+          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Column comment", [bind_string("owner", owner), bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
             SELECT comments FROM all_col_comments#{db_link}
             WHERE owner = :owner
               AND table_name = :table_name
@@ -357,7 +357,7 @@ module ActiveRecord
         end
 
         def tablespace(table_name)
-          select_value <<-SQL
+          select_value(<<-SQL.strip.gsub(/\s+/, " "), "tablespace")
             SELECT tablespace_name
             FROM all_tables
             WHERE table_name='#{table_name.to_s.upcase}'
@@ -369,7 +369,7 @@ module ActiveRecord
         def foreign_keys(table_name) #:nodoc:
           (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
-          fk_info = select_all(<<-SQL, "Foreign Keys", [bind_string("owner", owner), bind_string("desc_table_name", desc_table_name)])
+          fk_info = select_all(<<-SQL.strip.gsub(/\s+/, " "), "Foreign Keys", [bind_string("owner", owner), bind_string("desc_table_name", desc_table_name)])
             SELECT r.table_name to_table
                   ,rc.column_name references_column
                   ,cc.column_name
@@ -550,7 +550,7 @@ module ActiveRecord
 
             return unless tablespace
 
-            index_name = select_value(<<-SQL, "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
+            index_name = select_value(<<-SQL.strip.gsub(/\s+/, " "), "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
               SELECT index_name FROM all_constraints
                   WHERE table_name = :table_name
                   AND constraint_type = 'P'
