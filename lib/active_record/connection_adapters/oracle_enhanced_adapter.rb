@@ -608,7 +608,7 @@ module ActiveRecord
 
         trigger_name = default_trigger_name(table_name).upcase
 
-        pkt_sql = <<-SQL
+        !!select_value(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key Trigger", [bind_string("owner", owner), bind_string("trigger_name", trigger_name), bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT trigger_name
           FROM all_triggers#{db_link}
           WHERE owner = :owner
@@ -617,7 +617,6 @@ module ActiveRecord
             AND table_name = :table_name
             AND status = 'ENABLED'
         SQL
-        select_value(pkt_sql, "Primary Key Trigger", [bind_string("owner", owner), bind_string("trigger_name", trigger_name), bind_string("owner", owner), bind_string("table_name", desc_table_name)]) ? true : false
       end
 
       def column_definitions(table_name)
