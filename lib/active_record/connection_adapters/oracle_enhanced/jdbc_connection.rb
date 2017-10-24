@@ -567,14 +567,15 @@ module ActiveRecord
       private
 
       def lob_to_ruby_value(val)
-        case val
-        when ::Java::OracleSql::CLOB
+        klass_name = val.class.name
+
+        if klass_name.include?('CLOB')
           if val.isEmptyLob
             nil
           else
             val.getSubString(1, val.length)
           end
-        when ::Java::OracleSql::BLOB
+        elsif klass_name.include?('BLOB')
           if val.isEmptyLob
             nil
           else
