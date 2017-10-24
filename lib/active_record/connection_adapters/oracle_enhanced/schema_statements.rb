@@ -411,14 +411,13 @@ module ActiveRecord
         # REFERENTIAL INTEGRITY ====================================
 
         def disable_referential_integrity(&block) #:nodoc:
-          sql_constraints = <<-SQL
+          old_constraints = select_all(<<-SQL.strip.gsub(/\s+/, " "), "Foreign Keys to disable and enable")
           SELECT constraint_name, owner, table_name
             FROM all_constraints
             WHERE constraint_type = 'R'
             AND status = 'ENABLED'
             AND owner = SYS_CONTEXT('userenv', 'session_user')
           SQL
-          old_constraints = select_all(sql_constraints)
           begin
             old_constraints.each do |constraint|
               execute "ALTER TABLE #{quote_table_name(constraint["table_name"])} DISABLE CONSTRAINT #{quote_table_name(constraint["constraint_name"])}"
