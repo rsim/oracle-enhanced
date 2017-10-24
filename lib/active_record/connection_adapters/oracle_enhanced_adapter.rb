@@ -111,7 +111,7 @@ module ActiveRecord
     # * <tt>:privilege</tt> - set "SYSDBA" if you want to connect with this privilege
     # * <tt>:allow_concurrency</tt> - set to "true" if non-blocking mode should be enabled (just for OCI client)
     # * <tt>:prefetch_rows</tt> - how many rows should be fetched at one time to increase performance, defaults to 100
-    # * <tt>:cursor_sharing</tt> - cursor sharing mode to minimize amount of unique statements, defaults to "force"
+    # * <tt>:cursor_sharing</tt> - cursor sharing mode to minimize amount of unique statements, no default value
     # * <tt>:time_zone</tt> - database session time zone
     #   (it is recommended to set it using ENV['TZ'] which will be then also used for database session time zone)
     #
