@@ -16,7 +16,7 @@ module ActiveRecord #:nodoc:
                         AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
                         AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
                       ORDER BY 1").each do |table_name|
-            virtual_columns = virtual_columns_for(table_name)
+            virtual_columns = virtual_columns_for(table_name) if supports_virtual_columns?
             ddl = "CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n".dup
             cols = select_all("
               SELECT column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
@@ -264,22 +264,16 @@ module ActiveRecord #:nodoc:
 
       private
 
-        # virtual columns are an 11g feature.  This returns [] if feature is not
-        # present or none are found.
+        # Called only if `supports_virtual_columns?` returns true
         # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
         def virtual_columns_for(table)
-          begin
-            select_all <<-SQL
+          select_all(<<-SQL.strip.gsub(/\s+/, " "), "virtual columns for")
             SELECT column_name, data_default
-              FROM all_tab_cols
-             WHERE virtual_column = 'YES'
-               AND owner = SYS_CONTEXT('userenv', 'session_user')
-               AND table_name = '#{table.upcase}'
+            FROM all_tab_cols
+            WHERE virtual_column = 'YES'
+            AND owner = SYS_CONTEXT('userenv', 'session_user')
+            AND table_name = '#{table.upcase}'
           SQL
-          # feature not supported previous to 11g
-          rescue ActiveRecord::StatementInvalid => _e
-            []
-          end
         end
 
         def drop_sql_for_feature(type)
