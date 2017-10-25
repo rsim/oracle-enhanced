@@ -92,13 +92,6 @@ module ActiveRecord
             result.values.first
           end
         end
-
-        # Returns an array of the values of the first column in a select:
-        #   select_values("SELECT id FROM companies LIMIT 3") => [1,2,3]
-        def select_values(arel, name = nil, binds = [])
-          result = select(arel, name = nil)
-          result.map { |r| r.values.first }
-        end
       end
 
       # Returns array with major and minor version of database (e.g. [12, 1])
