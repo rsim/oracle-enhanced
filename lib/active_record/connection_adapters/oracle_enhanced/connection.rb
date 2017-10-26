@@ -85,6 +85,13 @@ module ActiveRecord
           result = select(arel)
           result.first if result
         end
+
+        # Returns a single value from a record
+        def select_value(arel, name = nil, binds = [])
+          if result = select_one(arel)
+            result.values.first
+          end
+        end
       end
 
       # Returns array with major and minor version of database (e.g. [12, 1])
