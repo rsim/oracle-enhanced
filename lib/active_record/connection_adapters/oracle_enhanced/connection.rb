@@ -67,7 +67,7 @@ module ActiveRecord
           WHERE owner = 'PUBLIC'
             AND synonym_name = '#{real_name}'
         SQL
-          if result = select_one(sql)
+          if result = _select_one(sql)
             case result["name_type"]
             when "SYNONYM"
               describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}#{db_link}")
@@ -79,14 +79,13 @@ module ActiveRecord
           end
         end
 
-        # Returns a record hash with the column names as keys and column values
-        # as values.
-        def select_one(arel, name = nil, binds = [])
-          result = select(arel)
-          result.first if result
-        end
-
         private
+          # Returns a record hash with the column names as keys and column values
+          # as values.
+          def _select_one(arel, name = nil, binds = [])
+            result = select(arel)
+            result.first if result
+          end
 
           # Returns a single value from a record
           def _select_value(arel, name = nil, binds = [])
