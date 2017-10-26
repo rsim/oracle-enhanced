@@ -44,7 +44,7 @@ module ActiveRecord
               res = true
             else
               columns = cursor.get_col_names.map do |col_name|
-                @connection.oracle_downcase(col_name)
+                oracle_downcase(col_name)
               end
               rows = []
               fetch_options = { get_lob_value: (name != "Writable Large Object") }
