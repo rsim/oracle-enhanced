@@ -51,7 +51,9 @@ module ActiveRecord
   module ConnectionAdapters
     # JDBC database interface for JRuby
     module OracleEnhanced
-      class JDBCConnection < OracleEnhanced::Connection #:nodoc:
+      class JDBCConnection #:nodoc:
+        include OracleEnhanced::Connection
+
         attr_accessor :active
         alias :active? :active
 
@@ -324,7 +326,7 @@ module ActiveRecord
         end
 
         def database_version
-          @database_version ||= (md = raw_connection.getMetaData) && [md.getDatabaseMajorVersion, md.getDatabaseMinorVersion]
+          (md = raw_connection.getMetaData) && [md.getDatabaseMajorVersion, md.getDatabaseMinorVersion]
         end
 
         class Cursor

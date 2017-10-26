@@ -26,7 +26,9 @@ module ActiveRecord
   module ConnectionAdapters
     # OCI database interface for MRI
     module OracleEnhanced
-      class OCIConnection < OracleEnhanced::Connection #:nodoc:
+      class OCIConnection
+        include OracleEnhanced::Connection #:nodoc:
+
         def initialize(config)
           @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
           # default schema owner
@@ -267,7 +269,7 @@ module ActiveRecord
         end
 
         def database_version
-          @database_version ||= (version = raw_connection.oracle_server_version) && [version.major, version.minor]
+          (version = raw_connection.oracle_server_version) && [version.major, version.minor]
         end
 
       private
