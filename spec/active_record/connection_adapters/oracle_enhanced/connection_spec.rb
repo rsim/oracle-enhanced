@@ -33,13 +33,13 @@ describe "OracleEnhancedAdapter establish connection" do
 
   it "should use database default cursor_sharing parameter value exact by default" do
     # Use `SYSTEM_CONNECTION_PARAMS` to query v$parameter
-    conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(SYSTEM_CONNECTION_PARAMS)
-    expect(conn.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
+    ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS)
+    expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
   end
 
   it "should use modified cursor_sharing value force" do
-    conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(SYSTEM_CONNECTION_PARAMS.merge(cursor_sharing: :force))
-    expect(conn.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("FORCE")
+    ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(cursor_sharing: :force))
+    expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("FORCE")
   end
 end
 
@@ -79,25 +79,20 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "create connection with schema option" do
-    before(:all) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_WITH_SCHEMA_PARAMS)
-    end
-
-    before(:each) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_WITH_SCHEMA_PARAMS) unless @conn.active?
-    end
 
     it "should create new connection" do
-      expect(@conn).to be_active
+      ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
+      expect(ActiveRecord::Base.connection).to be_active
     end
 
     it "should swith to specified schema" do
-      expect(@conn.select_value("select SYS_CONTEXT('userenv', 'current_schema') from dual")).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
+      ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
+      expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
     end
 
     it "should swith to specified schema after reset" do
-      @conn.reset!
-      expect(@conn.select_value("select SYS_CONTEXT('userenv', 'current_schema') from dual")).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
+      ActiveRecord::Base.connection.reset!
+      expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
     end
 
   end
