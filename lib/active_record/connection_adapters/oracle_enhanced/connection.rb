@@ -34,7 +34,7 @@ module ActiveRecord
           name = name.to_s
           if name.include?("@")
             name, db_link = name.split("@")
-            default_owner = select_value("SELECT username FROM all_db_links WHERE db_link = '#{db_link.upcase}'")
+            default_owner = _select_value("SELECT username FROM all_db_links WHERE db_link = '#{db_link.upcase}'")
             db_link = "@#{db_link}"
           else
             db_link = nil
@@ -86,12 +86,14 @@ module ActiveRecord
           result.first if result
         end
 
-        # Returns a single value from a record
-        def select_value(arel, name = nil, binds = [])
-          if result = select_one(arel)
-            result.values.first
+        private
+
+          # Returns a single value from a record
+          def _select_value(arel, name = nil, binds = [])
+            if result = select_one(arel)
+              result.values.first
+            end
           end
-        end
       end
 
       # Returns array with major and minor version of database (e.g. [12, 1])
