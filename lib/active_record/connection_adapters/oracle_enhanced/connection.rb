@@ -4,7 +4,7 @@ module ActiveRecord
   module ConnectionAdapters
     # interface independent methods
     module OracleEnhanced
-      class Connection #:nodoc:
+      module Connection #:nodoc:
         def self.create(config)
           case ORACLE_ENHANCED_CONNECTION
           when :oci
@@ -94,10 +94,6 @@ module ActiveRecord
         end
       end
 
-      # Returns array with major and minor version of database (e.g. [12, 1])
-      def database_version
-        raise NoMethodError, "Not implemented for this raw driver"
-      end
       class ConnectionException < StandardError #:nodoc:
       end
     end
