@@ -89,7 +89,7 @@ module ActiveRecord
 
           # Returns a single value from a record
           def _select_value(arel, name = nil, binds = [])
-            if result = select_one(arel)
+            if result = _select_one(arel)
               result.values.first
             end
           end
