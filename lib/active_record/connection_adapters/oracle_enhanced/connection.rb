@@ -34,7 +34,7 @@ module ActiveRecord
           name = name.to_s
           if name.include?("@")
             name, db_link = name.split("@")
-            default_owner = select_value("SELECT username FROM all_db_links WHERE db_link = '#{db_link.upcase}'")
+            default_owner = _select_value("SELECT username FROM all_db_links WHERE db_link = '#{db_link.upcase}'")
             db_link = "@#{db_link}"
           else
             db_link = nil
@@ -67,7 +67,7 @@ module ActiveRecord
           WHERE owner = 'PUBLIC'
             AND synonym_name = '#{real_name}'
         SQL
-          if result = select_one(sql)
+          if result = _select_one(sql)
             case result["name_type"]
             when "SYNONYM"
               describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}#{db_link}")
@@ -79,19 +79,27 @@ module ActiveRecord
           end
         end
 
-        # Returns a record hash with the column names as keys and column values
-        # as values.
-        def select_one(arel, name = nil, binds = [])
-          result = select(arel)
-          result.first if result
-        end
+        private
 
-        # Returns a single value from a record
-        def select_value(arel, name = nil, binds = [])
-          if result = select_one(arel)
-            result.values.first
+          # _select_one and _select_value methods are expected to be called
+          # only from `ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection#describe`
+          # Other methods should call `ActiveRecord::ConnectionAdapters::DatabaseStatements#select_one`
+          # and  `ActiveRecord::ConnectionAdapters::DatabaseStatements#select_value`
+          # To avoid called from its subclass added a underscore in each method.
+
+          # Returns a record hash with the column names as keys and column values
+          # as values.
+          def _select_one(arel, name = nil, binds = [])
+            result = select(arel)
+            result.first if result
           end
-        end
+
+          # Returns a single value from a record
+          def _select_value(arel, name = nil, binds = [])
+            if result = _select_one(arel)
+              result.values.first
+            end
+          end
       end
 
       # Returns array with major and minor version of database (e.g. [12, 1])
