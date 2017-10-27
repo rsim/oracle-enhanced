@@ -270,9 +270,14 @@ module ActiveRecord
       end
 
       def supports_json?
+        # Oracle Database 12.1 or higher version supports JSON.
+        # However, Oracle enhanced adapter has limited support for JSON data type.
+        # which does not pass many of ActiveRecord JSON tests.
+        #
         # No migration supported for :json type due to there is no `JSON` data type
         # in Oracle Database itself.
         #
+        # If you want to use JSON data type, here are steps
         # 1.Define :string or :text in migration
         #
         # create_table :test_posts, force: true do |t|
@@ -292,7 +297,7 @@ module ActiveRecord
         # alter table test_posts add constraint test_posts_title_is_json check (title is json)
         # alter table test_posts add constraint test_posts_article_is_json check (article is json)
         #
-        @connection.database_version.first >= 12
+        false
       end
 
       #:stopdoc:
