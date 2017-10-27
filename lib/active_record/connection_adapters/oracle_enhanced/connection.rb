@@ -80,6 +80,13 @@ module ActiveRecord
         end
 
         private
+
+          # _select_one and _select_value methods are expected to be called
+          # only from `ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection#describe`
+          # Other methods should call `ActiveRecord::ConnectionAdapters::DatabaseStatements#select_one`
+          # and  `ActiveRecord::ConnectionAdapters::DatabaseStatements#select_value`
+          # To avoid called from its subclass added a underscore in each method.
+
           # Returns a record hash with the column names as keys and column values
           # as values.
           def _select_one(arel, name = nil, binds = [])
