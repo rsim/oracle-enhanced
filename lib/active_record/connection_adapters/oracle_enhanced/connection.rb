@@ -18,24 +18,26 @@ module ActiveRecord
 
         attr_reader :raw_connection
 
-        # Used always by JDBC connection as well by OCI connection when describing tables over database link
-        def describe(name)
-          name = name.to_s
-          if name.include?("@")
-            name, db_link = name.split("@")
-            default_owner = _select_value("SELECT username FROM all_db_links WHERE db_link = '#{db_link.upcase}'")
-            db_link = "@#{db_link}"
-          else
-            db_link = nil
-            default_owner = @owner
-          end
-          real_name = OracleEnhanced::Quoting.valid_table_name?(name) ? name.upcase : name
-          if real_name.include?(".")
-            table_owner, table_name = real_name.split(".")
-          else
-            table_owner, table_name = default_owner, real_name
-          end
-          sql = <<-SQL.strip.gsub(/\s+/, " ")
+        private
+
+          # Used always by JDBC connection as well by OCI connection when describing tables over database link
+          def describe(name)
+            name = name.to_s
+            if name.include?("@")
+              name, db_link = name.split("@")
+              default_owner = _select_value("SELECT username FROM all_db_links WHERE db_link = '#{db_link.upcase}'")
+              db_link = "@#{db_link}"
+            else
+              db_link = nil
+              default_owner = @owner
+            end
+            real_name = OracleEnhanced::Quoting.valid_table_name?(name) ? name.upcase : name
+            if real_name.include?(".")
+              table_owner, table_name = real_name.split(".")
+            else
+              table_owner, table_name = default_owner, real_name
+            end
+            sql = <<-SQL.strip.gsub(/\s+/, " ")
           SELECT owner, table_name, 'TABLE' name_type
           FROM all_tables#{db_link}
           WHERE owner = '#{table_owner}'
@@ -56,19 +58,17 @@ module ActiveRecord
           WHERE owner = 'PUBLIC'
             AND synonym_name = '#{real_name}'
         SQL
-          if result = _select_one(sql)
-            case result["name_type"]
-            when "SYNONYM"
-              describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}#{db_link}")
+            if result = _select_one(sql)
+              case result["name_type"]
+              when "SYNONYM"
+                describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}#{db_link}")
+              else
+                db_link ? [result["owner"], result["table_name"], db_link] : [result["owner"], result["table_name"]]
+              end
             else
-              db_link ? [result["owner"], result["table_name"], db_link] : [result["owner"], result["table_name"]]
+              raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?}
             end
-          else
-            raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?}
           end
-        end
-
-        private
 
           # Oracle column names by default are case-insensitive, but treated as upcase;
           # for neatness, we'll downcase within Rails. EXCEPT that folks CAN quote

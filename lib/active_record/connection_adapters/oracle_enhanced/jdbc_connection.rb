@@ -494,6 +494,11 @@ module ActiveRecord
           end
         end
 
+        # To allow private method called from `JDBCConnection`
+        def describe(name)
+          super
+        end
+
         # Return NativeException / java.sql.SQLException error code
         def error_code(exception)
           case exception
