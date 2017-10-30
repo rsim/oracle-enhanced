@@ -41,4 +41,6 @@ module ActiveRecord #:nodoc:
   end
 end
 
-ActiveRecord::Base.send(:include, ActiveRecord::ConnectionAdapters::OracleEnhanced::Lob)
+ActiveSupport.on_load(:active_record) do
+  ActiveRecord::Base.send(:include, ActiveRecord::ConnectionAdapters::OracleEnhanced::Lob)
+end
