@@ -186,7 +186,7 @@ module ActiveRecord
           cols = []
           # Ignore raw_rnum_ which is used to simulate LIMIT and OFFSET
           cursor.get_col_names.each do |col_name|
-            col_name = oracle_downcase(col_name)
+            col_name = _oracle_downcase(col_name)
             cols << col_name unless col_name == "raw_rnum_"
           end
           # Reuse the same hash for all rows

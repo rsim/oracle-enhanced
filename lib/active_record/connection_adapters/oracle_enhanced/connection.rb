@@ -18,17 +18,6 @@ module ActiveRecord
 
         attr_reader :raw_connection
 
-        # Oracle column names by default are case-insensitive, but treated as upcase;
-        # for neatness, we'll downcase within Rails. EXCEPT that folks CAN quote
-        # their column names when creating Oracle tables, which makes then case-sensitive.
-        # I don't know anybody who does this, but we'll handle the theoretical case of a
-        # camelCase column name. I imagine other dbs handle this different, since there's a
-        # unit test that's currently failing test_oci.
-        def oracle_downcase(column_name)
-          return nil if column_name.nil?
-          column_name =~ /[a-z]/ ? column_name : column_name.downcase
-        end
-
         # Used always by JDBC connection as well by OCI connection when describing tables over database link
         def describe(name)
           name = name.to_s
@@ -80,6 +69,24 @@ module ActiveRecord
         end
 
         private
+
+          # Oracle column names by default are case-insensitive, but treated as upcase;
+          # for neatness, we'll downcase within Rails. EXCEPT that folks CAN quote
+          # their column names when creating Oracle tables, which makes then case-sensitive.
+          # I don't know anybody who does this, but we'll handle the theoretical case of a
+          # camelCase column name. I imagine other dbs handle this different, since there's a
+          # unit test that's currently failing test_oci.
+          #
+          # `_oracle_downcase` is expected to be called only from
+          # `ActiveRecord::ConnectionAdapters::OracleEnhanced::OCIConnection`
+          # or `ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection`.
+          # Other method should call `ActiveRecord:: ConnectionAdapters::OracleEnhanced::Quoting#oracle_downcase`
+          # since this is kind of quoting, not connection.
+          # To avoid it is called from anywhere else, added _ at the beginning of the method name.
+          def _oracle_downcase(column_name)
+            return nil if column_name.nil?
+            column_name =~ /[a-z]/ ? column_name : column_name.downcase
+          end
 
           # _select_one and _select_value methods are expected to be called
           # only from `ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection#describe`
