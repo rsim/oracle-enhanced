@@ -462,7 +462,7 @@ module ActiveRecord
           column_count = metadata.getColumnCount
 
           cols_types_index = (1..column_count).map do |i|
-            col_name = oracle_downcase(metadata.getColumnName(i))
+            col_name = _oracle_downcase(metadata.getColumnName(i))
             next if col_name == "raw_rnum_"
             column_hash[col_name] = nil
             [col_name, metadata.getColumnTypeName(i).to_sym, i]
