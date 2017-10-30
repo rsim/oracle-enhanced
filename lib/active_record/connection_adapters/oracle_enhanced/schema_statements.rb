@@ -47,7 +47,6 @@ module ActiveRecord
         SQL
         end
 
-        # Needs to consider how to support synonyms in Rails 5.1
         def data_source_exists?(table_name)
           (_owner, table_name, _db_link) = @connection.describe(table_name)
           true
