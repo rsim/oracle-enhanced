@@ -247,9 +247,9 @@ describe "OracleEnhancedConnection" do
           end
           def lookup(path)
             if (path == "java:/comp/env")
-              return self
+              self
             else
-              return @data_source
+              @data_source
             end
           end
         end
