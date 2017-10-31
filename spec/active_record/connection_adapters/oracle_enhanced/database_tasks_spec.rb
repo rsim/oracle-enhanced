@@ -21,7 +21,7 @@ describe "Oracle Enhanced adapter database tasks" do
       expect(ActiveRecord::Base.connection.select_value(query)).to eq(1)
     end
     after do
-      ActiveRecord::Base.connection.execute("DROP USER #{new_user_config[:username]}");
+      ActiveRecord::Base.connection.execute("DROP USER #{new_user_config[:username]}")
     end
 
     def fake_terminal(input)
