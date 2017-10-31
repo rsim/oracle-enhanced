@@ -25,7 +25,7 @@ before_install:
 
 install:
   - "travis_retry gem update --system"
-  - "travis_retry gem install bundler --pre --force"
+  - "travis_retry gem install bundler --force"
   - .travis/oracle/download.sh
   - .travis/oracle/install.sh
   - .travis/setup_accounts.sh
