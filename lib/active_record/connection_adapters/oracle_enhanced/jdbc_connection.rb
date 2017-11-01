@@ -161,6 +161,10 @@ module ActiveRecord
             end
           end
 
+          OracleEnhancedAdapter::FIXED_NLS_PARAMETERS.each do |key, value|
+            exec "alter session set #{key} = '#{value}'"
+          end
+
           self.autocommit = true
 
           schema = config[:schema] && config[:schema].to_s
