@@ -114,6 +114,7 @@ module ActiveRecord
     # * <tt>:cursor_sharing</tt> - cursor sharing mode to minimize amount of unique statements, no default value
     # * <tt>:time_zone</tt> - database session time zone
     #   (it is recommended to set it using ENV['TZ'] which will be then also used for database session time zone)
+    # * <tt>:schema</tt> - database schema which holds schema objects.
     #
     # Optionals NLS parameters:
     #
