@@ -644,9 +644,9 @@ UPGRADE
 ### Upgrade Rails 5.0 or older version to Rails 5.1
 
 If your application gets `ORA-01000: maximum open cursors exceeded`
-after upgrading to Rails 5.1
-check these two values and configure `:statement_limit` value at database.yml
-is larger than `open_cursors` at Oracle database instance.
+after upgrading to Rails 5.1,
+check these two values and configure `open_cursors` parameter value
+at Oracle database instance is larger than `:statement_limit` value at database.yml.
 
 * `open_cursors` value at Oracle database instance
 
