@@ -122,6 +122,7 @@ module ActiveRecord
     # * <tt>:nls_comp</tt>
     # * <tt>:nls_currency</tt>
     # * <tt>:nls_date_format</tt> - format for :date columns, defaults to <tt>YYYY-MM-DD HH24:MI:SS</tt>
+    #   (changing `nls_date_format` parameter value is not supported. Use the default value.)
     # * <tt>:nls_date_language</tt>
     # * <tt>:nls_dual_currency</tt>
     # * <tt>:nls_iso_currency</tt>
@@ -133,6 +134,7 @@ module ActiveRecord
     # * <tt>:nls_sort</tt>
     # * <tt>:nls_territory</tt>
     # * <tt>:nls_timestamp_format</tt> - format for :timestamp columns, defaults to <tt>YYYY-MM-DD HH24:MI:SS:FF6</tt>
+    #   (changing `nls_timestamp_format` parameter value is not supported. Use the default value.)
     # * <tt>:nls_timestamp_tz_format</tt>
     # * <tt>:nls_time_format</tt>
     # * <tt>:nls_time_tz_format</tt>
