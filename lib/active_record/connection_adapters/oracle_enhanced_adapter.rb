@@ -78,7 +78,7 @@ module ActiveRecord
 
   module ConnectionAdapters #:nodoc:
     # Oracle enhanced adapter will work with both
-    # Ruby 1.8/1.9 ruby-oci8 gem (which provides interface to Oracle OCI client)
+    # CRuby ruby-oci8 gem (which provides interface to Oracle OCI client)
     # or with JRuby and Oracle JDBC driver.
     #
     # It should work with Oracle 10g, 11g and 12c databases.
