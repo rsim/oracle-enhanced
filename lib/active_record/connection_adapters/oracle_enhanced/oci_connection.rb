@@ -97,10 +97,6 @@ module ActiveRecord
           @raw_connection.exec(sql, *bindvars, &block)
         end
 
-        def returning_clause(quoted_pk)
-          " RETURNING #{quoted_pk} INTO :insert_id"
-        end
-
         # execute sql with RETURNING ... INTO :insert_id
         # and return :insert_id value
         def exec_with_returning(sql)
