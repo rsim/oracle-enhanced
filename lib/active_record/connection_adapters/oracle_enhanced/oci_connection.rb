@@ -247,9 +247,6 @@ module ActiveRecord
           when Float, BigDecimal
             # return Integer if value is integer (to avoid issues with _before_type_cast values for id attributes)
             value == (v_to_i = value.to_i) ? v_to_i : value
-          when OraNumber
-            # change OraNumber value (returned in early versions of ruby-oci8 2.0.x) to BigDecimal
-            value == (v_to_i = value.to_i) ? v_to_i : BigDecimal.new(value.to_s)
           when OCI8::LOB
             if get_lob_value
               data = value.read || ""     # if value.read returns nil, then we have an empty_clob() i.e. an empty string
