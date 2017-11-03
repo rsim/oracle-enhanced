@@ -174,8 +174,8 @@ module ActiveRecord
 
       ##
       # :singleton-method:
-      # If you wish that CHAR(1), VARCHAR2(1) columns or VARCHAR2 columns with FLAG or YN at the end of their name
-      # are typecasted to booleans then you can add the following line to your initializer file:
+      # If you wish that CHAR(1), VARCHAR2(1) columns are typecasted to booleans
+      # then you can add the following line to your initializer file:
       #
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = true
       cattr_accessor :emulate_booleans_from_strings
