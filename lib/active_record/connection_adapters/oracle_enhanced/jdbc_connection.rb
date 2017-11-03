@@ -278,10 +278,6 @@ module ActiveRecord
           s.close rescue nil
         end
 
-        def returning_clause(quoted_pk)
-          " RETURNING #{quoted_pk} INTO ?"
-        end
-
         # execute sql with RETURNING ... INTO :insert_id
         # and return :insert_id value
         def exec_with_returning(sql)
