@@ -111,7 +111,7 @@ module ActiveRecord
               if sql =~ /:returning_id/
                 # it currently expects that returning_id comes last part of binds
                 returning_id_index = binds.size
-                cursor.bind_returning_param(returning_id_index, Integer) if ORACLE_ENHANCED_CONNECTION == :jdbc
+                cursor.bind_returning_param(returning_id_index, Integer)
               end
 
               cached = true
