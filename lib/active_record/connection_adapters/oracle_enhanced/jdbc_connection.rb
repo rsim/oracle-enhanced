@@ -324,9 +324,6 @@ module ActiveRecord
               @raw_statement.setString(position, value)
             when Java::OracleSql::DATE
               @raw_statement.setDATE(position, value)
-            when Date, DateTime
-              # TODO: Really needed or not
-              @raw_statement.setDATE(position, value)
             when Java::JavaSql::Timestamp
               @raw_statement.setTimestamp(position, value)
             when Time
