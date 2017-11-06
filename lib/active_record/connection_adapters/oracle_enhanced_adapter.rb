@@ -672,7 +672,7 @@ module ActiveRecord
           case @connection.error_code(exception)
           when 1
             RecordNotUnique.new(message)
-          when 942, 955, 1418
+          when 900, 904, 942, 955, 1418, 17008
             ActiveRecord::StatementInvalid.new(message)
           when 1400
             ActiveRecord::NotNullViolation.new(message)
