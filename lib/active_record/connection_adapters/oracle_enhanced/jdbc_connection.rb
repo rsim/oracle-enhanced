@@ -460,6 +460,8 @@ module ActiveRecord
           case exception
           when NativeException
             exception.cause.getErrorCode
+          when Java::JavaSql::SQLException
+            exception.getErrorCode
           else
             nil
           end
