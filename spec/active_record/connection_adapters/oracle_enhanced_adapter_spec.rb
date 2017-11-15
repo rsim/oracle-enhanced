@@ -561,4 +561,50 @@ describe "OracleEnhancedAdapter" do
 
   end
 
+  describe "Transaction" do
+    before(:all) do
+      schema_define do
+        create_table :test_posts do |t|
+          t.string :title
+        end
+      end
+      class ::TestPost < ActiveRecord::Base
+      end
+    end
+
+    it "Raises Deadlocked when a deadlock is encountered" do
+      expect {
+        barrier = Concurrent::CyclicBarrier.new(2)
+
+        t1 = TestPost.create(title: "one")
+        t2 = TestPost.create(title: "two")
+
+        thread = Thread.new do
+          TestPost.transaction do
+            t1.lock!
+            barrier.wait
+            t2.update_attributes(title: "one")
+          end
+        end
+
+        begin
+          TestPost.transaction do
+            t2.lock!
+            barrier.wait
+            t1.update_attributes(title: "two")
+          end
+        ensure
+          thread.join
+        end
+      }.to raise_error(ActiveRecord::Deadlocked)
+    end
+  end
+
+  after(:all) do
+    schema_define do
+      drop_table :test_posts
+    end
+    Object.send(:remove_const, "TestPost") rescue nil
+    ActiveRecord::Base.clear_cache!
+  end
 end
