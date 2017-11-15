@@ -674,7 +674,7 @@ module ActiveRecord
             RecordNotUnique.new(message)
           when 60
             Deadlocked.new(message)
-          when 900, 904, 942, 955, 1418, 2289, 17008
+          when 900, 904, 942, 955, 1418, 2289, 2449, 17008
             ActiveRecord::StatementInvalid.new(message)
           when 1400
             ActiveRecord::NotNullViolation.new(message)
