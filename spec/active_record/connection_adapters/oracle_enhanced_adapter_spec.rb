@@ -598,13 +598,13 @@ describe "OracleEnhancedAdapter" do
         end
       }.to raise_error(ActiveRecord::Deadlocked)
     end
-  end
 
-  after(:all) do
-    schema_define do
-      drop_table :test_posts
+    after(:all) do
+      schema_define do
+        drop_table :test_posts
+      end
+      Object.send(:remove_const, "TestPost") rescue nil
+      ActiveRecord::Base.clear_cache!
     end
-    Object.send(:remove_const, "TestPost") rescue nil
-    ActiveRecord::Base.clear_cache!
   end
 end
