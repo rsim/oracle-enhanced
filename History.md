@@ -2,7 +2,7 @@
 
 * Major changes and fixes
 
-  * Support Rails 5.2.0.beta1 [Not released yet but this history will be available when Rails 5.2.0.beta1 is available]
+  * Support Rails 5.2.0.beta1
   * Oracle enhanced adapter version follows Rails versioning [#1488]
   * Handle `TIMESTAMP WITH TIMEZONE` separately from `TIMEZONE` [#1267]
   * Support `timestamptz` and `timestampltz` for migrations #1285
