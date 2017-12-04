@@ -128,7 +128,7 @@ module ActiveRecord
                 row["index_name"],
                 row["uniqueness"] == "UNIQUE",
                 [],
-                nil,
+                {},
                 row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
                 row["parameters"],
                 statement_parameters,
