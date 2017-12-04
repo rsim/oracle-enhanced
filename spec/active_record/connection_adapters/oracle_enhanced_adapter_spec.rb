@@ -573,6 +573,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "Raises Deadlocked when a deadlock is encountered" do
+      skip "Skip temporary due to #1599" if ActiveRecord::Base.connection.supports_fetch_first_n_rows_and_offset?
       expect {
         barrier = Concurrent::CyclicBarrier.new(2)
 
