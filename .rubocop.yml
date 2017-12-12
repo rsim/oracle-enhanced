@@ -71,6 +71,9 @@ Layout/SpaceAroundKeyword:
 Layout/SpaceAroundOperators:
   Enabled: true
 
+Layout/SpaceBeforeComma:
+  Enabled: true
+
 Layout/SpaceBeforeFirstArg:
     Enabled: true
 
