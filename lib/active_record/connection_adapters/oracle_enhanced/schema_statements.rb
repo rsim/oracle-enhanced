@@ -290,7 +290,7 @@ module ActiveRecord
           index_name = options[:name].to_s if options.key?(:name)
           tablespace = tablespace_for(:index, options[:tablespace])
           max_index_length = options.fetch(:internal, false) ? index_name_length : allowed_index_name_length
-          #TODO: This option is used for NOLOGGING, needs better argumetn name
+          # TODO: This option is used for NOLOGGING, needs better argumetn name
           index_options = options[:options]
 
           if index_name.to_s.length > max_index_length
@@ -308,7 +308,7 @@ module ActiveRecord
         # Gives warning if index does not exist
         def remove_index(table_name, options = {}) #:nodoc:
           index_name = index_name_for_remove(table_name, options)
-          #TODO: It should execute only when index_type == "UNIQUE"
+          # TODO: It should execute only when index_type == "UNIQUE"
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(index_name)}" rescue nil
           execute "DROP INDEX #{quote_column_name(index_name)}"
         end
