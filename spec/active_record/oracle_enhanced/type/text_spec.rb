@@ -96,7 +96,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @employee.comments = {}
     expect(@employee.save).to eq(true)
     @employee.reload
-    #should not set readonly
+    # should not set readonly
     expect(@employee.comments).to be_nil
   end
 

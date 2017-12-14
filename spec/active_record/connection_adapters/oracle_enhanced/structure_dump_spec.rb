@@ -394,15 +394,15 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.create_table :full_drop_test_temp, temporary: true do |t|
         t.string :foo
       end
-      #view
+      # view
       @conn.execute <<-SQL
         create or replace view full_drop_test_view (foo) as select id as "foo" from full_drop_test
       SQL
-      #materialized view
+      # materialized view
       @conn.execute <<-SQL
         create materialized view full_drop_test_mview (foo) as select id as "foo" from full_drop_test
       SQL
-      #package
+      # package
       @conn.execute <<-SQL
         create or replace package full_drop_test_package as
           function test_func return varchar2;
@@ -416,7 +416,7 @@ describe "OracleEnhancedAdapter structure dump" do
           end test_func;
         end test_package;
       SQL
-      #function
+      # function
       @conn.execute <<-SQL
         create or replace function full_drop_test_function
           return varchar2
@@ -426,7 +426,7 @@ describe "OracleEnhancedAdapter structure dump" do
           return('foo');
         end;
       SQL
-      #procedure
+      # procedure
       @conn.execute <<-SQL
         create or replace procedure full_drop_test_procedure
         begin
@@ -436,11 +436,11 @@ describe "OracleEnhancedAdapter structure dump" do
           dbms_output.put_line('foo');
         end;
       SQL
-      #synonym
+      # synonym
       @conn.execute <<-SQL
         create or replace synonym full_drop_test_synonym for full_drop_test
       SQL
-      #type
+      # type
       @conn.execute <<-SQL
         create or replace type full_drop_test_type as table of number
       SQL
