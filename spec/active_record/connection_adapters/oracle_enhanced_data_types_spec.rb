@@ -608,6 +608,36 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
       ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
     end
 
+    it "should cast String to Time for TIMESTAMP columns on assign" do
+      @now = Time.local(2008,5,26,23,11,11,0)
+      @now_string = @now.to_s
+      @employee = TestEmployee.new(
+        :created_at => @now_string,
+        :created_at_tz => @now_string,
+        :created_at_ltz => @now_string
+      )
+      [:created_at, :created_at_tz, :created_at_ltz].each do |c|
+        @employee.send(c).class.should == Time
+        @employee.send(c).to_f.should == @now.to_f
+        @employee.send(c).to_s.should == @now_string
+      end
+    end
+
+    it "should cast String to Time for TIMESTAMP columns on save" do
+      @now = Time.local(2008,5,26,23,11,11,0)
+      @now_string = @now.to_s
+      @employee = TestEmployee.create(
+        :created_at => @now_string,
+        :created_at_tz => @now_string,
+        :created_at_ltz => @now_string
+      )
+      [:created_at, :created_at_tz, :created_at_ltz].each do |c|
+        @employee.send(c).class.should == Time
+        @employee.send(c).to_f.should == @now.to_f
+        @employee.send(c).to_s.should == @now_string
+      end
+    end
+
     it "should return Time value from TIMESTAMP columns" do
       @now = Time.local(2008,5,26,23,11,11,0)
       @employee = TestEmployee.create(
