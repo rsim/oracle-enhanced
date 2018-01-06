@@ -646,11 +646,7 @@ module ActiveRecord
           end
 
           if OracleEnhancedAdapter.emulate_booleans
-            if OracleEnhancedAdapter.emulate_booleans_from_strings
-              m.register_type %r(^VARCHAR2\(1\))i, Type::OracleEnhanced::Boolean.new
-            else
-              m.register_type %r(^NUMBER\(1\))i, Type::Boolean.new
-            end
+            m.register_type %r(^NUMBER\(1\))i, Type::Boolean.new
           end
         end
 

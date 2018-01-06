@@ -190,6 +190,7 @@ describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strin
 
   before(:each) do
     class ::Post < ActiveRecord::Base
+      attribute :is_default, :boolean
     end
   end
 
