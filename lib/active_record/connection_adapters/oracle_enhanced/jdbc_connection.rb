@@ -168,7 +168,7 @@ module ActiveRecord
             # default schema owner
             @owner = username.upcase unless username.nil?
           else
-            exec "alter session set current_schema = #{schema}"
+            exec "alter session set current_schema = \"#{schema}\""
             @owner = schema
           end
 
