@@ -329,7 +329,7 @@ module ActiveRecord
           elsif ActiveRecord::Base.default_timezone == :utc
             conn.exec "alter session set time_zone = '+00:00'"
           end
-          conn.exec "alter session set current_schema = #{schema}" unless schema.blank?
+          conn.exec "alter session set current_schema = \"#{schema}\"" unless schema.blank?
 
           # Initialize NLS parameters
           OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS.each do |key, default_value|
