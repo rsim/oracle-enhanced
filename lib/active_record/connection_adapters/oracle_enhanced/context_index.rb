@@ -231,7 +231,7 @@ module ActiveRecord
               default_clause = case clause
                                when "R_TABLE_CLAUSE"; "LOB(DATA) STORE AS (CACHE) "
                                when "I_INDEX_CLAUSE"; "COMPRESS 2 "
-              else ""
+                               else ""
               end
               sql << "CTX_DDL.SET_ATTRIBUTE('#{storage_name}', '#{clause}', '#{default_clause}TABLESPACE #{tablespace}');\n"
             end
@@ -248,7 +248,7 @@ module ActiveRecord
                             when true; "'YES'"
                             when false; "'NO'"
                             when nil; "NULL"
-              else value
+                            else value
               end
               sql << "CTX_DDL.SET_ATTRIBUTE('#{lexer_name}', '#{key}', #{plsql_value});\n"
             end
@@ -265,7 +265,7 @@ module ActiveRecord
                             when true; "'YES'"
                             when false; "'NO'"
                             when nil; "NULL"
-              else value
+                            else value
               end
               sql << "CTX_DDL.SET_ATTRIBUTE('#{wordlist_name}', '#{key}', #{plsql_value});\n"
             end

@@ -269,7 +269,7 @@ module ActiveRecord
                                                      [value.year, value.month, value.day, value.hour, value.min, value.sec, value.usec]
                                                    when OraDate
                                                      [value.year, value.month, value.day, value.hour, value.minute, value.second, 0]
-          else
+                                                   else
                                                      [value.year, value.month, value.day, value.hour, value.min, value.sec, 0]
           end
           # code from Time.time_with_datetime_fallback

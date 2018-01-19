@@ -20,6 +20,9 @@ Layout/CaseIndentation:
 Layout/CommentIndentation:
   Enabled: true
 
+Layout/ElseAlignment:
+  Enabled: true
+
 Layout/EmptyLineAfterMagicComment:
   Enabled: true
 
@@ -132,6 +135,7 @@ Style/UnneededPercentQ:
 Lint/EndAlignment:
   Enabled: true
   EnforcedStyleAlignWith: variable
+  AutoCorrect: true
 
 # Use my_method(my_arg) not my_method( my_arg ) or my_method my_arg.
 Lint/RequireParentheses:
