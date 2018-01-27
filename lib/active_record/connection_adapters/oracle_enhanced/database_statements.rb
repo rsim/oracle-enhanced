@@ -229,6 +229,18 @@ module ActiveRecord
           end
         end
 
+        def insert_fixtures_set(fixture_set, tables_to_delete = [])
+          disable_referential_integrity do
+            transaction(requires_new: true) do
+              tables_to_delete.each { |table| delete "DELETE FROM #{quote_table_name(table)}", "Fixture Delete" }
+
+              fixture_set.each do |table_name, rows|
+                rows.each { |row| insert_fixture(row, table_name) }
+              end
+            end
+          end
+        end
+
         # Oracle Database does not support this feature
         # Refer https://community.oracle.com/ideas/13845 and consider to vote
         # if you need this feature.
