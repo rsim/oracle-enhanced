@@ -1,3 +1,20 @@
+## 5.2.0.rc1 / 2018-01-31
+
+* Changes and bug fixes
+
+  * Support Rails 5.2.0.rc1
+  * Do not register `VARCHAR2(1)` sql type as `Type:Boolean` [#1621 #1623]
+  * Support `insert_fixtures_set` [#1633]
+  * Deprecated `insert_fixtures` [#1634]
+  * Refactor index options dumping [#1602]
+  * Skip failed spec explained at #1599 [#1599 #1604]
+  * CI with Ruby 2.5.0 [#1618]
+  * CI against JRuby 9.1.15.0 [#1605]
+  * Enable `Layout/SpaceBeforeComma` [#1606]
+  * Enable `Layout/LeadingCommentSpace` cop [#1607]
+  * Enable autocorrect for `Lint/EndAlignment` cop [#1629]
+  * Remove `--force` option for installing bundler [#1616]
+
 ## 5.2.0.beta1 / 2017-11-27
 
 * Major changes and fixes
