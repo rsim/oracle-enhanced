@@ -113,24 +113,24 @@ describe "OracleEnhancedAdapter schema definition" do
       ActiveRecord::Base.clear_cache!
     end
 
-    it "should use default sequence start value 10000" do
-      expect(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value).to eq(10000)
-
-      create_test_employees_table
-      class ::TestEmployee < ActiveRecord::Base; end
-
-      employee = TestEmployee.create!
-      expect(employee.id).to eq(10000)
-    end
-
-    it "should use specified default sequence start value" do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 1
+    it "should use default sequence start value 1" do
+      expect(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value).to eq(1)
 
       create_test_employees_table
       class ::TestEmployee < ActiveRecord::Base; end
 
       employee = TestEmployee.create!
       expect(employee.id).to eq(1)
+    end
+
+    it "should use specified default sequence start value" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 10000
+
+      create_test_employees_table
+      class ::TestEmployee < ActiveRecord::Base; end
+
+      employee = TestEmployee.create!
+      expect(employee.id).to eq(10000)
     end
 
     it "should use sequence start value from table definition" do

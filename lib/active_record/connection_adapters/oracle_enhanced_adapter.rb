@@ -194,11 +194,11 @@ module ActiveRecord
 
       ##
       # :singleton-method:
-      # Specify default sequence start with value (by default 10000 if not explicitly set), e.g.:
+      # Specify default sequence start with value (by default 1 if not explicitly set), e.g.:
       #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 1
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 10000
       cattr_accessor :default_sequence_start_value
-      self.default_sequence_start_value = 10000
+      self.default_sequence_start_value = 1
 
       class StatementPool < ConnectionAdapters::StatementPool
         private
