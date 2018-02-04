@@ -230,6 +230,16 @@ module ActiveRecord #:nodoc:
           end
 
           # export views
+          structure << structure_dump_views
+
+          # export synonyms
+          structure << structure_dump_synonyms
+
+          join_with_statement_token(structure)
+        end
+
+        def structure_dump_views #:nodoc:
+          structure = []
           views = select_all(<<-SQL.strip.gsub(/\s+/, " "), "views at structure dump")
             SELECT view_name, text FROM all_views
             WHERE owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY view_name ASC
@@ -237,8 +247,11 @@ module ActiveRecord #:nodoc:
           views.each do |view|
             structure << "CREATE OR REPLACE FORCE VIEW #{view['view_name']} AS\n #{view['text']}"
           end
+          join_with_statement_token(structure)
+        end
 
-          # export synonyms
+        def structure_dump_synonyms #:nodoc:
+          structure = []
           synonyms = select_all(<<-SQL.strip.gsub(/\s+/, " "), "synonyms at structure dump")
             SELECT owner, synonym_name, table_name, table_owner
             FROM all_synonyms
@@ -246,9 +259,8 @@ module ActiveRecord #:nodoc:
           SQL
           synonyms.each do |synonym|
             structure << "CREATE OR REPLACE #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']}
-  			FOR #{synonym['table_owner']}.#{synonym['table_name']}"
+            FOR #{synonym['table_owner']}.#{synonym['table_name']}"
           end
-
           join_with_statement_token(structure)
         end
 
