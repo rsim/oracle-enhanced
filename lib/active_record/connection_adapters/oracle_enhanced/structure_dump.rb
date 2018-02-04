@@ -55,6 +55,7 @@ module ActiveRecord #:nodoc:
           end
 
           join_with_statement_token(structure) << structure_dump_fk_constraints
+          join_with_statement_token(structure) << structure_dump_views
         end
 
         def structure_dump_column(column) #:nodoc:
@@ -202,7 +203,7 @@ module ActiveRecord #:nodoc:
           sql
         end
 
-        # Extract all stored procedures, packages, synonyms and views.
+        # Extract all stored procedures, packages, synonyms.
         def structure_dump_db_stored_code #:nodoc:
           structure = []
           all_source = select_all(<<-SQL.strip.gsub(/\s+/, " "), "stored program at structure dump")
@@ -228,9 +229,6 @@ module ActiveRecord #:nodoc:
             ddl << ";" unless ddl.strip[-1, 1] == ";"
             structure << ddl
           end
-
-          # export views
-          structure << structure_dump_views
 
           # export synonyms
           structure << structure_dump_synonyms

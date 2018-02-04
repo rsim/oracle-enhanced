@@ -122,7 +122,7 @@ describe "OracleEnhancedAdapter structure dump" do
     it "should dump views" do
       @conn.execute "create or replace VIEW test_posts_view_z as select * from test_posts"
       @conn.execute "create or replace VIEW test_posts_view_a as select * from test_posts_view_z"
-      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
+      dump = ActiveRecord::Base.connection.structure_dump.gsub(/\n|\s+/, " ")
       expect(dump).to match(/CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_A.*CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_Z/)
     end
 
