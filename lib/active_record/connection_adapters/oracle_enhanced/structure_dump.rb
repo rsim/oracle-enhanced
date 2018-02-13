@@ -11,7 +11,8 @@ module ActiveRecord #:nodoc:
           sequences = select(<<-SQL.strip.gsub(/\s+/, " "), "sequences to dump at structure dump")
             SELECT sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
             FROM all_sequences
-            where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1
+            where sequence_owner = SYS_CONTEXT('userenv', 'session_user')
+            and sequence_name not like 'ISEQ$$%' ORDER BY 1
           SQL
 
           structure = sequences.map do |result|
@@ -264,7 +265,8 @@ module ActiveRecord #:nodoc:
 
         def structure_drop #:nodoc:
           sequences = select_values(<<-SQL.strip.gsub(/\s+/, " "), "sequences to drop at structure dump")
-            SELECT sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1
+            SELECT sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user')
+            and sequence_name not like 'ISEQ$$%' ORDER BY 1
           SQL
           statements = sequences.map do |seq|
             "DROP SEQUENCE \"#{seq}\""
