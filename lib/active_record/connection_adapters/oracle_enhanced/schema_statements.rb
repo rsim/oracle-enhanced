@@ -616,6 +616,8 @@ module ActiveRecord
               field["data_default"] = nil if field["data_default"] =~ /^(null|empty_[bc]lob\(\))$/i
               # TODO: Needs better fix to fallback "N" to false
               field["data_default"] = false if (field["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings)
+              # TODO: Consider if `default_function` can be used
+              field["data_default"] = nil if (field["data_default"] =~ /ISEQ/)
             end
 
             type_metadata = fetch_type_metadata(field["sql_type"], is_virtual)
