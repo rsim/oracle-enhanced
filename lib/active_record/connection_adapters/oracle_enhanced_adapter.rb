@@ -539,7 +539,7 @@ module ActiveRecord
              AND cc.constraint_name = c.constraint_name
         SQL
 
-        warn <<-WARNING.strip_heredoc if pks.count > 1
+        warn <<~WARNING if pks.count > 1
           WARNING: Active Record does not support composite primary key.
 
           #{table_name} has composite primary key. Composite primary key is ignored.
