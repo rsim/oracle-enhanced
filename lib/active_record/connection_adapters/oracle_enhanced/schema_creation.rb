@@ -75,7 +75,7 @@ module ActiveRecord
 
           def action_sql(action, dependency)
             if action == "UPDATE"
-              raise ArgumentError, <<-MSG.strip_heredoc
+              raise ArgumentError, <<~MSG
               '#{action}' is not supported by Oracle
             MSG
             end
@@ -83,7 +83,7 @@ module ActiveRecord
             when :nullify then "ON #{action} SET NULL"
             when :cascade  then "ON #{action} CASCADE"
             else
-              raise ArgumentError, <<-MSG.strip_heredoc
+              raise ArgumentError, <<~MSG
               '#{dependency}' is not supported for #{action}
               Supported values are: :nullify, :cascade
             MSG

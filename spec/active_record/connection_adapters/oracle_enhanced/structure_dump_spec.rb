@@ -350,7 +350,7 @@ describe "OracleEnhancedAdapter structure dump" do
       it "should dump schema migrations using multi inserts" do
         skip "Not supported in this database version" unless ActiveRecord::Base.connection.supports_multi_insert?
 
-        expect(dump).to eq <<-SQL.strip_heredoc
+        expect(dump).to eq <<~SQL
           INSERT ALL
           INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160101000000')
           INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160102000000')
