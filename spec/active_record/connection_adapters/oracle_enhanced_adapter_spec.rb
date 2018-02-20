@@ -570,6 +570,7 @@ describe "OracleEnhancedAdapter" do
       end
       class ::TestPost < ActiveRecord::Base
       end
+      Thread.report_on_exception, @original_report_on_exception = false, Thread.report_on_exception if Thread.respond_to?(:report_on_exception)
     end
 
     it "Raises Deadlocked when a deadlock is encountered" do
@@ -606,6 +607,7 @@ describe "OracleEnhancedAdapter" do
       end
       Object.send(:remove_const, "TestPost") rescue nil
       ActiveRecord::Base.clear_cache!
+      Thread.report_on_exception = @original_report_on_exception if Thread.respond_to?(:report_on_exception)
     end
   end
 end
