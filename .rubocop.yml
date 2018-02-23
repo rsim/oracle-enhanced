@@ -148,3 +148,9 @@ Style/RedundantReturn:
 Style/Semicolon:
   Enabled: true
   AllowAsExpressionSeparator: true
+
+# Prefer Foo.method over Foo::method
+Style/ColonMethodCall:
+  Enabled: true
+  Exclude:
+    - 'lib/active_record/connection_adapters/oracle_enhanced/jdbc_connection.rb'
