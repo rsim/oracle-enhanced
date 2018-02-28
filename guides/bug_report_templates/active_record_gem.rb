@@ -12,9 +12,9 @@ gemfile(true) do
 
   git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-  gem "rails", github: "rails/rails", branch: "master"
+  gem "rails", github: "rails/rails", branch: "5-2-stable"
   gem "arel", github: "rails/arel", branch: "master"
-  gem "activerecord-oracle_enhanced-adapter",  github: "rsim/oracle-enhanced", branch: "master"
+  gem "activerecord-oracle_enhanced-adapter",  github: "rsim/oracle-enhanced", branch: "release52"
   gem "minitest"
 
   platforms :ruby do
