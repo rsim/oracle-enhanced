@@ -131,10 +131,10 @@ describe "OracleEnhancedAdapter context index" do
       @post = Post.create(title: "abc", body: "def")
       expect(Post.contains(:all_text, "abc").to_a).to eq([@post])
       expect(Post.contains(:all_text, "def").to_a).to eq([@post])
-      @post.update_attributes!(title: "ghi")
+      @post.update!(title: "ghi")
       # index will not be updated as all_text column is not changed
       expect(Post.contains(:all_text, "ghi").to_a).to be_empty
-      @post.update_attributes!(all_text: "1")
+      @post.update!(all_text: "1")
       # index will be updated when all_text column is changed
       expect(Post.contains(:all_text, "ghi").to_a).to eq([@post])
       @conn.remove_context_index :posts, index_column: :all_text
@@ -147,7 +147,7 @@ describe "OracleEnhancedAdapter context index" do
       @post = Post.create(title: "abc", body: "def")
       expect(Post.contains(:all_text, "abc").to_a).to eq([@post])
       expect(Post.contains(:all_text, "def").to_a).to eq([@post])
-      @post.update_attributes!(title: "ghi")
+      @post.update!(title: "ghi")
       # index should be updated as created_at column is changed
       expect(Post.contains(:all_text, "ghi").to_a).to eq([@post])
       @conn.remove_context_index :posts, index_column: :all_text
@@ -168,7 +168,7 @@ describe "OracleEnhancedAdapter context index" do
       Post.transaction do
         @post = Post.create(title: "abc")
         expect(Post.contains(:title, "abc").to_a).to eq([@post])
-        @post.update_attributes!(title: "ghi")
+        @post.update!(title: "ghi")
         expect(Post.contains(:title, "ghi").to_a).to eq([@post])
       end
       @conn.remove_context_index :posts, :title
