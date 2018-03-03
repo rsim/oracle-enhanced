@@ -585,7 +585,7 @@ describe "OracleEnhancedAdapter" do
           TestPost.transaction do
             t1.lock!
             barrier.wait
-            t2.update_attributes(title: "one")
+            t2.update(title: "one")
           end
         end
 
@@ -593,7 +593,7 @@ describe "OracleEnhancedAdapter" do
           TestPost.transaction do
             t2.lock!
             barrier.wait
-            t1.update_attributes(title: "two")
+            t1.update(title: "two")
           end
         ensure
           thread.join
