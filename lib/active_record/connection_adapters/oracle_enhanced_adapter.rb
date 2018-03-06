@@ -427,8 +427,8 @@ module ActiveRecord
       def prefetch_primary_key?(table_name = nil)
         return true if table_name.nil?
         table_name = table_name.to_s
-        owner, desc_table_name, db_link = @connection.describe(table_name)
-        do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name, db_link) || has_primary_key_trigger?(table_name, owner, desc_table_name, db_link)
+        owner, desc_table_name = @connection.describe(table_name)
+        do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name) || has_primary_key_trigger?(table_name, owner, desc_table_name)
         !do_not_prefetch
       end
 
@@ -495,14 +495,14 @@ module ActiveRecord
       end
 
       # check if table has primary key trigger with _pkt suffix
-      def has_primary_key_trigger?(table_name, owner = nil, desc_table_name = nil, db_link = nil)
-        (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
+      def has_primary_key_trigger?(table_name, owner = nil, desc_table_name = nil)
+        (owner, desc_table_name) = @connection.describe(table_name) unless owner
 
         trigger_name = default_trigger_name(table_name).upcase
 
         !!select_value(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key Trigger", [bind_string("owner", owner), bind_string("trigger_name", trigger_name), bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT trigger_name
-          FROM all_triggers#{db_link}
+          FROM all_triggers
           WHERE owner = :owner
             AND trigger_name = :trigger_name
             AND table_owner = :owner
@@ -512,7 +512,7 @@ module ActiveRecord
       end
 
       def column_definitions(table_name)
-        (owner, desc_table_name, db_link) = @connection.describe(table_name)
+        (owner, desc_table_name) = @connection.describe(table_name)
 
         select_all(<<-SQL.strip.gsub(/\s+/, " "), "Column definitions", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cols.column_name AS name, cols.data_type AS sql_type,
@@ -526,7 +526,7 @@ module ActiveRecord
                                     NULL) AS limit,
                  DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
                  comments.comments as column_comment
-            FROM all_tab_cols#{db_link} cols, all_col_comments#{db_link} comments
+            FROM all_tab_cols cols, all_col_comments comments
            WHERE cols.owner      = :owner
              AND cols.table_name = :table_name
              AND cols.hidden_column = 'NO'
@@ -539,12 +539,12 @@ module ActiveRecord
 
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
-      def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil, db_link = nil) #:nodoc:
-        (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
+      def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) #:nodoc:
+        (owner, desc_table_name) = @connection.describe(table_name) unless owner
 
         seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name).upcase)])
           select us.sequence_name
-          from all_sequences#{db_link} us
+          from all_sequences us
           where us.sequence_owner = :owner
           and us.sequence_name = :sequence_name
         SQL
@@ -552,7 +552,7 @@ module ActiveRecord
         # changed back from user_constraints to all_constraints for consistency
         pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
-            FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
+            FROM all_constraints c, all_cons_columns cc
            WHERE c.owner = :owner
              AND c.table_name = :table_name
              AND c.constraint_type = 'P'
@@ -577,16 +577,16 @@ module ActiveRecord
         pk_and_sequence && pk_and_sequence.first
       end
 
-      def has_primary_key?(table_name, owner = nil, desc_table_name = nil, db_link = nil) #:nodoc:
-        !pk_and_sequence_for(table_name, owner, desc_table_name, db_link).nil?
+      def has_primary_key?(table_name, owner = nil, desc_table_name = nil) #:nodoc:
+        !pk_and_sequence_for(table_name, owner, desc_table_name).nil?
       end
 
       def primary_keys(table_name) # :nodoc:
-        (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
+        (owner, desc_table_name) = @connection.describe(table_name) unless owner
 
         pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Keys", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
-            FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
+            FROM all_constraints c, all_cons_columns cc
            WHERE c.owner = :owner
              AND c.table_name = :table_name
              AND c.constraint_type = 'P'
