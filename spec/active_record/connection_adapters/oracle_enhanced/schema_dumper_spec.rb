@@ -252,13 +252,6 @@ describe "OracleEnhancedAdapter schema dump" do
       expect(standard_dump).to match(/add_synonym "test_synonym", "schema_name.table_name", force: true/)
     end
 
-    it "should include synonym to other database table in schema dump" do
-      schema_define do
-        add_synonym :test_synonym, "table_name@link_name", force: true
-      end
-      expect(standard_dump).to match(/add_synonym "test_synonym", "table_name@link_name(\.[-A-Za-z0-9_]+)*", force: true/)
-    end
-
     it "should not include ignored table names in schema dump" do
       schema_define do
         add_synonym :test_synonym, "schema_name.table_name", force: true

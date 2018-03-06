@@ -48,7 +48,7 @@ module ActiveRecord
         end
 
         def data_source_exists?(table_name)
-          (_owner, table_name, _db_link) = @connection.describe(table_name)
+          (_owner, table_name) = @connection.describe(table_name)
           true
         rescue
           false
@@ -69,18 +69,18 @@ module ActiveRecord
         # get synonyms for schema dump
         def synonyms
           result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "synonyms")
-          SELECT synonym_name, table_owner, table_name, db_link
+          SELECT synonym_name, table_owner, table_name
           FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'session_user')
         SQL
 
           result.collect do |row|
              OracleEnhanced::SynonymDefinition.new(oracle_downcase(row["synonym_name"]),
-             oracle_downcase(row["table_owner"]), oracle_downcase(row["table_name"]), oracle_downcase(row["db_link"]))
+             oracle_downcase(row["table_owner"]), oracle_downcase(row["table_name"]))
            end
         end
 
         def indexes(table_name) #:nodoc:
-          (owner, table_name, db_link) = @connection.describe(table_name)
+          (owner, table_name) = @connection.describe(table_name)
           default_tablespace_name = default_tablespace
 
           result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "indexes", [bind_string("owner", owner), bind_string("owner", owner)])
@@ -89,11 +89,11 @@ module ActiveRecord
               LOWER(i.tablespace_name) AS tablespace_name,
               LOWER(c.column_name) AS column_name, e.column_expression,
               atc.virtual_column
-            FROM all_indexes#{db_link} i
-              JOIN all_ind_columns#{db_link} c ON c.index_name = i.index_name AND c.index_owner = i.owner
-              LEFT OUTER JOIN all_ind_expressions#{db_link} e ON e.index_name = i.index_name AND
+            FROM all_indexes i
+              JOIN all_ind_columns c ON c.index_name = i.index_name AND c.index_owner = i.owner
+              LEFT OUTER JOIN all_ind_expressions e ON e.index_name = i.index_name AND
                 e.index_owner = i.owner AND e.column_position = c.column_position
-              LEFT OUTER JOIN all_tab_cols#{db_link} atc ON i.table_name = atc.table_name AND
+              LEFT OUTER JOIN all_tab_cols atc ON i.table_name = atc.table_name AND
                 c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
             WHERE i.owner = :owner
                AND i.table_owner = :owner
@@ -114,7 +114,7 @@ module ActiveRecord
                 procedure_name = default_datastore_procedure(row["index_name"])
                 source = select_values(<<-SQL.strip.gsub(/\s+/, " "), "procedure", [bind_string("owner", owner), bind_string("procedure_name", procedure_name.upcase)]).join
                   SELECT text
-                  FROM all_source#{db_link}
+                  FROM all_source
                   WHERE owner = :owner
                     AND name = :procedure_name
                   ORDER BY line
@@ -343,9 +343,9 @@ module ActiveRecord
         #
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
-          (owner, table_name, db_link) = @connection.describe(table_name)
+          (owner, table_name) = @connection.describe(table_name)
           result = select_value(<<-SQL.strip.gsub(/\s+/, " "), "index name exists")
-            SELECT 1 FROM all_indexes#{db_link} i
+            SELECT 1 FROM all_indexes i
             WHERE i.owner = '#{owner}'
                AND i.table_owner = '#{owner}'
                AND i.table_name = '#{table_name}'
@@ -465,9 +465,9 @@ module ActiveRecord
         end
 
         def table_comment(table_name) #:nodoc:
-          (owner, table_name, db_link) = @connection.describe(table_name)
+          (owner, table_name) = @connection.describe(table_name)
           select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("owner", owner), bind_string("table_name", table_name)])
-            SELECT comments FROM all_tab_comments#{db_link}
+            SELECT comments FROM all_tab_comments
             WHERE owner = :owner
               AND table_name = :table_name
           SQL
@@ -481,9 +481,9 @@ module ActiveRecord
 
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
-          (owner, table_name, db_link) = @connection.describe(table_name)
+          (owner, table_name) = @connection.describe(table_name)
           select_value(<<-SQL.strip.gsub(/\s+/, " "), "Column comment", [bind_string("owner", owner), bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
-            SELECT comments FROM all_col_comments#{db_link}
+            SELECT comments FROM all_col_comments
             WHERE owner = :owner
               AND table_name = :table_name
               AND column_name = :column_name
@@ -509,7 +509,7 @@ module ActiveRecord
 
         # get table foreign keys for schema dump
         def foreign_keys(table_name) #:nodoc:
-          (owner, desc_table_name, db_link) = @connection.describe(table_name)
+          (owner, desc_table_name) = @connection.describe(table_name)
 
           fk_info = select_all(<<-SQL.strip.gsub(/\s+/, " "), "Foreign Keys", [bind_string("owner", owner), bind_string("desc_table_name", desc_table_name)])
             SELECT r.table_name to_table
@@ -517,8 +517,8 @@ module ActiveRecord
                   ,cc.column_name
                   ,c.constraint_name name
                   ,c.delete_rule
-              FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc,
-                   all_constraints#{db_link} r, all_cons_columns#{db_link} rc
+              FROM all_constraints c, all_cons_columns cc,
+                   all_constraints r, all_cons_columns rc
              WHERE c.owner = :owner
                AND c.table_name = :desc_table_name
                AND c.constraint_type = 'R'

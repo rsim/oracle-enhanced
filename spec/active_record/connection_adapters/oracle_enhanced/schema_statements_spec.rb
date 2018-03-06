@@ -1028,18 +1028,6 @@ end
         TestPost.create(title: "test")
       end.not_to raise_error
     end
-
-    it "should create synonym to table over database link" do
-      db_link = @db_link
-      schema_define do
-        add_synonym :synonym_to_posts, "test_posts@#{db_link}", force: true
-        add_synonym :synonym_to_posts_seq, "test_posts_seq@#{db_link}", force: true
-      end
-      expect do
-        TestPost.create(title: "test")
-      end.not_to raise_error
-    end
-
   end
 
   describe "alter columns with column cache" do
