@@ -472,35 +472,26 @@ describe "OracleEnhancedAdapter" do
       expect(@conn.table_exists?("NOT_EXISTING")).to eq false
     end
 
-    it "should return array from indexes with bind usage" do
-      expect(@conn.indexes("TEST_POSTS").class).to eq Array
-      expect(@logger.logged(:debug).last).to match(/:owner/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["owner", "#{DATABASE_USER.upcase}"\]\]/)
-    end
-
     it "should return content from columns with bind usage" do
       expect(@conn.columns("TEST_POSTS").length).to be > 0
-      expect(@logger.logged(:debug).last).to match(/:owner/)
       expect(@logger.logged(:debug).last).to match(/:table_name/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_POSTS"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
     it "should return pk and sequence from pk_and_sequence_for with bind usage" do
       expect(@conn.pk_and_sequence_for("TEST_POSTS").length).to eq 2
-      expect(@logger.logged(:debug).last).to match(/:owner/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_POSTS"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
     it "should return pk from primary_keys with bind usage" do
       expect(@conn.primary_keys("TEST_POSTS")).to eq ["id"]
-      expect(@logger.logged(:debug).last).to match(/:owner/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_POSTS"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
     it "should return false from temporary_table? with bind usage" do
       expect(@conn.temporary_table?("TEST_POSTS")).to eq false
       expect(@logger.logged(:debug).last).to match(/:table_name/)
-      expect(@logger.logged(:debug).last).to match(/\[\["table_name", "TEST_POSTS"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
   end

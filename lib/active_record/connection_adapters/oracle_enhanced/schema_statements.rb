@@ -80,10 +80,10 @@ module ActiveRecord
         end
 
         def indexes(table_name) #:nodoc:
-          (owner, table_name) = @connection.describe(table_name)
+          (_owner, table_name) = @connection.describe(table_name)
           default_tablespace_name = default_tablespace
 
-          result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "indexes", [bind_string("owner", owner), bind_string("owner", owner)])
+          result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "indexes")
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
@@ -95,8 +95,8 @@ module ActiveRecord
                 e.index_owner = i.owner AND e.column_position = c.column_position
               LEFT OUTER JOIN all_tab_cols atc ON i.table_name = atc.table_name AND
                 c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
-            WHERE i.owner = :owner
-               AND i.table_owner = :owner
+            WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
+               AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
                AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
                 WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
             ORDER BY i.index_name, c.column_position
@@ -112,10 +112,10 @@ module ActiveRecord
               statement_parameters = nil
               if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
                 procedure_name = default_datastore_procedure(row["index_name"])
-                source = select_values(<<-SQL.strip.gsub(/\s+/, " "), "procedure", [bind_string("owner", owner), bind_string("procedure_name", procedure_name.upcase)]).join
+                source = select_values(<<-SQL.strip.gsub(/\s+/, " "), "procedure", [bind_string("procedure_name", procedure_name.upcase)]).join
                   SELECT text
                   FROM all_source
-                  WHERE owner = :owner
+                  WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
                     AND name = :procedure_name
                   ORDER BY line
                 SQL
@@ -343,11 +343,11 @@ module ActiveRecord
         #
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
-          (owner, table_name) = @connection.describe(table_name)
+          (_owner, table_name) = @connection.describe(table_name)
           result = select_value(<<-SQL.strip.gsub(/\s+/, " "), "index name exists")
             SELECT 1 FROM all_indexes i
-            WHERE i.owner = '#{owner}'
-               AND i.table_owner = '#{owner}'
+            WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
+               AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_name = '#{table_name}'
                AND i.index_name = '#{index_name.to_s.upcase}'
           SQL
@@ -465,10 +465,10 @@ module ActiveRecord
         end
 
         def table_comment(table_name) #:nodoc:
-          (owner, table_name) = @connection.describe(table_name)
-          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("owner", owner), bind_string("table_name", table_name)])
+          (_owner, table_name) = @connection.describe(table_name)
+          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("table_name", table_name)])
             SELECT comments FROM all_tab_comments
-            WHERE owner = :owner
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
           SQL
         end
@@ -481,10 +481,10 @@ module ActiveRecord
 
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
-          (owner, table_name) = @connection.describe(table_name)
-          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Column comment", [bind_string("owner", owner), bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
+          (_owner, table_name) = @connection.describe(table_name)
+          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Column comment", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
             SELECT comments FROM all_col_comments
-            WHERE owner = :owner
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
               AND column_name = :column_name
           SQL
@@ -509,9 +509,9 @@ module ActiveRecord
 
         # get table foreign keys for schema dump
         def foreign_keys(table_name) #:nodoc:
-          (owner, desc_table_name) = @connection.describe(table_name)
+          (_owner, desc_table_name) = @connection.describe(table_name)
 
-          fk_info = select_all(<<-SQL.strip.gsub(/\s+/, " "), "Foreign Keys", [bind_string("owner", owner), bind_string("desc_table_name", desc_table_name)])
+          fk_info = select_all(<<-SQL.strip.gsub(/\s+/, " "), "Foreign Keys", [bind_string("desc_table_name", desc_table_name)])
             SELECT r.table_name to_table
                   ,rc.column_name references_column
                   ,cc.column_name
@@ -519,7 +519,7 @@ module ActiveRecord
                   ,c.delete_rule
               FROM all_constraints c, all_cons_columns cc,
                    all_constraints r, all_cons_columns rc
-             WHERE c.owner = :owner
+             WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND c.table_name = :desc_table_name
                AND c.constraint_type = 'R'
                AND cc.owner = c.owner
