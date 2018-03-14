@@ -88,6 +88,7 @@ describe "OracleEnhancedConnection" do
     it "should swith to specified schema" do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
       expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
+      expect(ActiveRecord::Base.connection.current_user).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:username].upcase)
     end
 
     it "should swith to specified schema after reset" do

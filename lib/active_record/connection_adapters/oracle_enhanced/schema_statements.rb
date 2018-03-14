@@ -70,7 +70,7 @@ module ActiveRecord
         def synonyms
           result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "synonyms")
           SELECT synonym_name, table_owner, table_name
-          FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'session_user')
+          FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
 
           result.collect do |row|
@@ -503,7 +503,7 @@ module ActiveRecord
             SELECT tablespace_name
             FROM all_tables
             WHERE table_name='#{table_name.to_s.upcase}'
-            AND owner = SYS_CONTEXT('userenv', 'session_user')
+            AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
@@ -558,7 +558,7 @@ module ActiveRecord
             FROM all_constraints
             WHERE constraint_type = 'R'
             AND status = 'ENABLED'
-            AND owner = SYS_CONTEXT('userenv', 'session_user')
+            AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           begin
             old_constraints.each do |constraint|

@@ -167,7 +167,7 @@ module ActiveRecord #:nodoc:
             table_name = column.table_name
             @connection.select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
               select data_default from all_tab_columns
-              where owner = SYS_CONTEXT('userenv', 'session_user')
+              where owner = SYS_CONTEXT('userenv', 'current_schema')
               and table_name = :table_name
               and column_name = :column_name
             SQL
