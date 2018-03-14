@@ -596,7 +596,7 @@ module ActiveRecord
 
       def temporary_table?(table_name) #:nodoc:
         select_value(<<-SQL.strip.gsub(/\s+/, " "), "temporary table", [bind_string("table_name", table_name.upcase)]) == "Y"
-          SELECT temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'session_user')
+          SELECT temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
       end
 
