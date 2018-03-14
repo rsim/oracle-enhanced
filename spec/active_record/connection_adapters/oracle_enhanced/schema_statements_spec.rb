@@ -224,9 +224,8 @@ describe "OracleEnhancedAdapter schema definition" do
       create_test_employees_table(table_comment)
       class ::TestEmployee < ActiveRecord::Base; end
       expect(@conn.table_comment(TestEmployee.table_name)).to eq(table_comment)
-      expect(@logger.logged(:debug).last).to match(/:owner/)
       expect(@logger.logged(:debug).last).to match(/:table_name/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_EMPLOYEES"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_EMPLOYEES"\]\]/)
     end
 
     it "should query column_comment using bind variables" do
@@ -235,10 +234,9 @@ describe "OracleEnhancedAdapter schema definition" do
       create_test_employees_table(table_comment, column_comment)
       class ::TestEmployee < ActiveRecord::Base; end
       expect(@conn.column_comment(TestEmployee.table_name, :first_name)).to eq(column_comment[:first_name])
-      expect(@logger.logged(:debug).last).to match(/:owner/)
       expect(@logger.logged(:debug).last).to match(/:table_name/)
       expect(@logger.logged(:debug).last).to match(/:column_name/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_EMPLOYEES"\], \["column_name", "FIRST_NAME"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_EMPLOYEES"\], \["column_name", "FIRST_NAME"\]\]/)
     end
 
   end
@@ -533,9 +531,8 @@ end
         add_foreign_key :test_comments, :test_posts
       end
       ActiveRecord::Base.connection.foreign_keys(:test_comments)
-      expect(@logger.logged(:debug).last).to match(/:owner/)
       expect(@logger.logged(:debug).last).to match(/:desc_table_name/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["desc_table_name", "TEST_COMMENTS"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["desc_table_name", "TEST_COMMENTS"\]\]/)
     end
 
   end

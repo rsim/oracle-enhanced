@@ -493,9 +493,9 @@ module ActiveRecord
       end
 
       def column_definitions(table_name)
-        (owner, desc_table_name) = @connection.describe(table_name)
+        (_owner, desc_table_name) = @connection.describe(table_name)
 
-        select_all(<<-SQL.strip.gsub(/\s+/, " "), "Column definitions", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+        select_all(<<-SQL.strip.gsub(/\s+/, " "), "Column definitions", [bind_string("table_name", desc_table_name)])
           SELECT cols.column_name AS name, cols.data_type AS sql_type,
                  cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
                  cols.data_type_owner AS sql_type_owner,
@@ -508,7 +508,7 @@ module ActiveRecord
                  DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
                  comments.comments as column_comment
             FROM all_tab_cols cols, all_col_comments comments
-           WHERE cols.owner      = :owner
+           WHERE cols.owner      = SYS_CONTEXT('userenv', 'current_schema')
              AND cols.table_name = :table_name
              AND cols.hidden_column = 'NO'
              AND cols.owner = comments.owner
@@ -521,20 +521,20 @@ module ActiveRecord
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) #:nodoc:
-        (owner, desc_table_name) = @connection.describe(table_name) unless owner
+        (_owner, desc_table_name) = @connection.describe(table_name)
 
-        seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name).upcase)])
+        seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence", [bind_string("sequence_name", default_sequence_name(desc_table_name).upcase)])
           select us.sequence_name
           from all_sequences us
-          where us.sequence_owner = :owner
+          where us.sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
           and us.sequence_name = :sequence_name
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
-        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key", [bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
             FROM all_constraints c, all_cons_columns cc
-           WHERE c.owner = :owner
+           WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
              AND c.table_name = :table_name
              AND c.constraint_type = 'P'
              AND cc.owner = c.owner
@@ -563,12 +563,12 @@ module ActiveRecord
       end
 
       def primary_keys(table_name) # :nodoc:
-        (owner, desc_table_name) = @connection.describe(table_name) unless owner
+        (_owner, desc_table_name) = @connection.describe(table_name)
 
-        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Keys", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Keys", [bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
             FROM all_constraints c, all_cons_columns cc
-           WHERE c.owner = :owner
+           WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
              AND c.table_name = :table_name
              AND c.constraint_type = 'P'
              AND cc.owner = c.owner
