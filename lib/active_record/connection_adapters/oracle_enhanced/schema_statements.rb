@@ -365,7 +365,7 @@ module ActiveRecord
         #
         #   add_synonym :posts, "blog.posts"
         #   add_synonym :posts_seq, "blog.posts_seq"
-        #   add_synonym :employees, "hr.employees@dblink", :force => true
+        #   add_synonym :employees, "hr.employees", :force => true
         #
         def add_synonym(name, table_name, options = {})
           sql = "CREATE".dup

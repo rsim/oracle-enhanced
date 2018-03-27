@@ -779,12 +779,7 @@ end
   describe "synonyms" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
-      @db_link = "db_link"
-      @username = @db_link_username = CONNECTION_PARAMS[:username]
-      @db_link_password = CONNECTION_PARAMS[:password]
-      @db_link_database = CONNECTION_PARAMS[:database]
-      @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
-      @conn.execute "CREATE DATABASE LINK #{@db_link} CONNECT TO #{@db_link_username} IDENTIFIED BY \"#{@db_link_password}\" USING '#{@db_link_database}'"
+      @username = CONNECTION_PARAMS[:username]
       schema_define do
         create_table :test_posts, force: true do |t|
           t.string :title
@@ -796,7 +791,6 @@ end
       schema_define do
         drop_table :test_posts
       end
-      @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
     end
 
     before(:each) do
