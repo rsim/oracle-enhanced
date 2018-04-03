@@ -328,6 +328,10 @@ module ActiveRecord
               conn.exec "alter session set #{key} = '#{value}'"
             end
           end
+
+          OracleEnhancedAdapter::FIXED_NLS_PARAMETERS.each do |key, value|
+            conn.exec "alter session set #{key} = '#{value}'"
+          end
           conn
         end
       end

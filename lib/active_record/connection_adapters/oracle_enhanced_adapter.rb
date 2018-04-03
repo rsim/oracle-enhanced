@@ -120,8 +120,6 @@ module ActiveRecord
     # * <tt>:nls_calendar</tt>
     # * <tt>:nls_comp</tt>
     # * <tt>:nls_currency</tt>
-    # * <tt>:nls_date_format</tt> - format for :date columns, defaults to <tt>YYYY-MM-DD HH24:MI:SS</tt>
-    #   (changing `nls_date_format` parameter value is not supported. Use the default value.)
     # * <tt>:nls_date_language</tt>
     # * <tt>:nls_dual_currency</tt>
     # * <tt>:nls_iso_currency</tt>
@@ -132,11 +130,14 @@ module ActiveRecord
     # * <tt>:nls_numeric_characters</tt>
     # * <tt>:nls_sort</tt>
     # * <tt>:nls_territory</tt>
-    # * <tt>:nls_timestamp_format</tt> - format for :timestamp columns, defaults to <tt>YYYY-MM-DD HH24:MI:SS:FF6</tt>
-    #   (changing `nls_timestamp_format` parameter value is not supported. Use the default value.)
     # * <tt>:nls_timestamp_tz_format</tt>
     # * <tt>:nls_time_format</tt>
     # * <tt>:nls_time_tz_format</tt>
+    #
+    # Fixed NLS values (not overridable):
+    #
+    # * <tt>:nls_date_format</tt> - format for :date columns is <tt>YYYY-MM-DD HH24:MI:SS</tt>
+    # * <tt>:nls_timestamp_format</tt> - format for :timestamp columns is <tt>YYYY-MM-DD HH24:MI:SS:FF6</tt>
     #
     class OracleEnhancedAdapter < AbstractAdapter
       include OracleEnhanced::DatabaseStatements
@@ -306,7 +307,6 @@ module ActiveRecord
         nls_calendar: nil,
         nls_comp: nil,
         nls_currency: nil,
-        nls_date_format: "YYYY-MM-DD HH24:MI:SS",
         nls_date_language: nil,
         nls_dual_currency: nil,
         nls_iso_currency: nil,
@@ -316,10 +316,15 @@ module ActiveRecord
         nls_numeric_characters: nil,
         nls_sort: nil,
         nls_territory: nil,
-        nls_timestamp_format: "YYYY-MM-DD HH24:MI:SS:FF6",
         nls_timestamp_tz_format: nil,
         nls_time_format: nil,
         nls_time_tz_format: nil
+      }
+
+      #:stopdoc:
+      FIXED_NLS_PARAMETERS = {
+        nls_date_format: "YYYY-MM-DD HH24:MI:SS",
+        nls_timestamp_format: "YYYY-MM-DD HH24:MI:SS:FF6"
       }
 
       #:stopdoc:
