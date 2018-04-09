@@ -1,3 +1,22 @@
+## 5.2.0 / 2018-04-10
+
+* Major changes and fixes
+  * Support Rails 5.2.0
+
+* Documentation changes
+  * Add README and UPGRADE sections for Rails 5.2 [#1637 #1638]
+  * Update bug templates for Rails 5.2 [#1663]
+
+* Changes in specs
+  * Suppress expected exceptions by `report_on_exception` = `false` [#1655 #1656]
+
+* Changes for CI and builds
+  * CI with JRuby 9.1.16.0 [#1659]
+  * CI with Ruby 2.5.1 [#1683 #1684]
+  * CI against Ruby 2.4.4 [#1686 #1687]
+  * Use ruby 2.3.7 and 2.2.10 for CI at release52 branch [#1688]
+  * Oracle enhanced adapter 5.2 needs Rails `5-2-stable` branch [#1654]
+
 ## 5.2.0.rc1 / 2018-01-31
 
 * Changes and bug fixes
