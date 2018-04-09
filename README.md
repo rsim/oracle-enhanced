@@ -17,7 +17,7 @@ When using Ruby on Rails version 5.2 then in Gemfile include
 
 ```ruby
 # Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 5.2.0.rc1'
+gem 'activerecord-oracle_enhanced-adapter', '~> 5.2.0'
 gem 'ruby-oci8' # only for CRuby users
 ```
 
