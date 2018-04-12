@@ -88,10 +88,6 @@ describe "OracleEnhancedAdapter quoting" do
       expect(@adapter.valid_table_name?("ABC_123.DEF_456")).to be_truthy
     end
 
-    it "should be valid with irregular schema name and database links" do
-      expect(@adapter.valid_table_name?('abc$#_123.abc$#_123@abc$#@._123')).to be_truthy
-    end
-
     it "should not be valid with two dots in name" do
       expect(@adapter.valid_table_name?("abc_123.def_456.ghi_789")).to be_falsey
     end
@@ -187,10 +183,6 @@ describe "OracleEnhancedAdapter quoting" do
       expect(cc.id).not_to be_nil
 
       expect(@conn.tables).to include("CamelCase")
-    end
-
-    it "properly quotes database links" do
-      expect(@conn.quote_table_name("asdf@some.link")).to eq('"ASDF"@"SOME.LINK"')
     end
   end
 end

@@ -38,18 +38,6 @@ module ActiveRecord
           end
         end
 
-        # Used only for quoting database links as the naming rules for links
-        # differ from the rules for column names. Specifically, link names may
-        # include periods.
-        def quote_database_link(name)
-          case name
-          when NONQUOTED_DATABASE_LINK
-            %Q("#{name.upcase}")
-          else
-            name
-          end
-        end
-
         # Names must be from 1 to 30 bytes long with these exceptions:
         # * Names of databases are limited to 8 bytes.
         # * Names of database links can be as long as 128 bytes.
@@ -61,12 +49,10 @@ module ActiveRecord
         #
         # Nonquoted identifiers can contain only alphanumeric characters from
         # your database character set and the underscore (_), dollar sign ($),
-        # and pound sign (#). Database links can also contain periods (.) and
-        # "at" signs (@). Oracle strongly discourages you from using $ and # in
-        # nonquoted identifiers.
-        NONQUOTED_OBJECT_NAME   = /[[:alpha:]][\w$#]{0,29}/
-        NONQUOTED_DATABASE_LINK = /[[:alpha:]][\w$#\.@]{0,127}/
-        VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}(?:@#{NONQUOTED_DATABASE_LINK})?\Z/
+        # and pound sign (#).
+        # Oracle strongly discourages you from using $ and # in nonquoted identifiers.
+        NONQUOTED_OBJECT_NAME = /[[:alpha:]][\w$#]{0,29}/
+        VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}?\Z/
 
         # unescaped table name should start with letter and
         # contain letters, digits, _, $ or #
@@ -83,8 +69,8 @@ module ActiveRecord
         end
 
         def quote_table_name(name) #:nodoc:
-          name, link = name.to_s.split("@")
-          @quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }.join("."), quote_database_link(link)].compact.join("@")
+          name, _link = name.to_s.split("@")
+          @quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
         end
 
         def quote_string(s) #:nodoc:
