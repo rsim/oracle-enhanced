@@ -211,6 +211,7 @@ module ActiveRecord
         super(connection, logger, config)
         @statements = StatementPool.new(self.class.type_cast_config_to_integer(config[:statement_limit]))
         @enable_dbms_output = false
+        @do_not_prefetch_primary_key = {}
       end
 
       ADAPTER_NAME = "OracleEnhanced".freeze
@@ -430,8 +431,11 @@ module ActiveRecord
       def prefetch_primary_key?(table_name = nil)
         return true if table_name.nil?
         table_name = table_name.to_s
-        owner, desc_table_name = @connection.describe(table_name)
-        do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
+        do_not_prefetch = @do_not_prefetch_primary_key[table_name]
+        if do_not_prefetch.nil?
+          owner, desc_table_name = @connection.describe(table_name)
+          @do_not_prefetch_primary_key [table_name] = do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
+        end
         !do_not_prefetch
       end
 
