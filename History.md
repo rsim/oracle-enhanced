@@ -1,3 +1,8 @@
+## 5.2.1 / 2018-04-15
+
+* Changes and bug fixes
+  * Memoize if the table needs to prefetch primary key[#1673 #1699 #1700]
+
 ## 5.2.0 / 2018-04-10
 
 * Major changes and fixes
