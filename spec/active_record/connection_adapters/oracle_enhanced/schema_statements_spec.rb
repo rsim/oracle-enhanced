@@ -8,6 +8,8 @@ describe "OracleEnhancedAdapter schema definition" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @oracle11g_or_higher = !! !! ActiveRecord::Base.connection.select_value(
       "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
+    @oracle12cr2_or_higher = !! !! ActiveRecord::Base.connection.select_value(
+      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,4)) >= 12.2")
   end
 
   describe "option to create sequence when adding a column" do
@@ -316,17 +318,30 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should return shortened index name by removing 'index', 'on' and 'and' keywords" do
-      expect(@conn.index_name("employees", column: ["first_name", "email"])).to eq("i_employees_first_name_email")
+      if @oracle12cr2_or_higher
+        expect(@conn.index_name("employees", column: ["first_name", "email"])).to eq("index_employees_on_first_name_and_email")
+      else
+        expect(@conn.index_name("employees", column: ["first_name", "email"])).to eq("i_employees_first_name_email")
+      end
     end
 
     it "should return shortened index name by shortening table and column names" do
-      expect(@conn.index_name("employees", column: ["first_name", "last_name"])).to eq("i_emp_fir_nam_las_nam")
+      if @oracle12cr2_or_higher
+        expect(@conn.index_name("employees", column: ["first_name", "last_name"])).to eq("index_employees_on_first_name_and_last_name")
+      else
+        expect(@conn.index_name("employees", column: ["first_name", "last_name"])).to eq("i_emp_fir_nam_las_nam")
+      end
     end
 
     it "should raise error if too large index name cannot be shortened" do
-      expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
-        "i" + Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
-      )
+      if @oracle12cr2_or_higher
+        expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
+          ("index_test_employees_on_first_name_and_middle_name_and_last_name"))
+      else
+        expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
+          "i" + Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
+        )
+      end
     end
 
   end
@@ -359,6 +374,7 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   it "should raise error when new index name length is too long" do
+    skip if @oracle12cr2_or_higher
     expect do
       @conn.rename_index("test_employees", "i_test_employees_first_name", "a" * 31)
     end.to raise_error(ArgumentError)
@@ -371,6 +387,7 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   it "should rename index name with new one" do
+    skip if @oracle12cr2_or_higher
     expect do
       @conn.rename_index("test_employees", "i_test_employees_first_name", "new_index_name")
     end.not_to raise_error
