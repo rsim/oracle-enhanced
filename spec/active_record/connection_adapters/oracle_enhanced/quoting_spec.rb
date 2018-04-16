@@ -110,10 +110,6 @@ describe "OracleEnhancedAdapter quoting" do
       expect(@adapter.valid_table_name?(("a" * 31) + ".validname")).to be_falsey
     end
 
-    it "should not be valid for database links > 128 characters" do
-      expect(@adapter.valid_table_name?("name@" + "a" * 129)).to be_falsey
-    end
-
     it "should not be valid for names that do not begin with alphabetic characters" do
       expect(@adapter.valid_table_name?("1abc")).to be_falsey
       expect(@adapter.valid_table_name?("_abc")).to be_falsey
