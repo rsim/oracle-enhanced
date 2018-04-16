@@ -303,6 +303,10 @@ module ActiveRecord
         false
       end
 
+      def supports_longer_identifier?
+        @connection.database_version.to_s >= [12, 2].to_s
+      end
+
       #:stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         nls_calendar: nil,
@@ -608,6 +612,12 @@ module ActiveRecord
           SELECT temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
       end
+
+      def max_identifier_length
+        supports_longer_identifier? ? 128 : 30
+      end
+      alias table_alias_length max_identifier_length
+      alias index_name_length max_identifier_length
 
       private
 
