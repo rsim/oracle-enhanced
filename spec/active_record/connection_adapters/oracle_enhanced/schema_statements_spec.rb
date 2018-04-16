@@ -882,6 +882,15 @@ end
       expect(TestPost.columns_hash["body"]).not_to be_nil
     end
 
+    it "should add longer column" do
+      skip unless @oracle12cr2_or_higher
+      schema_define do
+        add_column :test_posts, "a" * 128, :string
+      end
+      TestPost.reset_column_information
+      expect(TestPost.columns_hash["a" * 128]).not_to be_nil
+    end
+
     it "should add lob column with non_default tablespace" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
       schema_define do
