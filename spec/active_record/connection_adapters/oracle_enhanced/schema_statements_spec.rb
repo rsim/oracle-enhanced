@@ -1096,6 +1096,36 @@ end
     end
   end
 
+  describe "materialized views" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        create_table  :test_employees, force: true do |t|
+          t.string    :first_name
+          t.string    :last_name
+        end
+      end
+      @conn.execute("create materialized view sum_test_employees as select first_name, count(*) from test_employees group by first_name")
+      class ::TestEmployee < ActiveRecord::Base; end
+    end
+
+    after(:all) do
+      @conn.execute("drop materialized view sum_test_employees") rescue nil
+      schema_define do
+        drop_table :sum_test_employees, if_exists: true
+        drop_table :test_employees, if_exists: true
+      end
+    end
+
+    it "tables should not return materialized views" do
+      expect(@conn.tables).not_to include("sum_test_employees")
+    end
+
+    it "materialized_views should return materialized views" do
+      expect(@conn.materialized_views).to include("sum_test_employees")
+    end
+  end
+
   describe "miscellaneous options" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
