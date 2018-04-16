@@ -199,6 +199,21 @@ module ActiveRecord
       cattr_accessor :default_sequence_start_value
       self.default_sequence_start_value = 1
 
+      ##
+      # :singleton-method:
+      # By default, OracleEnhanced adapter will use longer 128 bytes identifier
+      # if database version is Oracle 12.2 or higher.
+      # If you wish to use shorter 30 byte identifier with Oracle Database supporting longer identifier
+      # you can add the following line to your initializer file:
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_shorter_identifier = true
+      cattr_accessor :use_shorter_identifier
+      self.use_shorter_identifier = false
+
+      ##
+      # :singleton-method:
+      # Specify default sequence start with value (by default 1 if not explicitly set), e.g.:
+
       class StatementPool < ConnectionAdapters::StatementPool
         private
 
@@ -304,7 +319,11 @@ module ActiveRecord
       end
 
       def supports_longer_identifier?
-        @connection.database_version.to_s >= [12, 2].to_s
+        if !use_shorter_identifier && @connection.database_version.to_s >= [12, 2].to_s
+          true
+        else
+          false
+        end
       end
 
       #:stopdoc:
