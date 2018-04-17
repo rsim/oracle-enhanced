@@ -16,6 +16,10 @@ module ActiveRecord
           FROM all_tables
           WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           AND secondary = 'N'
+          minus
+          SELECT DECODE(mview_name, UPPER(mview_name), LOWER(mview_name), mview_name)
+          FROM all_mviews
+          WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
         end
 
