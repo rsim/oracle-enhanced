@@ -518,7 +518,7 @@ module ActiveRecord
       def column_definitions(table_name)
         (owner, desc_table_name, db_link) = @connection.describe(table_name)
 
-        select_all(<<-SQL.strip.gsub(/\s+/, " "), "Column definitions", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+        select_all(<<-SQL.strip.gsub(/\s+/, " "), "Column definitions")
           SELECT cols.column_name AS name, cols.data_type AS sql_type,
                  cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
                  cols.data_type_owner AS sql_type_owner,
@@ -531,8 +531,8 @@ module ActiveRecord
                  DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
                  comments.comments as column_comment
             FROM all_tab_cols#{db_link} cols, all_col_comments#{db_link} comments
-           WHERE cols.owner      = :owner
-             AND cols.table_name = :table_name
+           WHERE cols.owner      = '#{owner}'
+             AND cols.table_name = #{quote(desc_table_name)}
              AND cols.hidden_column = 'NO'
              AND cols.owner = comments.owner
              AND cols.table_name = comments.table_name
@@ -546,19 +546,19 @@ module ActiveRecord
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil, db_link = nil) #:nodoc:
         (owner, desc_table_name, db_link) = @connection.describe(table_name) unless owner
 
-        seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name).upcase)])
+        seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence")
           select us.sequence_name
           from all_sequences#{db_link} us
-          where us.sequence_owner = :owner
-          and us.sequence_name = :sequence_name
+          where us.sequence_owner = '#{owner}'
+          and us.sequence_name = upper(#{quote(default_sequence_name(desc_table_name))})
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
-        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key")
           SELECT cc.column_name
             FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc
-           WHERE c.owner = :owner
-             AND c.table_name = :table_name
+           WHERE c.owner = '#{owner}'
+             AND c.table_name = #{quote(desc_table_name)}
              AND c.constraint_type = 'P'
              AND cc.owner = c.owner
              AND cc.constraint_name = c.constraint_name
