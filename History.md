@@ -1,3 +1,11 @@
+## 5.2.2 / 2018-04-28
+
+* Changes and bug fixes
+  * Use SQL literals for `column_definitions` and `pk_and_sequence_for` [#1678 #1713 #1714]
+  * Memoize if the table needs to prefetch primary key[#1673 #1699 #1700]
+  * CI with JRuby 9.1.17.0 [#1710]
+  * Remove `rails/arel` from Gemfile [#1711 #1712]
+
 ## 5.2.1 / 2018-04-15
 
 * Changes and bug fixes
