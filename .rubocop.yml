@@ -141,6 +141,9 @@ Style/UnneededPercentQ:
 Lint/RequireParentheses:
   Enabled: true
 
+Lint/StringConversionInInterpolation:
+  Enabled: true
+
 Style/RedundantReturn:
   Enabled: true
   AllowMultipleReturnValues: true
