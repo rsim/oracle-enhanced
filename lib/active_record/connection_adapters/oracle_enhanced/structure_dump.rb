@@ -28,7 +28,7 @@ module ActiveRecord #:nodoc:
           SQL
           tables.each do |table_name|
             virtual_columns = virtual_columns_for(table_name) if supports_virtual_columns?
-            ddl = "CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n".dup
+            ddl = +"CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
             columns = select_all(<<-SQL.strip.gsub(/\s+/, " "), "columns at structure dump")
               SELECT column_name, data_type, data_length, char_used, char_length,
               data_precision, data_scale, data_default, nullable
@@ -59,7 +59,7 @@ module ActiveRecord #:nodoc:
         end
 
         def structure_dump_column(column) #:nodoc:
-          col = "\"#{column['column_name']}\" #{column['data_type']}".dup
+          col = +"\"#{column['column_name']}\" #{column['data_type']}"
           if (column["data_type"] == "NUMBER") && !column["data_precision"].nil?
             col << "(#{column['data_precision'].to_i}"
             col << ",#{column['data_scale'].to_i}" if !column["data_scale"].nil?
@@ -75,7 +75,7 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_virtual_column(column, data_default) #:nodoc:
           data_default = data_default.gsub(/"/, "")
-          col = "\"#{column['column_name']}\" #{column['data_type']}".dup
+          col = +"\"#{column['column_name']}\" #{column['data_type']}"
           if (column["data_type"] == "NUMBER") && !column["data_precision"].nil?
             col << "(#{column['data_precision'].to_i}"
             col << ",#{column['data_scale'].to_i}" if !column["data_scale"].nil?
@@ -151,7 +151,7 @@ module ActiveRecord #:nodoc:
           fks = foreign_keys.map do |table|
             if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?
               foreign_keys.map do |fk|
-                sql = "ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} ".dup
+                sql = +"ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} "
                 sql << "#{foreign_key_definition(fk.to_table, fk.options)}"
               end
             end
@@ -214,7 +214,7 @@ module ActiveRecord #:nodoc:
             AND owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY type
           SQL
           all_source.each do |source|
-            ddl = "CREATE OR REPLACE   \n".dup
+            ddl = +"CREATE OR REPLACE   \n"
             texts = select_all(<<-SQL.strip.gsub(/\s+/, " "), "all source at structure dump")
               SELECT text
               FROM all_source

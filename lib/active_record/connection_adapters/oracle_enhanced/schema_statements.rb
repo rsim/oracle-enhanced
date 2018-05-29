@@ -258,7 +258,7 @@ module ActiveRecord
           sm_table = quote_table_name(ActiveRecord::SchemaMigration.table_name)
 
           if supports_multi_insert?
-            versions.inject("INSERT ALL\n".dup) { |sql, version|
+            versions.inject(+"INSERT ALL\n") { |sql, version|
               sql << "INTO #{sm_table} (version) VALUES (#{quote(version)})\n"
             } << "SELECT * FROM DUAL\n"
           else
@@ -372,7 +372,7 @@ module ActiveRecord
         #   add_synonym :employees, "hr.employees", :force => true
         #
         def add_synonym(name, table_name, options = {})
-          sql = "CREATE".dup
+          sql = +"CREATE"
           if options[:force] == true
             sql << " OR REPLACE"
           end
@@ -639,7 +639,7 @@ module ActiveRecord
           end
 
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
-            tablespace_sql = "".dup
+            tablespace_sql = +""
             if tablespace = (tablespace_option || default_tablespace_for(obj_type))
               if [:blob, :clob, :nclob].include?(obj_type.to_sym)
                 tablespace_sql << " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
