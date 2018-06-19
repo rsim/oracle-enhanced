@@ -209,6 +209,22 @@ To use jndi with Tomcat you need to set the accessToUnderlyingConnectionAllowed 
 
 You can find other available database.yml connection parameters in [oracle_enhanced_adapter.rb](http://github.com/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb). There are many NLS settings as well as some other Oracle session settings.
 
+### Setting ReadTimeout and CONNECT_TIMEOUT
+
+If you would like to setup ReadTimeout (default [600000 milliseconds](https://docs.oracle.com/cd/E57185_01/ESTUG/apbs02s23.html)) and CONNECT_TIMEOUT (default [unspecified](https://community.oracle.com/thread/2608655)) for some [scalability](http://www.oracle.com/technetwork/database/enterprise-edition/oow17netcon6718-3944720.pdf), can be provided as well:
+
+```yml
+development:
+  adapter: oracle_enhanced
+  host: localhost
+  port: 1521
+  database: xe
+  username: user
+  password: secret
+  connect_timeout: 3000 # in milliseconds
+  read_timeout: 3000 # in milliseconds
+```
+
 ### Adapter settings
 
 If you want to change Oracle enhanced adapter default settings then create initializer file e.g. `config/initializers/oracle.rb` specify there necessary defaults, e.g.:

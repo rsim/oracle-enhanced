@@ -109,6 +109,10 @@ module ActiveRecord
           host, port = config[:host], config[:port]
           privilege = config[:privilege] && config[:privilege].to_s
 
+          # connect timeout and read timeout should be in miliseconds
+          connect_timeout = config[:connect_timeout] && config[:connect_timeout].to_s
+          read_timeout = config[:read_timeout] && config[:read_timeout].to_s
+
           # connection using TNS alias, or connection-string from DATABASE_URL
           using_tns_alias = !host && !config[:url] && ENV['TNS_ADMIN']
           if database && (using_tns_alias || host == 'connection-string')
@@ -130,6 +134,8 @@ module ActiveRecord
           properties.put("password", password)
           properties.put("defaultRowPrefetch", "#{prefetch_rows}") if prefetch_rows
           properties.put("internal_logon", privilege) if privilege
+          properties.put("oracle.net.CONNECT_TIMEOUT", connect_timeout) if connect_timeout
+          properties.put("oracle.jdbc.ReadTimeout", read_timeout) if read_timeout
 
           begin
             @raw_connection = java.sql.DriverManager.getConnection(url, properties)
