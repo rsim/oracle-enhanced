@@ -165,9 +165,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       create_employee3
       expect(@employee3.active_flag.class).to eq(String)
     end
-
   end
-
 end
 
 describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strings = true" do

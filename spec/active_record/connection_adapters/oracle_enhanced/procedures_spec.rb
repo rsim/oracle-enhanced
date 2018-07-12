@@ -87,7 +87,6 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
         END delete_employee;
       END;
     SQL
-
   end
 
   after(:all) do
@@ -361,5 +360,4 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     expect(@employee.save).to be_falsey
     expect(@employee.errors[:first_name]).not_to be_blank
   end
-
 end

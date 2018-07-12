@@ -51,7 +51,6 @@ describe "OracleEnhancedAdapter schema dump" do
       create_test_posts_table
       expect(standard_dump(ignore_tables: [ /test_posts/i ])).not_to match(/create_table "test_posts"/)
     end
-
   end
 
   describe "dumping default values" do
@@ -86,7 +85,6 @@ describe "OracleEnhancedAdapter schema dump" do
       output = dump_table_schema "test_posts"
       expect(output).to match(/create_table "test_posts", primary_key: "post_id"/)
     end
-
   end
 
   describe "table with ntext columns" do
@@ -217,7 +215,6 @@ describe "OracleEnhancedAdapter schema dump" do
       output = dump_table_schema "test_comments"
       expect(output).to match(/add_foreign_key "test_comments", "test_posts", column: "baz_id", primary_key: "baz_id", name: "test_comments_baz_id_fk"/)
     end
-
   end
 
   describe "synonyms" do
@@ -254,7 +251,6 @@ describe "OracleEnhancedAdapter schema dump" do
       end
       expect(standard_dump(ignore_tables: [ /table_name/i ])).to match(/add_synonym "test_synonym"/)
     end
-
   end
 
   describe "temporary tables" do
@@ -294,7 +290,6 @@ describe "OracleEnhancedAdapter schema dump" do
       output = dump_table_schema "test_posts"
       expect(output).to match(/t\.index \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], name: "index_test_posts_cr_upd_at"$/)
     end
-
   end
 
   describe "materialized views" do

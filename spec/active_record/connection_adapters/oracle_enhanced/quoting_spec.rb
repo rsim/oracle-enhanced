@@ -9,7 +9,6 @@ describe "OracleEnhancedAdapter quoting" do
   end
 
   describe "reserved words column quoting" do
-
     before(:all) do
       schema_define do
         create_table :test_reserved_words do |t|
@@ -60,7 +59,6 @@ describe "OracleEnhancedAdapter quoting" do
     it "should remove double quotes in column quoting" do
       expect(ActiveRecord::Base.connection.quote_column_name('aaa "bbb" ccc')).to eq('"aaa bbb ccc"')
     end
-
   end
 
   describe "valid table names" do
@@ -119,7 +117,6 @@ describe "OracleEnhancedAdapter quoting" do
   end
 
   describe "table quoting" do
-
     def create_warehouse_things_table
       ActiveRecord::Schema.define do
         suppress_messages do

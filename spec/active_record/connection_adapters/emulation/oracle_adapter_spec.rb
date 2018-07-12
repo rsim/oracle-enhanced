@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 describe "OracleEnhancedAdapter emulate OracleAdapter" do
-
   before(:all) do
     @old_oracle_adapter = nil
     if defined?(ActiveRecord::ConnectionAdapters::OracleAdapter)
@@ -22,5 +21,4 @@ describe "OracleEnhancedAdapter emulate OracleAdapter" do
       ActiveRecord::ConnectionAdapters::OracleAdapter = @old_oracle_adapter
     end
   end
-
 end
