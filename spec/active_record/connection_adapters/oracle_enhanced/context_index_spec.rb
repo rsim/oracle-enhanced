@@ -265,7 +265,6 @@ describe "OracleEnhancedAdapter context index" do
       expect(Post.contains(:all_text, "ddd within comment_body").to_a).to eq([@post])
       expect(Post.contains(:all_text, "ddd within comment_author").to_a).to be_empty
     end
-
   end
 
   describe "with specified tablespace" do
@@ -311,13 +310,10 @@ describe "OracleEnhancedAdapter context index" do
       expect(Post.contains(:title, "aaa AND bbb").to_a).to eq([@post])
       @conn.remove_context_index :posts, name: "index_posts_text"
     end
-
   end
 
   describe "schema dump" do
-
     describe "without table prefixe and suffix" do
-
       before(:all) do
         @conn = ActiveRecord::Base.connection
         create_tables
@@ -382,7 +378,6 @@ describe "OracleEnhancedAdapter context index" do
         expect(output).to match(/add_context_index "posts", \[:title, :body, "#{sub_query.gsub(/\n/, ' ')}"\], #{options.inspect[1..-2]}$/)
         @conn.remove_context_index :posts, name: "post_and_comments_index"
       end
-
     end
 
     describe "with table prefix and suffix" do
@@ -431,9 +426,6 @@ describe "OracleEnhancedAdapter context index" do
           options.inspect[1..-2].gsub(/[{}]/) { |s| '\\'.dup << s }}$/)
         schema_define { remove_context_index :posts, name: "xxx_post_and_comments_i" }
       end
-
     end
-
   end
-
 end

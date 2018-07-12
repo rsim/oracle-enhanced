@@ -59,7 +59,6 @@ describe "OracleEnhancedAdapter" do
     end
 
     describe "without column caching" do
-
       it "should identify virtual columns as such" do
         skip "Not supported in this database version" unless @conn.supports_virtual_columns?
         te = TestEmployee.connection.columns("test_employees").detect(&:virtual?)
@@ -191,7 +190,6 @@ describe "OracleEnhancedAdapter" do
       posts = TestPost.includes(:test_comments).to_a
       expect(posts.size).to eq(@ids.size)
     end
-
   end
 
   describe "with statement pool" do
@@ -501,7 +499,6 @@ describe "OracleEnhancedAdapter" do
       expect(@logger.logged(:debug).last).to match(/:table_name/)
       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
-
   end
 
   describe "Transaction" do

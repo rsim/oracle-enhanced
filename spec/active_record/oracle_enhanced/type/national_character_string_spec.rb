@@ -51,5 +51,4 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
     expect(item.nchar_column).to eq(nchar_data + " " * 17)
     expect(item.nvarchar2_column).to eq(nchar_data)
   end
-
 end

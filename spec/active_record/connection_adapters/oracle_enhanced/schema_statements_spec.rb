@@ -32,7 +32,6 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "table and sequence creation with non-default primary key" do
-
     before(:all) do
       @conn = ActiveRecord::Base.connection
       schema_define do
@@ -71,7 +70,6 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "default sequence name" do
-
     it "should return sequence name without truncating too much" do
       seq_name_length = ActiveRecord::Base.connection.sequence_name_length
       tname = "#{DATABASE_USER}" + "." + "a" * (seq_name_length - DATABASE_USER.length) + "z" * (DATABASE_USER).length
@@ -80,7 +78,6 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "sequence creation parameters" do
-
     def create_test_employees_table(sequence_start_value = nil)
       schema_define do
         create_table :test_employees, sequence_start_value ? { sequence_start_value: sequence_start_value } : {} do |t|
@@ -152,11 +149,9 @@ describe "OracleEnhancedAdapter schema definition" do
       employee = TestEmployee.create!
       expect(employee.id).to eq(110)
     end
-
   end
 
   describe "table and column comments" do
-
     def create_test_employees_table(table_comment = nil, column_comments = {})
       schema_define do
         create_table :test_employees, comment: table_comment do |t|
@@ -240,7 +235,6 @@ describe "OracleEnhancedAdapter schema definition" do
       expect(@logger.logged(:debug).last).to match(/:column_name/)
       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_EMPLOYEES"\], \["column_name", "FIRST_NAME"\]\]/)
     end
-
   end
 
   describe "drop tables" do
@@ -305,7 +299,6 @@ describe "OracleEnhancedAdapter schema definition" do
         @conn.rename_table("test_employees_no_pkey", "new_test_employees_no_pkey")
       end.not_to raise_error
     end
-
   end
 
   describe "add index" do
@@ -343,7 +336,6 @@ describe "OracleEnhancedAdapter schema definition" do
         )
       end
     end
-
   end
 
   describe "rename index" do
@@ -420,7 +412,6 @@ end
         end
       end.not_to raise_error
     end
-
   end
 
   describe "foreign key constraints" do
@@ -551,7 +542,6 @@ end
       expect(@logger.logged(:debug).last).to match(/:desc_table_name/)
       expect(@logger.logged(:debug).last).to match(/\["desc_table_name", "TEST_COMMENTS"\]\]/)
     end
-
   end
 
   describe "lob in table definition" do
@@ -740,7 +730,6 @@ end
         TestComment.create(body: "test", test_post_id: 1)
       end.to raise_error() { |e| expect(e.message).to match(/ORA-02291/) }
     end
-
   end
 
   describe "disable referential integrity" do
@@ -787,7 +776,6 @@ end
         @conn.execute "INSERT INTO test_comments (id, body, test_post_id) VALUES (3, 'test', 3)"
       end.to raise_error(ActiveRecord::InvalidForeignKey)
     end
-
   end
 
   describe "synonyms" do
@@ -1219,7 +1207,6 @@ end
       end
       expect(@would_execute_sql).not_to match(/ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\(.*\)\)/)
     end
-
   end
 
   describe "load schema" do

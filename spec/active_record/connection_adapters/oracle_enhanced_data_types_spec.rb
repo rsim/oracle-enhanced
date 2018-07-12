@@ -227,5 +227,4 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     @employee.reload
     expect(@employee.last_login_at).to eq(@today.to_time)
   end
-
 end

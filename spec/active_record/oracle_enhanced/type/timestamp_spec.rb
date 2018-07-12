@@ -69,7 +69,5 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
         expect(@employee.send(c).to_f).to eq(@now.to_f)
       end
     end
-
   end
-
 end

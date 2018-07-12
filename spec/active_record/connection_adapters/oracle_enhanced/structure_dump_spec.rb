@@ -242,7 +242,6 @@ describe "OracleEnhancedAdapter structure dump" do
       dump = ActiveRecord::Base.connection.structure_dump
       expect(dump).to match(/#{comment_sql}/)
     end
-
   end
   describe "temporary tables" do
     after(:all) do

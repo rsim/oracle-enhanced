@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 describe "OracleEnhancedAdapter establish connection" do
-
   it "should connect to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     expect(ActiveRecord::Base.connection).not_to be_nil
@@ -44,7 +43,6 @@ describe "OracleEnhancedAdapter establish connection" do
 end
 
 describe "OracleEnhancedConnection" do
-
   describe "create connection" do
     before(:all) do
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
@@ -75,11 +73,9 @@ describe "OracleEnhancedConnection" do
     it "should be in autocommit mode after connection" do
       expect(@conn).to be_autocommit
     end
-
   end
 
   describe "create connection with schema option" do
-
     it "should create new connection" do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
       expect(ActiveRecord::Base.connection).to be_active
@@ -95,7 +91,6 @@ describe "OracleEnhancedConnection" do
       ActiveRecord::Base.connection.reset!
       expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
     end
-
   end
 
   describe "create connection with NLS parameters" do
@@ -192,7 +187,6 @@ describe "OracleEnhancedConnection" do
       created_at = post.created_at
       expect(post).to eq(Post.find_by!(created_at: created_at))
     end
-
   end
 
   describe 'with host="connection-string"' do
@@ -215,7 +209,6 @@ describe "OracleEnhancedConnection" do
   if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
 
     describe "create JDBC connection" do
-
       it "should create new connection using :url" do
         params = CONNECTION_PARAMS.dup
         params[:url] = "jdbc:oracle:thin:@#{DATABASE_HOST && "//#{DATABASE_HOST}#{DATABASE_PORT && ":#{DATABASE_PORT}"}/"}#{DATABASE_NAME}"
@@ -243,7 +236,6 @@ describe "OracleEnhancedConnection" do
       end
 
       it "should create a new connection using JNDI" do
-
         begin
           import "oracle.jdbc.driver.OracleDriver"
           import "org.apache.commons.pool.impl.GenericObjectPool"
@@ -279,7 +271,6 @@ describe "OracleEnhancedConnection" do
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
         expect(@conn).to be_active
       end
-
     end
 
     it "should fall back to directly instantiating OracleDriver" do
@@ -310,7 +301,6 @@ describe "OracleEnhancedConnection" do
     it "should execute SQL select and return also columns" do
       expect(@conn.select("SELECT * FROM dual", nil, true)).to eq([ [{ "dummy" => "X" }], ["dummy"] ])
     end
-
   end
 
   describe "SQL with bind parameters" do
@@ -422,7 +412,6 @@ describe "OracleEnhancedConnection" do
         expect { @conn.select("SELECT * FROM dual") }.to raise_error(OCIError)
       end
     end
-
   end
 
   describe "describe table" do
@@ -473,15 +462,11 @@ describe "OracleEnhancedConnection" do
 
     if defined?(OCI8)
       context "OCI8 adapter" do
-
         it "should not fallback to SELECT-based logic when querying non-existent table information" do
           expect(@conn).not_to receive(:select_one)
           @conn.describe("non_existent") rescue ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException
         end
-
       end
     end
-
   end
-
 end
