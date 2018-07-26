@@ -532,7 +532,7 @@ describe "OracleEnhancedAdapter" do
     it "should return array from indexes with bind usage" do
       expect(@conn.indexes("TEST_POSTS").class).to eq Array
       expect(@logger.logged(:debug).last).to match(/:owner/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["owner", "#{DATABASE_USER.upcase}"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_POSTS"\]\]/)
     end
 
     it "should not have primary key trigger with bind usage" do
