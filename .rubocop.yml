@@ -158,3 +158,12 @@ Style/Semicolon:
 # Prefer Foo.method over Foo::method
 Style/ColonMethodCall:
   Enabled: true
+
+Style/TrivialAccessors:
+  Enabled: true
+
+Performance/FlatMap:
+  Enabled: true
+
+Performance/RedundantMerge:
+  Enabled: true

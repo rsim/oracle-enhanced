@@ -19,7 +19,7 @@ describe "OracleEnhancedAdapter schema dump" do
   end
 
   def create_test_posts_table(options = {})
-    options.merge! force: true
+    options[:force] = true
     schema_define do
       create_table :test_posts, options do |t|
         t.string :title
