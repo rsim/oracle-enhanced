@@ -82,7 +82,7 @@ module ActiveRecord
           # To avoid it is called from anywhere else, added _ at the beginning of the method name.
           def _oracle_downcase(column_name)
             return nil if column_name.nil?
-            column_name =~ /[a-z]/ ? column_name : column_name.downcase
+            /[a-z]/.match?(column_name) ? column_name : column_name.downcase
           end
 
           # _select_one and _select_value methods are expected to be called

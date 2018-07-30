@@ -108,7 +108,7 @@ module ActiveRecord
 
               cursor.bind_params(type_casted_binds)
 
-              if sql =~ /:returning_id/
+              if /:returning_id/.match?(sql)
                 # it currently expects that returning_id comes last part of binds
                 returning_id_index = binds.size
                 cursor.bind_returning_param(returning_id_index, Integer)

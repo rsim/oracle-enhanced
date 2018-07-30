@@ -18,7 +18,7 @@ begin
   # Oracle 12c Release 2 client provides ojdbc8.jar
   ojdbc_jars = %w(ojdbc8.jar ojdbc7.jar ojdbc6.jar)
 
-  if ENV_JAVA["java.class.path"] !~ Regexp.new(ojdbc_jars.join("|"))
+  if !ENV_JAVA["java.class.path"]&.match?(Regexp.new(ojdbc_jars.join("|")))
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
     env_path = (ENV["PATH"] || ENV["Path"] || "").split(File::PATH_SEPARATOR)
     # Look for JDBC driver at first in lib subdirectory (application specific JDBC file version)
@@ -113,7 +113,7 @@ module ActiveRecord
             if database && (using_tns_alias || host == "connection-string")
               url = "jdbc:oracle:thin:@#{database}"
             else
-              unless database.match(/^(\:|\/)/)
+              unless database.match?(/^(\:|\/)/)
                 # assume database is a SID if no colon or slash are supplied (backward-compatibility)
                 database = ":#{database}"
               end
@@ -215,7 +215,7 @@ module ActiveRecord
           @active = true
         rescue NativeException => e
           @active = false
-          if e.message =~ /^java\.sql\.SQL(Recoverable)?Exception/
+          if /^java\.sql\.SQL(Recoverable)?Exception/.match?(e.message)
             raise OracleEnhanced::ConnectionException, e.message
           else
             raise
@@ -230,7 +230,7 @@ module ActiveRecord
             @active = true
           rescue NativeException => e
             @active = false
-            if e.message =~ /^java\.sql\.SQL(Recoverable)?Exception/
+            if /^java\.sql\.SQL(Recoverable)?Exception/.match?(e.message)
               raise OracleEnhanced::ConnectionException, e.message
             else
               raise

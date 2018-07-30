@@ -12,7 +12,7 @@ module ActiveRecord
           name = name.to_s
           @quoted_column_names[name] ||= begin
             # if only valid lowercase column characters in name
-            if name =~ /\A[a-z][a-z_0-9\$#]*\Z/
+            if /\A[a-z][a-z_0-9\$#]*\Z/.match?(name)
               "\"#{name.upcase}\""
             else
               # remove double quotes which cannot be used inside quoted identifier
@@ -132,7 +132,7 @@ module ActiveRecord
 
           def oracle_downcase(column_name)
             return nil if column_name.nil?
-            column_name =~ /[a-z]/ ? column_name : column_name.downcase
+            /[a-z]/.match?(column_name) ? column_name : column_name.downcase
           end
       end
     end
