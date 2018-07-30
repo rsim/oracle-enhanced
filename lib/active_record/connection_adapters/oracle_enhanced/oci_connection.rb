@@ -124,7 +124,7 @@ module ActiveRecord
             when Type::OracleEnhanced::Raw
               @raw_cursor.bind_param(position, OracleEnhanced::Quoting.encode_raw(value))
             when ActiveModel::Type::Decimal
-              @raw_cursor.bind_param(position, BigDecimal.new(value.to_s))
+              @raw_cursor.bind_param(position, BigDecimal(value.to_s))
             when NilClass
               @raw_cursor.bind_param(position, nil, String)
             else
