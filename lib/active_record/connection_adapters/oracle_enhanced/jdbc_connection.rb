@@ -476,7 +476,7 @@ module ActiveRecord
             elsif d.isInt
               Integer(d.stringValue)
             else
-              BigDecimal.new(d.stringValue)
+              BigDecimal(d.stringValue)
             end
           when :BINARY_FLOAT
             rset.getFloat(i)
