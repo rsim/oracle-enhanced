@@ -87,7 +87,7 @@ module ActiveRecord
           (_owner, table_name) = @connection.describe(table_name)
           default_tablespace_name = default_tablespace
 
-          result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "indexes")
+          result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "indexes", [bind_string("table_name", table_name)])
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
@@ -101,6 +101,7 @@ module ActiveRecord
                 c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
+               AND i.table_name = :table_name
                AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
                 WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
             ORDER BY i.index_name, c.column_position

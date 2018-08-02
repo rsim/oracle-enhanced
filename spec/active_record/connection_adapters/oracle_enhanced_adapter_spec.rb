@@ -478,6 +478,12 @@ describe "OracleEnhancedAdapter" do
       expect(@conn.table_exists?("NOT_EXISTING")).to eq false
     end
 
+    it "should return array from indexes with bind usage" do
+       expect(@conn.indexes("TEST_POSTS").class).to eq Array
+       expect(@logger.logged(:debug).last).to match(/:table_name/)
+       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
+     end
+
     it "should return content from columns without bind usage" do
       expect(@conn.columns("TEST_POSTS").length).to be > 0
       expect(@logger.logged(:debug).last).not_to match(/:table_name/)
