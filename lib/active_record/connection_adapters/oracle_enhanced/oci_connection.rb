@@ -285,7 +285,7 @@ module ActiveRecord
           privilege = config[:privilege] && config[:privilege].to_sym
           async = config[:allow_concurrency]
           prefetch_rows = config[:prefetch_rows] || 100
-          cursor_sharing = config[:cursor_sharing]
+          cursor_sharing = config[:cursor_sharing] || "force"
           # get session time_zone from configuration or from TZ environment variable
           time_zone = config[:time_zone] || ENV["TZ"]
 
