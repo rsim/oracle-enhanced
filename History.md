@@ -1,3 +1,15 @@
+## 5.2.3 / 2018-08-08
+
+* Changes and bug fixes
+  * Introduce column cache per connection [#1744 #1750]
+  * Use `cursor_sharing` = force by default again [#1745 #1748]
+  * Add `table_name` search condition to `indexes(table_name)` method [#1747 #1749]
+  * Suppress warning `BigDecimal.new` is deprecated [#1742 #1743]
+  * Do not install bundler explicitly [#1725 #1726]
+  * Add `allow_railures` for jruby-head until #1737 resolved [#1739 #1740]
+  * CI against JRuby 9.2.0.0 [#1728 #1741]
+  * Do not run CI against older version of JRuby [#1741]
+
 ## 5.2.2 / 2018-04-28
 
 * Changes and bug fixes
