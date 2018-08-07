@@ -67,15 +67,16 @@ describe "OracleEnhancedAdapter" do
       end
 
       it "should get columns from database at first time" do
+        @conn.clear_table_columns_cache(:test_employees)
         expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
         expect(@logger.logged(:debug).last).to match(/select .* from all_tab_cols/im)
       end
 
-      it "should get columns from database at second time" do
+      it "should not get columns from database at second time" do
         TestEmployee.connection.columns("test_employees")
         @logger.clear(:debug)
         expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
-        expect(@logger.logged(:debug).last).to match(/select .* from all_tab_cols/im)
+        expect(@logger.logged(:debug).last).not_to match(/select .* from all_tab_cols/im)
       end
 
       it "should get primary key from database at first time" do
@@ -137,6 +138,7 @@ describe "OracleEnhancedAdapter" do
       @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
       @sys_conn.drop_table :test_posts, if_exists: true
       Object.send(:remove_const, "TestPost") rescue nil
+      @conn.clear_table_columns_cache(:test_posts)
       ActiveRecord::Base.clear_cache!
     end
 
