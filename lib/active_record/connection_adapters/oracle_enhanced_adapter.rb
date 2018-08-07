@@ -227,6 +227,7 @@ module ActiveRecord
         @statements = StatementPool.new(self.class.type_cast_config_to_integer(config[:statement_limit]))
         @enable_dbms_output = false
         @do_not_prefetch_primary_key = {}
+        @columns_cache = {}
       end
 
       ADAPTER_NAME = "OracleEnhanced".freeze
@@ -548,6 +549,10 @@ module ActiveRecord
              AND cols.column_name = comments.column_name
            ORDER BY cols.column_id
         SQL
+      end
+
+      def clear_table_columns_cache(table_name)
+        @columns_cache[table_name.to_s] = nil
       end
 
       # Find a table's primary key and sequence.
