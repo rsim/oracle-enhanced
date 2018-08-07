@@ -138,6 +138,7 @@ describe "OracleEnhancedAdapter" do
       @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
       @sys_conn.drop_table :test_posts, if_exists: true
       Object.send(:remove_const, "TestPost") rescue nil
+      @conn.clear_table_columns_cache(:test_posts)
       ActiveRecord::Base.clear_cache!
     end
 
