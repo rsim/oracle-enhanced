@@ -256,7 +256,7 @@ describe "OracleEnhancedConnection" do
             @data_source.access_to_underlying_connection_allowed = true
           end
           def lookup(path)
-            if (path == "java:/comp/env")
+            if path == "java:/comp/env"
               self
             else
               @data_source

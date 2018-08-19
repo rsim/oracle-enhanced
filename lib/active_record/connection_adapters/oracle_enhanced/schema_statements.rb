@@ -640,7 +640,7 @@ module ActiveRecord
               field["data_default"].sub!(/^'(.*)'$/m, '\1')
               field["data_default"] = nil if field["data_default"] =~ /^(null|empty_[bc]lob\(\))$/i
               # TODO: Needs better fix to fallback "N" to false
-              field["data_default"] = false if (field["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings)
+              field["data_default"] = false if field["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings
             end
 
             type_metadata = fetch_type_metadata(field["sql_type"], is_virtual)
