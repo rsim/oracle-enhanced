@@ -125,6 +125,8 @@ module ActiveRecord
             time_zone = config[:time_zone] || ENV["TZ"] || java.util.TimeZone.default.getID
 
             properties = java.util.Properties.new
+            raise "username not set" unless username
+            raise "password not set" unless password
             properties.put("user", username)
             properties.put("password", password)
             properties.put("defaultRowPrefetch", "#{prefetch_rows}") if prefetch_rows
