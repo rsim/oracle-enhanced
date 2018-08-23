@@ -213,13 +213,9 @@ module ActiveRecord
         def ping
           exec_no_retry("select 1 from dual")
           @active = true
-        rescue NativeException => e
+        rescue Java::JavaSql::SQLException => e
           @active = false
-          if /^java\.sql\.SQL(Recoverable)?Exception/.match?(e.message)
-            raise OracleEnhanced::ConnectionException, e.message
-          else
-            raise
-          end
+          raise OracleEnhanced::ConnectionException, e.message
         end
 
         # Resets connection, by logging off and creating a new connection.
@@ -228,13 +224,9 @@ module ActiveRecord
           begin
             new_connection(@config)
             @active = true
-          rescue NativeException => e
+          rescue Java::JavaSql::SQLException => e
             @active = false
-            if /^java\.sql\.SQL(Recoverable)?Exception/.match?(e.message)
-              raise OracleEnhanced::ConnectionException, e.message
-            else
-              raise
-            end
+            raise OracleEnhanced::ConnectionException, e.message
           end
         end
 
@@ -243,8 +235,8 @@ module ActiveRecord
           should_retry = auto_retry? && autocommit?
           begin
             yield if block_given?
-          rescue NativeException => e
-            raise unless e.message =~ /^java\.sql\.SQL(Recoverable)?Exception: (Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
+          rescue Java::JavaSql::SQLException => e
+            raise unless e.message =~ /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
             @active = false
             raise unless should_retry
             should_retry = false
@@ -459,11 +451,9 @@ module ActiveRecord
           super
         end
 
-        # Return NativeException / java.sql.SQLException error code
+        # Return java.sql.SQLException error code
         def error_code(exception)
           case exception
-          when NativeException
-            exception.cause.getErrorCode
           when Java::JavaSql::SQLException
             exception.getErrorCode
           else
