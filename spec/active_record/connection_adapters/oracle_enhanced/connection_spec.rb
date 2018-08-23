@@ -389,7 +389,7 @@ describe "OracleEnhancedConnection" do
       ActiveRecord::Base.connection.auto_retry = false
       kill_current_session
       if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
-        expect { @conn.exec("SELECT * FROM dual") }.to raise_error(NativeException)
+        expect { @conn.exec("SELECT * FROM dual") }.to raise_error(Java::JavaSql::SQLRecoverableException)
       else
         expect { @conn.exec("SELECT * FROM dual") }.to raise_error(OCIError)
       end
@@ -407,7 +407,7 @@ describe "OracleEnhancedConnection" do
       ActiveRecord::Base.connection.auto_retry = false
       kill_current_session
       if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
-        expect { @conn.select("SELECT * FROM dual") }.to raise_error(NativeException)
+        expect { @conn.select("SELECT * FROM dual") }.to raise_error(Java::JavaSql::SQLRecoverableException)
       else
         expect { @conn.select("SELECT * FROM dual") }.to raise_error(OCIError)
       end
