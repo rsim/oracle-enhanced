@@ -324,6 +324,8 @@ module ActiveRecord
               @raw_statement.setClob(position, value)
             when Type::OracleEnhanced::Raw
               @raw_statement.setString(position, OracleEnhanced::Quoting.encode_raw(value))
+            when Type::OracleEnhanced::CharacterString::Data
+              @raw_statement.setFixedCHAR(position, value.to_s)
             when String
               @raw_statement.setString(position, value)
             when Java::OracleSql::DATE
@@ -484,8 +486,13 @@ module ActiveRecord
             end
           when :BINARY_FLOAT
             rset.getFloat(i)
-          when :VARCHAR2, :CHAR, :LONG, :NVARCHAR2, :NCHAR
+          when :VARCHAR2, :LONG, :NVARCHAR2
             rset.getString(i)
+          when :CHAR, :NCHAR
+            char_str = rset.getString(i)
+            if !char_str.nil?
+              char_str.rstrip
+            end
           when :DATE
             if dt = rset.getDATE(i)
               d = dt.dateValue

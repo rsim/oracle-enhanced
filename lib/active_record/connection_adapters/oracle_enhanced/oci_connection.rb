@@ -125,6 +125,8 @@ module ActiveRecord
               @raw_cursor.bind_param(position, OracleEnhanced::Quoting.encode_raw(value))
             when ActiveModel::Type::Decimal
               @raw_cursor.bind_param(position, BigDecimal(value.to_s))
+            when Type::OracleEnhanced::CharacterString::Data
+              @raw_cursor.bind_param(position, value.to_character_str)
             when NilClass
               @raw_cursor.bind_param(position, nil, String)
             else
@@ -151,8 +153,19 @@ module ActiveRecord
           def fetch(options = {})
             if row = @raw_cursor.fetch
               get_lob_value = options[:get_lob_value]
+              col_index = 0
               row.map do |col|
-                @connection.typecast_result_value(col, get_lob_value)
+                col_value = @connection.typecast_result_value(col, get_lob_value)
+                col_metadata = @raw_cursor.column_metadata.fetch(col_index)
+                if !col_metadata.nil?
+                  key = col_metadata.data_type
+                  case key.to_s.downcase
+                  when "char"
+                    col_value = col.to_s.rstrip
+                  end
+                end
+                col_index = col_index + 1
+                col_value
               end
             end
           end
@@ -184,7 +197,16 @@ module ActiveRecord
             hash = column_hash.dup
 
             cols.each_with_index do |col, i|
-              hash[col] = typecast_result_value(row[i], get_lob_value)
+              col_value = typecast_result_value(row[i], get_lob_value)
+              col_metadata = cursor.column_metadata.fetch(i)
+              if !col_metadata.nil?
+                key = col_metadata.data_type
+                case key.to_s.downcase
+                when "char"
+                  col_value = col_value.to_s.rstrip
+                end
+              end
+              hash[col] = col_value
             end
 
             rows << hash
