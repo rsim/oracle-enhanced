@@ -202,13 +202,17 @@ module ActiveRecord
         def describe(name)
           # fall back to SELECT based describe if using database link
           return super if name.to_s.include?("@")
-          quoted_name = OracleEnhanced::Quoting.valid_table_name?(name) ? name : "\"#{name}\""
+          if OracleEnhanced::Quoting.valid_table_name?(name)
+            quoted_name = name
+          else
+            quoted_name = name.to_s.include?('"') ? name : "\"#{name}\""
+          end
           @raw_connection.describe(quoted_name)
         rescue OCIException => e
           if e.code == 4043
             raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?}
           else
-            # fall back to SELECT which can handle synonyms to database links
+            #fall back to SELECT which can handle synonyms to database links
             super
           end
         end
