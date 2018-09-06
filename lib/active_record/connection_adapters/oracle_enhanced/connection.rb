@@ -34,7 +34,7 @@ module ActiveRecord
             else
               table_owner, table_name = default_owner, real_name
             end
-            table_name.delete! "\""
+            table_name = table_name.delete "\""
             sql = <<-SQL.strip.gsub(/\s+/, " ")
           SELECT owner, table_name, 'TABLE' name_type
           FROM all_tables
