@@ -24,11 +24,8 @@ module ActiveRecord
           def describe(name)
             name = name.to_s
             if name.include?("@")
-              name, db_link = name.split("@")
-              default_owner = _select_value("SELECT username FROM all_db_links WHERE db_link = '#{db_link.upcase}'")
-              db_link = "@#{db_link}"
+              raise ArgumentError "db link is not supported"
             else
-              db_link = nil
               default_owner = @owner
             end
             real_name = OracleEnhanced::Quoting.valid_table_name?(name) ? name.upcase : name
@@ -40,22 +37,22 @@ module ActiveRecord
             table_name.sub! '"', ''
             sql = <<-SQL.strip.gsub(/\s+/, " ")
           SELECT owner, table_name, 'TABLE' name_type
-          FROM all_tables#{db_link}
+          FROM all_tables
           WHERE owner = '#{table_owner}'
             AND table_name = '#{table_name}'
           UNION ALL
           SELECT owner, view_name table_name, 'VIEW' name_type
-          FROM all_views#{db_link}
+          FROM all_views
           WHERE owner = '#{table_owner}'
             AND view_name = '#{table_name}'
           UNION ALL
-          SELECT table_owner, DECODE(db_link, NULL, table_name, table_name||'@'||db_link), 'SYNONYM' name_type
-          FROM all_synonyms#{db_link}
+          SELECT table_owner, table_name, 'SYNONYM' name_type
+          FROM all_synonyms
           WHERE owner = '#{table_owner}'
             AND synonym_name = '#{table_name}'
           UNION ALL
-          SELECT table_owner, DECODE(db_link, NULL, table_name, table_name||'@'||db_link), 'SYNONYM' name_type
-          FROM all_synonyms#{db_link}
+          SELECT table_owner, table_name, 'SYNONYM' name_type
+          FROM all_synonyms
           WHERE owner = 'PUBLIC'
             AND synonym_name = '#{real_name}'
         SQL
@@ -63,12 +60,12 @@ module ActiveRecord
               case result["name_type"]
               when "SYNONYM"
                 if result['table_name'] == result['table_name'].upcase
-                  describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}#{db_link}")
+                  describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}")
                 else
-                  describe("#{result['owner'] && "#{result['owner']}."}\"#{result['table_name']}\"#{db_link}")
+                  describe("#{result['owner'] && "#{result['owner']}."}\"#{result['table_name']}\"")
                 end
               else
-                db_link ? [result["owner"], result["table_name"], db_link] : [result["owner"], result["table_name"]]
+                [result["owner"], result["table_name"]]
               end
             else
               raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?}
