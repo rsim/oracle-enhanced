@@ -34,7 +34,7 @@ module ActiveRecord
             else
               table_owner, table_name = default_owner, real_name
             end
-            table_name.sub! '"', ''
+            table_name.sub! "\"", ""
             sql = <<-SQL.strip.gsub(/\s+/, " ")
           SELECT owner, table_name, 'TABLE' name_type
           FROM all_tables
@@ -59,7 +59,7 @@ module ActiveRecord
             if result = _select_one(sql)
               case result["name_type"]
               when "SYNONYM"
-                if result['table_name'] == result['table_name'].upcase
+                if result["table_name"] == result["table_name"].upcase
                   describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}")
                 else
                   describe("#{result['owner'] && "#{result['owner']}."}\"#{result['table_name']}\"")
