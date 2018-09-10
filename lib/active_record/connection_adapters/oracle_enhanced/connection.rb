@@ -37,6 +37,7 @@ module ActiveRecord
             else
               table_owner, table_name = default_owner, real_name
             end
+            table_name = table_name.delete "\""
             sql = <<-SQL.strip.gsub(/\s+/, " ")
           SELECT owner, table_name, 'TABLE' name_type
           FROM all_tables#{db_link}
@@ -61,7 +62,11 @@ module ActiveRecord
             if result = _select_one(sql)
               case result["name_type"]
               when "SYNONYM"
-                describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}#{db_link}")
+                if result["table_name"] == result["table_name"].upcase
+                  describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}#{db_link}")
+                else
+                  describe("#{result['owner'] && "#{result['owner']}."}\"#{result['table_name']}\"#{db_link}")
+                end
               else
                 db_link ? [result["owner"], result["table_name"], db_link] : [result["owner"], result["table_name"]]
               end
