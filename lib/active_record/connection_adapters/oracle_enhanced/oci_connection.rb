@@ -205,7 +205,7 @@ module ActiveRecord
           if OracleEnhanced::Quoting.valid_table_name?(name)
             quoted_name = name
           else
-            quoted_name = name.to_s.include?('"') ? name : "\"#{name}\""
+            quoted_name = name.to_s.include?("\"") ? name : "\"#{name}\""
           end
           @raw_connection.describe(quoted_name)
         rescue OCIException => e
