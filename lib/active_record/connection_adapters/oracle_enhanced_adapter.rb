@@ -45,7 +45,6 @@ require "active_record/connection_adapters/oracle_enhanced/database_limits"
 require "active_record/connection_adapters/oracle_enhanced/dbms_output"
 require "active_record/connection_adapters/oracle_enhanced/type_metadata"
 require "active_record/connection_adapters/oracle_enhanced/structure_dump"
-require "active_record/connection_adapters/oracle_enhanced/lob"
 
 require "active_record/type/oracle_enhanced/raw"
 require "active_record/type/oracle_enhanced/integer"
