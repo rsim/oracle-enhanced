@@ -423,7 +423,7 @@ describe "OracleEnhancedAdapter context index" do
         end
         output = dump_table_schema "posts"
         expect(output).to match(/add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{
-          options.inspect[1..-2].gsub(/[{}]/) { |s| '\\'.dup << s }}$/)
+          options.inspect[1..-2].gsub(/[{}]/) { |s| +'\\' << s }}$/)
         schema_define { remove_context_index :posts, name: "xxx_post_and_comments_i" }
       end
     end

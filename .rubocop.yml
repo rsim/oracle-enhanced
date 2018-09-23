@@ -182,3 +182,7 @@ Performance/EndWith:
 
 Performance/RegexpMatch:
   Enabled: true
+
+# Use unary plus to get an unfrozen string literal.
+Performance/UnfreezeString:
+  Enabled: true

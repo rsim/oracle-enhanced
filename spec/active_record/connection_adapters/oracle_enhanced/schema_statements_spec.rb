@@ -1120,7 +1120,7 @@ end
     end
 
     before(:each) do
-      @conn.instance_variable_set :@would_execute_sql, @would_execute_sql = "".dup
+      @conn.instance_variable_set :@would_execute_sql, @would_execute_sql = +""
       class <<@conn
         def execute(sql, name = nil); @would_execute_sql << sql << ";\n"; end
       end

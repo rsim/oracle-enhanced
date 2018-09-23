@@ -80,7 +80,7 @@ module ActiveRecord
         def _quote(value) #:nodoc:
           case value
           when Type::OracleEnhanced::NationalCharacterString::Data then
-            "N".dup << "'#{quote_string(value.to_s)}'"
+            +"N" << "'#{quote_string(value.to_s)}'"
           when ActiveModel::Type::Binary::Data then
             "empty_blob()"
           when Type::OracleEnhanced::Text::Data then
