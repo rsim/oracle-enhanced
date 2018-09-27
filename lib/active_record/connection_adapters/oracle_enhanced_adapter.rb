@@ -647,7 +647,7 @@ module ActiveRecord
             scale = extract_scale(sql_type)
             precision = extract_precision(sql_type)
             limit = extract_limit(sql_type)
-            if scale == 0
+            if scale == 0 || (scale.nil? && precision.nil?) # JES: Add nil? check
               Type::OracleEnhanced::Integer.new(precision: precision, limit: limit)
             else
               Type::Decimal.new(precision: precision, scale: scale)
