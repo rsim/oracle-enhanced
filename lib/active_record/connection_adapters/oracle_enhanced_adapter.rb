@@ -702,7 +702,7 @@ module ActiveRecord
             ActiveRecord::StatementInvalid.new(message)
           when 1400
             ActiveRecord::NotNullViolation.new(message)
-          when 2291
+          when 2291, 2292
             InvalidForeignKey.new(message)
           when 12899
             ValueTooLong.new(message)
