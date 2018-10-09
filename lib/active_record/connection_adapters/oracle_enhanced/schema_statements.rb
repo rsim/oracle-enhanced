@@ -246,8 +246,8 @@ module ActiveRecord
         end
 
         def rename_table(table_name, new_name) #:nodoc:
-          if new_name.to_s.length > table_name_length
-            raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{table_name_length} characters"
+          if new_name.to_s.length > DatabaseLimits::IDENTIFIER_MAX_LENGTH
+            raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{DatabaseLimits::IDENTIFIER_MAX_LENGTH} characters"
           end
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
           execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{default_sequence_name(new_name)}" rescue nil
