@@ -644,6 +644,13 @@ module ActiveRecord
       alias index_name_length max_identifier_length
 
       private
+        def check_version
+          database_version = @connection.database_version.join(".").to_f
+
+          if database_version < 10
+            raise "Your version of Oracle (#{database_version}) is too old. Active Record Oracle enhanced adapter supports Oracle >= 10g."
+          end
+        end
 
         def initialize_type_map(m = type_map)
           super
