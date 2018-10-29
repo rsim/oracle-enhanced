@@ -1,11 +1,6 @@
 # frozen_string_literal: true
 
-begin
-  require "bundler/inline"
-rescue LoadError => e
-  $stderr.puts "Bundler version 1.10 or later is required. Please update your Bundler"
-  raise e
-end
+require "bundler/inline"
 
 gemfile(true) do
   source "https://rubygems.org"
@@ -25,9 +20,6 @@ require "active_record"
 require "minitest/autorun"
 require "logger"
 require "active_record/connection_adapters/oracle_enhanced_adapter"
-
-# Ensure backward compatibility with Minitest 4
-Minitest::Test = MiniTest::Unit::TestCase unless defined?(Minitest::Test)
 
 # Set Oracle enhanced adapter specific connection parameters
 DATABASE_NAME = ENV["DATABASE_NAME"] || "orcl"
