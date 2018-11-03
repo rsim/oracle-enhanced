@@ -792,4 +792,107 @@ describe "OracleEnhancedAdapter" do
       expect(serialized_column.save!.should).to eq(true)
     end
   end
+
+  describe 'serialized column with JSON - one column' do
+
+    before(:all) do
+      schema_define do
+        create_table :test_serialized_columns do |t|
+          t.text :serialized
+        end
+      end
+      class ::TestSerializedColumn < ActiveRecord::Base
+        serialize :serialized, JSON
+      end
+      ::TestSerializedColumn.reset_column_information
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_serialized_columns
+      end
+      Object.send(:remove_const, 'TestSerializedColumn')
+      ActiveRecord::Base.table_name_prefix = nil
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    before(:each) do
+      set_logger
+    end
+
+    after(:each) do
+      clear_logger
+    end
+
+    it 'should serialize' do
+      serialized_column = TestSerializedColumn.new
+
+      expect(serialized_column.serialized.should).to eq(nil)
+      serialized_column.serialized = []
+      expect(serialized_column.serialized.should).to eq([])
+      serialized_column.save
+      expect(serialized_column.save!.should).to eq(true)
+
+      serialized_column.reload
+      expect(serialized_column.serialized.should).to eq([])
+
+      serialized_column.serialized = {}
+      serialized_column.save
+      expect(serialized_column.save!.should).to eq(true)
+      serialized_column.reload
+      expect(serialized_column.serialized.should).to eq({})
+    end
+  end
+
+  describe 'serialized column with JSON - more than one column' do
+
+    before(:all) do
+      schema_define do
+        create_table :test_serialized_columns do |t|
+          t.text :serialized
+          t.integer :lock_version
+        end
+      end
+      class ::TestSerializedColumn < ActiveRecord::Base
+        serialize :serialized, JSON
+      end
+      ::TestSerializedColumn.reset_column_information
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_serialized_columns
+      end
+      Object.send(:remove_const, 'TestSerializedColumn')
+      ActiveRecord::Base.table_name_prefix = nil
+      ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:"clear_cache!")
+    end
+
+    before(:each) do
+      set_logger
+    end
+
+    after(:each) do
+      clear_logger
+    end
+
+    it 'should serialize' do
+      serialized_column = TestSerializedColumn.new
+
+      expect(serialized_column.serialized.should).to eq(nil)
+      serialized_column.serialized = []
+      expect(serialized_column.serialized.should).to eq([])
+      serialized_column.save
+      expect(serialized_column.save!.should).to eq(true)
+
+      serialized_column.reload
+      expect(serialized_column.serialized.should).to eq([])
+
+      serialized_column.serialized = {}
+      serialized_column.save
+      expect(serialized_column.save!.should).to eq(true)
+      serialized_column.reload
+      expect(serialized_column.serialized.should).to eq({})
+    end
+  end
 end

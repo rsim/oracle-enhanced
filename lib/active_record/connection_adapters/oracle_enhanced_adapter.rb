@@ -825,7 +825,16 @@ module ActiveRecord
         columns.each do |col|
           value = attributes[col.name]
           # changed sequence of next two lines - should check if value is nil before converting to yaml
-          next if value.blank?
+          #
+          # For Serialized with JSON columns, [] and {} are valid values.  When models have ONLY column
+          # with serialized column, updates don't go through here and things work as designed.  But when
+          # more then one attributes are updated (lock_version), value when {}/[] is saved as ''.  This
+          # causes JSON::ParserError: 822: unexpected token at '' error when loading the data from the db.
+          if col.cast_type.is_a?(Type::Serialized) && col.cast_type.coder == Coders::JSON
+            next if value.nil?  || (value == '')
+          else
+            next if value.blank?
+          end
           value = col.cast_type.type_cast_for_database(value)
           uncached do
             sql = is_with_cpk ? "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} WHERE #{klass.composite_where_clause(id)} FOR UPDATE" :
