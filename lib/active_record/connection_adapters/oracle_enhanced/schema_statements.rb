@@ -196,9 +196,9 @@ module ActiveRecord
         #     t.string      :last_name, :comment => “Surname”
         #   end
 
-        def create_table(table_name, comment: nil, **options)
+        def create_table(table_name, **options)
           create_sequence = options[:id] != false
-          td = create_table_definition table_name, options[:temporary], options[:options], options[:as], options[:tablespace], options[:organization], comment: comment
+          td = create_table_definition table_name, options
 
           if options[:id] != false && !options[:as]
             pk = options.fetch(:primary_key) do
@@ -235,7 +235,9 @@ module ActiveRecord
           create_sequence_and_trigger(table_name, options) if create_sequence
 
           if supports_comments? && !supports_comments_in_create?
-            change_table_comment(table_name, comment) if comment
+            if table_comment = options[:comment].presence
+              change_table_comment(table_name, table_comment)
+            end
             td.columns.each do |column|
               change_column_comment(table_name, column.name, column.comment) if column.comment.present?
             end
@@ -598,7 +600,7 @@ module ActiveRecord
         end
 
         def create_alter_table(name)
-          OracleEnhanced::AlterTable.new create_table_definition(name, false, {})
+          OracleEnhanced::AlterTable.new create_table_definition(name)
         end
 
         def update_table_definition(table_name, base)
