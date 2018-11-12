@@ -33,7 +33,7 @@ language: ruby
 rvm:
   - 2.4.5
   - 2.5.3
-  - jruby-9.2.1.0
+  - jruby-9.2.3.0
   - ruby-head
   - jruby-head
 
