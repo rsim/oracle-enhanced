@@ -79,6 +79,8 @@ module ActiveRecord
 
         def _quote(value) #:nodoc:
           case value
+          when Type::OracleEnhanced::CharacterString::Data then
+            "'#{quote_string(value.to_s)}'"
           when Type::OracleEnhanced::NationalCharacterString::Data then
             +"N" << "'#{quote_string(value.to_s)}'"
           when ActiveModel::Type::Binary::Data then
@@ -123,6 +125,8 @@ module ActiveRecord
             end
           when Type::OracleEnhanced::NationalCharacterString::Data
             value.to_s
+          when Type::OracleEnhanced::CharacterString::Data
+            value
           else
             super
           end

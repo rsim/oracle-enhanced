@@ -57,6 +57,7 @@ require "active_record/type/oracle_enhanced/boolean"
 require "active_record/type/oracle_enhanced/json"
 require "active_record/type/oracle_enhanced/timestamptz"
 require "active_record/type/oracle_enhanced/timestampltz"
+require "active_record/type/oracle_enhanced/character_string"
 
 module ActiveRecord
   module ConnectionHandling #:nodoc:
@@ -658,7 +659,9 @@ module ActiveRecord
           register_class_with_precision m, %r(WITH TIME ZONE)i,       Type::OracleEnhanced::TimestampTz
           register_class_with_precision m, %r(WITH LOCAL TIME ZONE)i, Type::OracleEnhanced::TimestampLtz
           register_class_with_limit m, %r(raw)i,            Type::OracleEnhanced::Raw
-          register_class_with_limit m, %r(char)i,           Type::OracleEnhanced::String
+          register_class_with_limit m, %r{^(char)}i,        Type::OracleEnhanced::CharacterString
+          register_class_with_limit m, %r{^(nchar)}i,       Type::OracleEnhanced::String
+          register_class_with_limit m, %r(varchar)i,        Type::OracleEnhanced::String
           register_class_with_limit m, %r(clob)i,           Type::OracleEnhanced::Text
           register_class_with_limit m, %r(nclob)i,           Type::OracleEnhanced::NationalCharacterText
 
