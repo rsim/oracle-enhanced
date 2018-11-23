@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 require "active_model/type/string"
-require 'xmlhasher'
+require "xmlhasher"
 
 module ActiveRecord
   module Type
@@ -10,7 +12,7 @@ module ActiveRecord
         end
 
         def serialize(value)
-          raise 'XMLTYPE column must be of type Hash' unless value.is_a?(Hash)
+          raise "XMLTYPE column must be of type Hash" unless value.is_a?(Hash)
           to_xml(value).first
         end
 

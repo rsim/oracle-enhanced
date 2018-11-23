@@ -373,7 +373,7 @@ module ActiveRecord
         boolean: { name: "NUMBER", limit: 1 },
         raw: { name: "RAW", limit: 2000 },
         bigint: { name: "NUMBER", limit: 19 },
-        xmltype: {name: "XMLTYPE"}
+        xmltype: { name: "XMLTYPE" }
       }
       # if emulate_booleans_from_strings then store booleans in VARCHAR2
       NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS = NATIVE_DATABASE_TYPES.dup.merge(
