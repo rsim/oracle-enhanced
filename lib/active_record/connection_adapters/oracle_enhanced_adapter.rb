@@ -58,6 +58,7 @@ require "active_record/type/oracle_enhanced/json"
 require "active_record/type/oracle_enhanced/timestamptz"
 require "active_record/type/oracle_enhanced/timestampltz"
 require "active_record/type/oracle_enhanced/character_string"
+require "active_record/type/oracle_enhanced/xml"
 
 module ActiveRecord
   module ConnectionHandling #:nodoc:
@@ -371,7 +372,8 @@ module ActiveRecord
         binary: { name: "BLOB" },
         boolean: { name: "NUMBER", limit: 1 },
         raw: { name: "RAW", limit: 2000 },
-        bigint: { name: "NUMBER", limit: 19 }
+        bigint: { name: "NUMBER", limit: 19 },
+        xmltype: {name: "XMLTYPE"}
       }
       # if emulate_booleans_from_strings then store booleans in VARCHAR2
       NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS = NATIVE_DATABASE_TYPES.dup.merge(
@@ -664,6 +666,7 @@ module ActiveRecord
           register_class_with_limit m, %r(varchar)i,        Type::OracleEnhanced::String
           register_class_with_limit m, %r(clob)i,           Type::OracleEnhanced::Text
           register_class_with_limit m, %r(nclob)i,           Type::OracleEnhanced::NationalCharacterText
+          register_class_with_limit m, %r(xmltype)i,        Type::OracleEnhanced::XML
 
           m.register_type "NCHAR", Type::OracleEnhanced::NationalCharacterString.new
           m.alias_type %r(NVARCHAR2)i,    "NCHAR"

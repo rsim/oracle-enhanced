@@ -228,3 +228,47 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     expect(@employee.last_login_at).to eq(@today.to_time)
   end
 end
+
+describe "OracleEnhancedAdapter assign hash to xml type column" do
+  include SchemaSpecHelper
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.connection
+    schema_define do
+      create_table :test_employees, force: true do |t|
+        t.string    :first_name,  limit: 20
+        t.string    :last_name,  limit: 25
+        t.xmltype    :metadata
+      end
+    end
+
+    class ::TestEmployee < ActiveRecord::Base
+    end
+  end
+
+  after(:all) do
+    Object.send(:remove_const, "TestEmployee")
+    @conn.drop_table :test_employees, if_exists: true
+    ActiveRecord::Base.clear_cache!
+  end
+
+  it "should create test_employee with xml metadata" do
+    @employee = TestEmployee.create(
+      first_name: "First",
+      last_name: "Last",
+      metadata: {username: 'First Last'}
+    )
+    @employee.reload
+    expect(@employee.metadata).to eq({username: 'First Last'})
+  end
+
+  it "should create test_employee with nested xml metadata" do
+    @employee = TestEmployee.create(
+        first_name: "First",
+        last_name: "Last",
+        metadata: {user: {username: 'First Last', company: 'abc'}}
+    )
+    @employee.reload
+    expect(@employee.metadata).to eq({user: {username: 'First Last', company: 'abc'}})
+  end
+end
