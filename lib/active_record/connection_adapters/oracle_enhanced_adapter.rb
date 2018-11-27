@@ -702,20 +702,20 @@ module ActiveRecord
           end
         end
 
-        def translate_exception(exception, message) #:nodoc:
+        def translate_exception(exception, message:, sql:, binds:) #:nodoc:
           case @connection.error_code(exception)
           when 1
-            RecordNotUnique.new(message)
+            RecordNotUnique.new(message, sql: sql, binds: binds)
           when 60
             Deadlocked.new(message)
           when 900, 904, 942, 955, 1418, 2289, 2449, 17008
-            ActiveRecord::StatementInvalid.new(message)
+            ActiveRecord::StatementInvalid.new(message, sql: sql, binds: binds)
           when 1400
-            ActiveRecord::NotNullViolation.new(message)
+            ActiveRecord::NotNullViolation.new(message, sql: sql, binds: binds)
           when 2291, 2292
-            InvalidForeignKey.new(message)
+            InvalidForeignKey.new(message, sql: sql, binds: binds)
           when 12899
-            ValueTooLong.new(message)
+            ValueTooLong.new(message, sql: sql, binds: binds)
           else
             super
           end
