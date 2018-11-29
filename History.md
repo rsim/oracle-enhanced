@@ -1,3 +1,8 @@
+## 5.2.4 / 2018-11-29
+
+* Changes and bug fixes
+  * Stop using NativeException [#1666 #1761 #1762]
+
 ## 5.2.3 / 2018-08-08
 
 * Changes and bug fixes
