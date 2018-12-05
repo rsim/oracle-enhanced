@@ -139,6 +139,14 @@ describe "OracleEnhancedAdapter quoting" do
       end
     end
 
+    def create_camel_case_synonym
+      ActiveRecord::Schema.define do
+        suppress_messages do
+          add_synonym :camelcase, "CamelCase", force: true
+        end
+      end
+    end
+
     before(:all) do
       @conn = ActiveRecord::Base.connection
     end
@@ -176,6 +184,19 @@ describe "OracleEnhancedAdapter quoting" do
       expect(cc.id).not_to be_nil
 
       expect(@conn.tables).to include("CamelCase")
+    end
+
+    it "should allow creation and data selection of a table with CamelCase name and synonym with case insensitive name" do
+      create_camel_case_synonym
+      class ::CamelCase < ActiveRecord::Base
+        self.table_name = "CamelCase"
+      end
+
+      cc = CamelCase.create!(name: "Foo", foo: 2)
+      new_id = cc.id
+      expect(CamelCase.exists?(new_id)).to be_truthy
+
+      expect(@conn.synonyms).to include(:camelcase)
     end
   end
 end
