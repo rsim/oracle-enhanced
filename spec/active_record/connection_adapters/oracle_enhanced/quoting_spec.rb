@@ -146,7 +146,7 @@ describe "OracleEnhancedAdapter quoting" do
             t.string      :name
             t.integer     :foo
           end
-          add_synonym :camelcasesynonym, "CamelCaseSynonym", force: true
+          add_synonym "CAMELCASESYNONYM", "CamelCaseSynonym", force: true
         end
       end
     end
@@ -160,7 +160,7 @@ describe "OracleEnhancedAdapter quoting" do
         suppress_messages do
           drop_table "warehouse-things", if_exists: true
           drop_table "CamelCase", if_exists: true
-          remove_synonym :camelcasesynonym
+          remove_synonym "CAMELCASESYNONYM"
           drop_table "CamelCaseSynonym", if_exists: true
         end
       end
@@ -202,8 +202,6 @@ describe "OracleEnhancedAdapter quoting" do
       cc = CamelCaseSynonym.create!(name: "Foo", foo: 2)
       new_record_id = cc.id
       expect(CamelCaseSynonym.exists?(new_record_id)).to be_truthy
-
-      expect(@conn.synonyms).to include(:camelcasesynonym)
     end
   end
 end
