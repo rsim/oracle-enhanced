@@ -139,10 +139,14 @@ describe "OracleEnhancedAdapter quoting" do
       end
     end
 
-    def create_camel_case_synonym
+    def create_camel_case_table_and_synonym
       ActiveRecord::Schema.define do
         suppress_messages do
-          add_synonym :camelcase, "CamelCase", force: true
+          create_table "CamelCaseSynonym" do |t|
+            t.string      :name
+            t.integer     :foo
+          end
+          add_synonym :camelcasesynonym, "CamelCaseSynonym", force: true
         end
       end
     end
@@ -156,10 +160,13 @@ describe "OracleEnhancedAdapter quoting" do
         suppress_messages do
           drop_table "warehouse-things", if_exists: true
           drop_table "CamelCase", if_exists: true
+          remove_synonym :camelcasesynonym
+          drop_table "CamelCaseSynonym", if_exists: true
         end
       end
       Object.send(:remove_const, "WarehouseThing") rescue nil
       Object.send(:remove_const, "CamelCase") rescue nil
+      Object.send(:remove_const, "CamelCaseSynonym") rescue nil
     end
 
     it "should allow creation of a table with non alphanumeric characters" do
@@ -187,16 +194,16 @@ describe "OracleEnhancedAdapter quoting" do
     end
 
     it "should allow creation and data selection of a table with CamelCase name and synonym with case insensitive name" do
-      create_camel_case_synonym
-      class ::CamelCase < ActiveRecord::Base
-        self.table_name = "CamelCase"
+      create_camel_case_table_and_synonym
+      class ::CamelCaseSynonym < ActiveRecord::Base
+        self.table_name = "CamelCaseSynonym"
       end
 
-      cc = CamelCase.create!(name: "Foo", foo: 2)
-      new_id = cc.id
-      expect(CamelCase.exists?(new_id)).to be_truthy
+      cc = CamelCaseSynonym.create!(name: "Foo", foo: 2)
+      new_record_id = cc.id
+      expect(CamelCaseSynonym.exists?(new_record_id)).to be_truthy
 
-      expect(@conn.synonyms).to include(:camelcase)
+      expect(@conn.synonyms).to include(:camelcasesynonym)
     end
   end
 end
