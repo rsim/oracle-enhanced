@@ -160,7 +160,6 @@ describe "OracleEnhancedAdapter quoting" do
         suppress_messages do
           drop_table "warehouse-things", if_exists: true
           drop_table "CamelCase", if_exists: true
-          remove_synonym "CAMELCASESYNONYM"
           drop_table "CamelCaseSynonym", if_exists: true
         end
       end
