@@ -35,8 +35,8 @@ describe "OracleEnhancedAdapter processing CHAR column" do
     item.padded = str
     item.save
 
-    expect(TestItem.where(:padded => item.padded).count).to eq(1)
-    
+    expect(TestItem.where(padded: item.padded).count).to eq(1)
+
     item_reloaded = TestItem.first
     expect(item_reloaded.padded).to eq(str)
   end

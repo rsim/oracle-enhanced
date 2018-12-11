@@ -123,7 +123,7 @@ describe "OracleEnhancedAdapter dirty object tracking" do
 
     oci_conn = @conn.instance_variable_get("@connection")
     class << oci_conn
-       def write_lob(lob, value, is_binary = false); raise "don't do this'"; end
+      def write_lob(lob, value, is_binary = false); raise "don't do this'"; end
     end
     expect { @employee.save! }.not_to raise_error
     class << oci_conn
