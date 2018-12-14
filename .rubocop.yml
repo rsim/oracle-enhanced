@@ -78,6 +78,9 @@ Layout/SpaceAfterColon:
 Layout/SpaceAfterComma:
   Enabled: true
 
+Layout/SpaceAfterSemicolon:
+  Enabled: true
+
 Layout/SpaceAroundEqualsInParameterDefault:
   Enabled: true
 
@@ -91,10 +94,10 @@ Layout/SpaceBeforeComma:
   Enabled: true
 
 Layout/SpaceBeforeFirstArg:
-    Enabled: true
+  Enabled: true
 
 Style/DefWithParentheses:
-    Enabled: true
+  Enabled: true
 
 # Defining a method with parameters needs parentheses.
 Style/MethodDefParentheses:
