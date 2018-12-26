@@ -18,5 +18,6 @@ group :development do
 
   platforms :jruby do
     gem 'ruby-debug'
+    gem 'i18n', '~> 1.2.0'
   end
 end
