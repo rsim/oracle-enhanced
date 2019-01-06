@@ -27,6 +27,7 @@ install:
   - .travis/oracle/download.sh
   - .travis/oracle/install.sh
   - .travis/setup_accounts.sh
+  -  'gem install bundler || gem install bundler -v 1.17.3'
   - bundle install
 
 language: ruby
