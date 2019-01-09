@@ -159,6 +159,9 @@ Lint/StringConversionInInterpolation:
 Lint/UriEscapeUnescape:
   Enabled: true
 
+Lint/UselessAssignment:
+  Enabled: true
+
 Style/ParenthesesAroundCondition:
   Enabled: true
 

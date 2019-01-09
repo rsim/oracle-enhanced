@@ -291,12 +291,11 @@ describe "OracleEnhancedAdapter" do
       @employee = Class.new(ActiveRecord::Base) do
         self.table_name = :test_employees
       end
-      i = 0
-      @employee.create!(sort_order: i += 1, first_name: "Peter",   last_name: "Parker")
-      @employee.create!(sort_order: i += 1, first_name: "Tony",    last_name: "Stark")
-      @employee.create!(sort_order: i += 1, first_name: "Steven",  last_name: "Rogers")
-      @employee.create!(sort_order: i += 1, first_name: "Bruce",   last_name: "Banner")
-      @employee.create!(sort_order: i += 1, first_name: "Natasha", last_name: "Romanova")
+      @employee.create!(sort_order: 1, first_name: "Peter",   last_name: "Parker")
+      @employee.create!(sort_order: 2, first_name: "Tony",    last_name: "Stark")
+      @employee.create!(sort_order: 3, first_name: "Steven",  last_name: "Rogers")
+      @employee.create!(sort_order: 4, first_name: "Bruce",   last_name: "Banner")
+      @employee.create!(sort_order: 5, first_name: "Natasha", last_name: "Romanova")
     end
 
     after(:all) do

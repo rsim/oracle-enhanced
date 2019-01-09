@@ -52,7 +52,7 @@ module ActiveRecord
         end
 
         def data_source_exists?(table_name)
-          (_owner, table_name) = @connection.describe(table_name)
+          (_owner, _table_name) = @connection.describe(table_name)
           true
         rescue
           false

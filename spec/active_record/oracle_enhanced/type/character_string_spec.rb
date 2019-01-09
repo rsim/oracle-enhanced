@@ -30,7 +30,7 @@ describe "OracleEnhancedAdapter processing CHAR column" do
 
   it "should create and find record" do
     str = "ABC"
-    item = TestItem.create!
+    TestItem.create!
     item = TestItem.first
     item.padded = str
     item.save
