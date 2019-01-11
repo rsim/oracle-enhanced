@@ -26,7 +26,7 @@ begin
     ["./lib"].concat($LOAD_PATH).concat(env_path).detect do |dir|
       # check any compatible JDBC driver in the priority order
       ojdbc_jars.any? do |ojdbc_jar|
-        if File.exists?(file_path = File.join(dir, ojdbc_jar))
+        if File.exist?(file_path = File.join(dir, ojdbc_jar))
           require file_path
           true
         end
