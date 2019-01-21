@@ -222,17 +222,6 @@ module ActiveRecord
           end
         end
 
-        # fallback to non bulk fixture insert
-        def insert_fixtures(fixtures, table_name)
-          ActiveSupport::Deprecation.warn(<<-MSG.squish)
-            `insert_fixtures` is deprecated and will be removed in the next version of Rails.
-            Consider using `insert_fixtures_set` for performance improvement.
-          MSG
-          fixtures.each do |fixture|
-            insert_fixture(fixture, table_name)
-          end
-        end
-
         def insert_fixtures_set(fixture_set, tables_to_delete = [])
           disable_referential_integrity do
             transaction(requires_new: true) do
