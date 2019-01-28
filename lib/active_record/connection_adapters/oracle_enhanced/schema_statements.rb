@@ -618,7 +618,7 @@ module ActiveRecord
           end
 
           def create_table_definition(*args)
-            OracleEnhanced::TableDefinition.new(*args)
+            OracleEnhanced::TableDefinition.new(self, *args)
           end
 
           def new_column_from_field(table_name, field)

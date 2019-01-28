@@ -54,6 +54,7 @@ module ActiveRecord
 
         attr_accessor :tablespace, :organization
         def initialize(
+          conn,
           name,
           temporary: false,
           options: nil,
@@ -65,7 +66,7 @@ module ActiveRecord
         )
           @tablespace = tablespace
           @organization = organization
-          super(name, temporary: temporary, options: options, as: as, comment: comment)
+          super(conn, name, temporary: temporary, options: options, as: as, comment: comment)
         end
 
         def new_column_definition(name, type, **options) # :nodoc:
