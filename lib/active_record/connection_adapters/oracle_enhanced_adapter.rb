@@ -257,10 +257,6 @@ module ActiveRecord
         true
       end
 
-      def supports_foreign_keys_in_create?
-        supports_foreign_keys?
-      end
-
       def supports_views?
         true
       end
