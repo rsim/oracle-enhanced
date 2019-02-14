@@ -20,7 +20,6 @@ group :development do
   platforms :jruby do
     gem "pry"
     gem "pry-nav"
-    gem "i18n", "~> 1.2.0"
   end
 end
 
