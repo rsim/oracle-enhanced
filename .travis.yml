@@ -40,8 +40,3 @@ rvm:
 
 notifications:
     email: false
-
-# blocklist
-branches:
-  except:
-  - poc_identity
