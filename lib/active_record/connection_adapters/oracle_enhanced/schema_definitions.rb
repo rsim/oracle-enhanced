@@ -66,6 +66,11 @@ module ActiveRecord
           end
           super
         end
+
+        def references(*args, **options)
+          super(*args, type: :integer, **options)
+        end
+        alias :belongs_to :references
       end
 
       class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable
