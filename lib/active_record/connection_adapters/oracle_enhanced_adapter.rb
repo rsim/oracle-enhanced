@@ -334,7 +334,7 @@ module ActiveRecord
         ntext: { name: "NCLOB" },
         integer: { name: "NUMBER", limit: 38 },
         float: { name: "BINARY_FLOAT" },
-        decimal: { name: "DECIMAL" },
+        decimal: { name: "NUMBER" },
         datetime: { name: "TIMESTAMP" },
         timestamp: { name: "TIMESTAMP" },
         timestamptz: { name: "TIMESTAMP WITH TIME ZONE" },
