@@ -1,3 +1,14 @@
+## 5.2.5 / 2019-03-05
+
+* Changes and bug fixes
+  * `references` column type should be :integer, not :bigint [#1831 #1832 #1835]
+  * CI against Ruby 2.6.1 [#1821 #1822]
+  * CI against JRuby 9.2.6.0 [#1824 #1828]
+  * CI against Ruby 2.6 and bump other Ruby versions [#1806 #1807]
+  * Install bundler and fallback to 1.7.3 if Bundler 2 is not available [#1811]
+  * Use i18n 1.2 for JRuby now [#1804 #1805]
+  * Add `allow_railures` for jruby-head until #1833 resolved [#1834 #1836]
+
 ## 5.2.4 / 2018-11-29
 
 * Changes and bug fixes
