@@ -146,6 +146,12 @@ Layout/TrailingWhitespace:
 Style/UnneededPercentQ:
   Enabled: true
 
+Lint/AmbiguousOperator:
+  Enabled: true
+
+Lint/AmbiguousRegexpLiteral:
+  Enabled: true
+
 Lint/ErbNewArguments:
   Enabled: true
 
