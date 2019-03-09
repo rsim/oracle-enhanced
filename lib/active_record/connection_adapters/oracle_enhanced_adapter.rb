@@ -225,7 +225,6 @@ module ActiveRecord
 
       def initialize(connection, logger = nil, config = {}) # :nodoc:
         super(connection, logger, config)
-        @statements = StatementPool.new(self.class.type_cast_config_to_integer(config[:statement_limit]))
         @enable_dbms_output = false
         @do_not_prefetch_primary_key = {}
         @columns_cache = {}
@@ -243,6 +242,10 @@ module ActiveRecord
         else
           Arel::Visitors::Oracle.new(self)
         end
+      end
+
+      def build_statement_pool
+        StatementPool.new(self.class.type_cast_config_to_integer(@config[:statement_limit]))
       end
 
       def supports_savepoints? #:nodoc:
