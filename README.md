@@ -666,12 +666,6 @@ class Post < ActiveRecord::Base
 end
 ```
 
-* Respect database instance `cursor_sharing` value exact by default
-
-Oracle enhanced adapter changed `cursor_sharing` parameter value to `force` in Rails 5.1 or lower. However, Oracle enhanced adapter 5.2 supports prepared statements for dictionary queries There is no need to change `cursor_sharing` value to `exact` anymore.
-
-If you want to keep the old behavior in Rails 5.2, set `cursor_sharing: :force` explicitly in the database.yml.
-
 * Remove `OracleEnhancedAdapter.cache_columns` to use Rails `db:schema:cache:dump`
 
 Refer https://github.com/rsim/oracle-enhanced#schema-cache
