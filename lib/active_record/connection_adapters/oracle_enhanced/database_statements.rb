@@ -13,9 +13,9 @@ module ActiveRecord
           log(sql, name) { @connection.exec(sql) }
         end
 
-        def clear_cache!
-          @statements.clear
+        def clear_cache! # :nodoc:
           reload_type_map
+          super
         end
 
         def exec_query(sql, name = "SQL", binds = [], prepare: false)
