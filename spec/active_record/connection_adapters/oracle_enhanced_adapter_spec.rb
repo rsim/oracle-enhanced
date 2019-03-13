@@ -556,4 +556,26 @@ describe "OracleEnhancedAdapter" do
       Thread.report_on_exception = @original_report_on_exception
     end
   end
+
+  describe "Sequence" do
+    before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        create_table :table_with_name_thats_just_ok,
+          sequence_name: "suitably_short_seq", force: true do |t|
+          t.column :foo, :string, null: false
+        end
+      end
+    end
+    after(:all) do
+      schema_define do
+        drop_table :table_with_name_thats_just_ok,
+          sequence_name: "suitably_short_seq" rescue nil
+      end
+    end
+    it "should create table with custom sequence name" do
+      expect(@conn.select_value("select suitably_short_seq.nextval from dual")).to eq(1)
+    end
+  end
 end
