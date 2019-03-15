@@ -33,7 +33,7 @@ install:
 language: ruby
 rvm:
   - 2.6.2
-  - 2.5.4
+  - 2.5.5
   - jruby-9.2.6.0
   - ruby-head
   - jruby-head
