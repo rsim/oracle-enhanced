@@ -578,4 +578,40 @@ describe "OracleEnhancedAdapter" do
       expect(@conn.select_value("select suitably_short_seq.nextval from dual")).to eq(1)
     end
   end
+
+  describe "Hints" do
+    before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        drop_table :test_posts, if_exists: true
+        create_table :test_posts
+      end
+      class ::TestPost < ActiveRecord::Base
+      end
+    end
+
+    before(:each) do
+      @conn.clear_cache!
+      set_logger
+    end
+
+    after(:each) do
+      clear_logger
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_posts
+      end
+      Object.send(:remove_const, "TestPost")
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "should explain considers hints" do
+      post = TestPost.optimizer_hints("FULL (\"TEST_POSTS\")")
+      post = post.where(id: 1)
+      expect(post.explain).to include("|  TABLE ACCESS FULL| TEST_POSTS |")
+    end
+  end
 end
