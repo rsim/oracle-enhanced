@@ -260,6 +260,10 @@ module ActiveRecord
         true
       end
 
+      def supports_optimizer_hints?
+        true
+      end
+
       def supports_views?
         true
       end
