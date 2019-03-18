@@ -1,3 +1,88 @@
+## 6.0.0.beta1 / 2018-03-18
+
+* Major changes
+
+  * Rails 6 requires Ruby 2.5 [#1801]
+  * Support longer identifier for Oracle database 12.2 or higher [#1703 #1705]
+  * Introduce `use_shorter_identifier` [#1707]
+  * Change `default_sequence_start_value` from 10000 to 1 [#1636]
+  * Supports `supports_optimizer_hints?` [#1850 #1852]
+  * `OracleEnhanced::SchemaStatements#tables` excludes materialized views [#1708]
+  * rake db:structure:dump extracts views by default [#1625 #1641]
+  * Drop db link support [#1668 #1681 #1696 #1706]
+  * Drop trigger based primary key support for Rails 6 [#1669]
+  * Don't allow unsupported NLS parameters [#1685]
+  * fix Handling with char-column problem [#1760]
+  * Make `t.timestamps` with precision by default [#1818]
+  * fix mapping of decimal type to map to `NUMBER` instead of `DECIMAL` [#1840]
+
+* Changes and bug fixes
+
+  * Handle ORA-02292 as `InvalidForeignKey` [#1771]
+  * Suppress deprecated warning for `table_name_length` [#1772]
+  * `update_attributes!` will be deprecated in Rails 6 [#1665]
+  * `update_attributes` will be deprecated in Rails 6 [#1667]
+  * Remove `OCI8#describe` to use `OracleEnhanced::Connection#describe` [#1639]
+  * Remove `strip_heredoc` [#1652]
+  * Remove `rails/arel` from Gemfile [#1711]
+  * Remove `rails/arel` from bug report templates [skip ci] [#1715]
+  * Remove NativeException [#1666 #1762]
+  * Do not set nil value to java.util.Properties [#1763]
+  * Deprecated `table_name_length` and `column_name_length` [#1770]
+  * Add a check to supported Oracle database version [#1773]
+  * Update bug report templates [#1777]
+  * Use `supports_foreign_keys?` instead of removed `supports_foreign_keys_in_create?` [#1825]
+  * Ensure `clear_cache!` clears the prepared statements cache [#1845]
+
+* Refactoring
+
+  * Extract `structure_dump_views` and `structure_dump_synonyms` [#1640]
+  * Remove unnecessary `respond_to?(:report_on_exception)` [#1664]
+  * Remove deprecated `#insert_fixtures` method for Rails 6.0 [#1815]
+  * Use `SYS_CONTEXT('userenv', 'current_schema')` to find schema objects [#1671]
+  * Use `SYS_CONTEXT('userenv', 'current_schema')` for owner [#1672]
+  * Suppress warning `BigDecimal.new` is deprecated [#1742]
+  * Refactor to initialize `TableDefinition` by kwargs [#1785]
+  * Redact SQL in errors [#1791]
+  * Arity change at `sql_for_insert` [#1814]
+
+* CI
+  * Use Ubuntu Xenial at Travis CI [#1790]
+  * Bump Ruby versions to 2.6.2 and 2.5.4 [#1847]
+  * CI against Ruby 2.5.5 [#1848]
+  * Do not run CI against Ruby 2.2, which will not be supported with Rails 6 [#1653]
+  * CI against JRuby 9.2.6.0 [#1824]
+  * Show ruby version at CI [#1829]
+  * Remove unused blocklist from .travis.yml [#1830]
+  * Add spec for custom sequence name [#1846]
+  * Restore old Code Climate behavior [#1716]
+  * Do not install bundler explicitly [#1725]
+
+* RuboCop 
+
+  * Add RuboCop to Gemfile [#1841]
+  * Bump RuboCop to 0.63.0 [#1816]
+  * No need to exclude `jdbc_connection.rb` for `Style/ColonMethodCall` cop [#1698]
+  * Enable `Style/ColonMethodCall` cop [#1658]
+  * Enable `Lint/StringConversionInInterpolation` cop [#1724]
+  * Add `Style/RedundantFreeze` to remove redudant `.freeze` [#1662]
+  * Use `Layout/EndAlignment` cop to support RuboCop 0.54 [#1709]
+  * Introduced StartWith, EndWith and RegexpMatch cops [#1738]
+  * Enable `Layout/EmptyLinesAroundBlockBody` cop [#1732]
+  * Turn on performance based cops [#1734]
+  * Enable performance unfreeze string cop [#1729]
+  * Enable `Lint/UriEscapeUnescape` cop [#1758]
+  * Enable Style/ParenthesesAroundCondition cop [#1759]
+  * Enable performance unfreeze string cop [#1729]
+  * Enable `Layout/SpaceAfterSemicolon` cop [#1800]
+  * Enable `Style/RedundantBegin` cop [#1802]
+  * Enable `Lint/ShadowingOuterLocalVariable` cop [#1810]
+  * Enable `Lint/UselessAssignment` cop [#1812]
+  * Enable `Lint/DeprecatedClassMethods` cop [#1813]
+  * Enable `Lint/ErbNewArguments` cop [#1823]
+  * Enable `Lint/AmbiguousOperator` and `Lint/AmbiguousRegexpLiteral` cops [#1842]
+  * Enable `Performance/ReverseEach` cop [#1843]
+
 ## 5.2.5 / 2019-03-05
 
 * Changes and bug fixes
