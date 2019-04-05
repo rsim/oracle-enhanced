@@ -269,7 +269,7 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        if !use_old_oracle_visitor && @connection.database_version.first >= 12
+        if !use_old_oracle_visitor && database_version.first >= 12
           true
         else
           false
@@ -285,11 +285,11 @@ module ActiveRecord
       end
 
       def supports_multi_insert?
-        @connection.database_version.to_s >= [11, 2].to_s
+        database_version.to_s >= [11, 2].to_s
       end
 
       def supports_virtual_columns?
-        @connection.database_version.first >= 11
+        database_version.first >= 11
       end
 
       def supports_json?
@@ -324,7 +324,7 @@ module ActiveRecord
       end
 
       def supports_longer_identifier?
-        if !use_shorter_identifier && @connection.database_version.to_s >= [12, 2].to_s
+        if !use_shorter_identifier && database_version.to_s >= [12, 2].to_s
           true
         else
           false
@@ -647,15 +647,19 @@ module ActiveRecord
       alias table_alias_length max_identifier_length
       alias index_name_length max_identifier_length
 
-      private
-        def check_version
-          database_version = @connection.database_version.join(".").to_f
+      def get_database_version
+        @connection.database_version
+      end
 
-          if database_version < 10
-            raise "Your version of Oracle (#{database_version}) is too old. Active Record Oracle enhanced adapter supports Oracle >= 10g."
-          end
+      def check_version
+        version = get_database_version.join(".").to_f
+
+        if version < 10
+          raise "Your version of Oracle (#{version}) is too old. Active Record Oracle enhanced adapter supports Oracle >= 10g."
         end
+      end
 
+      private
         def initialize_type_map(m = type_map)
           super
           # oracle
