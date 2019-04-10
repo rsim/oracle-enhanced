@@ -85,6 +85,8 @@ module ActiveRecord #:nodoc:
           def table(table, stream)
             columns = @connection.columns(table)
             begin
+              self.table_name = table
+
               tbl = StringIO.new
 
               # first dump primary key column
@@ -144,6 +146,8 @@ module ActiveRecord #:nodoc:
               stream.puts "# Could not dump table #{table.inspect} because of following #{e.class}"
               stream.puts "#   #{e.message}"
               stream.puts
+            ensure
+              self.table_name = nil
             end
           end
 
@@ -164,7 +168,6 @@ module ActiveRecord #:nodoc:
 
           def extract_expression_for_virtual_column(column)
             column_name = column.name
-            table_name = column.table_name
             @connection.select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
               select data_default from all_tab_columns
               where owner = SYS_CONTEXT('userenv', 'current_schema')
