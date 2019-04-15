@@ -477,8 +477,9 @@ module ActiveRecord
           clear_table_columns_cache(table_name)
         end
 
-        def change_table_comment(table_name, comment)
+        def change_table_comment(table_name, comment_or_changes)
           clear_cache!
+          comment = extract_new_comment_value(comment_or_changes)
           if comment.nil?
             execute "COMMENT ON TABLE #{quote_table_name(table_name)} IS ''"
           else
@@ -486,8 +487,9 @@ module ActiveRecord
           end
         end
 
-        def change_column_comment(table_name, column_name, comment) #:nodoc:
+        def change_column_comment(table_name, column_name, comment_or_changes)
           clear_cache!
+          comment = extract_new_comment_value(comment_or_changes)
           execute "COMMENT ON COLUMN #{quote_table_name(table_name)}.#{quote_column_name(column_name)} IS '#{comment}'"
         end
 
