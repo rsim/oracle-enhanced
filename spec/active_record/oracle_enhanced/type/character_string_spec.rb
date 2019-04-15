@@ -4,7 +4,7 @@ describe "OracleEnhancedAdapter processing CHAR column" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-    @conn.execute <<-SQL
+    @conn.execute <<~SQL
       CREATE TABLE test_items (
         id       NUMBER(6,0) PRIMARY KEY,
         padded   CHAR(10)

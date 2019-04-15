@@ -11,16 +11,16 @@ module ActiveRecord
         # see: abstract/schema_statements.rb
 
         def tables #:nodoc:
-          select_values(<<-SQL.strip.gsub(/\s+/, " "), "tables")
-          SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
-          FROM all_tables
-          WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-          AND secondary = 'N'
-          minus
-          SELECT DECODE(mview_name, UPPER(mview_name), LOWER(mview_name), mview_name)
-          FROM all_mviews
-          WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-        SQL
+          select_values(<<~SQL.strip.gsub(/\s+/, " "), "tables")
+            SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
+            FROM all_tables
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            AND secondary = 'N'
+            minus
+            SELECT DECODE(mview_name, UPPER(mview_name), LOWER(mview_name), mview_name)
+            FROM all_mviews
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+          SQL
         end
 
         def data_sources
@@ -43,12 +43,12 @@ module ActiveRecord
             table_owner, table_name = default_owner, real_name
           end
 
-          select_values(<<-SQL.strip.gsub(/\s+/, " "), "table exists", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
-          SELECT owner, table_name
-          FROM all_tables
-          WHERE owner = :owner
-          AND table_name = :table_name
-        SQL
+          select_values(<<~SQL.strip.gsub(/\s+/, " "), "table exists", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
+            SELECT owner, table_name
+            FROM all_tables
+            WHERE owner = :owner
+            AND table_name = :table_name
+          SQL
         end
 
         def data_source_exists?(table_name)
@@ -59,23 +59,23 @@ module ActiveRecord
         end
 
         def views # :nodoc:
-          select_values(<<-SQL.strip.gsub(/\s+/, " "), "views")
+          select_values(<<~SQL.strip.gsub(/\s+/, " "), "views")
             SELECT LOWER(view_name) FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         def materialized_views #:nodoc:
-          select_values(<<-SQL.strip.gsub(/\s+/, " "), "materialized views")
+          select_values(<<~SQL.strip.gsub(/\s+/, " "), "materialized views")
             SELECT LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         # get synonyms for schema dump
         def synonyms
-          result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "synonyms")
-          SELECT synonym_name, table_owner, table_name
-          FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
-        SQL
+          result = select_all(<<~SQL.strip.gsub(/\s+/, " "), "synonyms")
+            SELECT synonym_name, table_owner, table_name
+            FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
+          SQL
 
           result.collect do |row|
              OracleEnhanced::SynonymDefinition.new(oracle_downcase(row["synonym_name"]),
@@ -87,7 +87,7 @@ module ActiveRecord
           (_owner, table_name) = @connection.describe(table_name)
           default_tablespace_name = default_tablespace
 
-          result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "indexes", [bind_string("table_name", table_name)])
+          result = select_all(<<~SQL.strip.gsub(/\s+/, " "), "indexes", [bind_string("table_name", table_name)])
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
@@ -117,7 +117,7 @@ module ActiveRecord
               statement_parameters = nil
               if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
                 procedure_name = default_datastore_procedure(row["index_name"])
-                source = select_values(<<-SQL.strip.gsub(/\s+/, " "), "procedure", [bind_string("procedure_name", procedure_name.upcase)]).join
+                source = select_values(<<~SQL.strip.gsub(/\s+/, " "), "procedure", [bind_string("procedure_name", procedure_name.upcase)]).join
                   SELECT text
                   FROM all_source
                   WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -361,7 +361,7 @@ module ActiveRecord
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
           (_owner, table_name) = @connection.describe(table_name)
-          result = select_value(<<-SQL.strip.gsub(/\s+/, " "), "index name exists")
+          result = select_value(<<~SQL.strip.gsub(/\s+/, " "), "index name exists")
             SELECT 1 FROM all_indexes i
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -495,7 +495,7 @@ module ActiveRecord
 
         def table_comment(table_name) #:nodoc:
           (_owner, table_name) = @connection.describe(table_name)
-          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("table_name", table_name)])
+          select_value(<<~SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("table_name", table_name)])
             SELECT comments FROM all_tab_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
@@ -511,7 +511,7 @@ module ActiveRecord
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
           (_owner, table_name) = @connection.describe(table_name)
-          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Column comment", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
+          select_value(<<~SQL.strip.gsub(/\s+/, " "), "Column comment", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
             SELECT comments FROM all_col_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
@@ -528,7 +528,7 @@ module ActiveRecord
         end
 
         def tablespace(table_name)
-          select_value(<<-SQL.strip.gsub(/\s+/, " "), "tablespace")
+          select_value(<<~SQL.strip.gsub(/\s+/, " "), "tablespace")
             SELECT tablespace_name
             FROM all_tables
             WHERE table_name='#{table_name.to_s.upcase}'
@@ -540,7 +540,7 @@ module ActiveRecord
         def foreign_keys(table_name) #:nodoc:
           (_owner, desc_table_name) = @connection.describe(table_name)
 
-          fk_info = select_all(<<-SQL.strip.gsub(/\s+/, " "), "Foreign Keys", [bind_string("desc_table_name", desc_table_name)])
+          fk_info = select_all(<<~SQL.strip.gsub(/\s+/, " "), "Foreign Keys", [bind_string("desc_table_name", desc_table_name)])
             SELECT r.table_name to_table
                   ,rc.column_name references_column
                   ,cc.column_name
@@ -582,12 +582,12 @@ module ActiveRecord
         # REFERENTIAL INTEGRITY ====================================
 
         def disable_referential_integrity(&block) #:nodoc:
-          old_constraints = select_all(<<-SQL.strip.gsub(/\s+/, " "), "Foreign Keys to disable and enable")
-          SELECT constraint_name, owner, table_name
-            FROM all_constraints
-            WHERE constraint_type = 'R'
-            AND status = 'ENABLED'
-            AND owner = SYS_CONTEXT('userenv', 'current_schema')
+          old_constraints = select_all(<<~SQL.strip.gsub(/\s+/, " "), "Foreign Keys to disable and enable")
+            SELECT constraint_name, owner, table_name
+              FROM all_constraints
+              WHERE constraint_type = 'R'
+              AND status = 'ENABLED'
+              AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           begin
             old_constraints.each do |constraint|
@@ -698,7 +698,7 @@ module ActiveRecord
 
             return unless tablespace
 
-            index_name = select_value(<<-SQL.strip.gsub(/\s+/, " "), "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
+            index_name = select_value(<<~SQL.strip.gsub(/\s+/, " "), "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
               SELECT index_name FROM all_constraints
                   WHERE table_name = :table_name
                   AND constraint_type = 'P'
