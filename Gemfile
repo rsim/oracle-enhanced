@@ -8,7 +8,8 @@ group :development do
   gem "rspec"
   gem "rdoc"
   gem "rake"
-  gem "rubocop", "~> 0.66.0", require: false
+  gem "rubocop", "~> 0.67.0", require: false
+  gem "rubocop-performance", require: false
 
   gem "activerecord",   github: "rails/rails", branch: "master"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
