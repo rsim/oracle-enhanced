@@ -5,23 +5,23 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    ActiveRecord::Base.connection.execute <<-SQL
-    CREATE or REPLACE
-    FUNCTION MORE_THAN_FIVE_CHARACTERS_LONG (some_text VARCHAR2) RETURN INTEGER
-    AS
-      longer_than_five INTEGER;
-    BEGIN
-      dbms_output.put_line('before the if -' || some_text || '-');
-      IF length(some_text) > 5 THEN
-        dbms_output.put_line('it is longer than 5');
-        longer_than_five := 1;
-      ELSE
-        dbms_output.put_line('it is 5 or shorter');
-        longer_than_five := 0;
-      END IF;
-      dbms_output.put_line('about to return: ' || longer_than_five);
-      RETURN longer_than_five;
-    END;
+    ActiveRecord::Base.connection.execute <<~SQL
+      CREATE or REPLACE
+      FUNCTION MORE_THAN_FIVE_CHARACTERS_LONG (some_text VARCHAR2) RETURN INTEGER
+      AS
+        longer_than_five INTEGER;
+      BEGIN
+        dbms_output.put_line('before the if -' || some_text || '-');
+        IF length(some_text) > 5 THEN
+          dbms_output.put_line('it is longer than 5');
+          longer_than_five := 1;
+        ELSE
+          dbms_output.put_line('it is 5 or shorter');
+          longer_than_five := 0;
+        END IF;
+        dbms_output.put_line('about to return: ' || longer_than_five);
+        RETURN longer_than_five;
+      END;
     SQL
   end
 
