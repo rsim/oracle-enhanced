@@ -8,7 +8,7 @@ module ActiveRecord #:nodoc:
         STATEMENT_TOKEN = "\n\n/\n\n"
 
         def structure_dump #:nodoc:
-          sequences = select(<<~SQL.strip.gsub(/\s+/, " "), "sequences to dump at structure dump")
+          sequences = select(<<~SQL.squish, "sequences to dump at structure dump")
             SELECT sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
             FROM all_sequences
             where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
@@ -17,7 +17,7 @@ module ActiveRecord #:nodoc:
           structure = sequences.map do |result|
             "CREATE SEQUENCE #{quote_table_name(result["sequence_name"])} MINVALUE #{result["min_value"]} MAXVALUE #{result["max_value"]} INCREMENT BY #{result["increment_by"]} #{result["order_flag"] == 'Y' ? "ORDER" : "NOORDER"} #{result["cycle_flag"] == 'Y' ? "CYCLE" : "NOCYCLE"}"
           end
-          tables = select_values(<<~SQL.strip.gsub(/\s+/, " "), "tables at structure dump")
+          tables = select_values(<<~SQL.squish, "tables at structure dump")
             SELECT table_name FROM all_tables t
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
             AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv
@@ -29,7 +29,7 @@ module ActiveRecord #:nodoc:
           tables.each do |table_name|
             virtual_columns = virtual_columns_for(table_name) if supports_virtual_columns?
             ddl = +"CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
-            columns = select_all(<<~SQL.strip.gsub(/\s+/, " "), "columns at structure dump")
+            columns = select_all(<<~SQL.squish, "columns at structure dump")
               SELECT column_name, data_type, data_length, char_used, char_length,
               data_precision, data_scale, data_default, nullable
               FROM all_tab_columns
@@ -89,7 +89,7 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_primary_key(table) #:nodoc:
           opts = { name: "", cols: [] }
-          pks = select_all(<<~SQL.strip.gsub(/\s+/, " "), "Primary Keys")
+          pks = select_all(<<~SQL.squish, "Primary Keys")
             SELECT a.constraint_name, a.column_name, a.position
               FROM all_cons_columns a
               JOIN all_constraints c
@@ -108,7 +108,7 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_unique_keys(table) #:nodoc:
           keys = {}
-          uks = select_all(<<~SQL.strip.gsub(/\s+/, " "), "Primary Keys")
+          uks = select_all(<<~SQL.squish, "Primary Keys")
             SELECT a.constraint_name, a.column_name, a.position
               FROM all_cons_columns a
               JOIN all_constraints c
@@ -144,7 +144,7 @@ module ActiveRecord #:nodoc:
         end
 
         def structure_dump_fk_constraints #:nodoc:
-          foreign_keys = select_all(<<~SQL.strip.gsub(/\s+/, " "), "foreign keys at structure dump")
+          foreign_keys = select_all(<<~SQL.squish, "foreign keys at structure dump")
             SELECT table_name FROM all_tables
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
           SQL
@@ -172,7 +172,7 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_column_comments(table_name)
           comments = []
-          columns = select_values(<<~SQL.strip.gsub(/\s+/, " "), "column comments at structure dump")
+          columns = select_values(<<~SQL.squish, "column comments at structure dump")
             SELECT column_name FROM user_tab_columns
             WHERE table_name = '#{table_name}' ORDER BY column_id
           SQL
@@ -206,7 +206,7 @@ module ActiveRecord #:nodoc:
         # Extract all stored procedures, packages, synonyms.
         def structure_dump_db_stored_code #:nodoc:
           structure = []
-          all_source = select_all(<<~SQL.strip.gsub(/\s+/, " "), "stored program at structure dump")
+          all_source = select_all(<<~SQL.squish, "stored program at structure dump")
             SELECT DISTINCT name, type
             FROM all_source
             WHERE type IN ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
@@ -215,7 +215,7 @@ module ActiveRecord #:nodoc:
           SQL
           all_source.each do |source|
             ddl = +"CREATE OR REPLACE   \n"
-            texts = select_all(<<~SQL.strip.gsub(/\s+/, " "), "all source at structure dump")
+            texts = select_all(<<~SQL.squish, "all source at structure dump")
               SELECT text
               FROM all_source
               WHERE name = '#{source['name']}'
@@ -238,7 +238,7 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_views #:nodoc:
           structure = []
-          views = select_all(<<~SQL.strip.gsub(/\s+/, " "), "views at structure dump")
+          views = select_all(<<~SQL.squish, "views at structure dump")
             SELECT view_name, text FROM all_views
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY view_name ASC
           SQL
@@ -250,7 +250,7 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_synonyms #:nodoc:
           structure = []
-          synonyms = select_all(<<~SQL.strip.gsub(/\s+/, " "), "synonyms at structure dump")
+          synonyms = select_all(<<~SQL.squish, "synonyms at structure dump")
             SELECT owner, synonym_name, table_name, table_owner
             FROM all_synonyms
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -263,13 +263,13 @@ module ActiveRecord #:nodoc:
         end
 
         def structure_drop #:nodoc:
-          sequences = select_values(<<~SQL.strip.gsub(/\s+/, " "), "sequences to drop at structure dump")
+          sequences = select_values(<<~SQL.squish, "sequences to drop at structure dump")
             SELECT sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
           SQL
           statements = sequences.map do |seq|
             "DROP SEQUENCE \"#{seq}\""
           end
-          tables = select_values(<<~SQL.strip.gsub(/\s+/, " "), "tables to drop at structure dump")
+          tables = select_values(<<~SQL.squish, "tables to drop at structure dump")
             SELECT table_name from all_tables t
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
             AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv
@@ -285,7 +285,7 @@ module ActiveRecord #:nodoc:
         end
 
         def temp_table_drop #:nodoc:
-          temporary_tables = select_values(<<~SQL.strip.gsub(/\s+/, " "), "temporary tables to drop at structure dump")
+          temporary_tables = select_values(<<~SQL.squish, "temporary tables to drop at structure dump")
             SELECT table_name FROM all_tables
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
             AND secondary = 'N' AND temporary = 'Y' ORDER BY 1
@@ -320,7 +320,7 @@ module ActiveRecord #:nodoc:
         # Called only if `supports_virtual_columns?` returns true
         # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
         def virtual_columns_for(table)
-          select_all(<<~SQL.strip.gsub(/\s+/, " "), "virtual columns for")
+          select_all(<<~SQL.squish, "virtual columns for")
             SELECT column_name, data_default
             FROM all_tab_cols
             WHERE virtual_column = 'YES'
@@ -331,7 +331,7 @@ module ActiveRecord #:nodoc:
 
         def drop_sql_for_feature(type)
           short_type = type == "materialized view" ? "mview" : type
-          features = select_values(<<~SQL.strip.gsub(/\s+/, " "), "features to drop")
+          features = select_values(<<~SQL.squish, "features to drop")
             SELECT #{short_type}_name FROM all_#{short_type.tableize}
             where owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
@@ -342,7 +342,7 @@ module ActiveRecord #:nodoc:
         end
 
         def drop_sql_for_object(type)
-          objects = select_values(<<~SQL.strip.gsub(/\s+/, " "), "objects to drop")
+          objects = select_values(<<~SQL.squish, "objects to drop")
             SELECT object_name FROM all_objects
             WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
