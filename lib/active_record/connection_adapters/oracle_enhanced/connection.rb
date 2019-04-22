@@ -34,7 +34,7 @@ module ActiveRecord
             else
               table_owner, table_name = default_owner, real_name
             end
-            sql = <<~SQL.strip.gsub(/\s+/, " ")
+            sql = <<~SQL.squish
               SELECT owner, table_name, 'TABLE' name_type
               FROM all_tables
               WHERE owner = '#{table_owner}'
