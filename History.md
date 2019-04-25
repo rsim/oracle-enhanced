@@ -1,3 +1,27 @@
+## 6.0.0.rc1 / 2019-04-25
+
+* Major changes
+  * Support Rails 6.0.0 rc1
+  * Address `ORA-01795: maximum number of expressions in a list is 1000`
+    - These changes has been made to Rails itself [rails/rails#35838, rails/rails#36074]
+
+* Changes and bug fixes
+  * Cache database version in schema cache [#1859]
+  * Except `table_name` from column objects [#1860]
+  * Remove unused `sequence_name` in `sql_for_insert` [#1861]
+  * Use squiggly heredoc to strip odd indentation in the executed SQL [#1869]
+  * Use Active Support `String#squish` instead of `String#strip.gsub` [#1871]
+
+* CI
+  * Revert "Add `allow_railures` for jruby-head until #1833 resolved" [#1862]
+  * CI against JRuby 9.2.7.0 [#1864]
+  * Use newer Code Climate analysis model, version 2 [#1868]
+  * CI against Ruby 2.6.3 [#1870]
+
+* RuboCop
+  * Bump RuboCop version to 0.67 [#1867]
+  * Enable `Layout/SpaceBeforeComment` cop [#1863]
+
 ## 6.0.0.beta1 / 2019-03-18
 
 * Major changes
