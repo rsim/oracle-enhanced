@@ -115,6 +115,8 @@ module ActiveRecord
     # * <tt>:time_zone</tt> - database session time zone
     #   (it is recommended to set it using ENV['TZ'] which will be then also used for database session time zone)
     # * <tt>:schema</tt> - database schema which holds schema objects.
+    # * <tt>:tcp_keepalive</tt> - TCP keepalive is enabled for OCI client, defaults to true
+    # * <tt>:tcp_keepalive_time</tt> - TCP keepalive time for OCI client, defaults to 600
     #
     # Optionals NLS parameters:
     #
