@@ -122,6 +122,34 @@ describe "OracleEnhancedConnection" do
     end
   end
 
+  if defined?(OCI8)
+    describe "with TCP keepalive parameters" do
+      it "should use database default `tcp_keepalive` value true by default" do
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
+
+        expect(OCI8.properties[:tcp_keepalive]).to be true
+      end
+
+      it "should use modified `tcp_keepalive` value false" do
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS.dup.merge(tcp_keepalive: false))
+
+        expect(OCI8.properties[:tcp_keepalive]).to be false
+      end
+
+      it "should use database default `tcp_keepalive_time` value 600 by default" do
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
+
+        expect(OCI8.properties[:tcp_keepalive_time]).to eq(600)
+      end
+
+      it "should use modified `tcp_keepalive_time` value 3000" do
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS.dup.merge(tcp_keepalive_time: 3000))
+
+        expect(OCI8.properties[:tcp_keepalive_time]).to eq(3000)
+      end
+    end
+  end
+
   describe "with non-string parameters" do
     before(:all) do
       params = CONNECTION_PARAMS.dup
