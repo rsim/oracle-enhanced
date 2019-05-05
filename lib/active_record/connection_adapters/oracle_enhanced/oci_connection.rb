@@ -297,6 +297,8 @@ module ActiveRecord
       # The OracleEnhancedOCIFactory factors out the code necessary to connect and
       # configure an Oracle/OCI connection.
       class OracleEnhancedOCIFactory #:nodoc:
+        DEFAULT_TCP_KEEPALIVE_TIME = 600
+
         def self.new_connection(config)
           # to_s needed if username, password or database is specified as number in database.yml file
           username = config[:username] && config[:username].to_s
@@ -326,11 +328,13 @@ module ActiveRecord
           else
             database
           end
-          OCI8.properties[:tcp_keepalive] = true
+
+          OCI8.properties[:tcp_keepalive] = config[:tcp_keepalive] == false ? false : true
           begin
-            OCI8.properties[:tcp_keepalive_time] = 600
+            OCI8.properties[:tcp_keepalive_time] = config[:tcp_keepalive_time] || DEFAULT_TCP_KEEPALIVE_TIME
           rescue NotImplementedError
           end
+
           conn = OCI8.new username, password, connection_string, privilege
           conn.autocommit = true
           conn.non_blocking = true if async
