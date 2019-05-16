@@ -1,3 +1,10 @@
+## 5.2.5 / 2019-05-17
+
+* Changes and bug fixes
+  * Add TCP keepalive and TCP keepalive time configurations [#1874 #1878]
+  * CI against Ruby 2.6.2 and 2.5.5 #1849
+  * CI against Ruby 2.4.6 #1858
+
 ## 5.2.5 / 2019-03-05
 
 * Changes and bug fixes
