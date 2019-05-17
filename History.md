@@ -1,4 +1,4 @@
-## 5.2.5 / 2019-05-17
+## 5.2.6 / 2019-05-17
 
 * Changes and bug fixes
   * Add TCP keepalive and TCP keepalive time configurations [#1874 #1878]
