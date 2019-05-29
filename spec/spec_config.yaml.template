@@ -1,4 +1,4 @@
-# copy this file to spec/config.yaml and set appropriate values
+# copy this file to spec/spec_config.yaml and set appropriate values
 # you can also use environment variables, see spec_helper.rb
 database:
   name:         'orcl'
