@@ -27,11 +27,10 @@ module ActiveRecord
               raise e
             end
           end
-          connection.execute "GRANT unlimited tablespace TO #{@config['username']}"
-          connection.execute "GRANT create session TO #{@config['username']}"
-          connection.execute "GRANT create table TO #{@config['username']}"
-          connection.execute "GRANT create view TO #{@config['username']}"
-          connection.execute "GRANT create sequence TO #{@config['username']}"
+
+          OracleEnhancedAdapter.permissions.each do |permission|
+            connection.execute "GRANT #{permission} TO #{@config['username']}"
+          end
         end
 
         def drop
