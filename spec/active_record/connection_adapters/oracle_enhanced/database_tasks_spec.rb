@@ -20,6 +20,11 @@ describe "Oracle Enhanced adapter database tasks" do
       query = "SELECT COUNT(*) FROM dba_users WHERE UPPER(username) = '#{new_user_config[:username].upcase}'"
       expect(ActiveRecord::Base.connection.select_value(query)).to eq(1)
     end
+    it "grants permissions defined by OracleEnhancedAdapter.persmissions" do
+      query = "SELECT COUNT(*) FROM DBA_SYS_PRIVS WHERE GRANTEE = '#{new_user_config[:username].upcase}'"
+      permissions_count = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions.size
+      expect(ActiveRecord::Base.connection.select_value(query)).to eq(permissions_count)
+    end
     after do
       ActiveRecord::Base.connection.execute("DROP USER #{new_user_config[:username]}")
     end

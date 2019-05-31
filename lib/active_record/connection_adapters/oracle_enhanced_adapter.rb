@@ -215,6 +215,18 @@ module ActiveRecord
 
       ##
       # :singleton-method:
+      # By default, OracleEnhanced adapter will grant unlimited tablespace, create session, create table, create view,
+      # and create sequence when running the rake task db:create.
+      #
+      # If you wish to change these permissions you can add the following line to your initializer file:
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions =
+      #   ["create session", "create table", "create view", "create sequence", "create trigger", "ctxapp"]
+      cattr_accessor :permissions
+      self.permissions = ["create session", "create table", "create view", "create sequence"]
+
+      ##
+      # :singleton-method:
       # Specify default sequence start with value (by default 1 if not explicitly set), e.g.:
 
       class StatementPool < ConnectionAdapters::StatementPool
