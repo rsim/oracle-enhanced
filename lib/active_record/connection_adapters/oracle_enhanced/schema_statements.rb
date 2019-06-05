@@ -196,19 +196,19 @@ module ActiveRecord
         #     t.string      :last_name, :comment => “Surname”
         #   end
 
-        def create_table(table_name, **options)
-          create_sequence = options[:id] != false
-          td = create_table_definition table_name, options
+        def create_table(table_name, id: :primary_key, primary_key: nil, force: nil, **options)
+          create_sequence = id != false
+          td = create_table_definition(
+            table_name, options.extract!(:temporary, :options, :as, :comment, :tablespace, :organization)
+          )
 
-          if options[:id] != false && !options[:as]
-            pk = options.fetch(:primary_key) do
-              Base.get_primary_key table_name.to_s.singularize
-            end
+          if id && !td.as
+            pk = primary_key || Base.get_primary_key(table_name.to_s.singularize)
 
             if pk.is_a?(Array)
               td.primary_keys pk
             else
-              td.primary_key pk, options.fetch(:id, :primary_key), options
+              td.primary_key pk, id, options
             end
           end
 
@@ -226,8 +226,8 @@ module ActiveRecord
           yield td if block_given?
           create_sequence = create_sequence || td.create_sequence
 
-          if options[:force] && data_source_exists?(table_name)
-            drop_table(table_name, options)
+          if force && data_source_exists?(table_name)
+            drop_table(table_name, force: force, if_exists: true)
           end
 
           execute schema_creation.accept td
@@ -235,7 +235,7 @@ module ActiveRecord
           create_sequence_and_trigger(table_name, options) if create_sequence
 
           if supports_comments? && !supports_comments_in_create?
-            if table_comment = options[:comment].presence
+            if table_comment = td.comment.presence
               change_table_comment(table_name, table_comment)
             end
             td.columns.each do |column|
