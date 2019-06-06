@@ -450,6 +450,7 @@ module ActiveRecord
       end
 
       def discard!
+        super
         @connection = nil
       end
 
