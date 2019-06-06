@@ -11,7 +11,7 @@ module ActiveRecord
         # see: abstract/schema_statements.rb
 
         def tables #:nodoc:
-          select_values(<<~SQL.squish, "tables")
+          select_values(<<~SQL.squish, "SCHEMA")
             SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
             FROM all_tables
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -43,7 +43,7 @@ module ActiveRecord
             table_owner, table_name = default_owner, real_name
           end
 
-          select_values(<<~SQL.squish, "table exists", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
+          select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
             SELECT owner, table_name
             FROM all_tables
             WHERE owner = :owner
@@ -59,20 +59,20 @@ module ActiveRecord
         end
 
         def views # :nodoc:
-          select_values(<<~SQL.squish, "views")
+          select_values(<<~SQL.squish, "SCHEMA")
             SELECT LOWER(view_name) FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         def materialized_views #:nodoc:
-          select_values(<<~SQL.squish, "materialized views")
+          select_values(<<~SQL.squish, "SCHEMA")
             SELECT LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         # get synonyms for schema dump
         def synonyms
-          result = select_all(<<~SQL.squish, "synonyms")
+          result = select_all(<<~SQL.squish, "SCHEMA")
             SELECT synonym_name, table_owner, table_name
             FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
@@ -87,7 +87,7 @@ module ActiveRecord
           (_owner, table_name) = @connection.describe(table_name)
           default_tablespace_name = default_tablespace
 
-          result = select_all(<<~SQL.squish, "indexes", [bind_string("table_name", table_name)])
+          result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
@@ -117,7 +117,7 @@ module ActiveRecord
               statement_parameters = nil
               if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
                 procedure_name = default_datastore_procedure(row["index_name"])
-                source = select_values(<<~SQL.squish, "procedure", [bind_string("procedure_name", procedure_name.upcase)]).join
+                source = select_values(<<~SQL.squish, "SCHEMA", [bind_string("procedure_name", procedure_name.upcase)]).join
                   SELECT text
                   FROM all_source
                   WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -366,7 +366,7 @@ module ActiveRecord
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
           (_owner, table_name) = @connection.describe(table_name)
-          result = select_value(<<~SQL.squish, "index name exists")
+          result = select_value(<<~SQL.squish, "SCHEMA")
             SELECT 1 FROM all_indexes i
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -499,8 +499,9 @@ module ActiveRecord
         end
 
         def table_comment(table_name) #:nodoc:
+          # TODO
           (_owner, table_name) = @connection.describe(table_name)
-          select_value(<<~SQL.squish, "Table comment", [bind_string("table_name", table_name)])
+          select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
             SELECT comments FROM all_tab_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
@@ -516,7 +517,7 @@ module ActiveRecord
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
           (_owner, table_name) = @connection.describe(table_name)
-          select_value(<<~SQL.squish, "Column comment", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
+          select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
             SELECT comments FROM all_col_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
@@ -533,7 +534,7 @@ module ActiveRecord
         end
 
         def tablespace(table_name)
-          select_value(<<~SQL.squish, "tablespace")
+          select_value(<<~SQL.squish, "SCHEMA")
             SELECT tablespace_name
             FROM all_tables
             WHERE table_name='#{table_name.to_s.upcase}'
@@ -545,7 +546,7 @@ module ActiveRecord
         def foreign_keys(table_name) #:nodoc:
           (_owner, desc_table_name) = @connection.describe(table_name)
 
-          fk_info = select_all(<<~SQL.squish, "Foreign Keys", [bind_string("desc_table_name", desc_table_name)])
+          fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
             SELECT r.table_name to_table
                   ,rc.column_name references_column
                   ,cc.column_name
@@ -587,7 +588,7 @@ module ActiveRecord
         # REFERENTIAL INTEGRITY ====================================
 
         def disable_referential_integrity(&block) #:nodoc:
-          old_constraints = select_all(<<~SQL.squish, "Foreign Keys to disable and enable")
+          old_constraints = select_all(<<~SQL.squish, "SCHEMA")
             SELECT constraint_name, owner, table_name
               FROM all_constraints
               WHERE constraint_type = 'R'
