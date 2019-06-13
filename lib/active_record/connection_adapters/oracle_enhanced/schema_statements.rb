@@ -619,7 +619,6 @@ module ActiveRecord
         end
 
         private
-
           def schema_creation
             OracleEnhanced::SchemaCreation.new self
           end

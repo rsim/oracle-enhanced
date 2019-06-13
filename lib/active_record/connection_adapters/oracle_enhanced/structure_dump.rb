@@ -316,7 +316,6 @@ module ActiveRecord #:nodoc:
         end
 
       private
-
         # Called only if `supports_virtual_columns?` returns true
         # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
         def virtual_columns_for(table)
