@@ -265,7 +265,6 @@ module ActiveRecord
         end
 
       private
-
         def date_without_time?(value)
           case value
           when OraDate

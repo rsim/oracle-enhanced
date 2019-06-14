@@ -133,7 +133,6 @@ module ActiveRecord
         end
 
         private
-
           def oracle_downcase(column_name)
             return nil if column_name.nil?
             /[a-z]/.match?(column_name) ? column_name : column_name.downcase

@@ -231,7 +231,6 @@ module ActiveRecord
 
       class StatementPool < ConnectionAdapters::StatementPool
         private
-
           def dealloc(stmt)
             stmt.close
           end

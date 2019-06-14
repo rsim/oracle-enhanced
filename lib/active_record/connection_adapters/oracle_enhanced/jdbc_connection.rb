@@ -512,7 +512,6 @@ module ActiveRecord
         end
 
       private
-
         def lob_to_ruby_value(val)
           case val
           when ::Java::OracleSql::CLOB

@@ -133,7 +133,6 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       end
 
       private
-
         def raise_make_transaction_rollback
           raise "Make the transaction rollback"
         end

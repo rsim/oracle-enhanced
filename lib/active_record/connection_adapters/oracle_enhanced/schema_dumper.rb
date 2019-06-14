@@ -5,7 +5,6 @@ module ActiveRecord #:nodoc:
     module OracleEnhanced #:nodoc:
       class SchemaDumper < ConnectionAdapters::SchemaDumper #:nodoc:
         private
-
           def tables(stream)
             # do not include materialized views in schema dump - they should be created separately after schema creation
             sorted_tables = (@connection.tables - @connection.materialized_views).sort

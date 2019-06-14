@@ -23,7 +23,6 @@ module ActiveRecord
         end
 
         protected
-
           def attributes_for_hash
             [self.class, @type_metadata, virtual]
           end

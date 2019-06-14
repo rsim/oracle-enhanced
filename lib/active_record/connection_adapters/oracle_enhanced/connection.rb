@@ -19,7 +19,6 @@ module ActiveRecord
         attr_reader :raw_connection
 
         private
-
           # Used always by JDBC connection as well by OCI connection when describing tables over database link
           def describe(name)
             name = name.to_s

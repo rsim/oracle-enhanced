@@ -24,7 +24,6 @@ module ActiveRecord #:nodoc:
         end
 
         private
-
           def enhanced_write_lobs
             if self.class.connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
                 !(self.class.custom_create_method || self.class.custom_update_method)

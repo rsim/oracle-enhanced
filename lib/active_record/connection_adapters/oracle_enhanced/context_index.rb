@@ -142,7 +142,6 @@ module ActiveRecord
         end
 
         private
-
           def create_datastore_procedure(table_name, procedure_name, column_names, options)
             quoted_table_name = quote_table_name(table_name)
             select_queries, column_names = column_names.partition { |c| c.to_s =~ /^\s*SELECT\s+/i }

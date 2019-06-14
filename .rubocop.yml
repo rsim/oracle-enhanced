@@ -30,6 +30,10 @@ Layout/ElseAlignment:
 Layout/EmptyLineAfterMagicComment:
   Enabled: true
 
+Layout/EmptyLinesAroundAccessModifier:
+  Enabled: true
+  EnforcedStyle: only_before
+
 Layout/EmptyLinesAroundBlockBody:
   Enabled: true
 
