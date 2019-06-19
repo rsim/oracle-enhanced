@@ -277,17 +277,17 @@ module ActiveRecord
 
           if supports_multi_insert?
             versions.inject(+"INSERT ALL\n") { |sql, version|
-              sql << "INTO #{sm_table} (version) VALUES (#{quote(version)})\n"
+              sql << "INTO #{sm_table} (version) VALUES (#{quote(version.to_s)})\n"
             } << "SELECT * FROM DUAL\n"
           else
             if versions.is_a?(Array)
               # called from ActiveRecord::Base.connection#dump_schema_information
               versions.map { |version|
-                "INSERT INTO #{sm_table} (version) VALUES (#{quote(version)})"
+                "INSERT INTO #{sm_table} (version) VALUES (#{quote(version.to_s)})"
               }.join("\n\n/\n\n")
             else
               # called from ActiveRecord::Base.connection#assume_migrated_upto_version
-              "INSERT INTO #{sm_table} (version) VALUES (#{quote(versions)})"
+              "INSERT INTO #{sm_table} (version) VALUES (#{quote(versions.to_s)})"
             end
           end
         end
