@@ -12,7 +12,7 @@ group :development do
   gem "rubocop-performance", require: false
   gem "rubocop-rails", require: false
 
-  gem "activerecord",   github: "rails/rails", branch: "master"
+  gem "activerecord",   github: "rails/rails", branch: "master", ref: "aeba121a83965d242ed6d7fd46e9c166079a3230"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
