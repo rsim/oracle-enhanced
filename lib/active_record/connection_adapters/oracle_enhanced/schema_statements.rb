@@ -228,6 +228,8 @@ module ActiveRecord
 
           if options[:force] && data_source_exists?(table_name)
             drop_table(table_name, options)
+          else
+            schema_cache.clear_data_source_cache!(table_name.to_s)
           end
 
           execute schema_creation.accept td
@@ -251,6 +253,8 @@ module ActiveRecord
           if new_name.to_s.length > DatabaseLimits::IDENTIFIER_MAX_LENGTH
             raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{DatabaseLimits::IDENTIFIER_MAX_LENGTH} characters"
           end
+          schema_cache.clear_data_source_cache!(table_name.to_s)
+          schema_cache.clear_data_source_cache!(new_name.to_s)
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
           execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{default_sequence_name(new_name)}" rescue nil
 
@@ -258,6 +262,7 @@ module ActiveRecord
         end
 
         def drop_table(table_name, options = {}) #:nodoc:
+          schema_cache.clear_data_source_cache!(table_name.to_s)
           execute "DROP TABLE #{quote_table_name(table_name)}#{' CASCADE CONSTRAINTS' if options[:force] == :cascade}"
           seq_name = options[:sequence_name] || default_sequence_name(table_name)
           execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
