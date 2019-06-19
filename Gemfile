@@ -11,7 +11,7 @@ group :development do
   gem "rubocop", "~> 0.67.0", require: false
   gem "rubocop-performance", require: false
 
-  gem "activerecord",   github: "rails/rails", branch: "master"
+  gem "activerecord",   github: "rails/rails", branch: "6-0-stable"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
