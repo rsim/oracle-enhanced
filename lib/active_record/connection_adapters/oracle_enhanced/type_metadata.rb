@@ -4,6 +4,8 @@ module ActiveRecord
   module ConnectionAdapters #:nodoc:
     module OracleEnhanced
       class TypeMetadata < DelegateClass(ActiveRecord::ConnectionAdapters::SqlTypeMetadata) # :nodoc:
+        include Deduplicable
+
         attr_reader :virtual
 
         def initialize(type_metadata, virtual: nil)
