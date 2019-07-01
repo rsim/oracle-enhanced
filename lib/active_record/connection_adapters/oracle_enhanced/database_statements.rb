@@ -8,8 +8,19 @@ module ActiveRecord
         #
         # see: abstract/database_statements.rb
 
+        READ_QUERY = ActiveRecord::ConnectionAdapters::AbstractAdapter.build_read_query_regexp(:commit, :explain, :select, :savepoint, :rollback) # :nodoc:
+        private_constant :READ_QUERY
+
+        def write_query?(sql) # :nodoc:
+          !READ_QUERY.match?(sql)
+        end
+
         # Executes a SQL statement
         def execute(sql, name = nil)
+          if preventing_writes? && write_query?(sql)
+            raise ActiveRecord::ReadOnlyError, "Write query attempted while in readonly mode: #{sql}"
+          end
+
           log(sql, name) { @connection.exec(sql) }
         end
 
