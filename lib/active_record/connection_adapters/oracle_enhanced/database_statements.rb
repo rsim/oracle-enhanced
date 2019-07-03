@@ -17,6 +17,10 @@ module ActiveRecord
 
         # Executes a SQL statement
         def execute(sql, name = nil)
+          p '=========================================='
+          p "preventing_writes?: #{preventing_writes?}"
+          p "write_query?: #{write_query?(sql)}"
+          p "sql: #{sql}"
           if preventing_writes? && write_query?(sql)
             raise ActiveRecord::ReadOnlyError, "Write query attempted while in readonly mode: #{sql}"
           end
@@ -200,6 +204,8 @@ module ActiveRecord
         end
 
         def create_savepoint(name = current_savepoint_name) #:nodoc:
+          pp '------------------------------------------------------------'
+          pp caller
           execute("SAVEPOINT #{name}", "TRANSACTION")
         end
 

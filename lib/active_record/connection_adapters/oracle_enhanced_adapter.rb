@@ -261,6 +261,10 @@ module ActiveRecord
         StatementPool.new(self.class.type_cast_config_to_integer(@config[:statement_limit]))
       end
 
+      def supports_lazy_transactions?
+        true
+      end
+
       def supports_savepoints? #:nodoc:
         true
       end
