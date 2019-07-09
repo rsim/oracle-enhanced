@@ -249,6 +249,14 @@ module ActiveRecord
         ADAPTER_NAME
       end
 
+      # Oracle enhanced adapter has no implementation because
+      # Oracle Database cannot detect `NoDatabaseError`.
+      # Please refer to the following discussion for details.
+      # https://github.com/rsim/oracle-enhanced/pull/1900
+      def self.database_exists?(config)
+        raise NotImplementedError
+      end
+
       def arel_visitor # :nodoc:
         if supports_fetch_first_n_rows_and_offset?
           Arel::Visitors::Oracle12.new(self)
