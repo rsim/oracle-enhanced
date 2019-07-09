@@ -244,6 +244,14 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "oracle_enhanced_connection" do
+    it "should bad connection" do
+      expect {
+        ActiveRecord::Base.oracle_enhanced_connection(adapter: "oracle_enhanced", database: "should_not_exist-cinco-dog-db")
+      }.to raise_error(ActiveRecord::NoDatabaseError)
+    end
+  end
+
   describe "explain" do
     before(:all) do
       @conn = ActiveRecord::Base.connection

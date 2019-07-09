@@ -73,6 +73,12 @@ module ActiveRecord
         ConnectionAdapters::OracleEnhancedAdapter.new(
           ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
       end
+    rescue OCIError => error
+      if /ORA-12154/.match?(error.message)
+        raise ActiveRecord::NoDatabaseError
+      else
+        raise
+      end
     end
   end
 
