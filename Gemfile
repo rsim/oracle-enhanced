@@ -25,5 +25,9 @@ group :development do
 end
 
 group :test do
-  gem "simplecov",  github: "colszowka/simplecov", branch: "master", require: false
+  if RUBY_VERSION < "2.4.0"
+    gem "simplecov",  "< 0.17", require: false
+  else
+    gem "simplecov",  github: "colszowka/simplecov", branch: "master", require: false
+  end
 end
