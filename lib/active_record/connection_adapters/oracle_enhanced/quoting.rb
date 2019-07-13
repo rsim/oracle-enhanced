@@ -10,7 +10,7 @@ module ActiveRecord
 
         def quote_column_name(name) #:nodoc:
           name = name.to_s
-          @quoted_column_names[name] ||= begin
+          self.class.quoted_column_names[name] ||= begin
             # if only valid lowercase column characters in name
             if /\A[a-z][a-z_0-9\$#]*\Z/.match?(name)
               "\"#{name.upcase}\""
@@ -70,7 +70,7 @@ module ActiveRecord
 
         def quote_table_name(name) #:nodoc:
           name, _link = name.to_s.split("@")
-          @quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
+          self.class.quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
         end
 
         def quote_string(s) #:nodoc:
