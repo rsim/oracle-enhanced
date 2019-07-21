@@ -82,7 +82,7 @@
   * Restore old Code Climate behavior [#1716]
   * Do not install bundler explicitly [#1725]
 
-* RuboCop 
+* RuboCop
 
   * Add RuboCop to Gemfile [#1841]
   * Bump RuboCop to 0.63.0 [#1816]
@@ -279,7 +279,7 @@
   * Remove `add_runtime_dependency` with arel [#1385]
   * Move methods for synonyms out of `SchemaStatementsExt` [#1387]
   * Remove incorrect prepend to `ActiveRecord::ColumnDumper` [#1394]
-  * Handle `ActiveRecord::SchemaDumper` by `adapter_name` [#1395] 
+  * Handle `ActiveRecord::SchemaDumper` by `adapter_name` [#1395]
   * Rewrite `remove_prefix_and_suffix` to be similar with super #1401
   * `remove_prefix_and_suffix` handles dollar sign by `Regexp#escape` [#1402]
   * `prepare_column_options` is now private [#1429]
@@ -543,7 +543,7 @@
   * Use the latest arel master while developing alpha version [#1115]
   * Bump Arel to 8.0 [#1120, #1121, #1124]
   * Use released Arel 8 [#1205]
-  * Remove duplicate license information [#965] 
+  * Remove duplicate license information [#965]
   * Clean up comments and un-commented specs for table comment feature [#971]
   * Use Rails migration `create_table` to create table and sequence [#991]
   * Removed a invalid spec about TIMESTAMP column [#1020]
@@ -931,7 +931,7 @@
  * Address `add_column_options!': undefined method `quote_value' [#647]
  * Remove dirty tracking methods [#883]
  * Use arel master branch for rails5 development [#645]
- * Bump ruby-oci8 version to 2.2.0 or higher [#775] 
+ * Bump ruby-oci8 version to 2.2.0 or higher [#775]
  * Remove jeweler dependency [#766]
  * Remove required_rubygems_version [#719]
  * Remove journey which is already part of Rails [#701]
@@ -969,13 +969,13 @@
  * Rails 5 : create table with primary key trigger with default primary key not returning id [#912]
  * Rails 5 : dirty object tracking not working correctly for CLOB [#911]
  * Rails 5 : handling of CLOB columns get failures [#910]
- * Rails 5 : SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', ' 
+ * Rails 5 : SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', '
     show Java::JavaSql::SQLSyntaxErrorException: / ORA-01722: invalid number [#909]
  * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
  - CRuby and JRuby
  * Rails 5 : create table with primary key trigger not returning id [#907]
  * Rails 5 : custom methods for create, update and destroy not working [#906]
- * Rails 5 : has_and_belongs_to_many test gets ORA-01400 since primary key column "ID" 
+ * Rails 5 : has_and_belongs_to_many test gets ORA-01400 since primary key column "ID"
     not included in insert statement [#856, rails/rails#25388]
  * Rails 5 : undefined method `to_i' for #<Arel::Nodes::BindParam:0x00000002c92910> [#848, rails/arel#438]
 
@@ -1038,11 +1038,11 @@
 
 * Changes and bug fixes since 1.6.0
 
- * Oracle enhanced adapter v1.6 requires ActiveRecord 4.2.1 or higher, 
+ * Oracle enhanced adapter v1.6 requires ActiveRecord 4.2.1 or higher,
    ActiveRecord 4.2.0 is not supported.[#651, #652]
  * Fix serialized value becomes from yaml to string once saved [#655, #657]
  * Update Ruby version in readme [#654]
- * Update unit test matcher to skip sql statements to get `table` metadata [#653] 
+ * Update unit test matcher to skip sql statements to get `table` metadata [#653]
 
 ## 1.6.0 / 2015-06-25
 
@@ -1125,7 +1125,7 @@
  * Change log method signiture to support Rails 4.2 [#539]
  * Enable loading spec configuration from config file instead of env [#550]
  * Rails42: Issue with non-existent columns [#545, #551]
- * Squelch warning "#column_for_attribute` will return a null object 
+ * Squelch warning "#column_for_attribute` will return a null object
    for non-existent columns in Rails 5. Use `#has_attribute?`" [#551]
  * Use arel 6-0-stable [#565]
  * Support 'Y' as true and 'N' as false in Rails 4.2 [#574, #573]
@@ -1136,7 +1136,7 @@
  * Rails 4.2 Address ArgumentError: wrong number of arguments (1 for 2) at `quote_value` [#511]
  * Address ORA-00932: inconsistent datatypes: expected NUMBER got DATE [#538]
  * Remove duplicate alias_method_chain for indexes [#560]
- * Address RangeError: 6000000000 is out of range for ActiveRecord::Type::Integer 
+ * Address RangeError: 6000000000 is out of range for ActiveRecord::Type::Integer
    with limit 4 [#578]
  * Return foreign_keys_without_oracle_enhanced when non Oracle database used [#583]
  * Add missing database_tasks.rb to gemspec [#585]
@@ -1181,7 +1181,7 @@
 * Enhancements
  * Oracle NUMBER datatype can be handled as Rails :float datatype [#418]
    - Default NUMBER datatype handled as :decimal to keep compatibility
-   - Configured by setting `self.number_datatype_coercion = :float` 
+   - Configured by setting `self.number_datatype_coercion = :float`
  * Add link to supported Oracle database version, JDK and Oracle JDBC Driver version [#438]
  * Support `without_prepared_statements?` to handle `unprepared_statement` [#447]
 
@@ -1263,7 +1263,7 @@
  * Create indexes automatically for references and belongs_to [#183]
  * Use the index name explicitly provided in a migration when reverting [#296]
  * Rename indexes when a table or column is renamed [#286]
- * Support refactored remove_column [#172] 
+ * Support refactored remove_column [#172]
  * Support allowed_index_name_length method [#285]
  * Remove schema prefix from sequence name if present before truncating [#155]
  * Bumped jeweler, ruby-plsql and ruby-oci8 version [#176]
@@ -1579,7 +1579,7 @@
   * Added support for NVARCHAR2 column type
 * Bug fixes:
   * Do not call write_lobs callback when custom create or update methods are defined
-    
+
 ### 1.1.5 / 2008-07-27
 
 * Bug fixes:
