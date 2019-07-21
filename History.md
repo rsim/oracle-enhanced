@@ -1,3 +1,12 @@
+## 6.0.0.rc2 / 2019-07-23
+
+* Major changes
+  * Support Rails 6.0.0 rc2
+  * Add TCP keepalive and TCP keepalive time configurations [#1874 #1877]
+
+* Changes and bug fixes
+  * Update bug report templates for Oracle enhanced adapter 6.0 [#1873]
+
 ## 6.0.0.rc1 / 2019-04-25
 
 * Major changes
