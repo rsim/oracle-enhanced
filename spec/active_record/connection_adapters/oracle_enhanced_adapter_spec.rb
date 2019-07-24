@@ -244,6 +244,14 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "database_exists?" do
+    it "should raise `NotImplementedError`" do
+      expect {
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.database_exists?(CONNECTION_PARAMS)
+      }.to raise_error(NotImplementedError)
+    end
+  end
+
   describe "explain" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
