@@ -1,3 +1,8 @@
+## 6.0.0.rc3 / 2019-07-27
+
+* Changes and bug fixes
+  * Share the column and table name quote cache between connections [#1901 #1903]
+
 ## 6.0.0.rc2 / 2019-07-23
 
 * Major changes
