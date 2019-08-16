@@ -9,7 +9,7 @@ group :development do
   gem "rdoc"
   gem "rake"
   gem "rubocop", "~> 0.74.0", require: false
-  gem "rubocop-performance", require: false
+  gem "rubocop-performance", "~> 1.3.0", require: false
   gem "rubocop-rails", require: false
 
   gem "activerecord",   github: "rails/rails", branch: "master"
