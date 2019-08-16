@@ -10,7 +10,7 @@ group :development do
   gem "rake"
   gem "rubocop", "~> 0.74.0", require: false
   gem "rubocop-performance", "~> 1.3.0", require: false
-  gem "rubocop-rails", require: false
+  gem "rubocop-rails", "~> 2.0.0", require: false
 
   gem "activerecord",   github: "rails/rails", branch: "master"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
