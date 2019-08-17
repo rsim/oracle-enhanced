@@ -1,3 +1,17 @@
+## 6.0.0 / 2019-08-17
+
+* Major changes, including changes since 6.0.0.beta1
+
+  * Support Rails 6.0.0
+  * Rails 6 requires Ruby 2.5 [#1801]
+  * Support longer identifier for Oracle database 12.2 or higher [#1703 #1705]
+  * Introduce `use_shorter_identifier` [#1707]
+  * Change `default_sequence_start_value` from 10000 to 1 [#1636]
+  * Address `ORA-01795: maximum number of expressions in a list is 1000`
+
+* CI
+  * CI against JRuby 9.2.8.0 #1912
+
 ## 6.0.0.rc3 / 2019-07-27
 
 * Changes and bug fixes
