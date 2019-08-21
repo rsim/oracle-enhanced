@@ -29,3 +29,9 @@ end
 group :test do
   gem "simplecov",  github: "colszowka/simplecov", branch: "master", require: false
 end
+
+group :rubocop do
+  gem "rubocop", require: false
+  gem "rubocop-performance", require: false
+  gem "rubocop-rails", require: false
+end
