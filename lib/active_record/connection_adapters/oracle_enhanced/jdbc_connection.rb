@@ -238,7 +238,7 @@ module ActiveRecord
           begin
             yield if block_given?
           rescue Java::JavaSql::SQLException => e
-            raise unless e.message =~ /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
+            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/.match?(e.message)
             @active = false
             raise unless should_retry
             should_retry = false

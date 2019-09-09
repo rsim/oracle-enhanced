@@ -180,7 +180,7 @@ describe "OracleEnhancedConnection" do
   describe "with slash-prefixed database name (service name)" do
     before(:all) do
       params = CONNECTION_PARAMS.dup
-      params[:database] = "/#{params[:database]}" unless params[:database].match(/^\//)
+      params[:database] = "/#{params[:database]}" unless params[:database].match?(/^\//)
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
     end
 
