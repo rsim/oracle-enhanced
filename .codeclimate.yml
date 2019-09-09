@@ -22,11 +22,6 @@ checks:
   identical-code:
     enabled: false
 
-plugins:
-  rubocop:
-    enabled: true
-    channel: rubocop-0-74
-
 ratings:
   paths:
   - "**.rb"
