@@ -647,7 +647,7 @@ module ActiveRecord
               # If a default contains a newline these cleanup regexes need to
               # match newlines.
               field["data_default"].sub!(/^'(.*)'$/m, '\1')
-              field["data_default"] = nil if field["data_default"] =~ /^(null|empty_[bc]lob\(\))$/i
+              field["data_default"] = nil if /^(null|empty_[bc]lob\(\))$/i.match?(field["data_default"])
               # TODO: Needs better fix to fallback "N" to false
               field["data_default"] = false if field["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings
             end
