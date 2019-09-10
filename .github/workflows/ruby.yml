@@ -27,11 +27,6 @@ jobs:
         sudo alien -i oracle-instantclient19.3-sqlplus-19.3.0.0.0-1.x86_64.rpm
         sudo alien -i oracle-instantclient19.3-devel-19.3.0.0.0-1.x86_64.rpm
 
-    - name: Update environment variables
-      run: |
-        export PATH=/usr/lib/oracle/19.3/client64/bin:$PATH
-        export LD_LIBRARY_PATH=/usr/lib/oracle/19.3/client64/lib:$LD_LIBRARY_PATH
-
     - name: Build and run RuboCop
       run: |
         bundle install --jobs 4 --retry 3
