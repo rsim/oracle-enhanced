@@ -3,7 +3,7 @@
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
-      class SchemaCreation < AbstractAdapter::SchemaCreation
+      class SchemaCreation < SchemaCreation
         private
           def visit_ColumnDefinition(o)
             if [:blob, :clob, :nclob].include?(sql_type = type_to_sql(o.type,  o.options).downcase.to_sym)
