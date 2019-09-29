@@ -406,10 +406,10 @@ module ActiveRecord
           OracleEnhanced::ReferenceDefinition.new(*args).add_to(update_table_definition(table_name, self))
         end
 
-        def add_column(table_name, column_name, type, options = {}) #:nodoc:
+        def add_column(table_name, column_name, type, **options) #:nodoc:
           type = aliased_types(type.to_s, type)
           at = create_alter_table table_name
-          at.add_column(column_name, type, options)
+          at.add_column(column_name, type, **options)
           add_column_sql = schema_creation.accept at
           add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name)
           execute add_column_sql
@@ -619,8 +619,8 @@ module ActiveRecord
             OracleEnhanced::SchemaCreation.new self
           end
 
-          def create_table_definition(*args)
-            OracleEnhanced::TableDefinition.new(self, *args)
+          def create_table_definition(*args, **options)
+            OracleEnhanced::TableDefinition.new(self, *args, **options)
           end
 
           def new_column_from_field(table_name, field)
