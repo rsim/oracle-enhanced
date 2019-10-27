@@ -285,6 +285,10 @@ module ActiveRecord
         true
       end
 
+      def supports_common_table_expressions?
+        true
+      end
+
       def supports_views?
         true
       end
