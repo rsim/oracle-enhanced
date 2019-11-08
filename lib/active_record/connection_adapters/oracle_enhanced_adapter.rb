@@ -30,6 +30,7 @@
 # contribution.
 # portions Copyright 2005 Graham Jenkins
 
+require "active_record/connection_adapters"
 require "active_record/connection_adapters/abstract_adapter"
 require "active_record/connection_adapters/statement_pool"
 require "active_record/connection_adapters/oracle_enhanced/connection"
