@@ -1,3 +1,11 @@
+## 6.0.1 / 2019-12-20
+
+* Changes and bug fixes
+  * Address `undefined local variable or method `sql' [#1932 #1962 #1963]
+
+* CI
+  * CI against Ruby 2.6.4 and Ruby 2.5.6 [#1922]
+
 ## 6.0.0 / 2019-08-17
 
 * Major changes, including changes since 6.0.0.beta1
