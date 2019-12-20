@@ -1,3 +1,10 @@
+## 5.2.7 / 2019-12-20
+
+* Changes and bug fixes
+  * Address undefined local variable or method sql' [#1932 #1962 #1964]
+  * CI against Ruby 2.6.4 and Ruby 2.5.6 [#1922]
+  * Lock simplecov version for Ruby 2.2 and 2.3 [#1902]
+
 ## 5.2.6 / 2019-05-17
 
 * Changes and bug fixes
