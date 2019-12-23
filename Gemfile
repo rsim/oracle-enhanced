@@ -25,7 +25,3 @@ group :development do
     gem "pry-nav"
   end
 end
-
-group :test do
-  gem "simplecov",  github: "colszowka/simplecov", branch: "master", require: false
-end
