@@ -1,3 +1,8 @@
+## 6.0.2 / 2019-12-25
+
+* Changes and bug fixes
+  * Uninstall SimpleCov [#1968]
+
 ## 6.0.1 / 2019-12-20
 
 * Changes and bug fixes
