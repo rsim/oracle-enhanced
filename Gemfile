@@ -23,11 +23,3 @@ group :development do
     gem "i18n", "~> 1.2.0"
   end
 end
-
-group :test do
-  if RUBY_VERSION < "2.4.0"
-    gem "simplecov",  "< 0.17", require: false
-  else
-    gem "simplecov",  github: "colszowka/simplecov", branch: "master", require: false
-  end
-end
