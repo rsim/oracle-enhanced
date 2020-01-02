@@ -97,6 +97,10 @@ module ActiveRecord
           @raw_connection.exec(sql, *bindvars, &block)
         end
 
+        def with_retry(&block)
+          @raw_connection.with_retry(&block)
+        end
+
         def prepare(sql)
           Cursor.new(self, @raw_connection.parse(sql))
         end
@@ -419,13 +423,11 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] #:nodoc:
 
   # Adds auto-recovery functionality.
-  #
-  # See: http://www.jiubao.org/ruby-oci8/api.en.html#label-11
-  def exec(sql, *bindvars, &block) #:nodoc:
+  def with_retry #:nodoc:
     should_retry = self.class.auto_retry? && autocommit?
 
     begin
-      @connection.exec(sql, *bindvars, &block)
+      yield
     rescue OCIException => e
       raise unless e.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(e.code)
       @active = false
@@ -434,6 +436,10 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
       reset! rescue nil
       retry
     end
+  end
+
+  def exec(sql, *bindvars, &block) #:nodoc:
+    with_retry { @connection.exec(sql, *bindvars, &block) }
   end
 end
 #:startdoc:
