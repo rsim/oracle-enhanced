@@ -198,7 +198,7 @@ module ActiveRecord
 
         def create_table(table_name, **options)
           create_sequence = options[:id] != false
-          td = create_table_definition table_name, options
+          td = create_table_definition table_name, **options
 
           if options[:id] != false && !options[:as]
             pk = options.fetch(:primary_key) do
@@ -208,7 +208,7 @@ module ActiveRecord
             if pk.is_a?(Array)
               td.primary_keys pk
             else
-              td.primary_key pk, options.fetch(:id, :primary_key), options
+              td.primary_key pk, options.fetch(:id, :primary_key), **options
             end
           end
 
@@ -288,7 +288,7 @@ module ActiveRecord
         end
 
         def add_index(table_name, column_name, options = {}) #:nodoc:
-          index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, options)
+          index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, **options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
           if index_type == "UNIQUE"
             unless /\(.*\)/.match?(quoted_column_names)
@@ -402,8 +402,8 @@ module ActiveRecord
           execute "DROP SYNONYM #{quote_table_name(name)}"
         end
 
-        def add_reference(table_name, *args)
-          OracleEnhanced::ReferenceDefinition.new(*args).add_to(update_table_definition(table_name, self))
+        def add_reference(table_name, ref_name, **options)
+          OracleEnhanced::ReferenceDefinition.new(ref_name, **options).add_to(update_table_definition(table_name, self))
         end
 
         def add_column(table_name, column_name, type, **options) #:nodoc:
@@ -453,7 +453,7 @@ module ActiveRecord
           end
 
           td = create_table_definition(table_name)
-          cd = td.new_column_definition(column.name, type, options)
+          cd = td.new_column_definition(column.name, type, **options)
           change_column_stmt = schema_creation.accept cd
           change_column_stmt << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name]) if type
           change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{change_column_stmt}"

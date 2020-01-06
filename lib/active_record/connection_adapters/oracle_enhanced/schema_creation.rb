@@ -7,7 +7,7 @@ module ActiveRecord
         private
 
           def visit_ColumnDefinition(o)
-            if [:blob, :clob, :nclob].include?(sql_type = type_to_sql(o.type,  o.options).downcase.to_sym)
+            if [:blob, :clob, :nclob].include?(sql_type = type_to_sql(o.type, **o.options).downcase.to_sym)
               if (tablespace = default_tablespace_for(sql_type))
                 @lob_tablespaces ||= {}
                 @lob_tablespaces[o.name] = tablespace
