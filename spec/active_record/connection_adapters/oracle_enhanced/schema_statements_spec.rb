@@ -80,7 +80,8 @@ describe "OracleEnhancedAdapter schema definition" do
   describe "sequence creation parameters" do
     def create_test_employees_table(sequence_start_value = nil)
       schema_define do
-        create_table :test_employees, sequence_start_value ? { sequence_start_value: sequence_start_value } : {} do |t|
+        options = sequence_start_value ? { sequence_start_value: sequence_start_value } : {}
+        create_table :test_employees, **options do |t|
           t.string      :first_name
           t.string      :last_name
         end
