@@ -71,7 +71,7 @@ module ActiveRecord #:nodoc:
               index_statements = indexes.map do |index|
                 "    t.index #{index_parts(index).join(', ')}" unless index.type == "CTXSYS.CONTEXT"
               end
-              stream.puts index_statements.sort.join("\n")
+              stream.puts index_statements.compact.sort.join("\n")
             end
           end
 
