@@ -50,6 +50,7 @@ module ActiveRecord #:nodoc:
                   else
                     statement_parts = [ ("add_context_index " + remove_prefix_and_suffix(table).inspect) ]
                     statement_parts << index.columns.inspect
+                    statement_parts << ("sync: " + $1.inspect) if index.parameters =~ /SYNC\((.*?)\)/
                     statement_parts << ("name: " + index.name.inspect)
                   end
                 else

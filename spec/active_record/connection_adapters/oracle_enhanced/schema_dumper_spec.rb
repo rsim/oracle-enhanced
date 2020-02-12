@@ -313,7 +313,7 @@ describe "OracleEnhancedAdapter schema dump" do
           t.string :body
           t.index :title
         end
-        add_context_index :test_context_indexed_posts, :body
+        add_context_index :test_context_indexed_posts, :body, sync: "ON COMMIT"
       end
     end
 
@@ -325,6 +325,10 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should dump the context index" do
       expect(standard_dump).to include(%(add_context_index "test_context_indexed_posts", ["body"]))
+    end
+
+    it "dumps the sync option" do
+      expect(standard_dump).to include(%(sync: "ON COMMIT"))
     end
   end
 
