@@ -50,6 +50,7 @@ module ActiveRecord #:nodoc:
                   else
                     statement_parts = [ ("add_context_index " + remove_prefix_and_suffix(table).inspect) ]
                     statement_parts << index.columns.inspect
+                    statement_parts << ("sync: " + $1.inspect) if index.parameters =~ /SYNC\((.*?)\)/
                     statement_parts << ("name: " + index.name.inspect)
                   end
                 else
@@ -71,7 +72,7 @@ module ActiveRecord #:nodoc:
               index_statements = indexes.map do |index|
                 "    t.index #{index_parts(index).join(', ')}" unless index.type == "CTXSYS.CONTEXT"
               end
-              stream.puts index_statements.sort.join("\n")
+              stream.puts index_statements.compact.sort.join("\n")
             end
           end
 

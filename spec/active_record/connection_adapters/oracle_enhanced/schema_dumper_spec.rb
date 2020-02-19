@@ -305,6 +305,33 @@ describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "context indexes" do
+    before(:each) do
+      schema_define do
+        create_table :test_context_indexed_posts, force: true do |t|
+          t.string :title
+          t.string :body
+          t.index :title
+        end
+        add_context_index :test_context_indexed_posts, :body, sync: "ON COMMIT"
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_context_indexed_posts
+      end
+    end
+
+    it "should dump the context index" do
+      expect(standard_dump).to include(%(add_context_index "test_context_indexed_posts", ["body"]))
+    end
+
+    it "dumps the sync option" do
+      expect(standard_dump).to include(%(sync: "ON COMMIT"))
+    end
+  end
+
   describe "virtual columns" do
     before(:all) do
       skip "Not supported in this database version" unless @oracle11g_or_higher
