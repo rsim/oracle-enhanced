@@ -102,8 +102,7 @@ module ActiveRecord
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_name = :table_name
-               AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
-                WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
+               AND LOWER(c.column_name) != 'id'
             ORDER BY i.index_name, c.column_position
           SQL
 
