@@ -663,7 +663,7 @@ if any database structure changed by migrations, execute `rails db:schema:cache:
 
 UPGRADE
 ---------------
-### Upgrade Rails 5.0 or older version to Rails 5.2
+### Upgrade Rails 5.1 or older version to Rails 5.2
 
 * `emulate_booleans_from_strings = true` change
 
