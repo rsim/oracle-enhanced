@@ -53,7 +53,7 @@ module ActiveRecord
               while row = cursor.fetch(fetch_options)
                 rows << row
               end
-              res = build_result(columns, rows)
+              res = build_result(columns: columns, rows: rows)
             end
 
             cursor.close unless cached
@@ -130,7 +130,7 @@ module ActiveRecord
               rows << [returning_id]
             end
             cursor.close unless cached
-            build_result(returning_id_col || [], rows)
+            build_result(columns: returning_id_col || [], rows: rows)
           end
         end
 
