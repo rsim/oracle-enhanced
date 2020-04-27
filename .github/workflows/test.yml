@@ -1,0 +1,66 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        ruby: [
+          2.7,
+          2.6,
+          2.5,
+          ruby-head,
+          ruby-debug
+        ]
+    env:
+      ORACLE_HOME: /opt/oracle/product/18c/dbhomeXE
+      LD_LIBRARY_PATH: /opt/oracle/product/18c/dbhomeXE/lib
+      NLS_LANG: AMERICAN_AMERICA.AL32UTF8
+      TNS_ADMIN: ./ci/network/admin
+      DATABASE_NAME: XEPDB1
+      TZ: Europe/Riga
+      DATABASE_SYS_PASSWORD: Oracle18
+
+    services:
+      oracle:
+        image: quillbuilduser/oracle-18-xe
+        ports:
+          - 1521:1521
+        env:
+          TZ: Europe/Riga
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+    - name: Install required package
+      run: |
+        sudo apt-get install alien
+    - name: Download Oracle client
+      run: |
+        wget -q https://download.oracle.com/otn-pub/otn_software/db-express/oracle-database-xe-18c-1.0-1.x86_64.rpm
+    - name: Install Oracle client
+      run: |
+        sudo alien -i oracle-database-xe-18c-1.0-1.x86_64.rpm
+    - name: Install JDBC Driver
+      run: |
+        cp $ORACLE_HOME/jdbc/lib/ojdbc8.jar lib/.
+    - name: Create database user
+      run: |
+        ./ci/setup_accounts.sh
+    - name: Bundle install
+      run: |
+        bundle install --jobs 4 --retry 3
+    - name: Run RSpec
+      run: |
+        bundle exec rspec
+    - name: Run bug report templates
+      run: |
+        ruby guides/bug_report_templates/active_record_gem.rb
+        ruby guides/bug_report_templates/active_record_gem_spec.rb
