@@ -311,13 +311,11 @@ module ActiveRecord
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name].to_s if options.key?(:name)
           tablespace = tablespace_for(:index, options[:tablespace])
-          max_index_length = options.fetch(:internal, false) ? index_name_length : allowed_index_name_length
-          # TODO: This option is used for NOLOGGING, needs better argumetn name
+          # TODO: This option is used for NOLOGGING, needs better argument name
           index_options = options[:options]
 
-          if index_name.to_s.length > max_index_length
-            raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' is too long; the limit is #{max_index_length} characters"
-          end
+          validate_index_length!(table_name, index_name, options.fetch(:internal, false))
+
           if table_exists?(table_name) && index_name_exists?(table_name, index_name)
             raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' already exists"
           end
