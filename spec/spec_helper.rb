@@ -105,14 +105,7 @@ module LoggerSpecHelper
   end
 end
 
-# TODO: Address these warnings:
-# /path/to/spec/spec_helper.rb:112: warning: already initialized constant ActiveRecord::LogSubscriber::IGNORE_PAYLOAD_NAMES
-# /path/to/rails/activerecord/lib/active_record/log_subscriber.rb:5: warning: previous definition of IGNORE_PAYLOAD_NAMES was here
-module ActiveRecord
-  class LogSubscriber
-    IGNORE_PAYLOAD_NAMES = ["EXPLAIN"]
-  end
-end
+ActiveRecord::LogSubscriber::IGNORE_PAYLOAD_NAMES.replace(["EXPLAIN"])
 
 module SchemaSpecHelper
   def schema_define(&block)
