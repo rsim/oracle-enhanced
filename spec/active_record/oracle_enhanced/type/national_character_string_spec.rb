@@ -35,9 +35,11 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
     columns = @conn.columns("test_items")
     %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
       column = columns.detect { |c| c.name == col }
-      value = @conn.type_cast_from_column(column, "abc")
+      type = @conn.lookup_cast_type_from_column(column)
+      value = type.serialize("abc")
       expect(@conn.quote(value)).to eq(column.sql_type[0, 1] == "N" ? "N'abc'" : "'abc'")
-      nilvalue = @conn.type_cast_from_column(column, nil)
+      type = @conn.lookup_cast_type_from_column(column)
+      nilvalue = type.serialize(nil)
       expect(@conn.quote(nilvalue)).to eq("NULL")
     end
   end
