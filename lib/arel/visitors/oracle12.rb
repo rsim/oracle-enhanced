@@ -46,21 +46,23 @@ module Arel # :nodoc: all
           in_clause_length = @connection.in_clause_length
           values = o.casted_values.map { |v| @connection.quote(v) }
           column_name = quote_table_name(o.table_name) << "." << quote_column_name(o.column_name)
-          operator = if o.type == :in
-                       "IN ("
-                     else
-                       "NOT IN ("
-                     end
+          operator =
+            if o.type == :in
+              "IN ("
+            else
+              "NOT IN ("
+            end
 
           if !Array === values || values.length <= in_clause_length
             collector << column_name
             collector << operator
 
-            expr = if values.empty?
-                     @connection.quote(nil)
-                   else
-                     values.join(",")
-                   end
+            expr =
+              if values.empty?
+                @connection.quote(nil)
+              else
+                values.join(",")
+              end
 
             collector << expr
             collector << ")"
