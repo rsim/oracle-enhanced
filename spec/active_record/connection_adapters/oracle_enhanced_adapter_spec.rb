@@ -197,7 +197,7 @@ describe "OracleEnhancedAdapter" do
     before(:all) do
       schema_define do
         create_table :test_posts do |t|
-          t.string      :title
+          t.string :title
         end
       end
       class ::TestPost < ActiveRecord::Base
