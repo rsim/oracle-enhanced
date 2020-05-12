@@ -193,6 +193,46 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "lists" do
+    before(:all) do
+      schema_define do
+        create_table :test_posts do |t|
+          t.string      :title
+        end
+      end
+      class ::TestPost < ActiveRecord::Base
+        has_many :test_comments
+      end
+      @ids = (1..1010).to_a
+      TestPost.transaction do
+        @ids.each do |id|
+          TestPost.create!(id: id, title: "Title #{id}")
+        end
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_posts
+      end
+      Object.send(:remove_const, "TestPost")
+      ActiveRecord::Base.clear_cache!
+    end
+
+    ##
+    # See this GitHub issue for an explanation of homogenous lists.
+    # https://github.com/rails/rails/commit/72fd0bae5948c1169411941aeea6fef4c58f34a9
+    it "should allow more than 1000 items in a list where the list is homogenous" do
+      posts = TestPost.where(id: @ids).to_a
+      expect(posts.size).to eq(@ids.size)
+    end
+
+    it "should allow more than 1000 items in a list where the list is non-homogenous" do
+      posts = TestPost.where(id: [*@ids, nil]).to_a
+      expect(posts.size).to eq(@ids.size)
+    end
+  end
+
   describe "with statement pool" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(statement_limit: 3))
