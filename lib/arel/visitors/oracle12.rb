@@ -45,7 +45,7 @@ module Arel # :nodoc: all
         def visit_Arel_Nodes_HomogeneousIn(o, collector)
           in_clause_length = @connection.in_clause_length
           values = o.casted_values.map { |v| @connection.quote(v) }
-          column_name = quote_table_name(o.table_name) + '.' + quote_column_name(o.column_name)
+          column_name = quote_table_name(o.table_name) + "." + quote_column_name(o.column_name)
           operator =
             if o.type == :in
               "IN ("
