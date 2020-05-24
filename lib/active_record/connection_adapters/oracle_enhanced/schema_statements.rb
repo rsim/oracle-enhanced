@@ -622,8 +622,8 @@ module ActiveRecord
             OracleEnhanced::SchemaCreation.new self
           end
 
-          def create_table_definition(*args, **options)
-            OracleEnhanced::TableDefinition.new(self, *args, **options)
+          def create_table_definition(name, **options)
+            OracleEnhanced::TableDefinition.new(self, name, **options)
           end
 
           def new_column_from_field(table_name, field)
