@@ -42,7 +42,7 @@ module ActiveRecord
               cursor.exec
             end
 
-            if (name == "EXPLAIN") && sql =~ /^EXPLAIN/
+            if (name == "EXPLAIN") && sql.start_with?("EXPLAIN")
               res = true
             else
               columns = cursor.get_col_names.map do |col_name|

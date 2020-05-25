@@ -18,7 +18,7 @@ module ActiveRecord #:nodoc:
         module ClassMethods
           def lob_columns
             columns.select do |column|
-              column.sql_type_metadata.sql_type =~ /LOB$/
+              column.sql_type_metadata.sql_type.end_with?("LOB")
             end
           end
         end
