@@ -107,7 +107,10 @@ module ActiveRecord #:nodoc:
                 tbl.print ", primary_key: #{pk.inspect}" unless pk == "id"
                 pkcol = columns.detect { |c| c.name == pk }
                 pkcolspec = column_spec_for_primary_key(pkcol)
-                if pkcolspec.present?
+                unless pkcolspec.empty?
+                  if pkcolspec != pkcolspec.slice(:id, :default)
+                    pkcolspec = { id: { type: pkcolspec.delete(:id), **pkcolspec }.compact }
+                  end
                   tbl.print ", #{format_colspec(pkcolspec)}"
                 end
               when Array

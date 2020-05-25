@@ -61,7 +61,8 @@ module ActiveRecord
           as: nil,
           tablespace: nil,
           organization: nil,
-          comment: nil
+          comment: nil,
+          **
         )
           @tablespace = tablespace
           @organization = organization
