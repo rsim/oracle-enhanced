@@ -233,3 +233,9 @@ Performance/ReverseEach:
 # Use unary plus to get an unfrozen string literal.
 Performance/UnfreezeString:
   Enabled: true
+
+Performance/DeletePrefix:
+  Enabled: true
+
+Performance/DeleteSuffix:
+  Enabled: true
