@@ -244,7 +244,7 @@ module ActiveRecord
               change_column_comment(table_name, column.name, column.comment) if column.comment.present?
             end
           end
-          td.indexes.each { |c, o| add_index table_name, c, o }
+          td.indexes.each { |c, o| add_index table_name, c, **o }
 
           rebuild_primary_key_index_to_default_tablespace(table_name, options)
         end
@@ -292,7 +292,7 @@ module ActiveRecord
           end
         end
 
-        def add_index(table_name, column_name, options = {}) #:nodoc:
+        def add_index(table_name, column_name, **options) #:nodoc:
           index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, **options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
           if index_type == "UNIQUE"
@@ -326,7 +326,7 @@ module ActiveRecord
 
         # Remove the given index from the table.
         # Gives warning if index does not exist
-        def remove_index(table_name, column_name = nil, options = {}) #:nodoc:
+        def remove_index(table_name, column_name = nil, **options) #:nodoc:
           index_name = index_name_for_remove(table_name, column_name, options)
           # TODO: It should execute only when index_type == "UNIQUE"
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(index_name)}" rescue nil
