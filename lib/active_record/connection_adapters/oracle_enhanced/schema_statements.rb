@@ -261,7 +261,7 @@ module ActiveRecord
           rename_table_indexes(table_name, new_name)
         end
 
-        def drop_table(table_name, options = {}) #:nodoc:
+        def drop_table(table_name, **options) #:nodoc:
           schema_cache.clear_data_source_cache!(table_name.to_s)
           execute "DROP TABLE #{quote_table_name(table_name)}#{' CASCADE CONSTRAINTS' if options[:force] == :cascade}"
           seq_name = options[:sequence_name] || default_sequence_name(table_name)
@@ -443,7 +443,7 @@ module ActiveRecord
           change_column table_name, column_name, column.sql_type, null: null
         end
 
-        def change_column(table_name, column_name, type, options = {}) #:nodoc:
+        def change_column(table_name, column_name, type, **options) #:nodoc:
           column = column_for(table_name, column_name)
 
           # remove :null option if its value is the same as current column definition
