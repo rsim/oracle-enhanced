@@ -1,3 +1,12 @@
+## 6.0.3 / 2020-06-16
+
+* Changes and bug fixes
+  * Auto retry works for other `exec_*` methods [#1976, #1981]
+  * Allow column name with function (e.g. `length(title)`) as safe SQL string [#2017, #2018]
+
+* CI
+  * CI against latest Ruby versions [#1979]
+
 ## 6.0.2 / 2019-12-25
 
 * Changes and bug fixes
