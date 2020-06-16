@@ -773,3 +773,18 @@ require "active_record/connection_adapters/oracle_enhanced/version"
 module ActiveRecord
   autoload :OracleEnhancedProcedures, "active_record/connection_adapters/oracle_enhanced/procedures"
 end
+
+# Workaround for https://github.com/jruby/jruby/issues/6267
+if RUBY_ENGINE == "jruby"
+  require "jruby"
+
+  class org.jruby::RubyObjectSpace::WeakMap
+    field_reader :map
+  end
+
+  class ObjectSpace::WeakMap
+    def values
+      JRuby.ref(self).map.values.reject(&:nil?)
+    end
+  end
+end
