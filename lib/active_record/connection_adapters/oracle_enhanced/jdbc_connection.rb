@@ -115,9 +115,9 @@ module ActiveRecord
             else
               unless database.match?(/^(\:|\/)/)
                 # assume database is a SID if no colon or slash are supplied (backward-compatibility)
-                database = ":#{database}"
+                database = "/#{database}"
               end
-              url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}#{database}"
+              url = config[:url] || "jdbc:oracle:thin:@//#{host || 'localhost'}:#{port || 1521}#{database}"
             end
 
             prefetch_rows = config[:prefetch_rows] || 100

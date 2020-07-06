@@ -185,6 +185,15 @@ SYSTEM_CONNECTION_PARAMS = {
   password: DATABASE_SYS_PASSWORD
 }
 
+SERVICE_NAME_CONNECTION_PARAMS = {
+  adapter: "oracle_enhanced",
+  database: "/#{DATABASE_NAME}",
+  host: DATABASE_HOST,
+  port: DATABASE_PORT,
+  username: DATABASE_USER,
+  password: DATABASE_PASSWORD
+}
+
 DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] || ENV["DATABASE_NON_DEFAULT_TABLESPACE"] || "SYSTEM"
 
 # set default time zone in TZ environment variable
