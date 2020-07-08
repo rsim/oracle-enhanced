@@ -32,6 +32,7 @@ install:
 
 script:
   - bundle exec rake spec
+  - rm Gemfile.lock
   - ruby guides/bug_report_templates/active_record_gem.rb
   - ruby guides/bug_report_templates/active_record_gem_spec.rb
 
@@ -43,10 +44,6 @@ rvm:
   - jruby-9.2.12.0
   - ruby-head
   - jruby-head
-
-matrix:
-  allow_failures:
-  - rvm: jruby-head
 
 notifications:
     email: false
