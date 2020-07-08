@@ -32,6 +32,7 @@ install:
 
 script:
   - bundle exec rake spec
+  - rm Gemfile.lock
   - ruby guides/bug_report_templates/active_record_gem.rb
   - ruby guides/bug_report_templates/active_record_gem_spec.rb
 
