@@ -1,3 +1,10 @@
+## 6.0.4 / 2020-08-18
+
+* Changes and bug fixes
+  * create_table_definition and add_column take keyword arguments [#1942, #2043]
+  * Fix keyword arguments errors for Ruby 2.8.0-dev [#1977,#2043]
+  * Fix a build errors when using Ruby 2.8.0-dev [#1983, #2043]
+
 ## 6.0.3 / 2020-06-16
 
 * Changes and bug fixes
