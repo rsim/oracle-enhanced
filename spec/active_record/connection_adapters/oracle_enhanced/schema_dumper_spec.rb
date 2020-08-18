@@ -21,7 +21,7 @@ describe "OracleEnhancedAdapter schema dump" do
   def create_test_posts_table(options = {})
     options[:force] = true
     schema_define do
-      create_table :test_posts, options do |t|
+      create_table :test_posts, **options do |t|
         t.string :title
         t.timestamps null: true
       end
