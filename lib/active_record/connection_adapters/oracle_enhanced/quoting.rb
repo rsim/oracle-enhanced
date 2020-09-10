@@ -178,8 +178,8 @@ module ActiveRecord
   end
 end
 
-# if MRI or YARV
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"
+# if MRI or YARV or TruffleRuby
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"|| RUBY_ENGINE == "truffleruby"
   require "active_record/connection_adapters/oracle_enhanced/oci_quoting"
 # if JRuby
 elsif RUBY_ENGINE == "jruby"

@@ -17,8 +17,8 @@ end
 
 require "rspec"
 
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"
-  puts "==> Running specs with MRI version #{RUBY_VERSION}"
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby" || RUBY_ENGINE == "truffleruby"
+  puts "==> Running specs with ruby version #{RUBY_VERSION}"
   require "oci8"
 elsif RUBY_ENGINE == "jruby"
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
