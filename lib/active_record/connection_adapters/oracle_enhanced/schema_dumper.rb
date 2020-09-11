@@ -4,7 +4,16 @@ module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhanced #:nodoc:
       class SchemaDumper < ConnectionAdapters::SchemaDumper #:nodoc:
+        DEFAULT_PRIMARY_KEY_COLUMN_SPEC = { precision: "38", null: "false" }.freeze
+        private_constant :DEFAULT_PRIMARY_KEY_COLUMN_SPEC
+
         private
+          def column_spec_for_primary_key(column)
+            spec = super
+            spec.except!(:precision) if prepare_column_options(column) == DEFAULT_PRIMARY_KEY_COLUMN_SPEC
+            spec
+          end
+
           def tables(stream)
             # do not include materialized views in schema dump - they should be created separately after schema creation
             sorted_tables = (@connection.tables - @connection.materialized_views).sort
