@@ -40,6 +40,12 @@ describe "OracleEnhancedAdapter establish connection" do
     ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(cursor_sharing: :exact))
     expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
   end
+
+  it "should connect to database using service_name" do
+    ActiveRecord::Base.establish_connection(SERVICE_NAME_CONNECTION_PARAMS)
+    expect(ActiveRecord::Base.connection).not_to be_nil
+    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+  end
 end
 
 describe "OracleEnhancedConnection" do
