@@ -38,7 +38,7 @@ script:
 
 language: ruby
 rvm:
-  - 2.7.1
+  - 2.7.2
   - 2.6.6
   - 2.5.8
   - jruby-9.2.13.0
