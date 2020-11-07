@@ -1,7 +1,18 @@
+# https://docs.oracle.com/en/database/oracle/oracle-database/18/xeinw/connecting-oracle-database-xe.html
+# the XEPDB1 service connects you to the default pluggable database (XEPDB1) created at the installation time.
 XEPDB1 =
   (DESCRIPTION =
     (ADDRESS = (PROTOCOL = TCP)(HOST = 127.0.0.1)(PORT = 1521))
     (CONNECT_DATA =
       (SERVICE_NAME = XEPDB1)
+    )
+  )
+# https://docs.oracle.com/en/database/oracle/oracle-database/18/xeinw/connecting-oracle-database-xe.html
+# The XE service connects you to the root container of the database (CDB$ROOT)
+XE =
+  (DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = 127.0.0.1)(PORT = 1521))
+    (CONNECT_DATA =
+      (SERVICE_NAME = XE)
     )
   )

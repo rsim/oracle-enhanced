@@ -136,6 +136,7 @@ DATABASE_USER         = config["database"]["user"]         || ENV["DATABASE_USER
 DATABASE_PASSWORD     = config["database"]["password"]     || ENV["DATABASE_PASSWORD"]     || "oracle_enhanced"
 DATABASE_SCHEMA       = config["database"]["schema"]       || ENV["DATABASE_SCHEMA"]       || "oracle_enhanced_schema"
 DATABASE_SYS_PASSWORD = config["database"]["sys_password"] || ENV["DATABASE_SYS_PASSWORD"] || "admin"
+CDB_NAME              = ENV["CDB_NAME"]
 
 CONNECTION_PARAMS = {
   adapter: "oracle_enhanced",

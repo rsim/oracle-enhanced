@@ -25,6 +25,7 @@ jobs:
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       TNS_ADMIN: ./ci/network/admin
       DATABASE_NAME: XEPDB1
+      CDB_NAME: XE
       TZ: Europe/Riga
       DATABASE_SYS_PASSWORD: Oracle18
 
@@ -60,6 +61,9 @@ jobs:
     - name: Create database user
       run: |
         ./ci/setup_accounts.sh
+    - name: Setup CDB
+      run: |
+        ./ci/setup_cdb.sh
     - name: Bundle install
       run: |
         bundle install --jobs 4 --retry 3
