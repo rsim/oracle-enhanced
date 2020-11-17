@@ -35,7 +35,7 @@ module ActiveRecord
               table_owner, table_name = default_owner, real_name
             end
             sql = <<~SQL.squish
-              SELECT owner, table_name, 'TABLE' name_type
+              SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ owner, table_name, 'TABLE' name_type
               FROM all_tables
               WHERE owner = '#{table_owner}'
                 AND table_name = '#{table_name}'
