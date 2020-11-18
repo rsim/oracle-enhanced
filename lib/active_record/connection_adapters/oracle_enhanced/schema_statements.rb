@@ -12,7 +12,8 @@ module ActiveRecord
 
         def tables #:nodoc:
           select_values(<<~SQL.squish, "tables")
-            SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+            DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
             FROM all_tables
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
             AND secondary = 'N'
@@ -44,7 +45,7 @@ module ActiveRecord
           end
 
           select_values(<<~SQL.squish, "table exists", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
-            SELECT owner, table_name
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ owner, table_name
             FROM all_tables
             WHERE owner = :owner
             AND table_name = :table_name
@@ -60,20 +61,22 @@ module ActiveRecord
 
         def views # :nodoc:
           select_values(<<~SQL.squish, "views")
-            SELECT LOWER(view_name) FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+            LOWER(view_name) FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         def materialized_views #:nodoc:
           select_values(<<~SQL.squish, "materialized views")
-            SELECT LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+            LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         # get synonyms for schema dump
         def synonyms
           result = select_all(<<~SQL.squish, "synonyms")
-            SELECT synonym_name, table_owner, table_name
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ synonym_name, table_owner, table_name
             FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
 
@@ -88,7 +91,7 @@ module ActiveRecord
           default_tablespace_name = default_tablespace
 
           result = select_all(<<~SQL.squish, "indexes", [bind_string("table_name", table_name)])
-            SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
               LOWER(c.column_name) AS column_name, e.column_expression,
@@ -118,7 +121,7 @@ module ActiveRecord
               if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
                 procedure_name = default_datastore_procedure(row["index_name"])
                 source = select_values(<<~SQL.squish, "procedure", [bind_string("procedure_name", procedure_name.upcase)]).join
-                  SELECT text
+                  SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ text
                   FROM all_source
                   WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
                     AND name = :procedure_name
@@ -362,7 +365,7 @@ module ActiveRecord
         def index_name_exists?(table_name, index_name)
           (_owner, table_name) = @connection.describe(table_name)
           result = select_value(<<~SQL.squish, "index name exists")
-            SELECT 1 FROM all_indexes i
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ 1 FROM all_indexes i
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_name = '#{table_name}'
@@ -496,7 +499,7 @@ module ActiveRecord
         def table_comment(table_name) #:nodoc:
           (_owner, table_name) = @connection.describe(table_name)
           select_value(<<~SQL.squish, "Table comment", [bind_string("table_name", table_name)])
-            SELECT comments FROM all_tab_comments
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ comments FROM all_tab_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
           SQL
@@ -512,7 +515,7 @@ module ActiveRecord
           # TODO: it  does not exist in Abstract adapter
           (_owner, table_name) = @connection.describe(table_name)
           select_value(<<~SQL.squish, "Column comment", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
-            SELECT comments FROM all_col_comments
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ comments FROM all_col_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
               AND column_name = :column_name
@@ -529,7 +532,7 @@ module ActiveRecord
 
         def tablespace(table_name)
           select_value(<<~SQL.squish, "tablespace")
-            SELECT tablespace_name
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ tablespace_name
             FROM all_tables
             WHERE table_name='#{table_name.to_s.upcase}'
             AND owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -541,7 +544,7 @@ module ActiveRecord
           (_owner, desc_table_name) = @connection.describe(table_name)
 
           fk_info = select_all(<<~SQL.squish, "Foreign Keys", [bind_string("desc_table_name", desc_table_name)])
-            SELECT r.table_name to_table
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ r.table_name to_table
                   ,rc.column_name references_column
                   ,cc.column_name
                   ,c.constraint_name name
@@ -583,7 +586,7 @@ module ActiveRecord
 
         def disable_referential_integrity(&block) #:nodoc:
           old_constraints = select_all(<<~SQL.squish, "Foreign Keys to disable and enable")
-            SELECT constraint_name, owner, table_name
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ constraint_name, owner, table_name
               FROM all_constraints
               WHERE constraint_type = 'R'
               AND status = 'ENABLED'
@@ -699,7 +702,7 @@ module ActiveRecord
             return unless tablespace
 
             index_name = select_value(<<~SQL.squish, "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
-              SELECT index_name FROM all_constraints
+              SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ index_name FROM all_constraints
                   WHERE table_name = :table_name
                   AND constraint_type = 'P'
                   AND owner = SYS_CONTEXT('userenv', 'current_schema')
