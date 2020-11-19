@@ -150,6 +150,45 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "`has_many` assoc has `dependent: :delete_all` with `order`" do
+    before(:all) do
+      schema_define do
+        create_table :test_posts do |t|
+          t.string      :title
+        end
+        create_table :test_comments do |t|
+          t.integer     :test_post_id
+          t.string      :description
+        end
+        add_index :test_comments, :test_post_id
+      end
+      class ::TestPost < ActiveRecord::Base
+        has_many :test_comments, -> { order(:id) }, dependent: :delete_all
+      end
+      class ::TestComment < ActiveRecord::Base
+        belongs_to :test_post
+      end
+      TestPost.transaction do
+        post = TestPost.create!(title: "Title")
+        TestComment.create!(test_post_id: post.id, description: "Description")
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_comments
+        drop_table :test_posts
+      end
+      Object.send(:remove_const, "TestPost")
+      Object.send(:remove_const, "TestComment")
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "should not occur `ActiveRecord::StatementInvalid: OCIError: ORA-00907: missing right parenthesis`" do
+      expect { TestPost.first.destroy }.not_to raise_error
+    end
+  end
+
   describe "eager loading" do
     before(:all) do
       schema_define do
