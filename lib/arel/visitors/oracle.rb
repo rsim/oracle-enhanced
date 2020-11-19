@@ -248,6 +248,17 @@ module Arel # :nodoc: all
           collector = visit [o.left, o.right, 0, 1], collector
           collector << ")"
         end
+
+        # Oracle will occur an error `ORA-00907: missing right parenthesis`
+        # when using `ORDER BY` in `UPDATE` or `DELETE`'s subquery.
+        #
+        # This method has been overridden based on the following code.
+        # https://github.com/rails/rails/blob/v6.1.0.rc1/activerecord/lib/arel/visitors/to_sql.rb#L815-L825
+        def build_subselect(key, o)
+          stmt             = super
+          stmt.orders      = [] # `orders` will never be set to prevent `ORA-00907`.
+          stmt
+        end
     end
   end
 end
