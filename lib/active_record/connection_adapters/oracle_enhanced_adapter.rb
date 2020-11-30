@@ -747,3 +747,26 @@ require "active_record/connection_adapters/oracle_enhanced/version"
 module ActiveRecord
   autoload :OracleEnhancedProcedures, "active_record/connection_adapters/oracle_enhanced/procedures"
 end
+
+# Backport #2070 into relese60 branch by adding some dirty monkey patch
+# Because #2002 has been merged to release61 branch or newer, not available for release60 branch.
+module Arel # :nodoc: all
+  module Visitors
+    class Oracle < Arel::Visitors::ToSql
+      private
+        def build_subselect(key, o)
+          stmt             = super
+          stmt.orders      = [] # `orders` will never be set to prevent `ORA-00907`.
+          stmt
+        end
+    end
+    class Oracle12 < Arel::Visitors::ToSql
+      private
+        def build_subselect(key, o)
+          stmt             = super
+          stmt.orders      = [] # `orders` will never be set to prevent `ORA-00907`.
+          stmt
+        end
+    end
+  end
+end
