@@ -1,3 +1,514 @@
+## 6.1.0.rc1 / 2020-11-03
+
+* Changes and bug fixes
+  * Support Rails 6.1.0.rc1
+  * Add support to change the permissions granted when creating DB [#1885]
+  * Refactor `create_table`'s options separation [#1886]
+  * Move schema cache to pool [#1888]
+  * Clear schema cache when a table is created/dropped/renamed [#1891]
+  * Deduplicate various Active Record schema cache structures [#1897]
+  * Support SQLCounter change to ignore "SCHEMA" and "TRANSACTION" log [#1892]
+  * Share the column and table name quote cache between connections [#1901]
+  * Add database_exists? method to connection adapters [#1906]
+  * Accept columns passed with options in remove_index [#1930]
+  * Fix `NameError` for `SchemaCreation` [#1933]
+  * Add `supports_common_table_expressions?` for CTE testing [#1946]
+  * create_table_definition and add_column take keyword arguments [#1942]
+  * Address `uninitialized constant ActiveRecord::ConnectionAdapters::AbstractAdapter::Quoting (NameError) [#1950]
+  * Fix an error when writing lobs [#1962]
+  * Uninstall SimpleCov [#1968]
+  * fix: Auto retry only works for connection.exec() [#1976]
+  * Fix keyword arguments errors for Ruby 2.8.0-dev [#1977]
+  * Fix a build errors when using Ruby 2.8.0-dev [#1983]
+  * Include sync option when dumping a context index [#1988]
+  * Use `build_result` instead of `ActiveRecord::Result.new` [#1994]
+  * Use the new API for build_results [#1995]
+  * Merge Arel visitors [#2002]
+  * Enable `Rails/IndexBy` and `Rails/IndexWith` cops [#2006]
+  * Don't refer `allowed_index_name_length` directly [#2009]
+  * Should not rely on the global `Arel::Table.engine` in the framework [#2010]
+  * Suppress `warning: already initialized constant` [#2011]
+  * Deprecate passing a column to `type_cast` [#2012]
+  * Limit number of expressions in a list during a "homogenous in" operation [#2013]
+  * Allow column name with function (e.g. `length(title)`) as safe SQL string [#2017]
+  * Default engine `ENGINE=InnoDB` is no longer dumped to make schema more agnostic [#2019]
+  * Separate primary key column options from table options [#2019]
+  * Make index options to kwargs [#2022]
+  * Make remaining migration options to kwargs [#2024]
+  * Allow TruffleRuby RUBY_ENGINE [#2046]
+  * Restore Schema Dumper behavior changed by #2019 [#2047]
+  * Support JDBC service name syntax [#2035]
+  * Use Rake 13.0.0.pre.1 [#1924]
+  * Bump RuboCop version to 0.71 [#1887]
+  * Bump RuboCop to 0.74.0 [#1914]
+  * Bump RuboCop to 0.76.0 [#1947]
+  * Use RuboCop 0.77 [#1959]
+  * Bump RuboCop to 0.82.0 [#2005]
+  * Suppress RuboCop's offenses [#2020]
+  * Enable `Layout/EmptyLinesAroundAccessModifier` cop [#1890]
+  * Disable `Style/BracesAroundHashParameters` cop [#1923]
+  * Enable `Layout/ClosingHeredocIndentation` cop [#1958]
+  * Unlock RuboCop gem versions [#1926]
+  * Enable `Rails/IndexBy` and `Rails/IndexWith` cops [#2006]
+  * Enable `Performance/DeletePrefix` and `Performance/DeleteSuffix` cops [#2021]
+  * Enable `Layout/SpaceAroundOperators` cop [#2057]
+  * Fix links to rails-dev-box running on docker [#1883]
+  * Fix spec config template copy instructions [#1884]
+  * Update UPGRADE section for Rails 5.2 [#1993]
+
+* CI
+  * Enable GitHub Actions and run RuboCop [#1925]
+  * Run CI with GitHub Actions [#2015]
+  * Enabled Dependabot by creating .dependabot/config.yml [#1931]
+  * Disable Code Climate #1938
+  * CI against JRuby 9.2.8.0 [#1911]
+  * CI against JRuby 9.2.9.0 #1948
+  * CI against Ruby 2.6.4 and Ruby 2.5.6 [#1921]
+  * CI against Ruby 2.5.7 and Ruby 2.6.5 [#1949]
+  * CI against Ruby 2.7.0 [#1975]
+  * CI against JRuby 9.2.10.0 [#1989]
+  * CI against JRuby 9.2.11.0 [#1992]
+  * CI against JRuby 9.2.11.1 [#1997]
+  * CI againt Ruby 2.7.1, 2.6.6 and 2.5.8 #1998
+  * CI against JRuby 9.2.12.0 [#2034]
+  * Use Oracle Instant Client 18.5 [#2036]
+  * Support `jruby-head` again [#2037]
+  * CI against JRuby 9.2.13.0 [#2041]
+  * CI against Ruby 2.7.2 [#2052]
+  * Remove unnecessary PATH and LD_LIBRARY_PATH environment variables [#1927]
+  * Use Ubuntu 18.04 (Bionic Beaver) at Travis CI [#1937]
+  * Run bug report template at CI [#1936]
+  * Skip known failures until #1943 is resolved [#1961]
+  * Migrate to `ruby/setup-ruby` to use Ruby 2.7 [#2026]
+
+## 6.0.4 / 2020-08-18
+
+* Changes and bug fixes
+  * create_table_definition and add_column take keyword arguments [#1942, #2043]
+  * Fix keyword arguments errors for Ruby 2.8.0-dev [#1977,#2043]
+  * Fix a build errors when using Ruby 2.8.0-dev [#1983, #2043]
+
+## 6.0.3 / 2020-06-16
+
+* Changes and bug fixes
+  * Auto retry works for other `exec_*` methods [#1976, #1981]
+  * Allow column name with function (e.g. `length(title)`) as safe SQL string [#2017, #2018]
+
+* CI
+  * CI against latest Ruby versions [#1979]
+
+## 6.0.2 / 2019-12-25
+
+* Changes and bug fixes
+  * Uninstall SimpleCov [#1968]
+
+## 6.0.1 / 2019-12-20
+
+* Changes and bug fixes
+  * Address `undefined local variable or method `sql' [#1932 #1962 #1963]
+
+* CI
+  * CI against Ruby 2.6.4 and Ruby 2.5.6 [#1922]
+
+## 6.0.0 / 2019-08-17
+
+* Major changes, including changes since 6.0.0.beta1
+
+  * Support Rails 6.0.0
+  * Rails 6 requires Ruby 2.5 [#1801]
+  * Support longer identifier for Oracle database 12.2 or higher [#1703 #1705]
+  * Introduce `use_shorter_identifier` [#1707]
+  * Change `default_sequence_start_value` from 10000 to 1 [#1636]
+  * Address `ORA-01795: maximum number of expressions in a list is 1000`
+
+* CI
+  * CI against JRuby 9.2.8.0 #1912
+
+## 6.0.0.rc3 / 2019-07-27
+
+* Changes and bug fixes
+  * Share the column and table name quote cache between connections [#1901 #1903]
+
+## 6.0.0.rc2 / 2019-07-23
+
+* Major changes
+  * Support Rails 6.0.0 rc2
+  * Add TCP keepalive and TCP keepalive time configurations [#1874 #1877]
+
+* Changes and bug fixes
+  * Update bug report templates for Oracle enhanced adapter 6.0 [#1873]
+
+## 6.0.0.rc1 / 2019-04-25
+
+* Major changes
+  * Support Rails 6.0.0 rc1
+  * Address `ORA-01795: maximum number of expressions in a list is 1000`
+    - These changes has been made to Rails itself [rails/rails#35838, rails/rails#36074]
+
+* Changes and bug fixes
+  * Cache database version in schema cache [#1859]
+  * Except `table_name` from column objects [#1860]
+  * Remove unused `sequence_name` in `sql_for_insert` [#1861]
+  * Use squiggly heredoc to strip odd indentation in the executed SQL [#1869]
+  * Use Active Support `String#squish` instead of `String#strip.gsub` [#1871]
+
+* CI
+  * Revert "Add `allow_railures` for jruby-head until #1833 resolved" [#1862]
+  * CI against JRuby 9.2.7.0 [#1864]
+  * Use newer Code Climate analysis model, version 2 [#1868]
+  * CI against Ruby 2.6.3 [#1870]
+
+* RuboCop
+  * Bump RuboCop version to 0.67 [#1867]
+  * Enable `Layout/SpaceBeforeComment` cop [#1863]
+
+## 6.0.0.beta1 / 2019-03-18
+
+* Major changes
+
+  * Rails 6 requires Ruby 2.5 [#1801]
+  * Support longer identifier for Oracle database 12.2 or higher [#1703 #1705]
+  * Introduce `use_shorter_identifier` [#1707]
+  * Change `default_sequence_start_value` from 10000 to 1 [#1636]
+  * Supports `supports_optimizer_hints?` [#1850 #1852]
+  * `OracleEnhanced::SchemaStatements#tables` excludes materialized views [#1708]
+  * rake db:structure:dump extracts views by default [#1625 #1641]
+  * Drop db link support [#1668 #1681 #1696 #1706]
+  * Drop trigger based primary key support for Rails 6 [#1669]
+  * Don't allow unsupported NLS parameters [#1685]
+  * fix Handling with char-column problem [#1760]
+  * Make `t.timestamps` with precision by default [#1818]
+  * fix mapping of decimal type to map to `NUMBER` instead of `DECIMAL` [#1840]
+
+* Changes and bug fixes
+
+  * Handle ORA-02292 as `InvalidForeignKey` [#1771]
+  * Suppress deprecated warning for `table_name_length` [#1772]
+  * `update_attributes!` will be deprecated in Rails 6 [#1665]
+  * `update_attributes` will be deprecated in Rails 6 [#1667]
+  * Remove `OCI8#describe` to use `OracleEnhanced::Connection#describe` [#1639]
+  * Remove `strip_heredoc` [#1652]
+  * Remove `rails/arel` from Gemfile [#1711]
+  * Remove `rails/arel` from bug report templates [skip ci] [#1715]
+  * Remove NativeException [#1666 #1762]
+  * Do not set nil value to java.util.Properties [#1763]
+  * Deprecated `table_name_length` and `column_name_length` [#1770]
+  * Add a check to supported Oracle database version [#1773]
+  * Update bug report templates [#1777]
+  * Use `supports_foreign_keys?` instead of removed `supports_foreign_keys_in_create?` [#1825]
+  * Ensure `clear_cache!` clears the prepared statements cache [#1845]
+
+* Refactoring
+
+  * Extract `structure_dump_views` and `structure_dump_synonyms` [#1640]
+  * Remove unnecessary `respond_to?(:report_on_exception)` [#1664]
+  * Remove deprecated `#insert_fixtures` method for Rails 6.0 [#1815]
+  * Use `SYS_CONTEXT('userenv', 'current_schema')` to find schema objects [#1671]
+  * Use `SYS_CONTEXT('userenv', 'current_schema')` for owner [#1672]
+  * Suppress warning `BigDecimal.new` is deprecated [#1742]
+  * Refactor to initialize `TableDefinition` by kwargs [#1785]
+  * Redact SQL in errors [#1791]
+  * Arity change at `sql_for_insert` [#1814]
+
+* CI
+  * Use Ubuntu Xenial at Travis CI [#1790]
+  * Bump Ruby versions to 2.6.2 and 2.5.4 [#1847]
+  * CI against Ruby 2.5.5 [#1848]
+  * Do not run CI against Ruby 2.2, which will not be supported with Rails 6 [#1653]
+  * CI against JRuby 9.2.6.0 [#1824]
+  * Show ruby version at CI [#1829]
+  * Remove unused blocklist from .travis.yml [#1830]
+  * Add spec for custom sequence name [#1846]
+  * Restore old Code Climate behavior [#1716]
+  * Do not install bundler explicitly [#1725]
+
+* RuboCop
+
+  * Add RuboCop to Gemfile [#1841]
+  * Bump RuboCop to 0.63.0 [#1816]
+  * No need to exclude `jdbc_connection.rb` for `Style/ColonMethodCall` cop [#1698]
+  * Enable `Style/ColonMethodCall` cop [#1658]
+  * Enable `Lint/StringConversionInInterpolation` cop [#1724]
+  * Add `Style/RedundantFreeze` to remove redudant `.freeze` [#1662]
+  * Use `Layout/EndAlignment` cop to support RuboCop 0.54 [#1709]
+  * Introduced StartWith, EndWith and RegexpMatch cops [#1738]
+  * Enable `Layout/EmptyLinesAroundBlockBody` cop [#1732]
+  * Turn on performance based cops [#1734]
+  * Enable performance unfreeze string cop [#1729]
+  * Enable `Lint/UriEscapeUnescape` cop [#1758]
+  * Enable Style/ParenthesesAroundCondition cop [#1759]
+  * Enable performance unfreeze string cop [#1729]
+  * Enable `Layout/SpaceAfterSemicolon` cop [#1800]
+  * Enable `Style/RedundantBegin` cop [#1802]
+  * Enable `Lint/ShadowingOuterLocalVariable` cop [#1810]
+  * Enable `Lint/UselessAssignment` cop [#1812]
+  * Enable `Lint/DeprecatedClassMethods` cop [#1813]
+  * Enable `Lint/ErbNewArguments` cop [#1823]
+  * Enable `Lint/AmbiguousOperator` and `Lint/AmbiguousRegexpLiteral` cops [#1842]
+  * Enable `Performance/ReverseEach` cop [#1843]
+
+## 5.2.5 / 2019-03-05
+
+* Changes and bug fixes
+  * `references` column type should be :integer, not :bigint [#1831 #1832 #1835]
+  * CI against Ruby 2.6.1 [#1821 #1822]
+  * CI against JRuby 9.2.6.0 [#1824 #1828]
+  * CI against Ruby 2.6 and bump other Ruby versions [#1806 #1807]
+  * Install bundler and fallback to 1.7.3 if Bundler 2 is not available [#1811]
+  * Use i18n 1.2 for JRuby now [#1804 #1805]
+  * Add `allow_railures` for jruby-head until #1833 resolved [#1834 #1836]
+
+## 5.2.4 / 2018-11-29
+
+* Changes and bug fixes
+  * Stop using NativeException [#1666 #1761 #1762]
+
+## 5.2.3 / 2018-08-08
+
+* Changes and bug fixes
+  * Introduce column cache per connection [#1744 #1750]
+  * Use `cursor_sharing` = force by default again [#1745 #1748]
+  * Add `table_name` search condition to `indexes(table_name)` method [#1747 #1749]
+  * Suppress warning `BigDecimal.new` is deprecated [#1742 #1743]
+  * Do not install bundler explicitly [#1725 #1726]
+  * Add `allow_railures` for jruby-head until #1737 resolved [#1739 #1740]
+  * CI against JRuby 9.2.0.0 [#1728 #1741]
+  * Do not run CI against older version of JRuby [#1741]
+
+## 5.2.2 / 2018-04-28
+
+* Changes and bug fixes
+  * Use SQL literals for `column_definitions` and `pk_and_sequence_for` [#1678 #1713 #1714]
+  * Memoize if the table needs to prefetch primary key[#1673 #1699 #1700]
+  * CI with JRuby 9.1.17.0 [#1710]
+  * Remove `rails/arel` from Gemfile [#1711 #1712]
+
+## 5.2.1 / 2018-04-15
+
+* Changes and bug fixes
+  * Memoize if the table needs to prefetch primary key[#1673 #1699 #1700]
+
+## 5.2.0 / 2018-04-10
+
+* Major changes and fixes
+  * Support Rails 5.2.0
+
+* Documentation changes
+  * Add README and UPGRADE sections for Rails 5.2 [#1637 #1638]
+  * Update bug templates for Rails 5.2 [#1663]
+
+* Changes in specs
+  * Suppress expected exceptions by `report_on_exception` = `false` [#1655 #1656]
+
+* Changes for CI and builds
+  * CI with JRuby 9.1.16.0 [#1659]
+  * CI with Ruby 2.5.1 [#1683 #1684]
+  * CI against Ruby 2.4.4 [#1686 #1687]
+  * Use ruby 2.3.7 and 2.2.10 for CI at release52 branch [#1688]
+  * Oracle enhanced adapter 5.2 needs Rails `5-2-stable` branch [#1654]
+
+## 5.2.0.rc1 / 2018-01-31
+
+* Changes and bug fixes
+
+  * Support Rails 5.2.0.rc1
+  * Do not register `VARCHAR2(1)` sql type as `Type:Boolean` [#1621 #1623]
+  * Support `insert_fixtures_set` [#1633]
+  * Deprecated `insert_fixtures` [#1634]
+  * Refactor index options dumping [#1602]
+  * Skip failed spec explained at #1599 [#1599 #1604]
+  * CI with Ruby 2.5.0 [#1618]
+  * CI against JRuby 9.1.15.0 [#1605]
+  * Enable `Layout/SpaceBeforeComma` [#1606]
+  * Enable `Layout/LeadingCommentSpace` cop [#1607]
+  * Enable autocorrect for `Lint/EndAlignment` cop [#1629]
+  * Remove `--force` option for installing bundler [#1616]
+
+## 5.2.0.beta1 / 2017-11-27
+
+* Major changes and fixes
+
+  * Support Rails 5.2.0.beta1
+  * Oracle enhanced adapter version follows Rails versioning [#1488]
+  * Handle `TIMESTAMP WITH TIMEZONE` separately from `TIMEZONE` [#1267]
+  * Support `timestamptz` and `timestampltz` for migrations #1285
+  * `supports_json?` returns false [#1562]
+  * Add synonyms in `data_sources` [#1380, #1567]
+  * Add sequence with settings to structure dump [#1354]
+  * Support for NCLOB datatype [#1428, #1440]
+  * Use conventional fixture load [#1366]
+  * Address `ORA-00905: missing keyword: EXPLAIN PLAN FOR` [#1384]
+  * Use new method name for active record dirty checks [#1406]
+  * check for schema name when validating table name [#1408, #1410]
+  * Prefer to place a table options before `force: :cascade` [#1457]
+  * Enable TCP keepalive for OCI connections [#1489]
+  * Do not expose `all_schema_indexes` [#1495]
+  * Using bind variables for dictionary access [#1498]
+  * Use bind variables for `table_comment` `column_comment` `foreign_keys` [#1502]
+  * Respect database instance `cursor_sharing` value `exact` by default [#1503, #1556]
+  * Address `CommentTest#test_change_table_comment_to_nil` failure [#1504]
+  * Address explain with binds errors [#908, #1386, #1538]
+  * Address `MigrationTest#test_create_table_with_query_from_relation` error [#1543]
+  * Follow the new interface of AR::ConnectionAdapters::IndexDefinition#initialize [#1295]
+  * Remove `lengths`, `where`, `using` from `IndexDefinition` [#1529]
+  * Arity change in insert method [#1382]
+  * Restore the ability that SQL with binds for `insert` [#1424]
+  * Restore `to_sql` to return only SQL [#1423]
+  * Signature fix for `select_one` `select_value` `select_values` [#1475]
+  * `columns` second argument does not exist in Abstract adapter [#1519]
+  * Arel::Nodes::BindParam#initialize introduced [#1383]
+  * Log the purpose of sql in `disable_referential_integrity` [#1550]
+  * Change log format of "Primary Key Trigger" to one line [#1551]
+  * Log multi lines SQL statements into one line [#1553]
+  * Log multi lines SQL statements into one line at `structure_dump.rb` [#1555]
+  * [ci skip] `open_cursors` value should be larger than `:statement_limit` [#1573]
+  * [skip ci] Add `schema` option in the comment [#1574]
+  * [skip ci] `emulate_booleans_from_strings` behavior changes [#1576]
+  * Restore calling `OCIConnection#bind_returning_param` [#1581]
+  * Add these errors to be recognized as `ActiveRecord::StatementInvalid` [#1584]
+  * Add `ORA-02289` to be recognized as `ActiveRecord::StatementInvalid` [#1586]
+  * Address `BasicsTest#test_clear_cache!` failure [#1587]
+  * Use Bundler 1.15 to workaround bundler/bundler#6072 [#1590]
+  * Translate `ORA-00060` into `ActiveRecord::Deadlocked` error [#1591]
+  * Add `ORA-02449` to be recognized as `ActiveRecord::StatementInvalid` [#1593, #1596]
+  * Support `discard!` method [#1598]
+
+* Deprecation or removing deprecated code
+
+  * Remove `OracleEnhancedAdapter.cache_columns` [#1490, #1492]
+  * Deprecate `supports_statement_cache?` [#1321]
+  * Remove `compress_lines` [#1327]
+  * Remove `OracleEnhanced::SchemaDumper::TableInspect` [#1400]
+  * Remove `remove_prefix_and_suffix` and specs from Oracle enhanced adapter [#1420]
+  * Remove unused returning value `stream` [#1438]
+  * Remove `OracleEnhancedAdapter.emulate_dates` [#1448]
+  * Remove `emulate_dates` and `emulate_dates_by_column_name` [#1450]
+  * Remove `emulate_integers_by_column_name` [#1451]
+  * Remove `@@do_not_prefetch_primary_key` class variable [#1496]
+  * Remove `string_to_date` which has been removed from Rails 4.2 [#1509]
+  * Remove `string_to_time` which has been removed from Rails 4.2 [#1510]
+  * Remove `guess_date_or_time` which has not been called [#1511]
+  * Remove unused `object_type?` and `object_type` ivar [#1512]
+  * Remove non-existent `:nchar` from `attr_reader` [#1513]
+  * Remove `ActiveRecord::ConnectionAdapter::OracleEnhanced::Column#lob?` [#1522]
+  * Remove `OracleEnhanced::Column#returning_id?` [#1523]
+  * Remove `attr_reader :table_name` [#1524]
+  * Remove `combine_bind_parameters` [#1527]
+  * Remove `OracleEnhancedAdapter.default_tablespaces[native_database_types[type][:name]]` [#1544]
+  * Remove unused `require "digest/sha1"` [#1545]
+  * Remove deprecations for 5.2 [#1548]
+  * Remove `OracleEnhanced::Connection#select_values` [#1558]
+  * Remove `@connection` from `@connection.oracle_downcase` and `@connection.select_value` [#1559]
+  * Rename `OracleEnhanced::Connection#select_value` to `_select_value` [#1563]
+  * Rename `OracleEnhanced::Connection#oracle_downcase` to `_oracle_downcase` [#1565]
+  * Remove `OCIConnection#typecast_result_value` handling `OraNumber` [#1578]
+  * [skip ci] Changing `NLS_DATE_FORMAT` and `NLS_TIMESTAMP_FORMAT` is not supported [#1575]
+  * [skip ci] Remove ruby versions in the comment [#1577]
+  * Remove `OCIConnection#returning_clause` and `JDBCConnection#returning_clause` [#1579]
+  * Remove `OCIConnection#exec_with_returning` and `JDBCConnection#exec_with_returning` [#1580]
+  * Update `JDBCConnection#bind_param` case condition [#1583]
+
+* Refactoring
+
+  * Refactor `SchemaDumper` to make it possible to adapter specific customization [#1430]
+  * Rename `SchemaDumper#indexes` to `SchemaDumper#_indexes` [#1399]
+  * Use ActiveRecord::Type::Json [#1352]
+  * Introduce module `DatabaseLimits` [#1322]
+  * Move `oracle_downcase` to `Quoting` module [#1328]
+  * Make `type_map` to private because it is only used in the connection adapter [#1381]
+  * Remove `add_runtime_dependency` with arel [#1385]
+  * Move methods for synonyms out of `SchemaStatementsExt` [#1387]
+  * Remove incorrect prepend to `ActiveRecord::ColumnDumper` [#1394]
+  * Handle `ActiveRecord::SchemaDumper` by `adapter_name` [#1395]
+  * Rewrite `remove_prefix_and_suffix` to be similar with super #1401
+  * `remove_prefix_and_suffix` handles dollar sign by `Regexp#escape` [#1402]
+  * `prepare_column_options` is now private [#1429]
+  * Introduce `OracleEnhanced::SchemaStatements#table_options` [#1439]
+  * Extract `ActiveRecord::ConnectionAdapters::OracleEnhanced::Column` [#1445]
+  * Extract `ActiveRecord::ConnectionAdapters::OracleEnhanced::DbmsOutput` [#1446]
+  * Introduce `SchemaDumpingHelper#dump_table_schema` [#1455]
+  * Rename `OracleEnhancedConnection` to `OracleEnhanced::Connection` [#1477]
+  * Introduce `ActiveRecord::ConnectionAdapters::OracleEnhanced::TypeMetadata` [#1515]
+  * Change `schema_creation` to private [#1517]
+  * Change `create_table_definition` and `fetch_type_metadata` to private [#1518]
+  * Refactor `columns` [#1521]
+  * Let `ActiveRecord::ConnectionAdapters::OracleEnhanced::TypeMetadata` handle `virtual` type [#1526]
+  * Clean up `column_definitions` method [#1528]
+  * Remove unnecessary `ActiveRecord::ConnectionAdapters` [#1530]
+  * Rename `OracleEnhancedStructureDump` to `OracleEnhanced::StructureDump` [#1531]
+  * Move up require for types [#1533]
+  * These methods are private in `AbstractAdapter` or `PostgreSQLAdapter` [#1534]
+  * `ActiveRecord::ConnectionAdapters::AbstractAdapter#log` is a `private` [#1535]
+  * Move `self.default_sequence_start_value` method [#1536]
+  * Rename `ActiveRecord::OracleEnhanced::Type` to `ActiveRecord::Type::OracleEnhanced` [#1541]
+  * Move `write_lobs` under `OracleEnhanced::DatabaseStatements` module [#1546]
+  * Introduce `OracleEnhanced::Lob` not to modify `ActiveRecord::Base` directly [#1547]
+  * Use `ActiveSupport.on_load` to hook into `ActiveRecord::Base` [#1568]
+  * Call `virtual_columns_for` when `supports_virtual_columns?` returns true [#1554]
+  * Move `tables` and related methods into `OracleEnhanced::SchemaStatements` [#1557]
+  * Avoid using `OracleEnhanced::Connection#select_value` [#1560]
+  * Make `OracleEnhanced::Connection#describe` private [#1566]
+
+* Changes in specs
+
+  * Always generate `debug.log` for unit tests [#1476]
+  * Use Rails migration for creating table at "using offset and limit" [#1276]
+  * Use Rails migration for creating table at `valid_type?` [#1277]
+  * Clean up before(:each) and after(:each) at "rename tables and sequences" [#1278]
+  * Use Rails migration for creating table at `BINARY_FLOAT columns" specs [#1280]
+  * Use Rails migration for creating table at "handling of BLOB columns" [#1282]
+  * Use Rails migration for creating table at "handling of CLOB columns" [#1283]
+  * Use Rails migration for creating table at "assign string to :date and :datetime columns" [#1284]
+  * Use Rails migration for creating table at "table columns" [#1287]
+  * Use Rails migration for creating table at procedure specs [#1288]
+  * Use Rails migration for creating table at database tasks specs [#1290]
+  * Suppress `warning: assigned but unused variable - poolable_connection_factory` [#1292]
+  * Suppress `warning: assigned but unused variable - post` [#1293]
+  * Move spec files under `oracle_enhanced` directory [#1441]
+  * Move spec files under `emulation` directory [#1442]
+  * Move schema_dumper_spec under `oracle_enhanced` directory [#1443]
+  * Rename spec/active_record/connection_adapters/oracle_enhanced_dirty_spec.rb [#1447]
+  * Remove `set_boolean_columns` from `oracle_enhanced_data_types_spec.rb` [#1452]
+  * Remove `set_string_columns` from `oracle_enhanced_data_types_spec.rb` [#1454]
+  * Use `drop_table` if_exists: true` to avoid rescue nil [#1456]
+  * Extract JSON data type specs [#1459]
+  * Extract NationalCharacterString data type specs [#1460]
+  * Extract RAW data type specs [#1461]
+  * Extract TEXT data type specs [#1462]
+  * Extract INTEGER data type specs [#1463]
+  * Remove redundant `type` from spec files [#1464]
+  * Extract boolean data type specs [#1465]
+  * Extract NationalCharacterText data type specs [#1466]
+  * Extract specs for `OracleEnhanced::Quoting` [#1469]
+  * Extract TIMPSTAMP, TIMESTAMPTZ and TIMESTAMPLTZ specs [#1480]
+  * Extract FLOAT type specs [#1482]
+  * Use `SchemaDumpingHelper#dump_table_schema` at `context_index_spec` [#1491]
+  * Remove unused `fk_name` [#1514]
+  * Show correct bind value information in debug.log [#1537]
+  * rubocop 0.48.1 [#1281]
+
+* Changes for CI and builds
+
+  * Use `rubocop-0-51` channel on Code Climate [#1589]
+  * Use `rubocop-0-50` channel on Code Climate [#1539]
+  * Use `rubocop-0-49` channel to run rubocop 0.49 [#1478]
+  * Bump ruby versions to 2.4.2, 2.3.5 and 2.2.8 at Travis [#1484]
+  * CI against JRuby 9.1.14.0 [#1592]
+  * CI against JRuby 9.1.13.0 [#1471]
+  * set `open_cursor` value to `1200` [#1431]
+  * Use bundler 1.16.0.preX and update rubygems to the latest [#1532]
+  * [ci skip] Create an issue template [#1317]
+  * [ci skip] Add Oracle enhanced adapter version to the issue template [#1319]
+  * [ci skip] Remove `self.emulate_integers_by_column_name = true` [#1494]
+  * Remove leftover comments [ci skip] [#1520]
+  * Move issue template to github sub directory [skip ci] [#1320]
+  * Replace :github source with https [#1499]
+  * Simplify `git_source` in Gemfile [#1500]
+  * Enable and apply `Style/Semicolon` [#1570]
+  * Enable and apply Style/RedundantReturn [#1571]
+  * Enable `Style/DefWithParentheses` rubocop rule [#1597]
+  * bundler 1.16.0 is out, no more --pre [#1572]
+
 ## 1.8.2 / 2017-08-24
 
 * Changes and bug fixes
@@ -172,7 +683,7 @@
   * Use the latest arel master while developing alpha version [#1115]
   * Bump Arel to 8.0 [#1120, #1121, #1124]
   * Use released Arel 8 [#1205]
-  * Remove duplicate license information [#965] 
+  * Remove duplicate license information [#965]
   * Clean up comments and un-commented specs for table comment feature [#971]
   * Use Rails migration `create_table` to create table and sequence [#991]
   * Removed a invalid spec about TIMESTAMP column [#1020]
@@ -560,7 +1071,7 @@
  * Address `add_column_options!': undefined method `quote_value' [#647]
  * Remove dirty tracking methods [#883]
  * Use arel master branch for rails5 development [#645]
- * Bump ruby-oci8 version to 2.2.0 or higher [#775] 
+ * Bump ruby-oci8 version to 2.2.0 or higher [#775]
  * Remove jeweler dependency [#766]
  * Remove required_rubygems_version [#719]
  * Remove journey which is already part of Rails [#701]
@@ -598,13 +1109,13 @@
  * Rails 5 : create table with primary key trigger with default primary key not returning id [#912]
  * Rails 5 : dirty object tracking not working correctly for CLOB [#911]
  * Rails 5 : handling of CLOB columns get failures [#910]
- * Rails 5 : SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', ' 
+ * Rails 5 : SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', '
     show Java::JavaSql::SQLSyntaxErrorException: / ORA-01722: invalid number [#909]
  * Rails 5 : explain should explain query with binds got Java::JavaSql::SQLException: Invalid column index [#908]
  - CRuby and JRuby
  * Rails 5 : create table with primary key trigger not returning id [#907]
  * Rails 5 : custom methods for create, update and destroy not working [#906]
- * Rails 5 : has_and_belongs_to_many test gets ORA-01400 since primary key column "ID" 
+ * Rails 5 : has_and_belongs_to_many test gets ORA-01400 since primary key column "ID"
     not included in insert statement [#856, rails/rails#25388]
  * Rails 5 : undefined method `to_i' for #<Arel::Nodes::BindParam:0x00000002c92910> [#848, rails/arel#438]
 
@@ -667,11 +1178,11 @@
 
 * Changes and bug fixes since 1.6.0
 
- * Oracle enhanced adapter v1.6 requires ActiveRecord 4.2.1 or higher, 
+ * Oracle enhanced adapter v1.6 requires ActiveRecord 4.2.1 or higher,
    ActiveRecord 4.2.0 is not supported.[#651, #652]
  * Fix serialized value becomes from yaml to string once saved [#655, #657]
  * Update Ruby version in readme [#654]
- * Update unit test matcher to skip sql statements to get `table` metadata [#653] 
+ * Update unit test matcher to skip sql statements to get `table` metadata [#653]
 
 ## 1.6.0 / 2015-06-25
 
@@ -754,7 +1265,7 @@
  * Change log method signiture to support Rails 4.2 [#539]
  * Enable loading spec configuration from config file instead of env [#550]
  * Rails42: Issue with non-existent columns [#545, #551]
- * Squelch warning "#column_for_attribute` will return a null object 
+ * Squelch warning "#column_for_attribute` will return a null object
    for non-existent columns in Rails 5. Use `#has_attribute?`" [#551]
  * Use arel 6-0-stable [#565]
  * Support 'Y' as true and 'N' as false in Rails 4.2 [#574, #573]
@@ -765,7 +1276,7 @@
  * Rails 4.2 Address ArgumentError: wrong number of arguments (1 for 2) at `quote_value` [#511]
  * Address ORA-00932: inconsistent datatypes: expected NUMBER got DATE [#538]
  * Remove duplicate alias_method_chain for indexes [#560]
- * Address RangeError: 6000000000 is out of range for ActiveRecord::Type::Integer 
+ * Address RangeError: 6000000000 is out of range for ActiveRecord::Type::Integer
    with limit 4 [#578]
  * Return foreign_keys_without_oracle_enhanced when non Oracle database used [#583]
  * Add missing database_tasks.rb to gemspec [#585]
@@ -810,7 +1321,7 @@
 * Enhancements
  * Oracle NUMBER datatype can be handled as Rails :float datatype [#418]
    - Default NUMBER datatype handled as :decimal to keep compatibility
-   - Configured by setting `self.number_datatype_coercion = :float` 
+   - Configured by setting `self.number_datatype_coercion = :float`
  * Add link to supported Oracle database version, JDK and Oracle JDBC Driver version [#438]
  * Support `without_prepared_statements?` to handle `unprepared_statement` [#447]
 
@@ -892,7 +1403,7 @@
  * Create indexes automatically for references and belongs_to [#183]
  * Use the index name explicitly provided in a migration when reverting [#296]
  * Rename indexes when a table or column is renamed [#286]
- * Support refactored remove_column [#172] 
+ * Support refactored remove_column [#172]
  * Support allowed_index_name_length method [#285]
  * Remove schema prefix from sequence name if present before truncating [#155]
  * Bumped jeweler, ruby-plsql and ruby-oci8 version [#176]
@@ -1208,7 +1719,7 @@
   * Added support for NVARCHAR2 column type
 * Bug fixes:
   * Do not call write_lobs callback when custom create or update methods are defined
-    
+
 ### 1.1.5 / 2008-07-27
 
 * Bug fixes:

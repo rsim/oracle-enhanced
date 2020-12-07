@@ -86,7 +86,7 @@ module ActiveRecord
             create_index_column_trigger(table_name, index_name, options[:index_column], options[:index_column_trigger_on])
           end
 
-          sql = "CREATE INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)}".dup
+          sql = +"CREATE INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)}"
           sql << " (#{quoted_column_name})"
           sql << " INDEXTYPE IS CTXSYS.CONTEXT"
           parameters = []
@@ -142,63 +142,62 @@ module ActiveRecord
         end
 
         private
-
           def create_datastore_procedure(table_name, procedure_name, column_names, options)
             quoted_table_name = quote_table_name(table_name)
             select_queries, column_names = column_names.partition { |c| c.to_s =~ /^\s*SELECT\s+/i }
             select_queries = select_queries.map { |s| s.strip.gsub(/\s+/, " ") }
             keys, selected_columns = parse_select_queries(select_queries)
             quoted_column_names = (column_names + keys).map { |col| quote_column_name(col) }
-            execute <<-SQL
-            CREATE OR REPLACE PROCEDURE #{quote_table_name(procedure_name)}
-              (p_rowid IN	      ROWID,
-              p_clob	IN OUT NOCOPY CLOB) IS
-              -- add_context_index_parameters #{(column_names + select_queries).inspect}#{!options.empty? ? ', '.dup << options.inspect[1..-2] : ''}
-              #{
-              selected_columns.map do |cols|
-                cols.map do |col|
-                  raise ArgumentError, "Alias #{col} too large, should be 28 or less characters long" unless col.length <= 28
-                  "l_#{col} VARCHAR2(32767);\n"
-                end.join
-              end.join
-              } BEGIN
-              FOR r1 IN (
-                SELECT #{quoted_column_names.join(', ')}
-                FROM	 #{quoted_table_name}
-                WHERE  #{quoted_table_name}.ROWID = p_rowid
-              ) LOOP
+            execute <<~SQL
+              CREATE OR REPLACE PROCEDURE #{quote_table_name(procedure_name)}
+                (p_rowid IN	      ROWID,
+                p_clob	IN OUT NOCOPY CLOB) IS
+                -- add_context_index_parameters #{(column_names + select_queries).inspect}#{!options.empty? ? +', ' << options.inspect[1..-2] : ''}
                 #{
-                (column_names.map do |col|
-                  col = col.to_s
-                  "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n".dup <<
-                  "IF LENGTH(r1.#{col}) > 0 THEN\n" <<
-                  "DBMS_LOB.WRITEAPPEND(p_clob, LENGTH(r1.#{col}), r1.#{col});\n" <<
-                  "END IF;\n" <<
-                  "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 3}, '</#{col}>');\n"
-                end.join) <<
-                (selected_columns.zip(select_queries).map do |cols, query|
-                  (cols.map do |col|
-                    "l_#{col} := '';\n"
-                  end.join) <<
-                  "FOR r2 IN (\n" <<
-                  query.gsub(/:(\w+)/, "r1.\\1") << "\n) LOOP\n" <<
-                  (cols.map do |col|
-                    "l_#{col} := l_#{col} || r2.#{col} || CHR(10);\n"
-                  end.join) <<
-                  "END LOOP;\n" <<
-                  (cols.map do |col|
+                selected_columns.map do |cols|
+                  cols.map do |col|
+                    raise ArgumentError, "Alias #{col} too large, should be 28 or less characters long" unless col.length <= 28
+                    "l_#{col} VARCHAR2(32767);\n"
+                  end.join
+                end.join
+                } BEGIN
+                FOR r1 IN (
+                  SELECT #{quoted_column_names.join(', ')}
+                  FROM	 #{quoted_table_name}
+                  WHERE  #{quoted_table_name}.ROWID = p_rowid
+                ) LOOP
+                  #{
+                  (column_names.map do |col|
                     col = col.to_s
-                    "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n".dup <<
-                    "IF LENGTH(l_#{col}) > 0 THEN\n" <<
-                    "DBMS_LOB.WRITEAPPEND(p_clob, LENGTH(l_#{col}), l_#{col});\n" <<
+                    +"DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n" <<
+                    "IF LENGTH(r1.#{col}) > 0 THEN\n" <<
+                    "DBMS_LOB.WRITEAPPEND(p_clob, LENGTH(r1.#{col}), r1.#{col});\n" <<
                     "END IF;\n" <<
                     "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 3}, '</#{col}>');\n"
+                  end.join) <<
+                  (selected_columns.zip(select_queries).map do |cols, query|
+                    (cols.map do |col|
+                      "l_#{col} := '';\n"
+                    end.join) <<
+                    "FOR r2 IN (\n" <<
+                    query.gsub(/:(\w+)/, "r1.\\1") << "\n) LOOP\n" <<
+                    (cols.map do |col|
+                      "l_#{col} := l_#{col} || r2.#{col} || CHR(10);\n"
+                    end.join) <<
+                    "END LOOP;\n" <<
+                    (cols.map do |col|
+                      col = col.to_s
+                      +"DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 2}, '<#{col}>');\n" <<
+                      "IF LENGTH(l_#{col}) > 0 THEN\n" <<
+                      "DBMS_LOB.WRITEAPPEND(p_clob, LENGTH(l_#{col}), l_#{col});\n" <<
+                      "END IF;\n" <<
+                      "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 3}, '</#{col}>');\n"
+                    end.join)
                   end.join)
-                end.join)
-                }
-              END LOOP;
-            END;
-          SQL
+                  }
+                END LOOP;
+              END;
+            SQL
           end
 
           def parse_select_queries(select_queries)
@@ -215,23 +214,23 @@ module ActiveRecord
 
           def create_datastore_preference(datastore_name, procedure_name)
             drop_ctx_preference(datastore_name)
-            execute <<-SQL
-            BEGIN
-              CTX_DDL.CREATE_PREFERENCE('#{datastore_name}', 'USER_DATASTORE');
-              CTX_DDL.SET_ATTRIBUTE('#{datastore_name}', 'PROCEDURE', '#{procedure_name}');
-            END;
-          SQL
+            execute <<~SQL
+              BEGIN
+                CTX_DDL.CREATE_PREFERENCE('#{datastore_name}', 'USER_DATASTORE');
+                CTX_DDL.SET_ATTRIBUTE('#{datastore_name}', 'PROCEDURE', '#{procedure_name}');
+              END;
+            SQL
           end
 
           def create_storage_preference(storage_name, tablespace)
             drop_ctx_preference(storage_name)
-            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{storage_name}', 'BASIC_STORAGE');\n".dup
+            sql = +"BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{storage_name}', 'BASIC_STORAGE');\n"
             ["I_TABLE_CLAUSE", "K_TABLE_CLAUSE", "R_TABLE_CLAUSE",
             "N_TABLE_CLAUSE", "I_INDEX_CLAUSE", "P_TABLE_CLAUSE"].each do |clause|
               default_clause = case clause
                                when "R_TABLE_CLAUSE"; "LOB(DATA) STORE AS (CACHE) "
                                when "I_INDEX_CLAUSE"; "COMPRESS 2 "
-              else ""
+                               else ""
               end
               sql << "CTX_DDL.SET_ATTRIBUTE('#{storage_name}', '#{clause}', '#{default_clause}TABLESPACE #{tablespace}');\n"
             end
@@ -241,14 +240,14 @@ module ActiveRecord
 
           def create_lexer_preference(lexer_name, lexer_type, options)
             drop_ctx_preference(lexer_name)
-            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{lexer_name}', '#{lexer_type}');\n".dup
+            sql = +"BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{lexer_name}', '#{lexer_type}');\n"
             options.each do |key, value|
               plsql_value = case value
                             when String; "'#{value}'"
                             when true; "'YES'"
                             when false; "'NO'"
                             when nil; "NULL"
-              else value
+                            else value
               end
               sql << "CTX_DDL.SET_ATTRIBUTE('#{lexer_name}', '#{key}', #{plsql_value});\n"
             end
@@ -258,14 +257,14 @@ module ActiveRecord
 
           def create_wordlist_preference(wordlist_name, wordlist_type, options)
             drop_ctx_preference(wordlist_name)
-            sql = "BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{wordlist_name}', '#{wordlist_type}');\n".dup
+            sql = +"BEGIN\nCTX_DDL.CREATE_PREFERENCE('#{wordlist_name}', '#{wordlist_type}');\n"
             options.each do |key, value|
               plsql_value = case value
                             when String; "'#{value}'"
                             when true; "'YES'"
                             when false; "'NO'"
                             when nil; "NULL"
-              else value
+                            else value
               end
               sql << "CTX_DDL.SET_ATTRIBUTE('#{wordlist_name}', '#{key}', #{plsql_value});\n"
             end
@@ -281,13 +280,13 @@ module ActiveRecord
             trigger_name = default_index_column_trigger_name(index_name)
             columns = Array(index_column_source)
             quoted_column_names = columns.map { |col| quote_column_name(col) }.join(", ")
-            execute <<-SQL
-            CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
-            BEFORE UPDATE OF #{quoted_column_names} ON #{quote_table_name(table_name)} FOR EACH ROW
-            BEGIN
-              :new.#{quote_column_name(index_column)} := '1';
-            END;
-          SQL
+            execute <<~SQL
+              CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
+              BEFORE UPDATE OF #{quoted_column_names} ON #{quote_table_name(table_name)} FOR EACH ROW
+              BEGIN
+                :new.#{quote_column_name(index_column)} := '1';
+              END;
+            SQL
           end
 
           def drop_index_column_trigger(index_name)
@@ -332,7 +331,7 @@ module ActiveRecord
             def contains(column, query, options = {})
               score_label = options[:label].to_i || 1
               where("CONTAINS(#{connection.quote_table_name(column)}, ?, #{score_label}) > 0", query).
-                order("SCORE(#{score_label}) DESC")
+                order(Arel.sql("SCORE(#{score_label}) DESC"))
             end
           end
       end

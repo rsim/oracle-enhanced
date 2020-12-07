@@ -3,11 +3,10 @@
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
-      class SchemaCreation < AbstractAdapter::SchemaCreation
+      class SchemaCreation < SchemaCreation
         private
-
           def visit_ColumnDefinition(o)
-            if [:blob, :clob, :nclob].include?(sql_type = type_to_sql(o.type,  o.options).downcase.to_sym)
+            if [:blob, :clob, :nclob].include?(sql_type = type_to_sql(o.type, **o.options).downcase.to_sym)
               if (tablespace = default_tablespace_for(sql_type))
                 @lob_tablespaces ||= {}
                 @lob_tablespaces[o.name] = tablespace
@@ -17,11 +16,11 @@ module ActiveRecord
           end
 
           def visit_TableDefinition(o)
-            create_sql = "CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE #{quote_table_name(o.name)} ".dup
+            create_sql = +"CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE #{quote_table_name(o.name)} "
             statements = o.columns.map { |c| accept c }
             statements << accept(o.primary_keys) if o.primary_keys
 
-            if supports_foreign_keys_in_create?
+            if supports_foreign_keys?
               statements.concat(o.foreign_keys.map { |to_table, options| foreign_key_in_create(o.name, to_table, options) })
             end
 
@@ -36,7 +35,7 @@ module ActiveRecord
                 create_sql << " TABLESPACE #{tablespace}"
               end
             end
-            add_table_options!(create_sql, table_options(o))
+            add_table_options!(create_sql, o)
             create_sql << " AS #{to_sql(o.as)}" if o.as
             create_sql
           end
@@ -75,18 +74,18 @@ module ActiveRecord
 
           def action_sql(action, dependency)
             if action == "UPDATE"
-              raise ArgumentError, <<-MSG.strip_heredoc
-              '#{action}' is not supported by Oracle
-            MSG
+              raise ArgumentError, <<~MSG
+                '#{action}' is not supported by Oracle
+              MSG
             end
             case dependency
             when :nullify then "ON #{action} SET NULL"
             when :cascade  then "ON #{action} CASCADE"
             else
-              raise ArgumentError, <<-MSG.strip_heredoc
-              '#{dependency}' is not supported for #{action}
-              Supported values are: :nullify, :cascade
-            MSG
+              raise ArgumentError, <<~MSG
+                '#{dependency}' is not supported for #{action}
+                Supported values are: :nullify, :cascade
+              MSG
             end
           end
       end

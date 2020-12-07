@@ -15,7 +15,7 @@ end
 required_oci8_version = [2, 2, 4]
 oci8_version_ints = OCI8::VERSION.scan(/\d+/).map { |s| s.to_i }
 if (oci8_version_ints <=> required_oci8_version) < 0
-  $stderr.puts <<-EOS.strip_heredoc
+  $stderr.puts <<~EOS
     "ERROR: ruby-oci8 version #{OCI8::VERSION} is too old. Please install ruby-oci8 version #{required_oci8_version.join('.')} or later."
   EOS
 
@@ -97,19 +97,8 @@ module ActiveRecord
           @raw_connection.exec(sql, *bindvars, &block)
         end
 
-        def returning_clause(quoted_pk)
-          " RETURNING #{quoted_pk} INTO :insert_id"
-        end
-
-        # execute sql with RETURNING ... INTO :insert_id
-        # and return :insert_id value
-        def exec_with_returning(sql)
-          cursor = @raw_connection.parse(sql)
-          cursor.bind_param(":insert_id", nil, Integer)
-          cursor.exec
-          cursor[":insert_id"]
-        ensure
-          cursor.close rescue nil
+        def with_retry(&block)
+          @raw_connection.with_retry(&block)
         end
 
         def prepare(sql)
@@ -139,7 +128,9 @@ module ActiveRecord
             when Type::OracleEnhanced::Raw
               @raw_cursor.bind_param(position, OracleEnhanced::Quoting.encode_raw(value))
             when ActiveModel::Type::Decimal
-              @raw_cursor.bind_param(position, BigDecimal.new(value.to_s))
+              @raw_cursor.bind_param(position, BigDecimal(value.to_s))
+            when Type::OracleEnhanced::CharacterString::Data
+              @raw_cursor.bind_param(position, value.to_character_str)
             when NilClass
               @raw_cursor.bind_param(position, nil, String)
             else
@@ -166,8 +157,19 @@ module ActiveRecord
           def fetch(options = {})
             if row = @raw_cursor.fetch
               get_lob_value = options[:get_lob_value]
+              col_index = 0
               row.map do |col|
-                @connection.typecast_result_value(col, get_lob_value)
+                col_value = @connection.typecast_result_value(col, get_lob_value)
+                col_metadata = @raw_cursor.column_metadata.fetch(col_index)
+                if !col_metadata.nil?
+                  key = col_metadata.data_type
+                  case key.to_s.downcase
+                  when "char"
+                    col_value = col.to_s.rstrip
+                  end
+                end
+                col_index = col_index + 1
+                col_value
               end
             end
           end
@@ -186,7 +188,7 @@ module ActiveRecord
           cols = []
           # Ignore raw_rnum_ which is used to simulate LIMIT and OFFSET
           cursor.get_col_names.each do |col_name|
-            col_name = oracle_downcase(col_name)
+            col_name = _oracle_downcase(col_name)
             cols << col_name unless col_name == "raw_rnum_"
           end
           # Reuse the same hash for all rows
@@ -199,7 +201,16 @@ module ActiveRecord
             hash = column_hash.dup
 
             cols.each_with_index do |col, i|
-              hash[col] = typecast_result_value(row[i], get_lob_value)
+              col_value = typecast_result_value(row[i], get_lob_value)
+              col_metadata = cursor.column_metadata.fetch(i)
+              if !col_metadata.nil?
+                key = col_metadata.data_type
+                case key.to_s.downcase
+                when "char"
+                  col_value = col_value.to_s.rstrip
+                end
+              end
+              hash[col] = col_value
             end
 
             rows << hash
@@ -215,17 +226,7 @@ module ActiveRecord
         end
 
         def describe(name)
-          # fall back to SELECT based describe if using database link
-          return super if name.to_s.include?("@")
-          quoted_name = OracleEnhanced::Quoting.valid_table_name?(name) ? name : "\"#{name}\""
-          @raw_connection.describe(quoted_name)
-        rescue OCIException => e
-          if e.code == 4043
-            raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?}
-          else
-            # fall back to SELECT which can handle synonyms to database links
-            super
-          end
+          super
         end
 
         # Return OCIError error code
@@ -247,9 +248,6 @@ module ActiveRecord
           when Float, BigDecimal
             # return Integer if value is integer (to avoid issues with _before_type_cast values for id attributes)
             value == (v_to_i = value.to_i) ? v_to_i : value
-          when OraNumber
-            # change OraNumber value (returned in early versions of ruby-oci8 2.0.x) to BigDecimal
-            value == (v_to_i = value.to_i) ? v_to_i : BigDecimal.new(value.to_s)
           when OCI8::LOB
             if get_lob_value
               data = value.read || ""     # if value.read returns nil, then we have an empty_clob() i.e. an empty string
@@ -271,7 +269,6 @@ module ActiveRecord
         end
 
       private
-
         def date_without_time?(value)
           case value
           when OraDate
@@ -287,7 +284,7 @@ module ActiveRecord
                                                      [value.year, value.month, value.day, value.hour, value.min, value.sec, value.usec]
                                                    when OraDate
                                                      [value.year, value.month, value.day, value.hour, value.minute, value.second, 0]
-          else
+                                                   else
                                                      [value.year, value.month, value.day, value.hour, value.min, value.sec, 0]
           end
           # code from Time.time_with_datetime_fallback
@@ -303,6 +300,8 @@ module ActiveRecord
       # The OracleEnhancedOCIFactory factors out the code necessary to connect and
       # configure an Oracle/OCI connection.
       class OracleEnhancedOCIFactory #:nodoc:
+        DEFAULT_TCP_KEEPALIVE_TIME = 600
+
         def self.new_connection(config)
           # to_s needed if username, password or database is specified as number in database.yml file
           username = config[:username] && config[:username].to_s
@@ -313,7 +312,7 @@ module ActiveRecord
           privilege = config[:privilege] && config[:privilege].to_sym
           async = config[:allow_concurrency]
           prefetch_rows = config[:prefetch_rows] || 100
-          cursor_sharing = config[:cursor_sharing]
+          cursor_sharing = config[:cursor_sharing] || "force"
           # get session time_zone from configuration or from TZ environment variable
           time_zone = config[:time_zone] || ENV["TZ"]
 
@@ -323,20 +322,22 @@ module ActiveRecord
           # connection using host, port and database name
           elsif host || port
             host ||= "localhost"
-            host = "[#{host}]" if host =~ /^[^\[].*:/  # IPv6
+            host = "[#{host}]" if /^[^\[].*:/.match?(host)  # IPv6
             port ||= 1521
-            database = "/#{database}" unless database.match(/^\//)
+            database = "/#{database}" unless database.start_with?("/")
             "//#{host}:#{port}#{database}"
           # if no host is specified then assume that
           # database parameter is TNS alias or TNS connection string
           else
             database
           end
-          OCI8.properties[:tcp_keepalive] = true
+
+          OCI8.properties[:tcp_keepalive] = config[:tcp_keepalive] == false ? false : true
           begin
-            OCI8.properties[:tcp_keepalive_time] = 600
+            OCI8.properties[:tcp_keepalive_time] = config[:tcp_keepalive_time] || DEFAULT_TCP_KEEPALIVE_TIME
           rescue NotImplementedError
           end
+
           conn = OCI8.new username, password, connection_string, privilege
           conn.autocommit = true
           conn.non_blocking = true if async
@@ -356,21 +357,13 @@ module ActiveRecord
               conn.exec "alter session set #{key} = '#{value}'"
             end
           end
+
+          OracleEnhancedAdapter::FIXED_NLS_PARAMETERS.each do |key, value|
+            conn.exec "alter session set #{key} = '#{value}'"
+          end
           conn
         end
       end
-    end
-  end
-end
-
-class OCI8 #:nodoc:
-  def describe(name)
-    info = describe_table(name.to_s)
-    raise %Q{"DESC #{name}" failed} if info.nil?
-    if info.respond_to?(:obj_link) && info.obj_link
-      [info.obj_schema, info.obj_name, "@" + info.obj_link]
-    else
-      [info.obj_schema, info.obj_name]
     end
   end
 end
@@ -433,13 +426,11 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
   LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] #:nodoc:
 
   # Adds auto-recovery functionality.
-  #
-  # See: http://www.jiubao.org/ruby-oci8/api.en.html#label-11
-  def exec(sql, *bindvars, &block) #:nodoc:
+  def with_retry #:nodoc:
     should_retry = self.class.auto_retry? && autocommit?
 
     begin
-      @connection.exec(sql, *bindvars, &block)
+      yield
     rescue OCIException => e
       raise unless e.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(e.code)
       @active = false
@@ -448,6 +439,10 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) #:nodoc:
       reset! rescue nil
       retry
     end
+  end
+
+  def exec(sql, *bindvars, &block) #:nodoc:
+    with_retry { @connection.exec(sql, *bindvars, &block) }
   end
 end
 #:startdoc:

@@ -23,7 +23,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
         t.timestamps null: true
       end
     end
-    @conn.execute <<-SQL
+    @conn.execute <<~SQL
       CREATE OR REPLACE PACKAGE test_employees_pkg IS
         PROCEDURE create_employee(
             p_first_name    VARCHAR2,
@@ -43,7 +43,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
             p_employee_id   NUMBER);
       END;
     SQL
-    @conn.execute <<-SQL
+    @conn.execute <<~SQL
       CREATE OR REPLACE PACKAGE BODY test_employees_pkg IS
         PROCEDURE create_employee(
             p_first_name    VARCHAR2,
@@ -87,7 +87,6 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
         END delete_employee;
       END;
     SQL
-
   end
 
   after(:all) do
@@ -134,7 +133,6 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
       end
 
       private
-
         def raise_make_transaction_rollback
           raise "Make the transaction rollback"
         end
@@ -361,5 +359,4 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     expect(@employee.save).to be_falsey
     expect(@employee.errors[:first_name]).not_to be_blank
   end
-
 end

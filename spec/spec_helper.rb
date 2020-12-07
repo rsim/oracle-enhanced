@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "simplecov"
-SimpleCov.start
 require "rubygems"
 require "bundler"
 require "yaml"
@@ -19,8 +17,8 @@ end
 
 require "rspec"
 
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"
-  puts "==> Running specs with MRI version #{RUBY_VERSION}"
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby" || RUBY_ENGINE == "truffleruby"
+  puts "==> Running specs with ruby version #{RUBY_VERSION}"
   require "oci8"
 elsif RUBY_ENGINE == "jruby"
   puts "==> Running specs with JRuby version #{JRUBY_VERSION}"
@@ -107,6 +105,8 @@ module LoggerSpecHelper
   end
 end
 
+ActiveRecord::LogSubscriber::IGNORE_PAYLOAD_NAMES.replace(["EXPLAIN"])
+
 module SchemaSpecHelper
   def schema_define(&block)
     ActiveRecord::Schema.define do
@@ -183,6 +183,15 @@ SYSTEM_CONNECTION_PARAMS = {
   port: DATABASE_PORT,
   username: "system",
   password: DATABASE_SYS_PASSWORD
+}
+
+SERVICE_NAME_CONNECTION_PARAMS = {
+  adapter: "oracle_enhanced",
+  database: "/#{DATABASE_NAME}",
+  host: DATABASE_HOST,
+  port: DATABASE_PORT,
+  username: DATABASE_USER,
+  password: DATABASE_PASSWORD
 }
 
 DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] || ENV["DATABASE_NON_DEFAULT_TABLESPACE"] || "SYSTEM"

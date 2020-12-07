@@ -6,7 +6,7 @@ describe "OracleEnhancedAdapter date and datetime type detection based on attrib
     @conn = ActiveRecord::Base.connection
     @conn.execute "DROP TABLE test_employees" rescue nil
     @conn.execute "DROP SEQUENCE test_employees_seq" rescue nil
-    @conn.execute <<-SQL
+    @conn.execute <<~SQL
       CREATE TABLE test_employees (
         employee_id   NUMBER(6,0) PRIMARY KEY,
         first_name    VARCHAR2(20),
@@ -23,7 +23,7 @@ describe "OracleEnhancedAdapter date and datetime type detection based on attrib
         updated_at    DATE
       )
     SQL
-    @conn.execute <<-SQL
+    @conn.execute <<~SQL
       CREATE SEQUENCE test_employees_seq  MINVALUE 1
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
@@ -227,5 +227,4 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
     @employee.reload
     expect(@employee.last_login_at).to eq(@today.to_time)
   end
-
 end

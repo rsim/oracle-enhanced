@@ -9,7 +9,6 @@ describe "OracleEnhancedAdapter quoting" do
   end
 
   describe "reserved words column quoting" do
-
     before(:all) do
       schema_define do
         create_table :test_reserved_words do |t|
@@ -60,7 +59,6 @@ describe "OracleEnhancedAdapter quoting" do
     it "should remove double quotes in column quoting" do
       expect(ActiveRecord::Base.connection.quote_column_name('aaa "bbb" ccc')).to eq('"aaa bbb ccc"')
     end
-
   end
 
   describe "valid table names" do
@@ -88,10 +86,6 @@ describe "OracleEnhancedAdapter quoting" do
       expect(@adapter.valid_table_name?("ABC_123.DEF_456")).to be_truthy
     end
 
-    it "should be valid with irregular schema name and database links" do
-      expect(@adapter.valid_table_name?('abc$#_123.abc$#_123@abc$#@._123')).to be_truthy
-    end
-
     it "should not be valid with two dots in name" do
       expect(@adapter.valid_table_name?("abc_123.def_456.ghi_789")).to be_falsey
     end
@@ -114,10 +108,6 @@ describe "OracleEnhancedAdapter quoting" do
       expect(@adapter.valid_table_name?(("a" * 31) + ".validname")).to be_falsey
     end
 
-    it "should not be valid for database links > 128 characters" do
-      expect(@adapter.valid_table_name?("name@" + "a" * 129)).to be_falsey
-    end
-
     it "should not be valid for names that do not begin with alphabetic characters" do
       expect(@adapter.valid_table_name?("1abc")).to be_falsey
       expect(@adapter.valid_table_name?("_abc")).to be_falsey
@@ -127,7 +117,6 @@ describe "OracleEnhancedAdapter quoting" do
   end
 
   describe "table quoting" do
-
     def create_warehouse_things_table
       ActiveRecord::Schema.define do
         suppress_messages do
@@ -187,10 +176,6 @@ describe "OracleEnhancedAdapter quoting" do
       expect(cc.id).not_to be_nil
 
       expect(@conn.tables).to include("CamelCase")
-    end
-
-    it "properly quotes database links" do
-      expect(@conn.quote_table_name("asdf@some.link")).to eq('"ASDF"@"SOME.LINK"')
     end
   end
 end

@@ -6,10 +6,32 @@ Oracle enhanced adapter for ActiveRecord
 DESCRIPTION
 -----------
 
-Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 5.1 and it is working with Oracle database versions from 10g to 12c.
+Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 6.0 and it is working with Oracle database versions 10g and higher
 
 INSTALLATION
 ------------
+### Rails 6.0
+
+Oracle enhanced adapter version 6.0 supports Rails 6.0.
+When using Ruby on Rails version 6.0 then in Gemfile include
+
+```ruby
+# Use oracle as the database for Active Record
+gem 'activerecord-oracle_enhanced-adapter', '~> 6.0.0'
+gem 'ruby-oci8' # only for CRuby users
+```
+
+### Rails 5.2
+
+Oracle enhanced adapter version 5.2 supports Rails 5.2.
+When using Ruby on Rails version 5.2 then in Gemfile include
+
+```ruby
+# Use oracle as the database for Active Record
+gem 'activerecord-oracle_enhanced-adapter', '~> 5.2.0'
+gem 'ruby-oci8' # only for CRuby users
+```
+
 ### Rails 5.1
 
 Oracle enhanced adapter version 1.8 just supports Rails 5.1 and does not support Rails 5.0 or lower version of Rails.
@@ -641,12 +663,30 @@ if any database structure changed by migrations, execute `rails db:schema:cache:
 
 UPGRADE
 ---------------
+### Upgrade Rails 5.1 or older version to Rails 5.2
+
+* `emulate_booleans_from_strings = true` change
+
+`VARCHAR2(1)` sql type is not registered as `Type:Boolean` even if `emulate_booleans_from_strings = true`
+
+Configure each model attribute as follows:
+
+```ruby
+class Post < ActiveRecord::Base
+  attribute :is_default, :boolean
+end
+```
+
+* Remove `OracleEnhancedAdapter.cache_columns` to use Rails `db:schema:cache:dump`
+
+Refer https://github.com/rsim/oracle-enhanced#schema-cache
+
 ### Upgrade Rails 5.0 or older version to Rails 5.1
 
 If your application gets `ORA-01000: maximum open cursors exceeded`
-after upgrading to Rails 5.1
-check these two values and configure `:statement_limit` value at database.yml
-is larger than `open_cursors` at Oracle database instance.
+after upgrading to Rails 5.1,
+check these two values and configure `open_cursors` parameter value
+at Oracle database instance is larger than `:statement_limit` value at database.yml.
 
 * `open_cursors` value at Oracle database instance
 

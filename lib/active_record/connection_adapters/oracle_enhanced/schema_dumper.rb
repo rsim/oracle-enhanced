@@ -4,7 +4,15 @@ module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhanced #:nodoc:
       class SchemaDumper < ConnectionAdapters::SchemaDumper #:nodoc:
+        DEFAULT_PRIMARY_KEY_COLUMN_SPEC = { precision: "38", null: "false" }.freeze
+        private_constant :DEFAULT_PRIMARY_KEY_COLUMN_SPEC
+
         private
+          def column_spec_for_primary_key(column)
+            spec = super
+            spec.except!(:precision) if prepare_column_options(column) == DEFAULT_PRIMARY_KEY_COLUMN_SPEC
+            spec
+          end
 
           def tables(stream)
             # do not include materialized views in schema dump - they should be created separately after schema creation
@@ -13,8 +21,6 @@ module ActiveRecord #:nodoc:
               # add table prefix or suffix for schema_migrations
               next if ignored? tbl
               table(tbl, stream)
-              # add primary key trigger if table has it
-              primary_key_trigger(tbl, stream)
             end
             # following table definitions
             # add foreign keys if table has them
@@ -27,22 +33,12 @@ module ActiveRecord #:nodoc:
             synonyms(stream)
           end
 
-          def primary_key_trigger(table_name, stream)
-            if @connection.has_primary_key_trigger?(table_name)
-              pk, _pk_seq = @connection.pk_and_sequence_for(table_name)
-              stream.print "  add_primary_key_trigger #{table_name.inspect}"
-              stream.print ", primary_key: \"#{pk}\"" if pk != "id"
-              stream.print "\n\n"
-            end
-          end
-
           def synonyms(stream)
             syns = @connection.synonyms
             syns.each do |syn|
               next if ignored? syn.name
               table_name = syn.table_name
               table_name = "#{syn.table_owner}.#{table_name}" if syn.table_owner
-              table_name = "#{table_name}@#{syn.db_link}" if syn.db_link
               stream.print "  add_synonym #{syn.name.inspect}, #{table_name.inspect}, force: true"
               stream.puts
             end
@@ -63,6 +59,7 @@ module ActiveRecord #:nodoc:
                   else
                     statement_parts = [ ("add_context_index " + remove_prefix_and_suffix(table).inspect) ]
                     statement_parts << index.columns.inspect
+                    statement_parts << ("sync: " + $1.inspect) if index.parameters =~ /SYNC\((.*?)\)/
                     statement_parts << ("name: " + index.name.inspect)
                   end
                 else
@@ -84,7 +81,7 @@ module ActiveRecord #:nodoc:
               index_statements = indexes.map do |index|
                 "    t.index #{index_parts(index).join(', ')}" unless index.type == "CTXSYS.CONTEXT"
               end
-              stream.puts index_statements.sort.join("\n")
+              stream.puts index_statements.compact.sort.join("\n")
             end
           end
 
@@ -97,6 +94,8 @@ module ActiveRecord #:nodoc:
           def table(table, stream)
             columns = @connection.columns(table)
             begin
+              self.table_name = table
+
               tbl = StringIO.new
 
               # first dump primary key column
@@ -117,7 +116,10 @@ module ActiveRecord #:nodoc:
                 tbl.print ", primary_key: #{pk.inspect}" unless pk == "id"
                 pkcol = columns.detect { |c| c.name == pk }
                 pkcolspec = column_spec_for_primary_key(pkcol)
-                if pkcolspec.present?
+                unless pkcolspec.empty?
+                  if pkcolspec != pkcolspec.slice(:id, :default)
+                    pkcolspec = { id: { type: pkcolspec.delete(:id), **pkcolspec }.compact }
+                  end
                   tbl.print ", #{format_colspec(pkcolspec)}"
                 end
               when Array
@@ -156,6 +158,8 @@ module ActiveRecord #:nodoc:
               stream.puts "# Could not dump table #{table.inspect} because of following #{e.class}"
               stream.puts "#   #{e.message}"
               stream.puts
+            ensure
+              self.table_name = nil
             end
           end
 
@@ -176,10 +180,9 @@ module ActiveRecord #:nodoc:
 
           def extract_expression_for_virtual_column(column)
             column_name = column.name
-            table_name = column.table_name
-            @connection.select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
-              select data_default from all_tab_columns
-              where owner = SYS_CONTEXT('userenv', 'session_user')
+            @connection.select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
+              select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ data_default from all_tab_columns
+              where owner = SYS_CONTEXT('userenv', 'current_schema')
               and table_name = :table_name
               and column_name = :column_name
             SQL

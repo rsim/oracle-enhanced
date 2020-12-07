@@ -10,9 +10,9 @@ module ActiveRecord
 
         def quote_column_name(name) #:nodoc:
           name = name.to_s
-          @quoted_column_names[name] ||= begin
+          self.class.quoted_column_names[name] ||= begin
             # if only valid lowercase column characters in name
-            if name =~ /\A[a-z][a-z_0-9\$#]*\Z/
+            if /\A[a-z][a-z_0-9\$#]*\Z/.match?(name)
               "\"#{name.upcase}\""
             else
               # remove double quotes which cannot be used inside quoted identifier
@@ -38,18 +38,6 @@ module ActiveRecord
           end
         end
 
-        # Used only for quoting database links as the naming rules for links
-        # differ from the rules for column names. Specifically, link names may
-        # include periods.
-        def quote_database_link(name)
-          case name
-          when NONQUOTED_DATABASE_LINK
-            %Q("#{name.upcase}")
-          else
-            name
-          end
-        end
-
         # Names must be from 1 to 30 bytes long with these exceptions:
         # * Names of databases are limited to 8 bytes.
         # * Names of database links can be as long as 128 bytes.
@@ -61,12 +49,10 @@ module ActiveRecord
         #
         # Nonquoted identifiers can contain only alphanumeric characters from
         # your database character set and the underscore (_), dollar sign ($),
-        # and pound sign (#). Database links can also contain periods (.) and
-        # "at" signs (@). Oracle strongly discourages you from using $ and # in
-        # nonquoted identifiers.
-        NONQUOTED_OBJECT_NAME   = /[[:alpha:]][\w$#]{0,29}/
-        NONQUOTED_DATABASE_LINK = /[[:alpha:]][\w$#\.@]{0,127}/
-        VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}(?:@#{NONQUOTED_DATABASE_LINK})?\Z/
+        # and pound sign (#).
+        # Oracle strongly discourages you from using $ and # in nonquoted identifiers.
+        NONQUOTED_OBJECT_NAME = /[[:alpha:]][\w$#]{0,29}/
+        VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}?\Z/
 
         # unescaped table name should start with letter and
         # contain letters, digits, _, $ or #
@@ -83,8 +69,8 @@ module ActiveRecord
         end
 
         def quote_table_name(name) #:nodoc:
-          name, link = name.to_s.split("@")
-          @quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }.join("."), quote_database_link(link)].compact.join("@")
+          name, _link = name.to_s.split("@")
+          self.class.quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
         end
 
         def quote_string(s) #:nodoc:
@@ -93,8 +79,10 @@ module ActiveRecord
 
         def _quote(value) #:nodoc:
           case value
+          when Type::OracleEnhanced::CharacterString::Data then
+            "'#{quote_string(value.to_s)}'"
           when Type::OracleEnhanced::NationalCharacterString::Data then
-            "N".dup << "'#{quote_string(value.to_s)}'"
+            +"N" << "'#{quote_string(value.to_s)}'"
           when ActiveModel::Type::Binary::Data then
             "empty_blob()"
           when Type::OracleEnhanced::Text::Data then
@@ -108,22 +96,22 @@ module ActiveRecord
 
         def quoted_true #:nodoc:
           return "'Y'" if emulate_booleans_from_strings
-          "1".freeze
+          "1"
         end
 
         def unquoted_true #:nodoc:
           return "Y" if emulate_booleans_from_strings
-          "1".freeze
+          "1"
         end
 
         def quoted_false #:nodoc:
           return "'N'" if emulate_booleans_from_strings
-          "0".freeze
+          "0"
         end
 
         def unquoted_false #:nodoc:
           return "N" if emulate_booleans_from_strings
-          "0".freeze
+          "0"
         end
 
         def _type_cast(value)
@@ -137,23 +125,61 @@ module ActiveRecord
             end
           when Type::OracleEnhanced::NationalCharacterString::Data
             value.to_s
+          when Type::OracleEnhanced::CharacterString::Data
+            value
           else
             super
           end
         end
 
-        private
+        def column_name_matcher
+          COLUMN_NAME
+        end
 
+        def column_name_with_order_matcher
+          COLUMN_NAME_WITH_ORDER
+        end
+
+        COLUMN_NAME = /
+          \A
+          (
+            (?:
+              # "table_name"."column_name" | function(one or no argument)
+              ((?:\w+\.|"\w+"\.)?(?:\w+|"\w+")) | \w+\((?:|\g<2>)\)
+            )
+            (?:(?:\s+AS)?\s+(?:\w+|"\w+"))?
+          )
+          (?:\s*,\s*\g<1>)*
+          \z
+        /ix
+
+        COLUMN_NAME_WITH_ORDER = /
+          \A
+          (
+            (?:
+              # "table_name"."column_name" | function(one or no argument)
+              ((?:\w+\.|"\w+"\.)?(?:\w+|"\w+")) | \w+\((?:|\g<2>)\)
+            )
+            (?:\s+ASC|\s+DESC)?
+            (?:\s+NULLS\s+(?:FIRST|LAST))?
+          )
+          (?:\s*,\s*\g<1>)*
+          \z
+        /ix
+        private_constant :COLUMN_NAME, :COLUMN_NAME_WITH_ORDER
+
+        private
           def oracle_downcase(column_name)
-            @connection.oracle_downcase(column_name)
+            return nil if column_name.nil?
+            /[a-z]/.match?(column_name) ? column_name : column_name.downcase
           end
       end
     end
   end
 end
 
-# if MRI or YARV
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"
+# if MRI or YARV or TruffleRuby
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby" || RUBY_ENGINE == "truffleruby"
   require "active_record/connection_adapters/oracle_enhanced/oci_quoting"
 # if JRuby
 elsif RUBY_ENGINE == "jruby"

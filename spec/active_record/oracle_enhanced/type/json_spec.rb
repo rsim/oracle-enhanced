@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 describe "OracleEnhancedAdapter attribute API support for JSON type" do
-
   include SchemaSpecHelper
 
   before(:all) do

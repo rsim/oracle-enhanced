@@ -13,9 +13,9 @@ module ActiveRecord
           log(sql, name) { @connection.exec(sql) }
         end
 
-        def clear_cache!
-          @statements.clear
+        def clear_cache! # :nodoc:
           reload_type_map
+          super
         end
 
         def exec_query(sql, name = "SQL", binds = [], prepare: false)
@@ -24,34 +24,36 @@ module ActiveRecord
           log(sql, name, binds, type_casted_binds) do
             cursor = nil
             cached = false
-            if without_prepared_statement?(binds)
-              cursor = @connection.prepare(sql)
-            else
-              unless @statements.key? sql
-                @statements[sql] = @connection.prepare(sql)
+            with_retry do
+              if without_prepared_statement?(binds)
+                cursor = @connection.prepare(sql)
+              else
+                unless @statements.key? sql
+                  @statements[sql] = @connection.prepare(sql)
+                end
+
+                cursor = @statements[sql]
+
+                cursor.bind_params(type_casted_binds)
+
+                cached = true
               end
 
-              cursor = @statements[sql]
-
-              cursor.bind_params(type_casted_binds)
-
-              cached = true
+              cursor.exec
             end
 
-            cursor.exec
-
-            if (name == "EXPLAIN") && sql =~ /^EXPLAIN/
+            if (name == "EXPLAIN") && sql.start_with?("EXPLAIN")
               res = true
             else
               columns = cursor.get_col_names.map do |col_name|
-                @connection.oracle_downcase(col_name)
+                oracle_downcase(col_name)
               end
               rows = []
               fetch_options = { get_lob_value: (name != "Writable Large Object") }
               while row = cursor.fetch(fetch_options)
                 rows << row
               end
-              res = ActiveRecord::Result.new(columns, rows)
+              res = build_result(columns: columns, rows: rows)
             end
 
             cursor.close unless cached
@@ -65,7 +67,7 @@ module ActiveRecord
 
         def explain(arel, binds = [])
           sql = "EXPLAIN PLAN FOR #{to_sql(arel, binds)}"
-          return if sql =~ /FROM all_/
+          return if /FROM all_/.match?(sql)
           if ORACLE_ENHANCED_CONNECTION == :jdbc
             exec_query(sql, "EXPLAIN", binds)
           else
@@ -76,8 +78,8 @@ module ActiveRecord
 
         # New method in ActiveRecord 3.1
         # Will add RETURNING clause in case of trigger generated primary keys
-        def sql_for_insert(sql, pk, id_value, sequence_name, binds)
-          unless id_value || pk == false || pk.nil? ||  pk.is_a?(Array)
+        def sql_for_insert(sql, pk, binds)
+          unless pk == false || pk.nil? || pk.is_a?(Array)
             sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
             (binds = binds.dup) << ActiveRecord::Relation::QueryAttribute.new("returning_id", nil, Type::OracleEnhanced::Integer.new)
           end
@@ -91,33 +93,36 @@ module ActiveRecord
 
         # New method in ActiveRecord 3.1
         def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil)
-          sql, binds = sql_for_insert(sql, pk, nil, sequence_name, binds)
+          sql, binds = sql_for_insert(sql, pk, binds)
           type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds) do
             cached = false
+            cursor = nil
             returning_id_col = returning_id_index = nil
-            if without_prepared_statement?(binds)
-              cursor = @connection.prepare(sql)
-            else
-              unless @statements.key?(sql)
-                @statements[sql] = @connection.prepare(sql)
+            with_retry do
+              if without_prepared_statement?(binds)
+                cursor = @connection.prepare(sql)
+              else
+                unless @statements.key?(sql)
+                  @statements[sql] = @connection.prepare(sql)
+                end
+
+                cursor = @statements[sql]
+
+                cursor.bind_params(type_casted_binds)
+
+                if /:returning_id/.match?(sql)
+                  # it currently expects that returning_id comes last part of binds
+                  returning_id_index = binds.size
+                  cursor.bind_returning_param(returning_id_index, Integer)
+                end
+
+                cached = true
               end
 
-              cursor = @statements[sql]
-
-              cursor.bind_params(type_casted_binds)
-
-              if sql =~ /:returning_id/
-                # it currently expects that returning_id comes last part of binds
-                returning_id_index = binds.size
-                cursor.bind_returning_param(returning_id_index, Integer) if ORACLE_ENHANCED_CONNECTION == :jdbc
-              end
-
-              cached = true
+              cursor.exec_update
             end
-
-            cursor.exec_update
 
             rows = []
             if returning_id_index
@@ -125,7 +130,7 @@ module ActiveRecord
               rows << [returning_id]
             end
             cursor.close unless cached
-            ActiveRecord::Result.new(returning_id_col || [], rows)
+            build_result(columns: returning_id_col || [], rows: rows)
           end
         end
 
@@ -134,24 +139,26 @@ module ActiveRecord
           type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds) do
-            cached = false
-            if without_prepared_statement?(binds)
-              cursor = @connection.prepare(sql)
-            else
-              if @statements.key?(sql)
-                cursor = @statements[sql]
+            with_retry do
+              cached = false
+              if without_prepared_statement?(binds)
+                cursor = @connection.prepare(sql)
               else
-                cursor = @statements[sql] = @connection.prepare(sql)
+                if @statements.key?(sql)
+                  cursor = @statements[sql]
+                else
+                  cursor = @statements[sql] = @connection.prepare(sql)
+                end
+
+                cursor.bind_params(type_casted_binds)
+
+                cached = true
               end
 
-              cursor.bind_params(type_casted_binds)
-
-              cached = true
+              res = cursor.exec_update
+              cursor.close unless cached
+              res
             end
-
-            res = cursor.exec_update
-            cursor.close unless cached
-            res
           end
         end
 
@@ -189,11 +196,11 @@ module ActiveRecord
         end
 
         def create_savepoint(name = current_savepoint_name) #:nodoc:
-          execute("SAVEPOINT #{name}")
+          execute("SAVEPOINT #{name}", "TRANSACTION")
         end
 
         def exec_rollback_to_savepoint(name = current_savepoint_name) #:nodoc:
-          execute("ROLLBACK TO #{name}")
+          execute("ROLLBACK TO #{name}", "TRANSACTION")
         end
 
         def release_savepoint(name = current_savepoint_name) #:nodoc:
@@ -222,10 +229,15 @@ module ActiveRecord
           end
         end
 
-        # fallback to non bulk fixture insert
-        def insert_fixtures(fixtures, table_name)
-          fixtures.each do |fixture|
-            insert_fixture(fixture, table_name)
+        def insert_fixtures_set(fixture_set, tables_to_delete = [])
+          disable_referential_integrity do
+            transaction(requires_new: true) do
+              tables_to_delete.each { |table| delete "DELETE FROM #{quote_table_name(table)}", "Fixture Delete" }
+
+              fixture_set.each do |table_name, rows|
+                rows.each { |row| insert_fixture(row, table_name) }
+              end
+            end
           end
         end
 
@@ -247,7 +259,7 @@ module ActiveRecord
               value = klass.attribute_types[col.name].serialize(value)
             end
             uncached do
-              unless lob_record = select_one(<<-SQL.strip.gsub(/\s+/, " "), "Writable Large Object")
+              unless lob_record = select_one(sql = <<~SQL.squish, "Writable Large Object")
                 SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)}
                 WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE
               SQL
@@ -258,6 +270,16 @@ module ActiveRecord
             end
           end
         end
+
+        private
+          def with_retry
+            @connection.with_retry do
+              yield
+            rescue
+              @statements.clear
+              raise
+            end
+          end
       end
     end
   end

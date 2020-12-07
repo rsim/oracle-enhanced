@@ -31,7 +31,6 @@ module ActiveRecord
         end
 
       private
-
         def log(sql, name = "SQL", binds = [], type_casted_binds = [], statement_name = nil)
           super
         ensure

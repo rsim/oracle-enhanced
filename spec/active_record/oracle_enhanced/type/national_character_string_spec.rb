@@ -4,7 +4,7 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-    @conn.execute <<-SQL
+    @conn.execute <<~SQL
       CREATE TABLE test_items (
         id                  NUMBER(6,0) PRIMARY KEY,
         nchar_column        NCHAR(20),
@@ -35,9 +35,11 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
     columns = @conn.columns("test_items")
     %w(nchar_column nvarchar2_column char_column varchar2_column).each do |col|
       column = columns.detect { |c| c.name == col }
-      value = @conn.type_cast_from_column(column, "abc")
+      type = @conn.lookup_cast_type_from_column(column)
+      value = type.serialize("abc")
       expect(@conn.quote(value)).to eq(column.sql_type[0, 1] == "N" ? "N'abc'" : "'abc'")
-      nilvalue = @conn.type_cast_from_column(column, nil)
+      type = @conn.lookup_cast_type_from_column(column)
+      nilvalue = type.serialize(nil)
       expect(@conn.quote(nilvalue)).to eq("NULL")
     end
   end
@@ -48,8 +50,7 @@ describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
       nchar_column: nchar_data,
       nvarchar2_column: nchar_data
     ).reload
-    expect(item.nchar_column).to eq(nchar_data + " " * 17)
+    expect(item.nchar_column).to eq(nchar_data)
     expect(item.nvarchar2_column).to eq(nchar_data)
   end
-
 end

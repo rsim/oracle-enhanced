@@ -19,9 +19,9 @@ describe "OracleEnhancedAdapter schema dump" do
   end
 
   def create_test_posts_table(options = {})
-    options.merge! force: true
+    options[:force] = true
     schema_define do
-      create_table :test_posts, options do |t|
+      create_table :test_posts, **options do |t|
         t.string :title
         t.timestamps null: true
       end
@@ -51,7 +51,6 @@ describe "OracleEnhancedAdapter schema dump" do
       create_test_posts_table
       expect(standard_dump(ignore_tables: [ /test_posts/i ])).not_to match(/create_table "test_posts"/)
     end
-
   end
 
   describe "dumping default values" do
@@ -86,7 +85,6 @@ describe "OracleEnhancedAdapter schema dump" do
       output = dump_table_schema "test_posts"
       expect(output).to match(/create_table "test_posts", primary_key: "post_id"/)
     end
-
   end
 
   describe "table with ntext columns" do
@@ -108,24 +106,6 @@ describe "OracleEnhancedAdapter schema dump" do
       output = dump_table_schema "test_ntexts"
       expect(output).to match(/t.ntext \"ntext_column\"/)
     end
-  end
-
-  describe "table with primary key trigger" do
-
-    after(:each) do
-      drop_test_posts_table
-    end
-
-    it "should include primary key trigger in schema dump" do
-      create_test_posts_table(primary_key_trigger: true)
-      expect(standard_dump).to match(/create_table "test_posts".*add_primary_key_trigger "test_posts"/m)
-    end
-
-    it "should include primary key trigger with non-default primary key in schema dump" do
-      create_test_posts_table(primary_key_trigger: true, primary_key: "post_id")
-      expect(standard_dump).to match(/create_table "test_posts", primary_key: "post_id".*add_primary_key_trigger "test_posts", primary_key: "post_id"/m)
-    end
-
   end
 
   describe "foreign key constraints" do
@@ -227,7 +207,7 @@ describe "OracleEnhancedAdapter schema dump" do
         end
       end
 
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         ALTER TABLE TEST_COMMENTS
         ADD CONSTRAINT TEST_COMMENTS_BAZ_ID_FK FOREIGN KEY (baz_id) REFERENCES test_posts(baz_id)
       SQL
@@ -235,7 +215,6 @@ describe "OracleEnhancedAdapter schema dump" do
       output = dump_table_schema "test_comments"
       expect(output).to match(/add_foreign_key "test_comments", "test_posts", column: "baz_id", primary_key: "baz_id", name: "test_comments_baz_id_fk"/)
     end
-
   end
 
   describe "synonyms" do
@@ -250,13 +229,6 @@ describe "OracleEnhancedAdapter schema dump" do
         add_synonym :test_synonym, "schema_name.table_name", force: true
       end
       expect(standard_dump).to match(/add_synonym "test_synonym", "schema_name.table_name", force: true/)
-    end
-
-    it "should include synonym to other database table in schema dump" do
-      schema_define do
-        add_synonym :test_synonym, "table_name@link_name", force: true
-      end
-      expect(standard_dump).to match(/add_synonym "test_synonym", "table_name@link_name(\.[-A-Za-z0-9_]+)*", force: true/)
     end
 
     it "should not include ignored table names in schema dump" do
@@ -279,7 +251,6 @@ describe "OracleEnhancedAdapter schema dump" do
       end
       expect(standard_dump(ignore_tables: [ /table_name/i ])).to match(/add_synonym "test_synonym"/)
     end
-
   end
 
   describe "temporary tables" do
@@ -319,7 +290,6 @@ describe "OracleEnhancedAdapter schema dump" do
       output = dump_table_schema "test_posts"
       expect(output).to match(/t\.index \["NVL\(\\"CREATED_AT\\",\\"UPDATED_AT\\"\)"\], name: "index_test_posts_cr_upd_at"$/)
     end
-
   end
 
   describe "materialized views" do
@@ -332,6 +302,33 @@ describe "OracleEnhancedAdapter schema dump" do
       create_test_posts_table
       @conn.execute "CREATE MATERIALIZED VIEW test_posts_mv AS SELECT * FROM test_posts"
       expect(standard_dump).not_to match(/create_table "test_posts_mv"/)
+    end
+  end
+
+  describe "context indexes" do
+    before(:each) do
+      schema_define do
+        create_table :test_context_indexed_posts, force: true do |t|
+          t.string :title
+          t.string :body
+          t.index :title
+        end
+        add_context_index :test_context_indexed_posts, :body, sync: "ON COMMIT"
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_context_indexed_posts
+      end
+    end
+
+    it "should dump the context index" do
+      expect(standard_dump).to include(%(add_context_index "test_context_indexed_posts", ["body"]))
+    end
+
+    it "dumps the sync option" do
+      expect(standard_dump).to include(%(sync: "ON COMMIT"))
     end
   end
 

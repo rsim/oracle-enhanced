@@ -18,7 +18,7 @@ begin
   # Oracle 12c Release 2 client provides ojdbc8.jar
   ojdbc_jars = %w(ojdbc8.jar ojdbc7.jar ojdbc6.jar)
 
-  if ENV_JAVA["java.class.path"] !~ Regexp.new(ojdbc_jars.join("|"))
+  if !ENV_JAVA["java.class.path"]&.match?(Regexp.new(ojdbc_jars.join("|")))
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
     env_path = (ENV["PATH"] || ENV["Path"] || "").split(File::PATH_SEPARATOR)
     # Look for JDBC driver at first in lib subdirectory (application specific JDBC file version)
@@ -26,7 +26,7 @@ begin
     ["./lib"].concat($LOAD_PATH).concat(env_path).detect do |dir|
       # check any compatible JDBC driver in the priority order
       ojdbc_jars.any? do |ojdbc_jar|
-        if File.exists?(file_path = File.join(dir, ojdbc_jar))
+        if File.exist?(file_path = File.join(dir, ojdbc_jar))
           require file_path
           true
         end
@@ -113,11 +113,11 @@ module ActiveRecord
             if database && (using_tns_alias || host == "connection-string")
               url = "jdbc:oracle:thin:@#{database}"
             else
-              unless database.match(/^(\:|\/)/)
+              unless database.match?(/^(\:|\/)/)
                 # assume database is a SID if no colon or slash are supplied (backward-compatibility)
-                database = ":#{database}"
+                database = "/#{database}"
               end
-              url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}#{database}"
+              url = config[:url] || "jdbc:oracle:thin:@//#{host || 'localhost'}:#{port || 1521}#{database}"
             end
 
             prefetch_rows = config[:prefetch_rows] || 100
@@ -125,6 +125,8 @@ module ActiveRecord
             time_zone = config[:time_zone] || ENV["TZ"] || java.util.TimeZone.default.getID
 
             properties = java.util.Properties.new
+            raise "username not set" unless username
+            raise "password not set" unless password
             properties.put("user", username)
             properties.put("password", password)
             properties.put("defaultRowPrefetch", "#{prefetch_rows}") if prefetch_rows
@@ -150,7 +152,7 @@ module ActiveRecord
             # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
           end
 
-          cursor_sharing = config[:cursor_sharing]
+          cursor_sharing = config[:cursor_sharing] || "force"
           exec "alter session set cursor_sharing = #{cursor_sharing}" if cursor_sharing
 
           # Initialize NLS parameters
@@ -159,6 +161,10 @@ module ActiveRecord
             if value
               exec "alter session set #{key} = '#{value}'"
             end
+          end
+
+          OracleEnhancedAdapter::FIXED_NLS_PARAMETERS.each do |key, value|
+            exec "alter session set #{key} = '#{value}'"
           end
 
           self.autocommit = true
@@ -209,13 +215,9 @@ module ActiveRecord
         def ping
           exec_no_retry("select 1 from dual")
           @active = true
-        rescue NativeException => e
+        rescue Java::JavaSql::SQLException => e
           @active = false
-          if e.message =~ /^java\.sql\.SQL(Recoverable)?Exception/
-            raise OracleEnhanced::ConnectionException, e.message
-          else
-            raise
-          end
+          raise OracleEnhanced::ConnectionException, e.message
         end
 
         # Resets connection, by logging off and creating a new connection.
@@ -224,13 +226,9 @@ module ActiveRecord
           begin
             new_connection(@config)
             @active = true
-          rescue NativeException => e
+          rescue Java::JavaSql::SQLException => e
             @active = false
-            if e.message =~ /^java\.sql\.SQL(Recoverable)?Exception/
-              raise OracleEnhanced::ConnectionException, e.message
-            else
-              raise
-            end
+            raise OracleEnhanced::ConnectionException, e.message
           end
         end
 
@@ -239,8 +237,8 @@ module ActiveRecord
           should_retry = auto_retry? && autocommit?
           begin
             yield if block_given?
-          rescue NativeException => e
-            raise unless e.message =~ /^java\.sql\.SQL(Recoverable)?Exception: (Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
+          rescue Java::JavaSql::SQLException => e
+            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/.match?(e.message)
             @active = false
             raise unless should_retry
             should_retry = false
@@ -276,47 +274,6 @@ module ActiveRecord
           end
         ensure
           s.close rescue nil
-        end
-
-        def returning_clause(quoted_pk)
-          " RETURNING #{quoted_pk} INTO ?"
-        end
-
-        # execute sql with RETURNING ... INTO :insert_id
-        # and return :insert_id value
-        def exec_with_returning(sql)
-          with_retry do
-            begin
-              # it will always be INSERT statement
-
-              # TODO: need to investigate why PreparedStatement is giving strange exception "Protocol violation"
-              # s = @raw_connection.prepareStatement(sql)
-              # s.registerReturnParameter(1, ::Java::oracle.jdbc.OracleTypes::NUMBER)
-              # count = s.executeUpdate
-              # if count > 0
-              #   rs = s.getReturnResultSet
-              #   if rs.next
-              #     # Assuming that primary key will not be larger as long max value
-              #     insert_id = rs.getLong(1)
-              #     rs.wasNull ? nil : insert_id
-              #   else
-              #     nil
-              #   end
-              # else
-              #   nil
-              # end
-
-              # Workaround with CallableStatement
-              s = @raw_connection.prepareCall("BEGIN #{sql}; END;")
-              s.registerOutParameter(1, java.sql.Types::BIGINT)
-              s.execute
-              insert_id = s.getLong(1)
-              s.wasNull ? nil : insert_id
-            ensure
-              # rs.close rescue nil
-              s.close rescue nil
-            end
-          end
         end
 
         def prepare(sql)
@@ -361,12 +318,11 @@ module ActiveRecord
               @raw_statement.setClob(position, value)
             when Type::OracleEnhanced::Raw
               @raw_statement.setString(position, OracleEnhanced::Quoting.encode_raw(value))
+            when Type::OracleEnhanced::CharacterString::Data
+              @raw_statement.setFixedCHAR(position, value.to_s)
             when String
               @raw_statement.setString(position, value)
             when Java::OracleSql::DATE
-              @raw_statement.setDATE(position, value)
-            when Date, DateTime
-              # TODO: Really needed or not
               @raw_statement.setDATE(position, value)
             when Java::JavaSql::Timestamp
               @raw_statement.setTimestamp(position, value)
@@ -462,7 +418,7 @@ module ActiveRecord
           column_count = metadata.getColumnCount
 
           cols_types_index = (1..column_count).map do |i|
-            col_name = oracle_downcase(metadata.getColumnName(i))
+            col_name = _oracle_downcase(metadata.getColumnName(i))
             next if col_name == "raw_rnum_"
             column_hash[col_name] = nil
             [col_name, metadata.getColumnTypeName(i).to_sym, i]
@@ -494,11 +450,16 @@ module ActiveRecord
           end
         end
 
-        # Return NativeException / java.sql.SQLException error code
+        # To allow private method called from `JDBCConnection`
+        def describe(name)
+          super
+        end
+
+        # Return java.sql.SQLException error code
         def error_code(exception)
           case exception
-          when NativeException
-            exception.cause.getErrorCode
+          when Java::JavaSql::SQLException
+            exception.getErrorCode
           else
             nil
           end
@@ -513,12 +474,17 @@ module ActiveRecord
             elsif d.isInt
               Integer(d.stringValue)
             else
-              BigDecimal.new(d.stringValue)
+              BigDecimal(d.stringValue)
             end
           when :BINARY_FLOAT
             rset.getFloat(i)
-          when :VARCHAR2, :CHAR, :LONG, :NVARCHAR2, :NCHAR
+          when :VARCHAR2, :LONG, :NVARCHAR2
             rset.getString(i)
+          when :CHAR, :NCHAR
+            char_str = rset.getString(i)
+            if !char_str.nil?
+              char_str.rstrip
+            end
           when :DATE
             if dt = rset.getDATE(i)
               d = dt.dateValue
@@ -546,7 +512,6 @@ module ActiveRecord
         end
 
       private
-
         def lob_to_ruby_value(val)
           case val
           when ::Java::OracleSql::CLOB

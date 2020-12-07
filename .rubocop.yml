@@ -1,27 +1,51 @@
+require:
+  - rubocop-performance
+  - rubocop-rails
+
 AllCops:
-  TargetRubyVersion: 2.2
+  TargetRubyVersion: 2.5
   DisabledByDefault: true
+
+Rails/IndexBy:
+  Enabled: true
+
+Rails/IndexWith:
+  Enabled: true
 
 # Prefer &&/|| over and/or.
 Style/AndOr:
   Enabled: true
 
-# Do not use braces for hash literals when they are the last argument of a
-# method call.
-Style/BracesAroundHashParameters:
-  Enabled: true
-  EnforcedStyle: context_dependent
-
 # Align `when` with `case`.
 Layout/CaseIndentation:
+  Enabled: true
+
+Layout/ClosingHeredocIndentation:
   Enabled: true
 
 # Align comments with method definitions.
 Layout/CommentIndentation:
   Enabled: true
 
+Layout/ElseAlignment:
+  Enabled: true
+
 Layout/EmptyLineAfterMagicComment:
   Enabled: true
+
+Layout/EmptyLinesAroundAccessModifier:
+  Enabled: true
+  EnforcedStyle: only_before
+
+Layout/EmptyLinesAroundBlockBody:
+  Enabled: true
+
+# Align `end` with the matching keyword or starting expression except for
+# assignments, where it should be aligned with the LHS.
+Layout/EndAlignment:
+  Enabled: true
+  EnforcedStyleAlignWith: variable
+  AutoCorrect: true
 
 # No extra empty lines.
 Layout/EmptyLines:
@@ -39,27 +63,33 @@ Layout/EmptyLinesAroundMethodBody:
 Layout/EmptyLinesAroundModuleBody:
   Enabled: true
 
-Layout/FirstParameterIndentation:
-  Enabled: true
-
 # Use Ruby >= 1.9 syntax for hashes. Prefer { a: :b } over { :a => :b }.
 Style/HashSyntax:
+  Enabled: true
+
+Layout/FirstArgumentIndentation:
   Enabled: true
 
 # Method definitions after `private` or `protected` isolated calls need one
 # extra level of indentation.
 Layout/IndentationConsistency:
   Enabled: true
-  EnforcedStyle: rails
+  EnforcedStyle: indented_internal_methods
 
 # Two spaces, no tabs (for indentation).
 Layout/IndentationWidth:
+  Enabled: true
+
+Layout/LeadingCommentSpace:
   Enabled: true
 
 Layout/SpaceAfterColon:
   Enabled: true
 
 Layout/SpaceAfterComma:
+  Enabled: true
+
+Layout/SpaceAfterSemicolon:
   Enabled: true
 
 Layout/SpaceAroundEqualsInParameterDefault:
@@ -71,8 +101,17 @@ Layout/SpaceAroundKeyword:
 Layout/SpaceAroundOperators:
   Enabled: true
 
+Layout/SpaceBeforeComma:
+  Enabled: true
+
+Layout/SpaceBeforeComment:
+  Enabled: true
+
 Layout/SpaceBeforeFirstArg:
-    Enabled: true
+  Enabled: true
+
+Style/DefWithParentheses:
+  Enabled: true
 
 # Defining a method with parameters needs parentheses.
 Style/MethodDefParentheses:
@@ -81,6 +120,9 @@ Style/MethodDefParentheses:
 Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: always
+
+Style/RedundantFreeze:
+  Enabled: true
 
 # Use `foo {}` not `foo{}`.
 Layout/SpaceBeforeBlockBraces:
@@ -103,11 +145,11 @@ Style/StringLiterals:
   EnforcedStyle: double_quotes
 
 # Detect hard tabs, no hard tabs.
-Layout/Tab:
+Layout/IndentationStyle:
   Enabled: true
 
-# Blank lines should not have any spaces.
-Layout/TrailingBlankLines:
+# Empty lines should not have any spaces.
+Layout/TrailingEmptyLines:
   Enabled: true
 
 # No trailing whitespace.
@@ -115,15 +157,88 @@ Layout/TrailingWhitespace:
   Enabled: true
 
 # Use quotes for string literals when they are enough.
-Style/UnneededPercentQ:
+Style/RedundantPercentQ:
   Enabled: true
 
-# Align `end` with the matching keyword or starting expression except for
-# assignments, where it should be aligned with the LHS.
-Lint/EndAlignment:
+Lint/AmbiguousOperator:
   Enabled: true
-  EnforcedStyleAlignWith: variable
+
+Lint/AmbiguousRegexpLiteral:
+  Enabled: true
+
+Lint/ErbNewArguments:
+  Enabled: true
 
 # Use my_method(my_arg) not my_method( my_arg ) or my_method my_arg.
 Lint/RequireParentheses:
+  Enabled: true
+
+Lint/ShadowingOuterLocalVariable:
+  Enabled: true
+
+Lint/RedundantStringCoercion:
+  Enabled: true
+
+Lint/UriEscapeUnescape:
+  Enabled: true
+
+Lint/UselessAssignment:
+  Enabled: true
+
+Lint/DeprecatedClassMethods:
+  Enabled: true
+
+Style/ParenthesesAroundCondition:
+  Enabled: true
+
+Style/HashTransformKeys:
+  Enabled: true
+
+Style/HashTransformValues:
+  Enabled: true
+
+Style/RedundantBegin:
+  Enabled: true
+
+Style/RedundantReturn:
+  Enabled: true
+  AllowMultipleReturnValues: true
+
+Style/Semicolon:
+  Enabled: true
+  AllowAsExpressionSeparator: true
+
+# Prefer Foo.method over Foo::method
+Style/ColonMethodCall:
+  Enabled: true
+
+Style/TrivialAccessors:
+  Enabled: true
+
+Performance/FlatMap:
+  Enabled: true
+
+Performance/RedundantMerge:
+  Enabled: true
+
+Performance/StartWith:
+  Enabled: true
+
+Performance/EndWith:
+  Enabled: true
+
+Performance/RegexpMatch:
+  Enabled: true
+
+Performance/ReverseEach:
+  Enabled: true
+
+# Use unary plus to get an unfrozen string literal.
+Performance/UnfreezeString:
+  Enabled: true
+
+Performance/DeletePrefix:
+  Enabled: true
+
+Performance/DeleteSuffix:
   Enabled: true

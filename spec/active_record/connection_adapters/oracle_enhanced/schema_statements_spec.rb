@@ -8,6 +8,8 @@ describe "OracleEnhancedAdapter schema definition" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @oracle11g_or_higher = !! !! ActiveRecord::Base.connection.select_value(
       "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
+    @oracle12cr2_or_higher = !! !! ActiveRecord::Base.connection.select_value(
+      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,4)) >= 12.2")
   end
 
   describe "option to create sequence when adding a column" do
@@ -30,7 +32,6 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "table and sequence creation with non-default primary key" do
-
     before(:all) do
       @conn = ActiveRecord::Base.connection
       schema_define do
@@ -69,7 +70,6 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "default sequence name" do
-
     it "should return sequence name without truncating too much" do
       seq_name_length = ActiveRecord::Base.connection.sequence_name_length
       tname = "#{DATABASE_USER}" + "." + "a" * (seq_name_length - DATABASE_USER.length) + "z" * (DATABASE_USER).length
@@ -78,10 +78,10 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "sequence creation parameters" do
-
     def create_test_employees_table(sequence_start_value = nil)
       schema_define do
-        create_table :test_employees, sequence_start_value ? { sequence_start_value: sequence_start_value } : {} do |t|
+        options = sequence_start_value ? { sequence_start_value: sequence_start_value } : {}
+        create_table :test_employees, **options do |t|
           t.string      :first_name
           t.string      :last_name
         end
@@ -113,24 +113,24 @@ describe "OracleEnhancedAdapter schema definition" do
       ActiveRecord::Base.clear_cache!
     end
 
-    it "should use default sequence start value 10000" do
-      expect(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value).to eq(10000)
-
-      create_test_employees_table
-      class ::TestEmployee < ActiveRecord::Base; end
-
-      employee = TestEmployee.create!
-      expect(employee.id).to eq(10000)
-    end
-
-    it "should use specified default sequence start value" do
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 1
+    it "should use default sequence start value 1" do
+      expect(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value).to eq(1)
 
       create_test_employees_table
       class ::TestEmployee < ActiveRecord::Base; end
 
       employee = TestEmployee.create!
       expect(employee.id).to eq(1)
+    end
+
+    it "should use specified default sequence start value" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = 10000
+
+      create_test_employees_table
+      class ::TestEmployee < ActiveRecord::Base; end
+
+      employee = TestEmployee.create!
+      expect(employee.id).to eq(10000)
     end
 
     it "should use sequence start value from table definition" do
@@ -150,177 +150,9 @@ describe "OracleEnhancedAdapter schema definition" do
       employee = TestEmployee.create!
       expect(employee.id).to eq(110)
     end
-
-  end
-
-  describe "create table with primary key trigger" do
-    def create_table_with_trigger(options = {})
-      options.merge! primary_key_trigger: true, force: true
-      schema_define do
-        create_table :test_employees, options do |t|
-          t.string      :first_name
-          t.string      :last_name
-        end
-      end
-    end
-
-    def create_table_and_separately_trigger(options = {})
-      options.merge! force: true
-      schema_define do
-        create_table :test_employees, options do |t|
-          t.string      :first_name
-          t.string      :last_name
-        end
-        add_primary_key_trigger :test_employees, options
-      end
-    end
-
-    def drop_table_with_trigger(options = {})
-      seq_name = options[:sequence_name]
-      schema_define do
-        drop_table :test_employees, (seq_name ? { sequence_name: seq_name } : {})
-      end
-      Object.send(:remove_const, "TestEmployee")
-      ActiveRecord::Base.clear_cache!
-    end
-
-    describe "with default primary key" do
-      before(:all) do
-        @conn = ActiveRecord::Base.connection
-        create_table_with_trigger
-        class ::TestEmployee < ActiveRecord::Base
-        end
-      end
-
-      after(:all) do
-        drop_table_with_trigger
-      end
-
-      it "should populate primary key using trigger" do
-        expect do
-          @conn.execute "INSERT INTO test_employees (first_name) VALUES ('Raimonds')"
-        end.not_to raise_error
-      end
-
-      it "should return new key value using connection insert method" do
-        insert_id = @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Raimonds')", nil, "id")
-        expect(@conn.select_value("SELECT test_employees_seq.currval FROM dual")).to eq(insert_id)
-      end
-
-      it "should create new record for model" do
-        e = TestEmployee.create!(first_name: "Raimonds")
-        expect(@conn.select_value("SELECT test_employees_seq.currval FROM dual")).to eq(e.id)
-      end
-
-      it "should not generate NoMethodError for :returning_id:Symbol" do
-        set_logger
-        @conn.reconnect! unless @conn.active?
-        @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Yasuo')", nil, "id")
-        expect(@logger.output(:error)).not_to match(/^Could not log "sql.active_record" event. NoMethodError: undefined method `name' for :returning_id:Symbol/)
-        clear_logger
-      end
-
-    end
-
-    describe "with separate creation of primary key trigger" do
-      before(:all) do
-        ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-        @conn = ActiveRecord::Base.connection
-        create_table_and_separately_trigger
-        class ::TestEmployee < ActiveRecord::Base
-        end
-      end
-
-      after(:all) do
-        drop_table_with_trigger
-      end
-
-      it "should populate primary key using trigger" do
-        expect do
-          @conn.execute "INSERT INTO test_employees (first_name) VALUES ('Raimonds')"
-        end.not_to raise_error
-      end
-
-      it "should return new key value using connection insert method" do
-        insert_id = @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Raimonds')", nil, "id")
-        expect(@conn.select_value("SELECT test_employees_seq.currval FROM dual")).to eq(insert_id)
-      end
-
-      it "should create new record for model" do
-        e = TestEmployee.create!(first_name: "Raimonds")
-        expect(@conn.select_value("SELECT test_employees_seq.currval FROM dual")).to eq(e.id)
-      end
-    end
-
-    describe "with non-default primary key and non-default sequence name" do
-      before(:all) do
-        ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-        @conn = ActiveRecord::Base.connection
-        @primary_key = "employee_id"
-        @sequence_name = "test_employees_s"
-        create_table_with_trigger(primary_key: @primary_key, sequence_name: @sequence_name)
-        class ::TestEmployee < ActiveRecord::Base
-          self.primary_key = "employee_id"
-        end
-      end
-
-      after(:all) do
-        drop_table_with_trigger(sequence_name: @sequence_name)
-      end
-
-      it "should populate primary key using trigger" do
-        expect do
-          @conn.execute "INSERT INTO test_employees (first_name) VALUES ('Raimonds')"
-        end.not_to raise_error
-      end
-
-      it "should return new key value using connection insert method" do
-        insert_id = @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Raimonds')", nil, @primary_key)
-        expect(@conn.select_value("SELECT #{@sequence_name}.currval FROM dual")).to eq(insert_id)
-      end
-
-      it "should create new record for model with autogenerated sequence option" do
-        e = TestEmployee.create!(first_name: "Raimonds")
-        expect(@conn.select_value("SELECT #{@sequence_name}.currval FROM dual")).to eq(e.id)
-      end
-    end
-
-    describe "with non-default sequence name and non-default trigger name" do
-      before(:all) do
-        ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-        @conn = ActiveRecord::Base.connection
-        @sequence_name = "test_employees_s"
-        create_table_with_trigger(sequence_name: @sequence_name, trigger_name: "test_employees_t1")
-        class ::TestEmployee < ActiveRecord::Base
-          self.sequence_name = :autogenerated
-        end
-      end
-
-      after(:all) do
-        drop_table_with_trigger(sequence_name: @sequence_name)
-      end
-
-      it "should populate primary key using trigger" do
-        expect do
-          @conn.execute "INSERT INTO test_employees (first_name) VALUES ('Raimonds')"
-        end.not_to raise_error
-      end
-
-      it "should return new key value using connection insert method" do
-        insert_id = @conn.insert("INSERT INTO test_employees (first_name) VALUES ('Raimonds')", nil, "id")
-        expect(@conn.select_value("SELECT #{@sequence_name}.currval FROM dual")).to eq(insert_id)
-      end
-
-      it "should create new record for model with autogenerated sequence option" do
-        e = TestEmployee.create!(first_name: "Raimonds")
-        expect(@conn.select_value("SELECT #{@sequence_name}.currval FROM dual")).to eq(e.id)
-      end
-    end
-
   end
 
   describe "table and column comments" do
-
     def create_test_employees_table(table_comment = nil, column_comments = {})
       schema_define do
         create_table :test_employees, comment: table_comment do |t|
@@ -390,9 +222,8 @@ describe "OracleEnhancedAdapter schema definition" do
       create_test_employees_table(table_comment)
       class ::TestEmployee < ActiveRecord::Base; end
       expect(@conn.table_comment(TestEmployee.table_name)).to eq(table_comment)
-      expect(@logger.logged(:debug).last).to match(/:owner/)
       expect(@logger.logged(:debug).last).to match(/:table_name/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_EMPLOYEES"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_EMPLOYEES"\]\]/)
     end
 
     it "should query column_comment using bind variables" do
@@ -401,12 +232,10 @@ describe "OracleEnhancedAdapter schema definition" do
       create_test_employees_table(table_comment, column_comment)
       class ::TestEmployee < ActiveRecord::Base; end
       expect(@conn.column_comment(TestEmployee.table_name, :first_name)).to eq(column_comment[:first_name])
-      expect(@logger.logged(:debug).last).to match(/:owner/)
       expect(@logger.logged(:debug).last).to match(/:table_name/)
       expect(@logger.logged(:debug).last).to match(/:column_name/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_EMPLOYEES"\], \["column_name", "FIRST_NAME"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_EMPLOYEES"\], \["column_name", "FIRST_NAME"\]\]/)
     end
-
   end
 
   describe "drop tables" do
@@ -471,45 +300,6 @@ describe "OracleEnhancedAdapter schema definition" do
         @conn.rename_table("test_employees_no_pkey", "new_test_employees_no_pkey")
       end.not_to raise_error
     end
-
-  end
-
-  describe "create triggers" do
-
-    before(:all) do
-      @conn = ActiveRecord::Base.connection
-      schema_define do
-        create_table  :test_employees do |t|
-          t.string    :first_name
-          t.string    :last_name
-        end
-      end
-      class ::TestEmployee < ActiveRecord::Base; end
-    end
-
-    after(:all) do
-      schema_define do
-        drop_table :test_employees
-      end
-      Object.send(:remove_const, "TestEmployee")
-      ActiveRecord::Base.clear_cache!
-    end
-
-    it "should create table trigger with :new reference" do
-      expect do
-        @conn.execute <<-SQL
-        CREATE OR REPLACE TRIGGER test_employees_pkt
-        BEFORE INSERT ON test_employees FOR EACH ROW
-        BEGIN
-          IF inserting THEN
-            IF :new.id IS NULL THEN
-              SELECT test_employees_seq.NEXTVAL INTO :new.id FROM dual;
-            END IF;
-          END IF;
-        END;
-        SQL
-      end.not_to raise_error
-    end
   end
 
   describe "add index" do
@@ -522,19 +312,31 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should return shortened index name by removing 'index', 'on' and 'and' keywords" do
-      expect(@conn.index_name("employees", column: ["first_name", "email"])).to eq("i_employees_first_name_email")
+      if @oracle12cr2_or_higher
+        expect(@conn.index_name("employees", column: ["first_name", "email"])).to eq("index_employees_on_first_name_and_email")
+      else
+        expect(@conn.index_name("employees", column: ["first_name", "email"])).to eq("i_employees_first_name_email")
+      end
     end
 
     it "should return shortened index name by shortening table and column names" do
-      expect(@conn.index_name("employees", column: ["first_name", "last_name"])).to eq("i_emp_fir_nam_las_nam")
+      if @oracle12cr2_or_higher
+        expect(@conn.index_name("employees", column: ["first_name", "last_name"])).to eq("index_employees_on_first_name_and_last_name")
+      else
+        expect(@conn.index_name("employees", column: ["first_name", "last_name"])).to eq("i_emp_fir_nam_las_nam")
+      end
     end
 
     it "should raise error if too large index name cannot be shortened" do
-      expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
-        "i" + Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
-      )
+      if @oracle12cr2_or_higher
+        expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
+          ("index_test_employees_on_first_name_and_middle_name_and_last_name"))
+      else
+        expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
+          "i" + Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
+        )
+      end
     end
-
   end
 
   describe "rename index" do
@@ -565,6 +367,7 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   it "should raise error when new index name length is too long" do
+    skip if @oracle12cr2_or_higher
     expect do
       @conn.rename_index("test_employees", "i_test_employees_first_name", "a" * 31)
     end.to raise_error(ArgumentError)
@@ -577,6 +380,7 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   it "should rename index name with new one" do
+    skip if @oracle12cr2_or_higher
     expect do
       @conn.rename_index("test_employees", "i_test_employees_first_name", "new_index_name")
     end.not_to raise_error
@@ -609,7 +413,6 @@ end
         end
       end.not_to raise_error
     end
-
   end
 
   describe "foreign key constraints" do
@@ -737,11 +540,9 @@ end
         add_foreign_key :test_comments, :test_posts
       end
       ActiveRecord::Base.connection.foreign_keys(:test_comments)
-      expect(@logger.logged(:debug).last).to match(/:owner/)
       expect(@logger.logged(:debug).last).to match(/:desc_table_name/)
-      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["desc_table_name", "TEST_COMMENTS"\]\]/)
+      expect(@logger.logged(:debug).last).to match(/\["desc_table_name", "TEST_COMMENTS"\]\]/)
     end
-
   end
 
   describe "lob in table definition" do
@@ -930,7 +731,6 @@ end
         TestComment.create(body: "test", test_post_id: 1)
       end.to raise_error() { |e| expect(e.message).to match(/ORA-02291/) }
     end
-
   end
 
   describe "disable referential integrity" do
@@ -977,18 +777,12 @@ end
         @conn.execute "INSERT INTO test_comments (id, body, test_post_id) VALUES (3, 'test', 3)"
       end.to raise_error(ActiveRecord::InvalidForeignKey)
     end
-
   end
 
   describe "synonyms" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
-      @db_link = "db_link"
-      @username = @db_link_username = CONNECTION_PARAMS[:username]
-      @db_link_password = CONNECTION_PARAMS[:password]
-      @db_link_database = CONNECTION_PARAMS[:database]
-      @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
-      @conn.execute "CREATE DATABASE LINK #{@db_link} CONNECT TO #{@db_link_username} IDENTIFIED BY \"#{@db_link_password}\" USING '#{@db_link_database}'"
+      @username = CONNECTION_PARAMS[:username]
       schema_define do
         create_table :test_posts, force: true do |t|
           t.string :title
@@ -1000,7 +794,6 @@ end
       schema_define do
         drop_table :test_posts
       end
-      @conn.execute "DROP DATABASE LINK #{@db_link}" rescue nil
     end
 
     before(:each) do
@@ -1028,18 +821,6 @@ end
         TestPost.create(title: "test")
       end.not_to raise_error
     end
-
-    it "should create synonym to table over database link" do
-      db_link = @db_link
-      schema_define do
-        add_synonym :synonym_to_posts, "test_posts@#{db_link}", force: true
-        add_synonym :synonym_to_posts_seq, "test_posts_seq@#{db_link}", force: true
-      end
-      expect do
-        TestPost.create(title: "test")
-      end.not_to raise_error
-    end
-
   end
 
   describe "alter columns with column cache" do
@@ -1088,6 +869,15 @@ end
       end
       TestPost.reset_column_information
       expect(TestPost.columns_hash["body"]).not_to be_nil
+    end
+
+    it "should add longer column" do
+      skip unless @oracle12cr2_or_higher
+      schema_define do
+        add_column :test_posts, "a" * 128, :string
+      end
+      TestPost.reset_column_information
+      expect(TestPost.columns_hash["a" * 128]).not_to be_nil
     end
 
     it "should add lob column with non_default tablespace" do
@@ -1295,13 +1085,43 @@ end
     end
   end
 
+  describe "materialized views" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        create_table  :test_employees, force: true do |t|
+          t.string    :first_name
+          t.string    :last_name
+        end
+      end
+      @conn.execute("create materialized view sum_test_employees as select first_name, count(*) from test_employees group by first_name")
+      class ::TestEmployee < ActiveRecord::Base; end
+    end
+
+    after(:all) do
+      @conn.execute("drop materialized view sum_test_employees") rescue nil
+      schema_define do
+        drop_table :sum_test_employees, if_exists: true
+        drop_table :test_employees, if_exists: true
+      end
+    end
+
+    it "tables should not return materialized views" do
+      expect(@conn.tables).not_to include("sum_test_employees")
+    end
+
+    it "materialized_views should return materialized views" do
+      expect(@conn.materialized_views).to include("sum_test_employees")
+    end
+  end
+
   describe "miscellaneous options" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
     end
 
     before(:each) do
-      @conn.instance_variable_set :@would_execute_sql, @would_execute_sql = "".dup
+      @conn.instance_variable_set :@would_execute_sql, @would_execute_sql = +""
       class <<@conn
         def execute(sql, name = nil); @would_execute_sql << sql << ";\n"; end
       end
@@ -1388,7 +1208,6 @@ end
       end
       expect(@would_execute_sql).not_to match(/ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\(.*\)\)/)
     end
-
   end
 
   describe "load schema" do

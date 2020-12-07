@@ -131,10 +131,10 @@ describe "OracleEnhancedAdapter context index" do
       @post = Post.create(title: "abc", body: "def")
       expect(Post.contains(:all_text, "abc").to_a).to eq([@post])
       expect(Post.contains(:all_text, "def").to_a).to eq([@post])
-      @post.update_attributes!(title: "ghi")
+      @post.update!(title: "ghi")
       # index will not be updated as all_text column is not changed
       expect(Post.contains(:all_text, "ghi").to_a).to be_empty
-      @post.update_attributes!(all_text: "1")
+      @post.update!(all_text: "1")
       # index will be updated when all_text column is changed
       expect(Post.contains(:all_text, "ghi").to_a).to eq([@post])
       @conn.remove_context_index :posts, index_column: :all_text
@@ -147,7 +147,7 @@ describe "OracleEnhancedAdapter context index" do
       @post = Post.create(title: "abc", body: "def")
       expect(Post.contains(:all_text, "abc").to_a).to eq([@post])
       expect(Post.contains(:all_text, "def").to_a).to eq([@post])
-      @post.update_attributes!(title: "ghi")
+      @post.update!(title: "ghi")
       # index should be updated as created_at column is changed
       expect(Post.contains(:all_text, "ghi").to_a).to eq([@post])
       @conn.remove_context_index :posts, index_column: :all_text
@@ -168,7 +168,7 @@ describe "OracleEnhancedAdapter context index" do
       Post.transaction do
         @post = Post.create(title: "abc")
         expect(Post.contains(:title, "abc").to_a).to eq([@post])
-        @post.update_attributes!(title: "ghi")
+        @post.update!(title: "ghi")
         expect(Post.contains(:title, "ghi").to_a).to eq([@post])
       end
       @conn.remove_context_index :posts, :title
@@ -265,7 +265,6 @@ describe "OracleEnhancedAdapter context index" do
       expect(Post.contains(:all_text, "ddd within comment_body").to_a).to eq([@post])
       expect(Post.contains(:all_text, "ddd within comment_author").to_a).to be_empty
     end
-
   end
 
   describe "with specified tablespace" do
@@ -311,13 +310,10 @@ describe "OracleEnhancedAdapter context index" do
       expect(Post.contains(:title, "aaa AND bbb").to_a).to eq([@post])
       @conn.remove_context_index :posts, name: "index_posts_text"
     end
-
   end
 
   describe "schema dump" do
-
     describe "without table prefixe and suffix" do
-
       before(:all) do
         @conn = ActiveRecord::Base.connection
         create_tables
@@ -382,7 +378,6 @@ describe "OracleEnhancedAdapter context index" do
         expect(output).to match(/add_context_index "posts", \[:title, :body, "#{sub_query.gsub(/\n/, ' ')}"\], #{options.inspect[1..-2]}$/)
         @conn.remove_context_index :posts, name: "post_and_comments_index"
       end
-
     end
 
     describe "with table prefix and suffix" do
@@ -428,12 +423,9 @@ describe "OracleEnhancedAdapter context index" do
         end
         output = dump_table_schema "posts"
         expect(output).to match(/add_context_index "posts", \[:title, :body, "SELECT comments.author AS comment_author, comments.body AS comment_body FROM comments WHERE comments.post_id = :id"\], #{
-          options.inspect[1..-2].gsub(/[{}]/) { |s| '\\'.dup << s }}$/)
+          options.inspect[1..-2].gsub(/[{}]/) { |s| +'\\' << s }}$/)
         schema_define { remove_context_index :posts, name: "xxx_post_and_comments_i" }
       end
-
     end
-
   end
-
 end

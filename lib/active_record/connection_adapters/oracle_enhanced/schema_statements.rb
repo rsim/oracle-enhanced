@@ -11,12 +11,17 @@ module ActiveRecord
         # see: abstract/schema_statements.rb
 
         def tables #:nodoc:
-          select_values(<<-SQL.strip.gsub(/\s+/, " "), "tables")
-          SELECT DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
-          FROM all_tables
-          WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-          AND secondary = 'N'
-        SQL
+          select_values(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+            DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
+            FROM all_tables
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            AND secondary = 'N'
+            minus
+            SELECT DECODE(mview_name, UPPER(mview_name), LOWER(mview_name), mview_name)
+            FROM all_mviews
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+          SQL
         end
 
         def data_sources
@@ -39,65 +44,67 @@ module ActiveRecord
             table_owner, table_name = default_owner, real_name
           end
 
-          select_values(<<-SQL.strip.gsub(/\s+/, " "), "table exists", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
-          SELECT owner, table_name
-          FROM all_tables
-          WHERE owner = :owner
-          AND table_name = :table_name
-        SQL
+          select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ owner, table_name
+            FROM all_tables
+            WHERE owner = :owner
+            AND table_name = :table_name
+          SQL
         end
 
-        # Needs to consider how to support synonyms in Rails 5.1
         def data_source_exists?(table_name)
-          (_owner, table_name, _db_link) = @connection.describe(table_name)
+          (_owner, _table_name) = @connection.describe(table_name)
           true
         rescue
           false
         end
 
         def views # :nodoc:
-          select_values(<<-SQL.strip.gsub(/\s+/, " "), "views")
-            SELECT LOWER(view_name) FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+          select_values(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+            LOWER(view_name) FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         def materialized_views #:nodoc:
-          select_values(<<-SQL.strip.gsub(/\s+/, " "), "materialized views")
-            SELECT LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+          select_values(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+            LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         # get synonyms for schema dump
         def synonyms
-          result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "synonyms")
-          SELECT synonym_name, table_owner, table_name, db_link
-          FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'session_user')
-        SQL
+          result = select_all(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ synonym_name, table_owner, table_name
+            FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
+          SQL
 
           result.collect do |row|
              OracleEnhanced::SynonymDefinition.new(oracle_downcase(row["synonym_name"]),
-             oracle_downcase(row["table_owner"]), oracle_downcase(row["table_name"]), oracle_downcase(row["db_link"]))
+             oracle_downcase(row["table_owner"]), oracle_downcase(row["table_name"]))
            end
         end
 
         def indexes(table_name) #:nodoc:
-          (owner, table_name, db_link) = @connection.describe(table_name)
+          (_owner, table_name) = @connection.describe(table_name)
           default_tablespace_name = default_tablespace
 
-          result = select_all(<<-SQL.strip.gsub(/\s+/, " "), "indexes", [bind_string("owner", owner), bind_string("owner", owner)])
-            SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
+          result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
               LOWER(c.column_name) AS column_name, e.column_expression,
               atc.virtual_column
-            FROM all_indexes#{db_link} i
-              JOIN all_ind_columns#{db_link} c ON c.index_name = i.index_name AND c.index_owner = i.owner
-              LEFT OUTER JOIN all_ind_expressions#{db_link} e ON e.index_name = i.index_name AND
+            FROM all_indexes i
+              JOIN all_ind_columns c ON c.index_name = i.index_name AND c.index_owner = i.owner
+              LEFT OUTER JOIN all_ind_expressions e ON e.index_name = i.index_name AND
                 e.index_owner = i.owner AND e.column_position = c.column_position
-              LEFT OUTER JOIN all_tab_cols#{db_link} atc ON i.table_name = atc.table_name AND
+              LEFT OUTER JOIN all_tab_cols atc ON i.table_name = atc.table_name AND
                 c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
-            WHERE i.owner = :owner
-               AND i.table_owner = :owner
+            WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
+               AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
+               AND i.table_name = :table_name
                AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
                 WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
             ORDER BY i.index_name, c.column_position
@@ -113,10 +120,10 @@ module ActiveRecord
               statement_parameters = nil
               if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
                 procedure_name = default_datastore_procedure(row["index_name"])
-                source = select_values(<<-SQL.strip.gsub(/\s+/, " "), "procedure", [bind_string("owner", owner), bind_string("procedure_name", procedure_name.upcase)]).join
-                  SELECT text
-                  FROM all_source#{db_link}
-                  WHERE owner = :owner
+                source = select_values(<<~SQL.squish, "SCHEMA", [bind_string("procedure_name", procedure_name.upcase)]).join
+                  SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ text
+                  FROM all_source
+                  WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
                     AND name = :procedure_name
                   ORDER BY line
                 SQL
@@ -129,7 +136,7 @@ module ActiveRecord
                 row["index_name"],
                 row["uniqueness"] == "UNIQUE",
                 [],
-                nil,
+                {},
                 row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
                 row["parameters"],
                 statement_parameters,
@@ -153,6 +160,14 @@ module ActiveRecord
           all_schema_indexes.select { |i| i.table == table_name }
         end
 
+        def columns(table_name)
+          table_name = table_name.to_s
+          if @columns_cache[table_name]
+            @columns_cache[table_name]
+          else
+            @columns_cache[table_name] = super(table_name)
+          end
+        end
         # Additional options for +create_table+ method in migration files.
         #
         # You can specify individual starting value in table creation migration file, e.g.:
@@ -184,19 +199,19 @@ module ActiveRecord
         #     t.string      :last_name, :comment => “Surname”
         #   end
 
-        def create_table(table_name, comment: nil, **options)
-          create_sequence = options[:id] != false
-          td = create_table_definition table_name, options[:temporary], options[:options], options[:as], options[:tablespace], options[:organization], comment: comment
+        def create_table(table_name, id: :primary_key, primary_key: nil, force: nil, **options)
+          create_sequence = id != false
+          td = create_table_definition(
+            table_name, **options.extract!(:temporary, :options, :as, :comment, :tablespace, :organization)
+          )
 
-          if options[:id] != false && !options[:as]
-            pk = options.fetch(:primary_key) do
-              Base.get_primary_key table_name.to_s.singularize
-            end
+          if id && !td.as
+            pk = primary_key || Base.get_primary_key(table_name.to_s.singularize)
 
             if pk.is_a?(Array)
               td.primary_keys pk
             else
-              td.primary_key pk, options.fetch(:id, :primary_key), options
+              td.primary_key pk, id, **options
             end
           end
 
@@ -214,8 +229,10 @@ module ActiveRecord
           yield td if block_given?
           create_sequence = create_sequence || td.create_sequence
 
-          if options[:force] && data_source_exists?(table_name)
-            drop_table(table_name, options)
+          if force && data_source_exists?(table_name)
+            drop_table(table_name, force: force, if_exists: true)
+          else
+            schema_cache.clear_data_source_cache!(table_name.to_s)
           end
 
           execute schema_creation.accept td
@@ -223,39 +240,46 @@ module ActiveRecord
           create_sequence_and_trigger(table_name, options) if create_sequence
 
           if supports_comments? && !supports_comments_in_create?
-            change_table_comment(table_name, comment) if comment
+            if table_comment = td.comment.presence
+              change_table_comment(table_name, table_comment)
+            end
             td.columns.each do |column|
               change_column_comment(table_name, column.name, column.comment) if column.comment.present?
             end
           end
-          td.indexes.each { |c, o| add_index table_name, c, o }
+          td.indexes.each { |c, o| add_index table_name, c, **o }
 
           rebuild_primary_key_index_to_default_tablespace(table_name, options)
         end
 
         def rename_table(table_name, new_name) #:nodoc:
-          if new_name.to_s.length > table_name_length
-            raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{table_name_length} characters"
+          if new_name.to_s.length > DatabaseLimits::IDENTIFIER_MAX_LENGTH
+            raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{DatabaseLimits::IDENTIFIER_MAX_LENGTH} characters"
           end
+          schema_cache.clear_data_source_cache!(table_name.to_s)
+          schema_cache.clear_data_source_cache!(new_name.to_s)
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
           execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{default_sequence_name(new_name)}" rescue nil
 
           rename_table_indexes(table_name, new_name)
         end
 
-        def drop_table(table_name, options = {}) #:nodoc:
+        def drop_table(table_name, **options) #:nodoc:
+          schema_cache.clear_data_source_cache!(table_name.to_s)
           execute "DROP TABLE #{quote_table_name(table_name)}#{' CASCADE CONSTRAINTS' if options[:force] == :cascade}"
           seq_name = options[:sequence_name] || default_sequence_name(table_name)
           execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
         rescue ActiveRecord::StatementInvalid => e
           raise e unless options[:if_exists]
+        ensure
+          clear_table_columns_cache(table_name)
         end
 
         def insert_versions_sql(versions) # :nodoc:
           sm_table = quote_table_name(ActiveRecord::SchemaMigration.table_name)
 
           if supports_multi_insert?
-            versions.inject("INSERT ALL\n".dup) { |sql, version|
+            versions.inject(+"INSERT ALL\n") { |sql, version|
               sql << "INTO #{sm_table} (version) VALUES (#{quote(version)})\n"
             } << "SELECT * FROM DUAL\n"
           else
@@ -271,11 +295,11 @@ module ActiveRecord
           end
         end
 
-        def add_index(table_name, column_name, options = {}) #:nodoc:
-          index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, options)
+        def add_index(table_name, column_name, **options) #:nodoc:
+          index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, **options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
           if index_type == "UNIQUE"
-            unless quoted_column_names =~ /\(.*\)/
+            unless /\(.*\)/.match?(quoted_column_names)
               execute "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(index_name)} #{index_type} (#{quoted_column_names})"
             end
           end
@@ -290,13 +314,11 @@ module ActiveRecord
           index_type = options[:unique] ? "UNIQUE" : ""
           index_name = options[:name].to_s if options.key?(:name)
           tablespace = tablespace_for(:index, options[:tablespace])
-          max_index_length = options.fetch(:internal, false) ? index_name_length : allowed_index_name_length
-          #TODO: This option is used for NOLOGGING, needs better argumetn name
+          # TODO: This option is used for NOLOGGING, needs better argument name
           index_options = options[:options]
 
-          if index_name.to_s.length > max_index_length
-            raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' is too long; the limit is #{max_index_length} characters"
-          end
+          validate_index_length!(table_name, index_name, options.fetch(:internal, false))
+
           if table_exists?(table_name) && index_name_exists?(table_name, index_name)
             raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' already exists"
           end
@@ -307,9 +329,9 @@ module ActiveRecord
 
         # Remove the given index from the table.
         # Gives warning if index does not exist
-        def remove_index(table_name, options = {}) #:nodoc:
-          index_name = index_name_for_remove(table_name, options)
-          #TODO: It should execute only when index_type == "UNIQUE"
+        def remove_index(table_name, column_name = nil, **options) #:nodoc:
+          index_name = index_name_for_remove(table_name, column_name, options)
+          # TODO: It should execute only when index_type == "UNIQUE"
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(index_name)}" rescue nil
           execute "DROP INDEX #{quote_column_name(index_name)}"
         end
@@ -344,11 +366,11 @@ module ActiveRecord
         #
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
-          (owner, table_name, db_link) = @connection.describe(table_name)
-          result = select_value(<<-SQL.strip.gsub(/\s+/, " "), "index name exists")
-            SELECT 1 FROM all_indexes#{db_link} i
-            WHERE i.owner = '#{owner}'
-               AND i.table_owner = '#{owner}'
+          (_owner, table_name) = @connection.describe(table_name)
+          result = select_value(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ 1 FROM all_indexes i
+            WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
+               AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_name = '#{table_name}'
                AND i.index_name = '#{index_name.to_s.upcase}'
           SQL
@@ -366,10 +388,10 @@ module ActiveRecord
         #
         #   add_synonym :posts, "blog.posts"
         #   add_synonym :posts_seq, "blog.posts_seq"
-        #   add_synonym :employees, "hr.employees@dblink", :force => true
+        #   add_synonym :employees, "hr.employees", :force => true
         #
         def add_synonym(name, table_name, options = {})
-          sql = "CREATE".dup
+          sql = +"CREATE"
           if options[:force] == true
             sql << " OR REPLACE"
           end
@@ -386,19 +408,21 @@ module ActiveRecord
           execute "DROP SYNONYM #{quote_table_name(name)}"
         end
 
-        def add_reference(table_name, *args)
-          OracleEnhanced::ReferenceDefinition.new(*args).add_to(update_table_definition(table_name, self))
+        def add_reference(table_name, ref_name, **options)
+          OracleEnhanced::ReferenceDefinition.new(ref_name, **options).add_to(update_table_definition(table_name, self))
         end
 
-        def add_column(table_name, column_name, type, options = {}) #:nodoc:
+        def add_column(table_name, column_name, type, **options) #:nodoc:
           type = aliased_types(type.to_s, type)
           at = create_alter_table table_name
-          at.add_column(column_name, type, options)
+          at.add_column(column_name, type, **options)
           add_column_sql = schema_creation.accept at
           add_column_sql << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name)
           execute add_column_sql
           create_sequence_and_trigger(table_name, options) if type && type.to_sym == :primary_key
           change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
+        ensure
+          clear_table_columns_cache(table_name)
         end
 
         def aliased_types(name, fallback)
@@ -408,6 +432,8 @@ module ActiveRecord
         def change_column_default(table_name, column_name, default_or_changes) #:nodoc:
           default = extract_new_default_value(default_or_changes)
           execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
+        ensure
+          clear_table_columns_cache(table_name)
         end
 
         def change_column_null(table_name, column_name, null, default = nil) #:nodoc:
@@ -420,7 +446,7 @@ module ActiveRecord
           change_column table_name, column_name, column.sql_type, null: null
         end
 
-        def change_column(table_name, column_name, type, options = {}) #:nodoc:
+        def change_column(table_name, column_name, type, **options) #:nodoc:
           column = column_for(table_name, column_name)
 
           # remove :null option if its value is the same as current column definition
@@ -433,26 +459,33 @@ module ActiveRecord
           end
 
           td = create_table_definition(table_name)
-          cd = td.new_column_definition(column.name, type, options)
+          cd = td.new_column_definition(column.name, type, **options)
           change_column_stmt = schema_creation.accept cd
           change_column_stmt << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name]) if type
           change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{change_column_stmt}"
           execute(change_column_sql)
 
           change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
+        ensure
+          clear_table_columns_cache(table_name)
         end
 
         def rename_column(table_name, column_name, new_column_name) #:nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
           rename_column_indexes(table_name, column_name, new_column_name)
+        ensure
+          clear_table_columns_cache(table_name)
         end
 
         def remove_column(table_name, column_name, type = nil, options = {}) #:nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)} CASCADE CONSTRAINTS"
+        ensure
+          clear_table_columns_cache(table_name)
         end
 
-        def change_table_comment(table_name, comment)
+        def change_table_comment(table_name, comment_or_changes)
           clear_cache!
+          comment = extract_new_comment_value(comment_or_changes)
           if comment.nil?
             execute "COMMENT ON TABLE #{quote_table_name(table_name)} IS ''"
           else
@@ -460,16 +493,18 @@ module ActiveRecord
           end
         end
 
-        def change_column_comment(table_name, column_name, comment) #:nodoc:
+        def change_column_comment(table_name, column_name, comment_or_changes)
           clear_cache!
+          comment = extract_new_comment_value(comment_or_changes)
           execute "COMMENT ON COLUMN #{quote_table_name(table_name)}.#{quote_column_name(column_name)} IS '#{comment}'"
         end
 
         def table_comment(table_name) #:nodoc:
-          (owner, table_name, db_link) = @connection.describe(table_name)
-          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Table comment", [bind_string("owner", owner), bind_string("table_name", table_name)])
-            SELECT comments FROM all_tab_comments#{db_link}
-            WHERE owner = :owner
+          # TODO
+          (_owner, table_name) = @connection.describe(table_name)
+          select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ comments FROM all_tab_comments
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
           SQL
         end
@@ -482,10 +517,10 @@ module ActiveRecord
 
         def column_comment(table_name, column_name) #:nodoc:
           # TODO: it  does not exist in Abstract adapter
-          (owner, table_name, db_link) = @connection.describe(table_name)
-          select_value(<<-SQL.strip.gsub(/\s+/, " "), "Column comment", [bind_string("owner", owner), bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
-            SELECT comments FROM all_col_comments#{db_link}
-            WHERE owner = :owner
+          (_owner, table_name) = @connection.describe(table_name)
+          select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ comments FROM all_col_comments
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
               AND column_name = :column_name
           SQL
@@ -500,27 +535,27 @@ module ActiveRecord
         end
 
         def tablespace(table_name)
-          select_value(<<-SQL.strip.gsub(/\s+/, " "), "tablespace")
-            SELECT tablespace_name
+          select_value(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ tablespace_name
             FROM all_tables
             WHERE table_name='#{table_name.to_s.upcase}'
-            AND owner = SYS_CONTEXT('userenv', 'session_user')
+            AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         # get table foreign keys for schema dump
         def foreign_keys(table_name) #:nodoc:
-          (owner, desc_table_name, db_link) = @connection.describe(table_name)
+          (_owner, desc_table_name) = @connection.describe(table_name)
 
-          fk_info = select_all(<<-SQL.strip.gsub(/\s+/, " "), "Foreign Keys", [bind_string("owner", owner), bind_string("desc_table_name", desc_table_name)])
-            SELECT r.table_name to_table
+          fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ r.table_name to_table
                   ,rc.column_name references_column
                   ,cc.column_name
                   ,c.constraint_name name
                   ,c.delete_rule
-              FROM all_constraints#{db_link} c, all_cons_columns#{db_link} cc,
-                   all_constraints#{db_link} r, all_cons_columns#{db_link} rc
-             WHERE c.owner = :owner
+              FROM all_constraints c, all_cons_columns cc,
+                   all_constraints r, all_cons_columns rc
+             WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND c.table_name = :desc_table_name
                AND c.constraint_type = 'R'
                AND cc.owner = c.owner
@@ -554,12 +589,12 @@ module ActiveRecord
         # REFERENTIAL INTEGRITY ====================================
 
         def disable_referential_integrity(&block) #:nodoc:
-          old_constraints = select_all(<<-SQL.strip.gsub(/\s+/, " "), "Foreign Keys to disable and enable")
-          SELECT constraint_name, owner, table_name
-            FROM all_constraints
-            WHERE constraint_type = 'R'
-            AND status = 'ENABLED'
-            AND owner = SYS_CONTEXT('userenv', 'session_user')
+          old_constraints = select_all(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ constraint_name, owner, table_name
+              FROM all_constraints
+              WHERE constraint_type = 'R'
+              AND status = 'ENABLED'
+              AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           begin
             old_constraints.each do |constraint|
@@ -574,7 +609,7 @@ module ActiveRecord
         end
 
         def create_alter_table(name)
-          OracleEnhanced::AlterTable.new create_table_definition(name, false, {})
+          OracleEnhanced::AlterTable.new create_table_definition(name)
         end
 
         def update_table_definition(table_name, base)
@@ -586,13 +621,12 @@ module ActiveRecord
         end
 
         private
-
           def schema_creation
             OracleEnhanced::SchemaCreation.new self
           end
 
-          def create_table_definition(*args)
-            OracleEnhanced::TableDefinition.new(*args)
+          def create_table_definition(name, **options)
+            OracleEnhanced::TableDefinition.new(self, name, **options)
           end
 
           def new_column_from_field(table_name, field)
@@ -614,9 +648,9 @@ module ActiveRecord
               # If a default contains a newline these cleanup regexes need to
               # match newlines.
               field["data_default"].sub!(/^'(.*)'$/m, '\1')
-              field["data_default"] = nil if field["data_default"] =~ /^(null|empty_[bc]lob\(\))$/i
+              field["data_default"] = nil if /^(null|empty_[bc]lob\(\))$/i.match?(field["data_default"])
               # TODO: Needs better fix to fallback "N" to false
-              field["data_default"] = false if (field["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings)
+              field["data_default"] = false if field["data_default"] == "N" && OracleEnhancedAdapter.emulate_booleans_from_strings
             end
 
             type_metadata = fetch_type_metadata(field["sql_type"], is_virtual)
@@ -626,8 +660,7 @@ module ActiveRecord
                              default_value,
                              type_metadata,
                              field["nullable"] == "Y",
-                             table_name,
-                             field["column_comment"]
+                             comment: field["column_comment"]
                       )
           end
 
@@ -636,7 +669,7 @@ module ActiveRecord
           end
 
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
-            tablespace_sql = "".dup
+            tablespace_sql = +""
             if tablespace = (tablespace_option || default_tablespace_for(obj_type))
               if [:blob, :clob, :nclob].include?(obj_type.to_sym)
                 tablespace_sql << " LOB (#{quote_column_name(column_name)}) STORE AS #{column_name.to_s[0..10]}_#{table_name.to_s[0..14]}_ls (TABLESPACE #{tablespace})"
@@ -659,33 +692,11 @@ module ActiveRecord
           end
 
           def create_sequence_and_trigger(table_name, options)
+            # TODO: Needs rename since no triggers created
+            # This method will be removed since sequence will not be created separately
             seq_name = options[:sequence_name] || default_sequence_name(table_name)
             seq_start_value = options[:sequence_start_value] || default_sequence_start_value
             execute "CREATE SEQUENCE #{quote_table_name(seq_name)} START WITH #{seq_start_value}"
-
-            create_primary_key_trigger(table_name, options) if options[:primary_key_trigger]
-          end
-
-          def create_primary_key_trigger(table_name, options)
-            seq_name = options[:sequence_name] || default_sequence_name(table_name)
-            trigger_name = options[:trigger_name] || default_trigger_name(table_name)
-            primary_key = options[:primary_key] || Base.get_primary_key(table_name.to_s.singularize)
-            execute <<-SQL
-            CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
-            BEFORE INSERT ON #{quote_table_name(table_name)} FOR EACH ROW
-            BEGIN
-              IF inserting THEN
-                IF :new.#{quote_column_name(primary_key)} IS NULL THEN
-                  SELECT #{quote_table_name(seq_name)}.NEXTVAL INTO :new.#{quote_column_name(primary_key)} FROM dual;
-                END IF;
-              END IF;
-            END;
-          SQL
-          end
-
-          def default_trigger_name(table_name)
-            # truncate table name if necessary to fit in max length of identifier
-            "#{table_name.to_s[0, table_name_length - 4]}_pkt"
           end
 
           def rebuild_primary_key_index_to_default_tablespace(table_name, options)
@@ -693,8 +704,8 @@ module ActiveRecord
 
             return unless tablespace
 
-            index_name = select_value(<<-SQL.strip.gsub(/\s+/, " "), "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
-              SELECT index_name FROM all_constraints
+            index_name = select_value(<<~SQL.squish, "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
+              SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ index_name FROM all_constraints
                   WHERE table_name = :table_name
                   AND constraint_type = 'P'
                   AND owner = SYS_CONTEXT('userenv', 'current_schema')

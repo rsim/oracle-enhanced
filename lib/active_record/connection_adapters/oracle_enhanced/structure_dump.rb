@@ -8,23 +8,37 @@ module ActiveRecord #:nodoc:
         STATEMENT_TOKEN = "\n\n/\n\n"
 
         def structure_dump #:nodoc:
-          structure = select("SELECT sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |result|
+          sequences = select(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+            sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
+            FROM all_sequences
+            where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
+          SQL
+
+          structure = sequences.map do |result|
             "CREATE SEQUENCE #{quote_table_name(result["sequence_name"])} MINVALUE #{result["min_value"]} MAXVALUE #{result["max_value"]} INCREMENT BY #{result["increment_by"]} #{result["order_flag"] == 'Y' ? "ORDER" : "NOORDER"} #{result["cycle_flag"] == 'Y' ? "CYCLE" : "NOCYCLE"}"
           end
-          select_values("SELECT table_name FROM all_tables t
-                      WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
-                        AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
-                        AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
-                      ORDER BY 1").each do |table_name|
+          tables = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name FROM all_tables t
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
+            AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv
+                            WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
+            AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl
+                            WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
+            ORDER BY 1
+          SQL
+          tables.each do |table_name|
             virtual_columns = virtual_columns_for(table_name) if supports_virtual_columns?
-            ddl = "CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n".dup
-            cols = select_all("
-              SELECT column_name, data_type, data_length, char_used, char_length, data_precision, data_scale, data_default, nullable
+            ddl = +"CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
+            columns = select_all(<<~SQL.squish, "SCHEMA")
+              SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name, data_type, data_length, char_used, char_length,
+              data_precision, data_scale, data_default, nullable
               FROM all_tab_columns
               WHERE table_name = '#{table_name}'
-              AND owner = SYS_CONTEXT('userenv', 'session_user')
+              AND owner = SYS_CONTEXT('userenv', 'current_schema')
               ORDER BY column_id
-            ").map do |row|
+            SQL
+            cols = columns.map do |row|
               if (v = virtual_columns.find { |col| col["column_name"] == row["column_name"] })
                 structure_dump_virtual_column(row, v["data_default"])
               else
@@ -42,10 +56,11 @@ module ActiveRecord #:nodoc:
           end
 
           join_with_statement_token(structure) << structure_dump_fk_constraints
+          join_with_statement_token(structure) << structure_dump_views
         end
 
         def structure_dump_column(column) #:nodoc:
-          col = "\"#{column['column_name']}\" #{column['data_type']}".dup
+          col = +"\"#{column['column_name']}\" #{column['data_type']}"
           if (column["data_type"] == "NUMBER") && !column["data_precision"].nil?
             col << "(#{column['data_precision'].to_i}"
             col << ",#{column['data_scale'].to_i}" if !column["data_scale"].nil?
@@ -61,7 +76,7 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_virtual_column(column, data_default) #:nodoc:
           data_default = data_default.gsub(/"/, "")
-          col = "\"#{column['column_name']}\" #{column['data_type']}".dup
+          col = +"\"#{column['column_name']}\" #{column['data_type']}"
           if (column["data_type"] == "NUMBER") && !column["data_precision"].nil?
             col << "(#{column['data_precision'].to_i}"
             col << ",#{column['data_scale'].to_i}" if !column["data_scale"].nil?
@@ -75,16 +90,16 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_primary_key(table) #:nodoc:
           opts = { name: "", cols: [] }
-          pks = select_all(<<-SQL, "Primary Keys")
-          SELECT a.constraint_name, a.column_name, a.position
-            FROM all_cons_columns a
-            JOIN all_constraints c
-              ON a.constraint_name = c.constraint_name
-           WHERE c.table_name = '#{table.upcase}'
-             AND c.constraint_type = 'P'
-             AND a.owner = c.owner
-             AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
-        SQL
+          pks = select_all(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ a.constraint_name, a.column_name, a.position
+              FROM all_cons_columns a
+              JOIN all_constraints c
+                ON a.constraint_name = c.constraint_name
+             WHERE c.table_name = '#{table.upcase}'
+               AND c.constraint_type = 'P'
+               AND a.owner = c.owner
+               AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
+          SQL
           pks.each do |row|
             opts[:name] = row["constraint_name"]
             opts[:cols][row["position"] - 1] = row["column_name"]
@@ -94,16 +109,16 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_unique_keys(table) #:nodoc:
           keys = {}
-          uks = select_all(<<-SQL, "Primary Keys")
-          SELECT a.constraint_name, a.column_name, a.position
-            FROM all_cons_columns a
-            JOIN all_constraints c
-              ON a.constraint_name = c.constraint_name
-           WHERE c.table_name = '#{table.upcase}'
-             AND c.constraint_type = 'U'
-             AND a.owner = c.owner
-             AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
-        SQL
+          uks = select_all(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ a.constraint_name, a.column_name, a.position
+              FROM all_cons_columns a
+              JOIN all_constraints c
+                ON a.constraint_name = c.constraint_name
+             WHERE c.table_name = '#{table.upcase}'
+               AND c.constraint_type = 'U'
+               AND a.owner = c.owner
+               AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
+          SQL
           uks.each do |uk|
             keys[uk["constraint_name"]] ||= []
             keys[uk["constraint_name"]][uk["position"] - 1] = uk["column_name"]
@@ -130,10 +145,14 @@ module ActiveRecord #:nodoc:
         end
 
         def structure_dump_fk_constraints #:nodoc:
-          fks = select_all("SELECT table_name FROM all_tables WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1").map do |table|
+          foreign_keys = select_all(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name FROM all_tables
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
+          SQL
+          fks = foreign_keys.map do |table|
             if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?
               foreign_keys.map do |fk|
-                sql = "ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} ".dup
+                sql = +"ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} "
                 sql << "#{foreign_key_definition(fk.to_table, fk.options)}"
               end
             end
@@ -154,7 +173,10 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_column_comments(table_name)
           comments = []
-          columns = select_values("SELECT column_name FROM user_tab_columns WHERE table_name = '#{table_name}' ORDER BY column_id")
+          columns = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name FROM user_tab_columns
+            WHERE table_name = '#{table_name}' ORDER BY column_id
+          SQL
 
           columns.each do |column|
             comment = column_comment(table_name, column)
@@ -182,65 +204,98 @@ module ActiveRecord #:nodoc:
           sql
         end
 
-        # Extract all stored procedures, packages, synonyms and views.
+        # Extract all stored procedures, packages, synonyms.
         def structure_dump_db_stored_code #:nodoc:
           structure = []
-          select_all("SELECT DISTINCT name, type
-                       FROM all_source
-                      WHERE type IN ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
-                        AND name NOT LIKE 'BIN$%'
-                        AND owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY type").each do |source|
-            ddl = "CREATE OR REPLACE   \n".dup
-            select_all("
-                    SELECT text
-                      FROM all_source
-                     WHERE name = '#{source['name']}'
-                       AND type = '#{source['type']}'
-                       AND owner = SYS_CONTEXT('userenv', 'current_schema')
-                     ORDER BY line
-                  ").each do |row|
+          all_source = select_all(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ DISTINCT name, type
+            FROM all_source
+            WHERE type IN ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
+            AND name NOT LIKE 'BIN$%'
+            AND owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY type
+          SQL
+          all_source.each do |source|
+            ddl = +"CREATE OR REPLACE   \n"
+            texts = select_all(<<~SQL.squish, "all source at structure dump")
+              SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ text
+              FROM all_source
+              WHERE name = '#{source['name']}'
+              AND type = '#{source['type']}'
+              AND owner = SYS_CONTEXT('userenv', 'current_schema')
+              ORDER BY line
+            SQL
+            texts.each do |row|
               ddl << row["text"]
             end
             ddl << ";" unless ddl.strip[-1, 1] == ";"
             structure << ddl
           end
 
-          # export views
-          select_all("SELECT view_name, text FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY view_name ASC").each do |view|
-            structure << "CREATE OR REPLACE FORCE VIEW #{view['view_name']} AS\n #{view['text']}"
-          end
-
           # export synonyms
-          select_all("SELECT owner, synonym_name, table_name, table_owner
-                        FROM all_synonyms
-                       WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ").each do |synonym|
-            structure << "CREATE OR REPLACE #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']}
-  			FOR #{synonym['table_owner']}.#{synonym['table_name']}"
-          end
+          structure << structure_dump_synonyms
 
           join_with_statement_token(structure)
         end
 
+        def structure_dump_views #:nodoc:
+          structure = []
+          views = select_all(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ view_name, text FROM all_views
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY view_name ASC
+          SQL
+          views.each do |view|
+            structure << "CREATE OR REPLACE FORCE VIEW #{view['view_name']} AS\n #{view['text']}"
+          end
+          join_with_statement_token(structure)
+        end
+
+        def structure_dump_synonyms #:nodoc:
+          structure = []
+          synonyms = select_all(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ owner, synonym_name, table_name, table_owner
+            FROM all_synonyms
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+          SQL
+          synonyms.each do |synonym|
+            structure << "CREATE OR REPLACE #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']}
+            FOR #{synonym['table_owner']}.#{synonym['table_name']}"
+          end
+          join_with_statement_token(structure)
+        end
+
         def structure_drop #:nodoc:
-          statements = select_values("SELECT sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'session_user') ORDER BY 1").map do |seq|
+          sequences = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT/*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+            sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
+          SQL
+          statements = sequences.map do |seq|
             "DROP SEQUENCE \"#{seq}\""
           end
-          select_values("SELECT table_name from all_tables t
-                      WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
-                        AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
-                        AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
-                      ORDER BY 1").each do |table|
+          tables = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name from all_tables t
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
+            AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv
+                            WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
+            AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl
+                            WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
+            ORDER BY 1
+          SQL
+          tables.each do |table|
             statements << "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS"
           end
           join_with_statement_token(statements)
         end
 
         def temp_table_drop #:nodoc:
-          join_with_statement_token(select_values(
-            "SELECT table_name FROM all_tables
-              WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N' AND temporary = 'Y' ORDER BY 1").map do |table|
+          temporary_tables = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name FROM all_tables
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            AND secondary = 'N' AND temporary = 'Y' ORDER BY 1
+          SQL
+          statements = temporary_tables.map do |table|
             "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS"
-          end)
+          end
+          join_with_statement_token(statements)
         end
 
         def full_drop(preserve_tables = false) #:nodoc:
@@ -263,32 +318,39 @@ module ActiveRecord #:nodoc:
         end
 
       private
-
         # Called only if `supports_virtual_columns?` returns true
         # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
         def virtual_columns_for(table)
-          select_all(<<-SQL.strip.gsub(/\s+/, " "), "virtual columns for")
-            SELECT column_name, data_default
+          select_all(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name, data_default
             FROM all_tab_cols
             WHERE virtual_column = 'YES'
-            AND owner = SYS_CONTEXT('userenv', 'session_user')
+            AND owner = SYS_CONTEXT('userenv', 'current_schema')
             AND table_name = '#{table.upcase}'
           SQL
         end
 
         def drop_sql_for_feature(type)
           short_type = type == "materialized view" ? "mview" : type
-          join_with_statement_token(
-            select_values("SELECT #{short_type}_name FROM all_#{short_type.tableize} where owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
-              "DROP #{type.upcase} \"#{name}\""
-            end)
+          features = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ #{short_type}_name FROM all_#{short_type.tableize}
+            where owner = SYS_CONTEXT('userenv', 'current_schema')
+          SQL
+          statements = features.map do |name|
+            "DROP #{type.upcase} \"#{name}\""
+          end
+          join_with_statement_token(statements)
         end
 
         def drop_sql_for_object(type)
-          join_with_statement_token(
-            select_values("SELECT object_name FROM all_objects WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'session_user')").map do |name|
-              "DROP #{type.upcase} \"#{name}\""
-            end)
+          objects = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ object_name FROM all_objects
+            WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'current_schema')
+          SQL
+          statements = objects.map do |name|
+            "DROP #{type.upcase} \"#{name}\""
+          end
+          join_with_statement_token(statements)
         end
 
         def join_with_statement_token(array)

@@ -97,7 +97,6 @@ module ActiveRecord #:nodoc:
     end
 
     private
-
       # Creates a record with custom create method
       # and returns its id.
       def _create_record
