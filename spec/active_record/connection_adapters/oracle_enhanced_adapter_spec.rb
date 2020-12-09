@@ -99,10 +99,10 @@ describe "OracleEnhancedAdapter" do
 
       it "should get sequence value at next time" do
         TestEmployee.create!
-        expect(@logger.logged(:debug).first).not_to match(/SELECT \"TEST_EMPLOYEES_SEQ\".NEXTVAL FROM dual/im)
+        expect(@logger.logged(:debug).first).not_to match(/SELECT "TEST_EMPLOYEES_SEQ".NEXTVAL FROM dual/im)
         @logger.clear(:debug)
         TestEmployee.create!
-        expect(@logger.logged(:debug).first).to match(/SELECT \"TEST_EMPLOYEES_SEQ\".NEXTVAL FROM dual/im)
+        expect(@logger.logged(:debug).first).to match(/SELECT "TEST_EMPLOYEES_SEQ".NEXTVAL FROM dual/im)
       end
     end
   end
