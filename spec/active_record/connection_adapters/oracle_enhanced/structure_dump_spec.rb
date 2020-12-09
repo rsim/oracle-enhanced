@@ -68,7 +68,7 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       expect(dump.split('\n').length).to eq(1)
-      expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOO\"? FOREIGN KEY \(\"?FOO_ID\"?\) REFERENCES \"?FOOS\"?\(\"?ID\"?\)/i)
+      expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_FOO"? FOREIGN KEY \("?FOO_ID"?\) REFERENCES "?FOOS"?\("?ID"?\)/i)
     end
 
     it "should dump foreign keys when reference column name is not 'id'" do
@@ -88,7 +88,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
       dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
       expect(dump.split('\n').length).to eq(1)
-      expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\)/i)
+      expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_BAZ"? FOREIGN KEY \("?BAZ_ID"?\) REFERENCES "?FOOS"?\("?BAZ_ID"?\)/i)
     end
 
     it "should not error when no foreign keys are present" do
@@ -136,7 +136,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/\"?ID_PLUS\"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/)
+      expect(dump).to match(/"?ID_PLUS"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/)
     end
 
     it "should dump RAW virtual columns" do
@@ -149,7 +149,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/)
+      expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "SUPER" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/)
     end
 
     it "should dump NCLOB columns" do
@@ -161,7 +161,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"NCLOB_TEXT\" NCLOB/)
+      expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "NCLOB_TEXT" NCLOB/)
     end
 
     it "should dump unique keys" do
@@ -187,7 +187,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
       dump = ActiveRecord::Base.connection.structure_dump
       expect(dump).to match(/CREATE UNIQUE INDEX "?IX_TEST_POSTS_FOO_ID"? ON "?TEST_POSTS"? \("?FOO_ID"?\)/i)
-      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO\"? ON "?TEST_POSTS"? \("?FOO"?\)/i)
+      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO"? ON "?TEST_POSTS"? \("?FOO"?\)/i)
       expect(dump).not_to match(/CREATE UNIQUE INDEX "?UK_TEST_POSTS_/i)
     end
 
@@ -199,8 +199,8 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
 
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID\"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i)
-      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FUNCTION\"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i)
+      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i)
+      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FUNCTION"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i)
     end
 
     it "should dump RAW columns" do
@@ -212,7 +212,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\)/)
+      expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "SUPER" RAW\(255\)/)
     end
 
     it "should dump table comments" do
@@ -269,7 +269,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     context "default sequence" do
       let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\"" }
-      it { is_expected.to_not match(%r{CREATE SEQUENCE \"#{sequence_name}" MAXVALUE \d+ MINVALUE \d+ NOORDER NOCYCLE}) }
+      it { is_expected.to_not match(%r{CREATE SEQUENCE "#{sequence_name}" MAXVALUE \d+ MINVALUE \d+ NOORDER NOCYCLE}) }
     end
     context "noorder" do
       let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\" NOORDER" }

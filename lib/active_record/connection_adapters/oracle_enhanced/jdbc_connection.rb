@@ -113,7 +113,7 @@ module ActiveRecord
             if database && (using_tns_alias || host == "connection-string")
               url = "jdbc:oracle:thin:@#{database}"
             else
-              unless database.match?(/^(\:|\/)/)
+              unless database.match?(/^(:|\/)/)
                 # assume database is a SID if no colon or slash are supplied (backward-compatibility)
                 database = "/#{database}"
               end
