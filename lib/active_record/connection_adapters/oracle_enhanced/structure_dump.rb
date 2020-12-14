@@ -216,7 +216,7 @@ module ActiveRecord #:nodoc:
           SQL
           all_source.each do |source|
             ddl = +"CREATE OR REPLACE   \n"
-            texts = select_all(<<~SQL.squish, "all source at structure dump", [bind_string("source_name", source['name']), bind_string("source_type", source['type']),])
+            texts = select_all(<<~SQL.squish, "all source at structure dump", [bind_string("source_name", source["name"]), bind_string("source_type", source["type"]),])
               SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ text
               FROM all_source
               WHERE name = :source_name
