@@ -148,6 +148,12 @@ module ActiveRecord
               @raw_connection.setSessionTimeZone("UTC")
             end
 
+            if config[:jdbc_statement_cache_size]
+              raise "Integer value expected for :jdbc_statement_cache_size" unless config[:jdbc_statement_cache_size].instance_of? Integer
+              @raw_connection.setImplicitCachingEnabled(true)
+              @raw_connection.setStatementCacheSize(config[:jdbc_statement_cache_size])
+            end
+
             # Set default number of rows to prefetch
             # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
           end
