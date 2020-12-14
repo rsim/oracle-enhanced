@@ -120,6 +120,7 @@ module ActiveRecord
     # * <tt>:schema</tt> - database schema which holds schema objects.
     # * <tt>:tcp_keepalive</tt> - TCP keepalive is enabled for OCI client, defaults to true
     # * <tt>:tcp_keepalive_time</tt> - TCP keepalive time for OCI client, defaults to 600
+    # * <tt>:jdbc_statement_cache_size</tt> - number of cached SQL cursors to keep open, disabled per default (for unpooled JDBC only)
     #
     # Optionals NLS parameters:
     #

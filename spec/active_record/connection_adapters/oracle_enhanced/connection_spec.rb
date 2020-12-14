@@ -41,6 +41,23 @@ describe "OracleEnhancedAdapter establish connection" do
     expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
   end
 
+  it "should not use JDBC statement caching" do
+    if ORACLE_ENHANCED_CONNECTION == :jdbc
+      ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS)
+      expect(ActiveRecord::Base.connection.raw_connection.getImplicitCachingEnabled).to eq(false)
+      expect(ActiveRecord::Base.connection.raw_connection.getStatementCacheSize).to eq(-1)
+    end
+  end
+
+  it "should use JDBC statement caching" do
+    if ORACLE_ENHANCED_CONNECTION == :jdbc
+      ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_statement_cache_size: 100))
+      expect(ActiveRecord::Base.connection.raw_connection.getImplicitCachingEnabled).to eq(true)
+      expect(ActiveRecord::Base.connection.raw_connection.getStatementCacheSize).to eq(100)
+    # else: don't raise error if OCI connection has parameter "jdbc_statement_cache_size", still ignore it
+    end
+  end
+
   it "should connect to database using service_name" do
     ActiveRecord::Base.establish_connection(SERVICE_NAME_CONNECTION_PARAMS)
     expect(ActiveRecord::Base.connection).not_to be_nil
