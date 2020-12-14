@@ -7,9 +7,9 @@ describe "OracleEnhancedAdapter schema definition" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @oracle11g_or_higher = !! !! ActiveRecord::Base.connection.select_value(
-      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
+      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2), '99.9') >= 11")
     @oracle12cr2_or_higher = !! !! ActiveRecord::Base.connection.select_value(
-      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,4)) >= 12.2")
+      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,4), '99.9') >= 12.2")
   end
 
   describe "option to create sequence when adding a column" do

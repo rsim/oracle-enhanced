@@ -610,15 +610,15 @@ describe "OracleEnhancedAdapter" do
        expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
      end
 
-    it "should return content from columns without bind usage" do
+    it "should return content from columns with bind usage" do
       expect(@conn.columns("TEST_POSTS").length).to be > 0
-      expect(@logger.logged(:debug).last).not_to match(/:table_name/)
-      expect(@logger.logged(:debug).last).not_to match(/\["table_name", "TEST_POSTS"\]/)
+      expect(@logger.logged(:debug).last).to match(/:table_name/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
-    it "should return pk and sequence from pk_and_sequence_for without bind usage" do
+    it "should return pk and sequence from pk_and_sequence_for with bind usage" do
       expect(@conn.pk_and_sequence_for("TEST_POSTS").length).to eq 2
-      expect(@logger.logged(:debug).last).not_to match(/\["table_name", "TEST_POSTS"\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
     it "should return pk from primary_keys with bind usage" do
