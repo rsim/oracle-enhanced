@@ -367,12 +367,12 @@ module ActiveRecord
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
           (_owner, table_name) = @connection.describe(table_name)
-          result = select_value(<<~SQL.squish, "SCHEMA")
+          result = select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("index_name", index_name.to_s.upcase)])
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ 1 FROM all_indexes i
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND i.table_name = '#{table_name}'
-               AND i.index_name = '#{index_name.to_s.upcase}'
+               AND i.table_name = :table_name
+               AND i.index_name = :index_name
           SQL
           result == 1
         end
