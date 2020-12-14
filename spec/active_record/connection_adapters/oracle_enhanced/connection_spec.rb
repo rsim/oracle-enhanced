@@ -54,7 +54,7 @@ describe "OracleEnhancedAdapter establish connection" do
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_statement_cache_size: 100))
       expect(ActiveRecord::Base.connection.raw_connection.getImplicitCachingEnabled).to eq(true)
       expect(ActiveRecord::Base.connection.raw_connection.getStatementCacheSize).to eq(100)
-    # else: don't raise error if OCI connection has parameter "jdbc_statement_cache_size", still ignore it
+      # else: don't raise error if OCI connection has parameter "jdbc_statement_cache_size", still ignore it
     end
   end
 
