@@ -1,3 +1,14 @@
+## 6.1.0 / 2020-12-15
+
+* Changes and bug fixes
+  * Support Rails 6.1.0
+  * Update bug report templates for Oracle enhanced adapter 6.1 [#2063]
+  * Use released version of rake [#2065 #2066]
+  * Add /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ hint to address slow SCHEMA queries [#2055, #2068]
+  * `build_subselect` does not have ordering [#2070]
+  * Remove `visit_Arel_Nodes_NotIn` and `visit_Arel_Nodes_In` visitors [#2075, #2077]
+  * `NOT IN` clause needs separated by `AND` [#2079, #2081]
+
 ## 6.1.0.rc1 / 2020-11-03
 
 * Changes and bug fixes
