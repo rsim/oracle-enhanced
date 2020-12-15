@@ -95,9 +95,9 @@ module Arel # :nodoc: all
           column_name = quote_table_name(o.table_name) + "." + quote_column_name(o.column_name)
           operator =
             if o.type == :in
-              "IN ("
+              " IN ("
             else
-              "NOT IN ("
+              " NOT IN ("
             end
 
           if !Array === values || values.length <= in_clause_length
@@ -114,9 +114,15 @@ module Arel # :nodoc: all
             collector << expr
             collector << ")"
           else
+            separator =
+              if o.type == :in
+                " OR "
+              else
+                " AND "
+              end
             collector << "("
             values.each_slice(in_clause_length).each_with_index do |valuez, i|
-              collector << " OR " unless i == 0
+              collector << separator unless i == 0
               collector << column_name
               collector << operator
               collector << valuez.join(",")
