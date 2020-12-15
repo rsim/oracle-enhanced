@@ -707,4 +707,39 @@ describe "OracleEnhancedAdapter" do
       expect(post.explain).to include("|  TABLE ACCESS FULL| TEST_POSTS |")
     end
   end
+
+  describe "homogeneous in" do
+    before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        create_table :test_posts, force: true
+        create_table :test_comments, force: true do |t|
+          t.integer :test_post_id
+        end
+      end
+      class ::TestPost < ActiveRecord::Base
+        has_many :test_comments
+      end
+      class ::TestComment < ActiveRecord::Base
+        belongs_to :test_post
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_posts, if_exists: true
+        drop_table :test_comments, if_exists: true
+      end
+      Object.send(:remove_const, "TestPost")
+      Object.send(:remove_const, "TestComment")
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "should not raise undefined method length" do
+      post = TestPost.create!
+      post.test_comments << TestComment.create!
+      expect(TestComment.where(test_post_id: TestPost.select(:id)).size).to eq(1)
+    end
+  end
 end

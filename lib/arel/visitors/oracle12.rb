@@ -81,59 +81,6 @@ module Arel # :nodoc: all
           collector
         end
 
-        def visit_Arel_Nodes_In(o, collector)
-          attr, values = o.left, o.right
-
-          if Array === values
-            unless values.empty?
-              values.delete_if { |value| unboundable?(value) }
-            end
-
-            return collector << "1=0" if values.empty?
-          end
-
-          in_clause_length = @connection.in_clause_length
-
-          if !Array === values || values.length <= in_clause_length
-            visit(attr, collector) << " IN ("
-            visit(values, collector) << ")"
-          else
-            collector << "("
-            values.each_slice(in_clause_length).each_with_index do |valuez, i|
-              collector << " OR " unless i == 0
-              visit(attr, collector) << " IN ("
-              visit(valuez, collector) << ")"
-            end
-            collector << ")"
-          end
-        end
-
-        def visit_Arel_Nodes_NotIn(o, collector)
-          attr, values = o.left, o.right
-
-          if Array === values
-            unless values.empty?
-              values.delete_if { |value| unboundable?(value) }
-            end
-
-            return collector << "1=1" if values.empty?
-          end
-
-          in_clause_length = @connection.in_clause_length
-
-          if !Array === values || values.length <= in_clause_length
-            visit(attr, collector) << " NOT IN ("
-            visit(values, collector) << ")"
-          else
-            values.each_slice(in_clause_length).each_with_index do |valuez, i|
-              collector << " AND " unless i == 0
-              visit(attr, collector) << " NOT IN ("
-              visit(valuez, collector) << ")"
-            end
-            collector
-          end
-        end
-
         def visit_Arel_Nodes_UpdateStatement(o, collector)
           # Oracle does not allow ORDER BY/LIMIT in UPDATEs.
           if o.orders.any? && o.limit.nil?
