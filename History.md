@@ -1,3 +1,10 @@
+## 6.0.5 / 2020-12-17
+
+* Changes and bug fixes
+  * Address `next_sequence_value` ArgumentError syntax [#2048 #2050]
+  * Add /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ hint to address slow SCHEMA queries [#2055, #2069]
+  * `build_subselect` does not have ordering [#2023, #2070, #2073]
+
 ## 6.0.4 / 2020-08-18
 
 * Changes and bug fixes
