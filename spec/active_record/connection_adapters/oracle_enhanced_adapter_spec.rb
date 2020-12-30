@@ -479,7 +479,7 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
-describe "Binary lob column" do
+  describe "Binary lob column" do
     before(:all) do
       schema_define do
         create_table :test_binary_columns do |t|
@@ -510,10 +510,10 @@ describe "Binary lob column" do
     it "should serialize with non UTF-8 data" do
       binary_value = "Hello \x93\xfa\x96\x7b"
       binary_value.force_encoding "UTF-8"
-      
+
       binary_column_object = TestBinaryColumn.new
       binary_column_object.attachment = binary_value
-      
+
       expect(binary_column_object.save!).to eq(true)
     end
   end
