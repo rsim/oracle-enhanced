@@ -512,7 +512,7 @@ describe "Binary lob column" do
       binary_value.force_encoding "UTF-8"
       
       binary_column_object = TestBinaryColumn.new
-      binary_column_object.attachment= binary_value
+      binary_column_object.attachment = binary_value
       
       expect(binary_column_object.save!).to eq(true)
     end
