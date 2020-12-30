@@ -508,7 +508,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should serialize with non UTF-8 data" do
-      binary_value = "Hello \x93\xfa\x96\x7b".dup
+      binary_value = +"Hello \x93\xfa\x96\x7b"
       binary_value.force_encoding "UTF-8"
 
       binary_column_object = TestBinaryColumn.new
