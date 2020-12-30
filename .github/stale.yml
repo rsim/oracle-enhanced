@@ -9,6 +9,7 @@ exemptLabels:
   - pinned
   - security
   - rails6
+  - upstream
 # Label to use when marking as stale
 staleLabel: wontfix
 # Comment to post when marking as stale. Set to `false` to disable
