@@ -15,8 +15,6 @@ jobs:
           2.7,
           2.6,
           2.5,
-          ruby-head,
-          ruby-debug,
           jruby,
           jruby-head
         ]
