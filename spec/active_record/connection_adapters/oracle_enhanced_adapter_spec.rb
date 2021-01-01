@@ -431,6 +431,45 @@ describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "Binary lob column" do
+    before(:all) do
+      schema_define do
+        create_table :test_binary_columns do |t|
+          t.binary :attachment
+        end
+      end
+      class ::TestBinaryColumn < ActiveRecord::Base
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_binary_columns
+      end
+      Object.send(:remove_const, "TestBinaryColumn")
+      ActiveRecord::Base.table_name_prefix = nil
+      ActiveRecord::Base.clear_cache!
+    end
+
+    before(:each) do
+      set_logger
+    end
+
+    after(:each) do
+      clear_logger
+    end
+
+    it "should serialize with non UTF-8 data" do
+      binary_value = +"Hello \x93\xfa\x96\x7b"
+      binary_value.force_encoding "UTF-8"
+
+      binary_column_object = TestBinaryColumn.new
+      binary_column_object.attachment = binary_value
+
+      expect(binary_column_object.save!).to eq(true)
+    end
+  end
+
   describe "quoting" do
     before(:all) do
       schema_define do
