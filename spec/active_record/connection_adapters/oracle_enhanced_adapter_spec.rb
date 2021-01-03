@@ -588,7 +588,6 @@ describe "OracleEnhancedAdapter" do
         create_table :groups, force: true do |t|
           t.string :name
         end
-
       end
 
       class ::TestPost < ActiveRecord::Base
@@ -601,7 +600,6 @@ describe "OracleEnhancedAdapter" do
       class Group < ActiveRecord::Base
         has_one :user
       end
-
     end
 
     before(:each) do
