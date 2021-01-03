@@ -593,7 +593,7 @@ module ActiveRecord
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) #:nodoc:
         (owner, desc_table_name) = @connection.describe(table_name)
 
-        seqs = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
+        seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
           select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ us.sequence_name
           from all_sequences us
           where us.sequence_owner = :owner
@@ -601,7 +601,7 @@ module ActiveRecord
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
-        pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+        pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
             FROM all_constraints c, all_cons_columns cc
            WHERE c.owner = :owner
@@ -635,7 +635,7 @@ module ActiveRecord
       def primary_keys(table_name) # :nodoc:
         (_owner, desc_table_name) = @connection.describe(table_name)
 
-        pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
+        pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
             FROM all_constraints c, all_cons_columns cc
            WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -665,7 +665,7 @@ module ActiveRecord
       end
 
       def temporary_table?(table_name) #:nodoc:
-        select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
+        select_value_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
           temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
@@ -761,6 +761,23 @@ module ActiveRecord
         # create bind object for type String
         def bind_string(name, value)
           ActiveRecord::Relation::QueryAttribute.new(name, value, Type::OracleEnhanced::String.new)
+        end
+
+        # call select_values using binds even if surrounding SQL preparation/execution is done
+        # with conn.unprepared_statement (like AR.to_sql)
+        def select_values_forcing_binds(arel, name, binds)
+          # remove possible force of unprepared SQL during dictionary access
+          unprepared_statement_forced = prepared_statements_disabled_cache.include?(object_id)
+          prepared_statements_disabled_cache.delete(object_id) if unprepared_statement_forced
+
+          select_values(arel, name, binds)
+        ensure
+          # Restore unprepared_statement setting for surrounding SQL
+          prepared_statements_disabled_cache.add(object_id) if unprepared_statement_forced
+        end
+
+        def select_value_forcing_binds(arel, name, binds)
+          single_value_from_rows(select_values_forcing_binds(arel, name, binds))
         end
 
         ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracleenhanced)
