@@ -250,7 +250,10 @@ module ActiveRecord
 
         # Writes LOB values from attributes for specified columns
         def write_lobs(table_name, klass, attributes, columns) #:nodoc:
-          id = quote(attributes[klass.primary_key])
+          id_clause = klass.primary_key.map { |key|
+            "#{quote_table_name(table_name)}.#{quote_column_name(key)} = #{quote(attributes[key])}"
+          }.join(' AND ')
+
           columns.each do |col|
             value = attributes[col.name]
             # changed sequence of next two lines - should check if value is nil before converting to yaml
@@ -263,7 +266,7 @@ module ActiveRecord
             uncached do
               unless lob_record = select_one(sql = <<~SQL.squish, "Writable Large Object")
                 SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)}
-                WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE
+                WHERE #{id_clause} FOR UPDATE
               SQL
                 raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
               end
