@@ -17,7 +17,7 @@ gemfile(true) do
 end
 
 require "active_record"
-require "rspec/autorun"
+require "rspec"
 require "logger"
 require "active_record/connection_adapters/oracle_enhanced_adapter"
 
