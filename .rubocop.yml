@@ -166,6 +166,9 @@ Lint/AmbiguousOperator:
 Lint/AmbiguousRegexpLiteral:
   Enabled: true
 
+Lint/DuplicateRequire:
+  Enabled: true
+
 Lint/ErbNewArguments:
   Enabled: true
 
