@@ -66,7 +66,7 @@ describe "OracleEnhancedAdapter structure dump" do
         ALTER TABLE TEST_POSTS
         ADD CONSTRAINT fk_test_post_foo FOREIGN KEY (foo_id) REFERENCES foos(id)
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
+      dump = ActiveRecord::Base.connection.structure_dump
       expect(dump.split('\n').length).to eq(1)
       expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOO\"? FOREIGN KEY \(\"?FOO_ID\"?\) REFERENCES \"?FOOS\"?\(\"?ID\"?\)/i)
     end
@@ -86,7 +86,7 @@ describe "OracleEnhancedAdapter structure dump" do
         ADD CONSTRAINT fk_test_post_baz FOREIGN KEY (baz_id) REFERENCES foos(baz_id)
       SQL
 
-      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
+      dump = ActiveRecord::Base.connection.structure_dump
       expect(dump.split('\n').length).to eq(1)
       expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\)/i)
     end

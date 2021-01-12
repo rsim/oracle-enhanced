@@ -55,8 +55,9 @@ module ActiveRecord #:nodoc:
             structure << structure_dump_column_comments(table_name)
           end
 
-          join_with_statement_token(structure) << structure_dump_fk_constraints
-          join_with_statement_token(structure) << structure_dump_views
+          join_with_statement_token(structure) <<
+            structure_dump_fk_constraints <<
+            structure_dump_views
         end
 
         def structure_dump_column(column) #:nodoc:
