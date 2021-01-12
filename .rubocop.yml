@@ -101,6 +101,10 @@ Layout/SpaceAroundKeyword:
 Layout/SpaceAroundOperators:
   Enabled: true
 
+# This cop has not been enabled at rails/rails
+Layout/SpaceBeforeBrackets:
+  Enabled: true
+
 Layout/SpaceBeforeComma:
   Enabled: true
 
