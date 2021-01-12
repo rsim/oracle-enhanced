@@ -1,5 +1,5 @@
-dist: bionic
-sudo: required
+os: linux
+dist: focal
 cache: bundler
 
 env:
@@ -38,10 +38,11 @@ script:
 
 language: ruby
 rvm:
+  - 3.0.0
   - 2.7.2
   - 2.6.6
   - 2.5.8
-  - jruby-9.2.13.0
+  - jruby-9.2.14.0
   - ruby-head
   - jruby-head
 
