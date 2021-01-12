@@ -254,9 +254,11 @@ module ActiveRecord
           columns.each do |col|
             value = attributes[col.name]
             # changed sequence of next two lines - should check if value is nil before converting to yaml
-            next if value.blank?
+            next unless value
             if klass.attribute_types[col.name].is_a? Type::Serialized
               value = klass.attribute_types[col.name].serialize(value)
+              # value can be nil after serialization because ActiveRecord serializes [] and {} as nil
+              next unless value
             end
             uncached do
               unless lob_record = select_one(sql = <<~SQL.squish, "Writable Large Object")
