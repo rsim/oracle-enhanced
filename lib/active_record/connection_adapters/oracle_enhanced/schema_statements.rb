@@ -76,7 +76,7 @@ module ActiveRecord
         # get synonyms for schema dump
         def synonyms
           result = select_all(<<~SQL.squish, "synonyms")
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ synonym_name, table_owner, table_name
+            SELECT synonym_name, table_owner, table_name
             FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
 
