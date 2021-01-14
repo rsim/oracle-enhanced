@@ -1,3 +1,17 @@
+## 6.1.1 / 2021-01-14
+
+* Changes and bug fixes
+  * Remove /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ hint for all_synonyms [#2110, #2119]
+  * Fix write_lobs Invalid byte sequence in UTF-8 [#2097, #2111]
+  * Ensure FKs are properly included in structure dumps [#2109, #2113]
+
+* CI
+  * CI against JRuby 9.2.14.0 [#2085]
+  * CI against Ruby 3.0.0 [#2091, #2092]
+  * Address Travis CI warnings and bump Ubuntu version to 20.04 [#2086]
+  * Exclude `ruby-head` and `ruby-debug` until minitest allows Ruby 3.1 #2094, #2095
+  * CI against Ruby 3.0.0 at Travis CI [#2093]
+
 ## 6.1.0 / 2020-12-15
 
 * Changes and bug fixes
