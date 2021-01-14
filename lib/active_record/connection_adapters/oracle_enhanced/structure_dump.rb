@@ -175,8 +175,9 @@ module ActiveRecord #:nodoc:
         def structure_dump_column_comments(table_name)
           comments = []
           columns = select_values(<<~SQL.squish, "SCHEMA")
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name FROM user_tab_columns
-            WHERE table_name = '#{table_name}' ORDER BY column_id
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name FROM all_tab_columns
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            AND table_name = '#{table_name}' ORDER BY column_id
           SQL
 
           columns.each do |column|
