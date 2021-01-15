@@ -666,7 +666,7 @@ module ActiveRecord
       end
 
       def temporary_table?(table_name) #:nodoc:
-      select_value_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
+        select_value_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
           temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
