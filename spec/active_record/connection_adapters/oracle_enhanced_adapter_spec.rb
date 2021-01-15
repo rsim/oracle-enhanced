@@ -577,8 +577,28 @@ describe "OracleEnhancedAdapter" do
       schema_define do
         drop_table :test_posts, if_exists: true
         create_table :test_posts
+
+        drop_table :users, if_exists: true
+        create_table :users, force: true do |t|
+          t.string :name
+          t.integer :group_id
+        end
+
+        drop_table :groups, if_exists: true
+        create_table :groups, force: true do |t|
+          t.string :name
+        end
       end
+
       class ::TestPost < ActiveRecord::Base
+      end
+
+      class User < ActiveRecord::Base
+        belongs_to :group
+      end
+
+      class Group < ActiveRecord::Base
+        has_one :user
       end
     end
 
@@ -594,6 +614,8 @@ describe "OracleEnhancedAdapter" do
     after(:all) do
       schema_define do
         drop_table :test_posts
+        drop_table :users
+        drop_table :groups
       end
       Object.send(:remove_const, "TestPost")
       ActiveRecord::Base.clear_cache!
@@ -610,20 +632,25 @@ describe "OracleEnhancedAdapter" do
        expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
      end
 
-    it "should return content from columns without bind usage" do
+    it "should return content from columns witt bind usage" do
       expect(@conn.columns("TEST_POSTS").length).to be > 0
-      expect(@logger.logged(:debug).last).not_to match(/:table_name/)
-      expect(@logger.logged(:debug).last).not_to match(/\["table_name", "TEST_POSTS"\]/)
+      expect(@logger.logged(:debug).last).to match(/:table_name/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
-    it "should return pk and sequence from pk_and_sequence_for without bind usage" do
+    it "should return pk and sequence from pk_and_sequence_for with bind usage" do
       expect(@conn.pk_and_sequence_for("TEST_POSTS").length).to eq 2
-      expect(@logger.logged(:debug).last).not_to match(/\["table_name", "TEST_POSTS"\]/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
     it "should return pk from primary_keys with bind usage" do
       expect(@conn.primary_keys("TEST_POSTS")).to eq ["id"]
       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
+    end
+
+    it "should not raise missing IN/OUT parameter like issue 1687 " do
+      # "to_sql" enforces unprepared_statement including dictionary access SQLs
+      expect { User.joins(:group).to_sql }.not_to raise_exception
     end
 
     it "should return false from temporary_table? with bind usage" do

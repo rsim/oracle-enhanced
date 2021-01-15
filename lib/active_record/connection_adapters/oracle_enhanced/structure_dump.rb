@@ -30,11 +30,11 @@ module ActiveRecord #:nodoc:
           tables.each do |table_name|
             virtual_columns = virtual_columns_for(table_name) if supports_virtual_columns?
             ddl = +"CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
-            columns = select_all(<<~SQL.squish, "SCHEMA")
+            columns = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
               SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name, data_type, data_length, char_used, char_length,
               data_precision, data_scale, data_default, nullable
               FROM all_tab_columns
-              WHERE table_name = '#{table_name}'
+              WHERE table_name = :table_name
               AND owner = SYS_CONTEXT('userenv', 'current_schema')
               ORDER BY column_id
             SQL
@@ -174,10 +174,10 @@ module ActiveRecord #:nodoc:
 
         def structure_dump_column_comments(table_name)
           comments = []
-          columns = select_values(<<~SQL.squish, "SCHEMA")
+          columns = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name FROM all_tab_columns
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-            AND table_name = '#{table_name}' ORDER BY column_id
+            AND table_name = :table_name ORDER BY column_id
           SQL
 
           columns.each do |column|
@@ -218,11 +218,11 @@ module ActiveRecord #:nodoc:
           SQL
           all_source.each do |source|
             ddl = +"CREATE OR REPLACE   \n"
-            texts = select_all(<<~SQL.squish, "all source at structure dump")
+            texts = select_all(<<~SQL.squish, "all source at structure dump", [bind_string("source_name", source["name"]), bind_string("source_type", source["type"])])
               SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ text
               FROM all_source
-              WHERE name = '#{source['name']}'
-              AND type = '#{source['type']}'
+              WHERE name = :source_name
+              AND type = :source_type
               AND owner = SYS_CONTEXT('userenv', 'current_schema')
               ORDER BY line
             SQL
@@ -323,12 +323,12 @@ module ActiveRecord #:nodoc:
         # Called only if `supports_virtual_columns?` returns true
         # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
         def virtual_columns_for(table)
-          select_all(<<~SQL.squish, "SCHEMA")
+          select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name, data_default
             FROM all_tab_cols
             WHERE virtual_column = 'YES'
             AND owner = SYS_CONTEXT('userenv', 'current_schema')
-            AND table_name = '#{table.upcase}'
+            AND table_name = :table_name
           SQL
         end
 
