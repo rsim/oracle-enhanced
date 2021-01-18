@@ -38,7 +38,8 @@ module ActiveRecord
           end
         end
 
-        # Names must be from 1 to 30 bytes long with these exceptions:
+        # Names must be from 1 to 30 bytes (Oracle 12.1 and lower) or from 1 to 128 bytes
+        # (Oracle 12.2 and higher) long with these exceptions:
         # * Names of databases are limited to 8 bytes.
         # * Names of database links can be as long as 128 bytes.
         #
@@ -51,16 +52,23 @@ module ActiveRecord
         # your database character set and the underscore (_), dollar sign ($),
         # and pound sign (#).
         # Oracle strongly discourages you from using $ and # in nonquoted identifiers.
-        NONQUOTED_OBJECT_NAME = /[[:alpha:]][\w$#]{0,29}/
-        VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}?\Z/
+        def self.nonquoted_object_name(supports_longer_identifier)
+          @@nonquoted_object_name ||= supports_longer_identifier ? /[[:alpha:]][\w$#]{0,127}/ : /[[:alpha:]][\w$#]{0,29}/
+        end
+
+        def self.valid_table_name(supports_longer_identifier)
+          nonquoted_object_name = nonquoted_object_name(supports_longer_identifier)
+
+          @@valid_table_name ||= /\A(?:#{nonquoted_object_name}\.)?#{nonquoted_object_name}?\z/
+        end
 
         # unescaped table name should start with letter and
         # contain letters, digits, _, $ or #
         # can be prefixed with schema name
         # CamelCase table names should be quoted
-        def self.valid_table_name?(name) #:nodoc:
+        def self.valid_table_name?(name, supports_longer_identifier) #:nodoc:
           object_name = name.to_s
-          !!(object_name =~ VALID_TABLE_NAME && !mixed_case?(object_name))
+          !!(object_name =~ valid_table_name(supports_longer_identifier) && !mixed_case?(object_name))
         end
 
         def self.mixed_case?(name)

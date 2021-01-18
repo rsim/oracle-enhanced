@@ -225,7 +225,7 @@ module ActiveRecord
           lob.write value
         end
 
-        def describe(name)
+        def describe(name, supports_longer_identifier)
           super
         end
 

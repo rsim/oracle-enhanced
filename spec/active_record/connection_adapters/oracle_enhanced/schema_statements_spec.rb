@@ -284,9 +284,15 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should raise error when new table name length is too long" do
-      expect do
-        @conn.rename_table("test_employees", "a" * 31)
-      end.to raise_error(ArgumentError)
+      if @oracle12cr2_or_higher
+        expect do
+          @conn.rename_table("test_employees", "a" * 129)
+        end.to raise_error(ArgumentError)
+      else
+        expect do
+          @conn.rename_table("test_employees", "a" * 31)
+        end.to raise_error(ArgumentError)
+      end
     end
 
     it "should not raise error when new sequence name length is too long" do

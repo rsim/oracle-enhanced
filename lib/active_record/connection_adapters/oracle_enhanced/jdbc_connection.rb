@@ -457,7 +457,7 @@ module ActiveRecord
         end
 
         # To allow private method called from `JDBCConnection`
-        def describe(name)
+        def describe(name, supports_longer_identifier)
           super
         end
 
