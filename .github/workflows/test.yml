@@ -8,6 +8,7 @@ jobs:
   build:
 
     runs-on: ubuntu-20.04
+    continue-on-error: true
     strategy:
       matrix:
         ruby: [
