@@ -5,6 +5,7 @@ require:
 AllCops:
   TargetRubyVersion: 2.5
   DisabledByDefault: true
+  SuggestExtensions: false
 
 Rails/IndexBy:
   Enabled: true
