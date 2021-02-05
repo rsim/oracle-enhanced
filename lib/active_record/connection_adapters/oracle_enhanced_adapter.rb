@@ -780,8 +780,8 @@ module ActiveRecord
           single_value_from_rows(select_values_forcing_binds(arel, name, binds))
         end
 
-        ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracleenhanced)
-        ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracleenhanced)
+        ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracle_enhanced)
+        ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
     end
   end
 end
