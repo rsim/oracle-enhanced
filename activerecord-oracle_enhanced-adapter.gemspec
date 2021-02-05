@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.version = version
 
   s.required_rubygems_version = ">= 1.8.11"
-  s.required_ruby_version     = ">= 2.5.0"
+  s.required_ruby_version     = ">= 2.7.0"
   s.license = "MIT"
   s.authors = ["Raimonds Simanovskis"]
   s.description = 'Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
@@ -22,6 +22,6 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   s.require_paths = ["lib"]
   s.summary = "Oracle enhanced adapter for ActiveRecord"
   s.test_files = Dir["spec/**/*"]
-  s.add_runtime_dependency("activerecord", ["~> 6.2.0.alpha"])
+  s.add_runtime_dependency("activerecord", ["~> 7.0.0.alpha"])
   s.add_runtime_dependency("ruby-plsql", [">= 0.6.0"])
 end

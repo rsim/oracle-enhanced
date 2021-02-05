@@ -40,16 +40,17 @@ language: ruby
 rvm:
   - 3.0.0
   - 2.7.2
-  - 2.6.6
-  - 2.5.8
-  - jruby-9.2.14.0
   - ruby-head
-  - jruby-head
+  # Rails 7.0 requires Ruby 2.7 or higeher.
+  # CI pending until JRuby 9.4 that supports Ruby 2.7 will be released.
+  # https://github.com/jruby/jruby/issues/6464
+  # - jruby-9.4.0
+  # - jruby-head
 
-matrix:
-  allow_failures:
-  - rvm: jruby-9.2.14.0
-  - rvm: jruby-head
+# matrix:
+#   allow_failures:
+#   - rvm: jruby-9.4.0
+#   - rvm: jruby-head
 
 notifications:
     email: false
