@@ -16,11 +16,11 @@ describe "Oracle Enhanced adapter database tasks" do
         ActiveRecord::Tasks::DatabaseTasks.create(new_user_config)
       end
     end
-    xit "creates user" do
+    it "creates user" do
       query = "SELECT COUNT(*) FROM dba_users WHERE UPPER(username) = '#{new_user_config[:username].upcase}'"
       expect(ActiveRecord::Base.connection.select_value(query)).to eq(1)
     end
-    xit "grants permissions defined by OracleEnhancedAdapter.persmissions" do
+    it "grants permissions defined by OracleEnhancedAdapter.persmissions" do
       query = "SELECT COUNT(*) FROM DBA_SYS_PRIVS WHERE GRANTEE = '#{new_user_config[:username].upcase}'"
       permissions_count = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions.size
       expect(ActiveRecord::Base.connection.select_value(query)).to eq(permissions_count)
