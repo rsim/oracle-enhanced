@@ -31,7 +31,7 @@ module ActiveRecord
         end
 
       private
-        def log(sql, name = "SQL", binds = [], type_casted_binds = [], statement_name = nil)
+        def log(sql, name = "SQL", binds = [], type_casted_binds = [], statement_name = nil, async: false)
           super
         ensure
           log_dbms_output if dbms_output_enabled?

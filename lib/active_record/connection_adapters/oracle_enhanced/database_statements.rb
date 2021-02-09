@@ -9,8 +9,8 @@ module ActiveRecord
         # see: abstract/database_statements.rb
 
         # Executes a SQL statement
-        def execute(sql, name = nil)
-          log(sql, name) { @connection.exec(sql) }
+        def execute(sql, name = nil, async: false)
+          log(sql, name, async: async) { @connection.exec(sql) }
         end
 
         def clear_cache! # :nodoc:
@@ -18,10 +18,10 @@ module ActiveRecord
           super
         end
 
-        def exec_query(sql, name = "SQL", binds = [], prepare: false)
+        def exec_query(sql, name = "SQL", binds = [], prepare: false, async: false)
           type_casted_binds = type_casted_binds(binds)
 
-          log(sql, name, binds, type_casted_binds) do
+          log(sql, name, binds, type_casted_binds, async: async) do
             cursor = nil
             cached = false
             with_retry do
