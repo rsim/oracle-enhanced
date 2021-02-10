@@ -1,3 +1,7 @@
+## 6.1.2 / 2021-02-10
+* Changes and bug fixes
+  * Fixed ORA-01935: missing user or role name with config read issue [#1943 #2135, #2142]
+
 ## 6.1.1 / 2021-01-14
 
 * Changes and bug fixes
