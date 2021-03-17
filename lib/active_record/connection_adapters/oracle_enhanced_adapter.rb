@@ -227,7 +227,7 @@ module ActiveRecord
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions =
       #   ["create session", "create table", "create view", "create sequence", "create trigger", "ctxapp"]
       cattr_accessor :permissions
-      self.permissions = ["create session", "create table", "create view", "create sequence"]
+      self.permissions = ["unlimited tablespace", "create session", "create table", "create view", "create sequence"]
 
       ##
       # :singleton-method:
