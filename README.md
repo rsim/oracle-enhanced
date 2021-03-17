@@ -6,10 +6,32 @@ Oracle enhanced adapter for ActiveRecord
 DESCRIPTION
 -----------
 
-Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 5.2 and it is working with Oracle database versions from 10g to 12c.
+Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 6.0 and it is working with Oracle database versions 10g and higher
 
 INSTALLATION
 ------------
+### Rails 6.1
+
+Oracle enhanced adapter version 6.1 supports Rails 6.1.
+When using Ruby on Rails version 6.1 then in Gemfile include
+
+```ruby
+# Use oracle as the database for Active Record
+gem 'activerecord-oracle_enhanced-adapter', '~> 6.1.0'
+gem 'ruby-oci8' # only for CRuby users
+```
+
+### Rails 6.0
+
+Oracle enhanced adapter version 6.0 supports Rails 6.0.
+When using Ruby on Rails version 6.0 then in Gemfile include
+
+```ruby
+# Use oracle as the database for Active Record
+gem 'activerecord-oracle_enhanced-adapter', '~> 6.0.0'
+gem 'ruby-oci8' # only for CRuby users
+```
+
 ### Rails 5.2
 
 Oracle enhanced adapter version 5.2 supports Rails 5.2.
@@ -652,7 +674,7 @@ if any database structure changed by migrations, execute `rails db:schema:cache:
 
 UPGRADE
 ---------------
-### Upgrade Rails 5.0 or older version to Rails 5.2
+### Upgrade Rails 5.1 or older version to Rails 5.2
 
 * `emulate_booleans_from_strings = true` change
 
@@ -665,12 +687,6 @@ class Post < ActiveRecord::Base
   attribute :is_default, :boolean
 end
 ```
-
-* Respect database instance `cursor_sharing` value exact by default
-
-Oracle enhanced adapter changed `cursor_sharing` parameter value to `force` in Rails 5.1 or lower. However, Oracle enhanced adapter 5.2 supports prepared statements for dictionary queries There is no need to change `cursor_sharing` value to `exact` anymore.
-
-If you want to keep the old behavior in Rails 5.2, set `cursor_sharing: :force` explicitly in the database.yml.
 
 * Remove `OracleEnhancedAdapter.cache_columns` to use Rails `db:schema:cache:dump`
 

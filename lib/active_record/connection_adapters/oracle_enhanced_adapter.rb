@@ -30,6 +30,9 @@
 # contribution.
 # portions Copyright 2005 Graham Jenkins
 
+require "arel/visitors/oracle"
+require "arel/visitors/oracle12"
+require "active_record/connection_adapters"
 require "active_record/connection_adapters/abstract_adapter"
 require "active_record/connection_adapters/statement_pool"
 require "active_record/connection_adapters/oracle_enhanced/connection"
@@ -115,6 +118,9 @@ module ActiveRecord
     # * <tt>:time_zone</tt> - database session time zone
     #   (it is recommended to set it using ENV['TZ'] which will be then also used for database session time zone)
     # * <tt>:schema</tt> - database schema which holds schema objects.
+    # * <tt>:tcp_keepalive</tt> - TCP keepalive is enabled for OCI client, defaults to true
+    # * <tt>:tcp_keepalive_time</tt> - TCP keepalive time for OCI client, defaults to 600
+    # * <tt>:jdbc_statement_cache_size</tt> - number of cached SQL cursors to keep open, disabled per default (for unpooled JDBC only)
     #
     # Optionals NLS parameters:
     #
@@ -213,11 +219,22 @@ module ActiveRecord
 
       ##
       # :singleton-method:
+      # By default, OracleEnhanced adapter will grant unlimited tablespace, create session, create table, create view,
+      # and create sequence when running the rake task db:create.
+      #
+      # If you wish to change these permissions you can add the following line to your initializer file:
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions =
+      #   ["create session", "create table", "create view", "create sequence", "create trigger", "ctxapp"]
+      cattr_accessor :permissions
+      self.permissions = ["create session", "create table", "create view", "create sequence"]
+
+      ##
+      # :singleton-method:
       # Specify default sequence start with value (by default 1 if not explicitly set), e.g.:
 
       class StatementPool < ConnectionAdapters::StatementPool
         private
-
           def dealloc(stmt)
             stmt.close
           end
@@ -225,7 +242,6 @@ module ActiveRecord
 
       def initialize(connection, logger = nil, config = {}) # :nodoc:
         super(connection, logger, config)
-        @statements = StatementPool.new(self.class.type_cast_config_to_integer(config[:statement_limit]))
         @enable_dbms_output = false
         @do_not_prefetch_primary_key = {}
         @columns_cache = {}
@@ -237,12 +253,24 @@ module ActiveRecord
         ADAPTER_NAME
       end
 
+      # Oracle enhanced adapter has no implementation because
+      # Oracle Database cannot detect `NoDatabaseError`.
+      # Please refer to the following discussion for details.
+      # https://github.com/rsim/oracle-enhanced/pull/1900
+      def self.database_exists?(config)
+        raise NotImplementedError
+      end
+
       def arel_visitor # :nodoc:
         if supports_fetch_first_n_rows_and_offset?
           Arel::Visitors::Oracle12.new(self)
         else
           Arel::Visitors::Oracle.new(self)
         end
+      end
+
+      def build_statement_pool
+        StatementPool.new(self.class.type_cast_config_to_integer(@config[:statement_limit]))
       end
 
       def supports_savepoints? #:nodoc:
@@ -257,8 +285,12 @@ module ActiveRecord
         true
       end
 
-      def supports_foreign_keys_in_create?
-        supports_foreign_keys?
+      def supports_optimizer_hints?
+        true
+      end
+
+      def supports_common_table_expressions?
+        true
       end
 
       def supports_views?
@@ -266,7 +298,7 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        if !use_old_oracle_visitor && @connection.database_version.first >= 12
+        if !use_old_oracle_visitor && database_version.first >= 12
           true
         else
           false
@@ -282,11 +314,11 @@ module ActiveRecord
       end
 
       def supports_multi_insert?
-        @connection.database_version.to_s >= [11, 2].to_s
+        database_version.to_s >= [11, 2].to_s
       end
 
       def supports_virtual_columns?
-        @connection.database_version.first >= 11
+        database_version.first >= 11
       end
 
       def supports_json?
@@ -321,7 +353,7 @@ module ActiveRecord
       end
 
       def supports_longer_identifier?
-        if !use_shorter_identifier && @connection.database_version.to_s >= [12, 2].to_s
+        if !use_shorter_identifier && database_version.to_s >= [12, 2].to_s
           true
         else
           false
@@ -361,7 +393,7 @@ module ActiveRecord
         ntext: { name: "NCLOB" },
         integer: { name: "NUMBER", limit: 38 },
         float: { name: "BINARY_FLOAT" },
-        decimal: { name: "DECIMAL" },
+        decimal: { name: "NUMBER" },
         datetime: { name: "TIMESTAMP" },
         timestamp: { name: "TIMESTAMP" },
         timestamptz: { name: "TIMESTAMP WITH TIME ZONE" },
@@ -433,6 +465,7 @@ module ActiveRecord
       end
 
       def discard!
+        super
         @connection = nil
       end
 
@@ -444,9 +477,9 @@ module ActiveRecord
       # when inserting a new database record (see #prefetch_primary_key?).
       def next_sequence_value(sequence_name)
         # if sequence_name is set to :autogenerated then it means that primary key will be populated by trigger
-        raise ArgumentError "Trigger based primary key is not supported" if sequence_name == AUTOGENERATED_SEQUENCE_NAME
+        raise ArgumentError.new "Trigger based primary key is not supported" if sequence_name == AUTOGENERATED_SEQUENCE_NAME
         # call directly connection method to avoid prepared statement which causes fetching of next sequence value twice
-        select_value(<<-SQL.strip.gsub(/\s+/, " "), "next sequence value")
+        select_value(<<~SQL.squish, "SCHEMA")
           SELECT #{quote_table_name(sequence_name)}.NEXTVAL FROM dual
         SQL
       end
@@ -459,7 +492,7 @@ module ActiveRecord
         do_not_prefetch = @do_not_prefetch_primary_key[table_name]
         if do_not_prefetch.nil?
           owner, desc_table_name = @connection.describe(table_name)
-          @do_not_prefetch_primary_key [table_name] = do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
+          @do_not_prefetch_primary_key[table_name] = do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
         end
         !do_not_prefetch
       end
@@ -484,7 +517,7 @@ module ActiveRecord
         end
 
         if primary_key && sequence_name
-          new_start_value = select_value(<<-SQL.strip.gsub(/\s+/, " "), "new start value")
+          new_start_value = select_value(<<~SQL.squish, "SCHEMA")
             select NVL(max(#{quote_column_name(primary_key)}),0) + 1 from #{quote_table_name(table_name)}
           SQL
 
@@ -495,33 +528,33 @@ module ActiveRecord
 
       # Current database name
       def current_database
-        select_value(<<-SQL.strip.gsub(/\s+/, " "), "current database on CDB ")
+        select_value(<<~SQL.squish, "SCHEMA")
           SELECT SYS_CONTEXT('userenv', 'con_name') FROM dual
         SQL
       rescue ActiveRecord::StatementInvalid
-        select_value(<<-SQL.strip.gsub(/\s+/, " "), "current database")
+        select_value(<<~SQL.squish, "SCHEMA")
           SELECT SYS_CONTEXT('userenv', 'db_name') FROM dual
         SQL
       end
 
       # Current database session user
       def current_user
-        select_value(<<-SQL.strip.gsub(/\s+/, " "), "current user")
+        select_value(<<~SQL.squish, "SCHEMA")
           SELECT SYS_CONTEXT('userenv', 'session_user') FROM dual
         SQL
       end
 
       # Current database session schema
       def current_schema
-        select_value(<<-SQL.strip.gsub(/\s+/, " "), "current schema")
+        select_value(<<~SQL.squish, "SCHEMA")
           SELECT SYS_CONTEXT('userenv', 'current_schema') FROM dual
         SQL
       end
 
       # Default tablespace name of current user
       def default_tablespace
-        select_value(<<-SQL.strip.gsub(/\s+/, " "), "default tablespace")
-          SELECT LOWER(default_tablespace) FROM user_users
+        select_value(<<~SQL.squish, "SCHEMA")
+          SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ LOWER(default_tablespace) FROM user_users
           WHERE username = SYS_CONTEXT('userenv', 'current_schema')
         SQL
       end
@@ -529,8 +562,8 @@ module ActiveRecord
       def column_definitions(table_name)
         (owner, desc_table_name) = @connection.describe(table_name)
 
-        select_all(<<-SQL.strip.gsub(/\s+/, " "), "Column definitions")
-          SELECT cols.column_name AS name, cols.data_type AS sql_type,
+        select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+          SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cols.column_name AS name, cols.data_type AS sql_type,
                  cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
                  cols.data_type_owner AS sql_type_owner,
                  DECODE(cols.data_type, 'NUMBER', data_precision,
@@ -542,8 +575,8 @@ module ActiveRecord
                  DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
                  comments.comments as column_comment
             FROM all_tab_cols cols, all_col_comments comments
-           WHERE cols.owner      = '#{owner}'
-             AND cols.table_name = #{quote(desc_table_name)}
+           WHERE cols.owner      = :owner
+             AND cols.table_name = :table_name
              AND cols.hidden_column = 'NO'
              AND cols.owner = comments.owner
              AND cols.table_name = comments.table_name
@@ -561,19 +594,19 @@ module ActiveRecord
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) #:nodoc:
         (owner, desc_table_name) = @connection.describe(table_name)
 
-        seqs = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Sequence")
-          select us.sequence_name
+        seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
+          select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ us.sequence_name
           from all_sequences us
-          where us.sequence_owner = '#{owner}'
-          and us.sequence_name = upper(#{quote(default_sequence_name(desc_table_name))})
+          where us.sequence_owner = :owner
+          and us.sequence_name = upper(:sequence_name)
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
-        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Key")
-          SELECT cc.column_name
+        pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+          SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
             FROM all_constraints c, all_cons_columns cc
-           WHERE c.owner = '#{owner}'
-             AND c.table_name = #{quote(desc_table_name)}
+           WHERE c.owner = :owner
+             AND c.table_name = :table_name
              AND c.constraint_type = 'P'
              AND cc.owner = c.owner
              AND cc.constraint_name = c.constraint_name
@@ -603,8 +636,8 @@ module ActiveRecord
       def primary_keys(table_name) # :nodoc:
         (_owner, desc_table_name) = @connection.describe(table_name)
 
-        pks = select_values(<<-SQL.strip.gsub(/\s+/, " "), "Primary Keys", [bind_string("table_name", desc_table_name)])
-          SELECT cc.column_name
+        pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
+          SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
             FROM all_constraints c, all_cons_columns cc
            WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
              AND c.table_name = :table_name
@@ -623,7 +656,7 @@ module ActiveRecord
         #
         # It does not construct DISTINCT clause. Just return column names for distinct.
         order_columns = orders.reject(&:blank?).map { |s|
-            s = s.to_sql unless s.is_a?(String)
+            s = visitor.compile(s) unless s.is_a?(String)
             # remove any ASC/DESC modifiers
             s.gsub(/\s+(ASC|DESC)\s*?/i, "")
           }.reject(&:blank?).map.with_index { |column, i|
@@ -633,8 +666,9 @@ module ActiveRecord
       end
 
       def temporary_table?(table_name) #:nodoc:
-        select_value(<<-SQL.strip.gsub(/\s+/, " "), "temporary table", [bind_string("table_name", table_name.upcase)]) == "Y"
-          SELECT temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
+        select_value_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
+          SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+          temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
       end
 
@@ -644,15 +678,19 @@ module ActiveRecord
       alias table_alias_length max_identifier_length
       alias index_name_length max_identifier_length
 
-      private
-        def check_version
-          database_version = @connection.database_version.join(".").to_f
+      def get_database_version
+        @connection.database_version
+      end
 
-          if database_version < 10
-            raise "Your version of Oracle (#{database_version}) is too old. Active Record Oracle enhanced adapter supports Oracle >= 10g."
-          end
+      def check_version
+        version = get_database_version.join(".").to_f
+
+        if version < 10
+          raise "Your version of Oracle (#{version}) is too old. Active Record Oracle enhanced adapter supports Oracle >= 10g."
         end
+      end
 
+      private
         def initialize_type_map(m = type_map)
           super
           # oracle
@@ -726,8 +764,24 @@ module ActiveRecord
           ActiveRecord::Relation::QueryAttribute.new(name, value, Type::OracleEnhanced::String.new)
         end
 
-        ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracleenhanced)
-        ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracleenhanced)
+        # call select_values using binds even if surrounding SQL preparation/execution is done + # with conn.unprepared_statement (like AR.to_sql)
+        def select_values_forcing_binds(arel, name, binds)
+          # remove possible force of unprepared SQL during dictionary access
+          unprepared_statement_forced = prepared_statements_disabled_cache.include?(object_id)
+          prepared_statements_disabled_cache.delete(object_id) if unprepared_statement_forced
+
+          select_values(arel, name, binds)
+        ensure
+          # Restore unprepared_statement setting for surrounding SQL
+          prepared_statements_disabled_cache.add(object_id) if unprepared_statement_forced
+        end
+
+        def select_value_forcing_binds(arel, name, binds)
+          single_value_from_rows(select_values_forcing_binds(arel, name, binds))
+        end
+
+        ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracle_enhanced)
+        ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
     end
   end
 end
@@ -736,4 +790,19 @@ require "active_record/connection_adapters/oracle_enhanced/version"
 
 module ActiveRecord
   autoload :OracleEnhancedProcedures, "active_record/connection_adapters/oracle_enhanced/procedures"
+end
+
+# Workaround for https://github.com/jruby/jruby/issues/6267
+if RUBY_ENGINE == "jruby"
+  require "jruby"
+
+  class org.jruby::RubyObjectSpace::WeakMap
+    field_reader :map
+  end
+
+  class ObjectSpace::WeakMap
+    def values
+      JRuby.ref(self).map.values.reject(&:nil?)
+    end
+  end
 end

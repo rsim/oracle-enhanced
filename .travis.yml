@@ -1,5 +1,5 @@
-dist: xenial
-sudo: required
+os: linux
+dist: focal
 cache: bundler
 
 env:
@@ -27,20 +27,30 @@ install:
   - .travis/oracle/download.sh
   - .travis/oracle/install.sh
   - .travis/setup_accounts.sh
+  - ruby -v
   - bundle install
+
+script:
+  - bundle exec rake spec
+  - rm Gemfile.lock
+  - ruby guides/bug_report_templates/active_record_gem.rb
+  - ruby guides/bug_report_templates/active_record_gem_spec.rb
 
 language: ruby
 rvm:
-  - 2.4.5
-  - 2.5.3
-  - jruby-9.2.5.0
+  - 3.0.0
+  - 2.7.2
   - ruby-head
-  - jruby-head
+  # Rails 7.0 requires Ruby 2.7 or higeher.
+  # CI pending until JRuby 9.4 that supports Ruby 2.7 will be released.
+  # https://github.com/jruby/jruby/issues/6464
+  # - jruby-9.4.0
+  # - jruby-head
+
+# matrix:
+#   allow_failures:
+#   - rvm: jruby-9.4.0
+#   - rvm: jruby-head
 
 notifications:
     email: false
-
-# blocklist
-branches:
-  except:
-  - poc_identity

@@ -4,6 +4,8 @@ module ActiveRecord
   module ConnectionAdapters #:nodoc:
     module OracleEnhanced
       class TypeMetadata < DelegateClass(ActiveRecord::ConnectionAdapters::SqlTypeMetadata) # :nodoc:
+        include Deduplicable
+
         attr_reader :virtual
 
         def initialize(type_metadata, virtual: nil)
@@ -23,7 +25,6 @@ module ActiveRecord
         end
 
         protected
-
           def attributes_for_hash
             [self.class, @type_metadata, virtual]
           end

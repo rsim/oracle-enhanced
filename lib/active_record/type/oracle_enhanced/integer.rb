@@ -5,7 +5,6 @@ module ActiveRecord
     module OracleEnhanced
       class Integer < ActiveModel::Type::Integer # :nodoc:
         private
-
           def max_value
             ("9" * 38).to_i
           end

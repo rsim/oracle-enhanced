@@ -40,6 +40,29 @@ describe "OracleEnhancedAdapter establish connection" do
     ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(cursor_sharing: :exact))
     expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
   end
+
+  it "should not use JDBC statement caching" do
+    if ORACLE_ENHANCED_CONNECTION == :jdbc
+      ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS)
+      expect(ActiveRecord::Base.connection.raw_connection.getImplicitCachingEnabled).to eq(false)
+      expect(ActiveRecord::Base.connection.raw_connection.getStatementCacheSize).to eq(-1)
+    end
+  end
+
+  it "should use JDBC statement caching" do
+    if ORACLE_ENHANCED_CONNECTION == :jdbc
+      ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_statement_cache_size: 100))
+      expect(ActiveRecord::Base.connection.raw_connection.getImplicitCachingEnabled).to eq(true)
+      expect(ActiveRecord::Base.connection.raw_connection.getStatementCacheSize).to eq(100)
+      # else: don't raise error if OCI connection has parameter "jdbc_statement_cache_size", still ignore it
+    end
+  end
+
+  it "should connect to database using service_name" do
+    ActiveRecord::Base.establish_connection(SERVICE_NAME_CONNECTION_PARAMS)
+    expect(ActiveRecord::Base.connection).not_to be_nil
+    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+  end
 end
 
 describe "OracleEnhancedConnection" do
@@ -81,13 +104,13 @@ describe "OracleEnhancedConnection" do
       expect(ActiveRecord::Base.connection).to be_active
     end
 
-    it "should swith to specified schema" do
+    it "should switch to specified schema" do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
       expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
       expect(ActiveRecord::Base.connection.current_user).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:username].upcase)
     end
 
-    it "should swith to specified schema after reset" do
+    it "should switch to specified schema after reset" do
       ActiveRecord::Base.connection.reset!
       expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
     end
@@ -135,6 +158,34 @@ describe "OracleEnhancedConnection" do
     end
   end
 
+  if defined?(OCI8)
+    describe "with TCP keepalive parameters" do
+      it "should use database default `tcp_keepalive` value true by default" do
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
+
+        expect(OCI8.properties[:tcp_keepalive]).to be true
+      end
+
+      it "should use modified `tcp_keepalive` value false" do
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS.dup.merge(tcp_keepalive: false))
+
+        expect(OCI8.properties[:tcp_keepalive]).to be false
+      end
+
+      it "should use database default `tcp_keepalive_time` value 600 by default" do
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
+
+        expect(OCI8.properties[:tcp_keepalive_time]).to eq(600)
+      end
+
+      it "should use modified `tcp_keepalive_time` value 3000" do
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS.dup.merge(tcp_keepalive_time: 3000))
+
+        expect(OCI8.properties[:tcp_keepalive_time]).to eq(3000)
+      end
+    end
+  end
+
   describe "with non-string parameters" do
     before(:all) do
       params = CONNECTION_PARAMS.dup
@@ -152,7 +203,7 @@ describe "OracleEnhancedConnection" do
   describe "with slash-prefixed database name (service name)" do
     before(:all) do
       params = CONNECTION_PARAMS.dup
-      params[:database] = "/#{params[:database]}" unless params[:database].match(/^\//)
+      params[:database] = "/#{params[:database]}" unless params[:database].start_with?("/")
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
     end
 
@@ -344,7 +395,7 @@ describe "OracleEnhancedConnection" do
     it "should execute prepared statement with decimal bind parameter " do
       cursor = @conn.prepare("INSERT INTO test_employees VALUES(:1)")
       type_metadata = ActiveRecord::ConnectionAdapters::SqlTypeMetadata.new(sql_type: "NUMBER", type: :decimal, limit: 10, precision: nil, scale: 2)
-      column = ActiveRecord::ConnectionAdapters::OracleEnhanced::Column.new("age", nil, type_metadata, false, "test_employees", nil)
+      column = ActiveRecord::ConnectionAdapters::OracleEnhanced::Column.new("age", nil, type_metadata, false, comment: nil)
       expect(column.type).to eq(:decimal)
       # Here 1.5 expects that this value has been type casted already
       # it should use bind_params in the long term.
@@ -359,10 +410,22 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "auto reconnection" do
+    include SchemaSpecHelper
+
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       @conn = ActiveRecord::Base.connection.instance_variable_get("@connection")
       @sys_conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(SYS_CONNECTION_PARAMS)
+      schema_define do
+        create_table :posts, force: true
+      end
+      class ::Post < ActiveRecord::Base
+      end
+    end
+
+    after(:all) do
+      Object.send(:remove_const, "Post")
+      ActiveRecord::Base.clear_cache!
     end
 
     before(:each) do
@@ -411,6 +474,20 @@ describe "OracleEnhancedConnection" do
       else
         expect { @conn.select("SELECT * FROM dual") }.to raise_error(OCIError)
       end
+    end
+
+    it "should reconnect and execute query if connection is lost and auto retry is enabled" do
+      Post.create!
+      ActiveRecord::Base.connection.auto_retry = true
+      kill_current_session
+      expect(Post.take).not_to be_nil
+    end
+
+    it "should not reconnect and execute query if connection is lost and auto retry is disabled" do
+      Post.create!
+      ActiveRecord::Base.connection.auto_retry = false
+      kill_current_session
+      expect { Post.take }.to raise_error(ActiveRecord::StatementInvalid)
     end
   end
 

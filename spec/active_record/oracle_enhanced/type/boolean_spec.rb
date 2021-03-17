@@ -4,7 +4,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.connection
-    @conn.execute <<-SQL
+    @conn.execute <<~SQL
       CREATE TABLE test3_employees (
         id            NUMBER PRIMARY KEY,
         first_name    VARCHAR2(20),
@@ -25,7 +25,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
         test_boolean  VARCHAR2(3)
       )
     SQL
-    @conn.execute <<-SQL
+    @conn.execute <<~SQL
       CREATE SEQUENCE test3_employees_seq  MINVALUE 1
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL

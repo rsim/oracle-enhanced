@@ -17,7 +17,7 @@ module ActiveRecord
         ].each do |column_type|
           module_eval <<-CODE, __FILE__, __LINE__ + 1
             def #{column_type}(*args, **options)
-              args.each { |name| column(name, :#{column_type}, options) }
+              args.each { |name| column(name, :#{column_type}, **options) }
             end
           CODE
         end
@@ -54,6 +54,7 @@ module ActiveRecord
 
         attr_accessor :tablespace, :organization
         def initialize(
+          conn,
           name,
           temporary: false,
           options: nil,
@@ -65,7 +66,7 @@ module ActiveRecord
         )
           @tablespace = tablespace
           @organization = organization
-          super(name, temporary: temporary, options: options, as: as, comment: comment)
+          super(conn, name, temporary: temporary, options: options, as: as, comment: comment)
         end
 
         def new_column_definition(name, type, **options) # :nodoc:
@@ -75,6 +76,11 @@ module ActiveRecord
           end
           super
         end
+
+        def references(*args, **options)
+          super(*args, type: :integer, **options)
+        end
+        alias :belongs_to :references
       end
 
       class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable

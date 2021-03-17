@@ -18,13 +18,12 @@ module ActiveRecord #:nodoc:
         module ClassMethods
           def lob_columns
             columns.select do |column|
-              column.sql_type_metadata.sql_type =~ /LOB$/
+              column.sql_type_metadata.sql_type.end_with?("LOB")
             end
           end
         end
 
         private
-
           def enhanced_write_lobs
             if self.class.connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
                 !(self.class.custom_create_method || self.class.custom_update_method)

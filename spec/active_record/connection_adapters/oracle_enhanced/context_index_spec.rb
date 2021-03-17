@@ -326,7 +326,7 @@ describe "OracleEnhancedAdapter context index" do
       it "should dump definition of single column index" do
         @conn.add_context_index :posts, :title
         output = dump_table_schema "posts"
-        expect(output).to match(/add_context_index "posts", \["title"\], name: \"index_posts_on_title\"$/)
+        expect(output).to match(/add_context_index "posts", \["title"\], name: "index_posts_on_title"$/)
         @conn.remove_context_index :posts, :title
       end
 

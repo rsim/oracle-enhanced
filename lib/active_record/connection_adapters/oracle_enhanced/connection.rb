@@ -19,7 +19,6 @@ module ActiveRecord
         attr_reader :raw_connection
 
         private
-
           # Used always by JDBC connection as well by OCI connection when describing tables over database link
           def describe(name)
             name = name.to_s
@@ -34,28 +33,28 @@ module ActiveRecord
             else
               table_owner, table_name = default_owner, real_name
             end
-            sql = <<-SQL.strip.gsub(/\s+/, " ")
-          SELECT owner, table_name, 'TABLE' name_type
-          FROM all_tables
-          WHERE owner = '#{table_owner}'
-            AND table_name = '#{table_name}'
-          UNION ALL
-          SELECT owner, view_name table_name, 'VIEW' name_type
-          FROM all_views
-          WHERE owner = '#{table_owner}'
-            AND view_name = '#{table_name}'
-          UNION ALL
-          SELECT table_owner, table_name, 'SYNONYM' name_type
-          FROM all_synonyms
-          WHERE owner = '#{table_owner}'
-            AND synonym_name = '#{table_name}'
-          UNION ALL
-          SELECT table_owner, table_name, 'SYNONYM' name_type
-          FROM all_synonyms
-          WHERE owner = 'PUBLIC'
-            AND synonym_name = '#{real_name}'
-        SQL
-            if result = _select_one(sql)
+            sql = <<~SQL.squish
+              SELECT owner, table_name, 'TABLE' name_type
+              FROM all_tables
+              WHERE owner = :table_owner
+                AND table_name = :table_name
+              UNION ALL
+              SELECT owner, view_name table_name, 'VIEW' name_type
+              FROM all_views
+              WHERE owner = :table_owner
+                AND view_name = :table_name
+              UNION ALL
+              SELECT table_owner, table_name, 'SYNONYM' name_type
+              FROM all_synonyms
+              WHERE owner = :table_owner
+                AND synonym_name = :table_name
+              UNION ALL
+              SELECT table_owner, table_name, 'SYNONYM' name_type
+              FROM all_synonyms
+              WHERE owner = 'PUBLIC'
+                AND synonym_name = :real_name
+            SQL
+            if result = _select_one(sql, "CONNECTION", [table_owner, table_name, table_owner, table_name, table_owner, table_name, real_name])
               case result["name_type"]
               when "SYNONYM"
                 describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}")
@@ -93,14 +92,23 @@ module ActiveRecord
 
           # Returns a record hash with the column names as keys and column values
           # as values.
+          # binds is a array of native values in contrast to ActiveRecord::Relation::QueryAttribute
           def _select_one(arel, name = nil, binds = [])
-            result = select(arel)
-            result.first if result
+            cursor = prepare(arel)
+            cursor.bind_params(binds)
+            cursor.exec
+            columns = cursor.get_col_names.map do |col_name|
+              _oracle_downcase(col_name)
+            end
+            row = cursor.fetch
+            columns.each_with_index.map { |x, i| [x, row[i]] }.to_h if row
+          ensure
+            cursor.close
           end
 
           # Returns a single value from a record
           def _select_value(arel, name = nil, binds = [])
-            if result = _select_one(arel)
+            if result = _select_one(arel, name, binds)
               result.values.first
             end
           end
@@ -116,8 +124,8 @@ module ActiveRecord
   end
 end
 
-# if MRI or YARV
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"
+# if MRI or YARV or TruffleRuby
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby" || RUBY_ENGINE == "truffleruby"
   ORACLE_ENHANCED_CONNECTION = :oci
   require "active_record/connection_adapters/oracle_enhanced/oci_connection"
 # if JRuby

@@ -47,13 +47,13 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump composite primary keys" do
-      pk = @conn.send(:select_one, <<-SQL)
+      pk = @conn.send(:select_one, <<~SQL)
         select constraint_name from user_constraints where table_name = 'TEST_POSTS' and constraint_type='P'
       SQL
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         alter table test_posts drop constraint #{pk["constraint_name"]}
       SQL
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         ALTER TABLE TEST_POSTS
         add CONSTRAINT pk_id_title PRIMARY KEY (id, title)
       SQL
@@ -62,33 +62,33 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump foreign keys" do
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         ALTER TABLE TEST_POSTS
         ADD CONSTRAINT fk_test_post_foo FOREIGN KEY (foo_id) REFERENCES foos(id)
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
+      dump = ActiveRecord::Base.connection.structure_dump
       expect(dump.split('\n').length).to eq(1)
-      expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_FOO\"? FOREIGN KEY \(\"?FOO_ID\"?\) REFERENCES \"?FOOS\"?\(\"?ID\"?\)/i)
+      expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_FOO"? FOREIGN KEY \("?FOO_ID"?\) REFERENCES "?FOOS"?\("?ID"?\)/i)
     end
 
     it "should dump foreign keys when reference column name is not 'id'" do
       @conn.add_column :foos, :baz_id, :integer
 
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         ALTER TABLE FOOS
         ADD CONSTRAINT UK_BAZ UNIQUE (BAZ_ID)
       SQL
 
       @conn.add_column :test_posts, :baz_id, :integer
 
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         ALTER TABLE TEST_POSTS
         ADD CONSTRAINT fk_test_post_baz FOREIGN KEY (baz_id) REFERENCES foos(baz_id)
       SQL
 
-      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
+      dump = ActiveRecord::Base.connection.structure_dump
       expect(dump.split('\n').length).to eq(1)
-      expect(dump).to match(/ALTER TABLE \"?TEST_POSTS\"? ADD CONSTRAINT \"?FK_TEST_POST_BAZ\"? FOREIGN KEY \(\"?BAZ_ID\"?\) REFERENCES \"?FOOS\"?\(\"?BAZ_ID\"?\)/i)
+      expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_BAZ"? FOREIGN KEY \("?BAZ_ID"?\) REFERENCES "?FOOS"?\("?BAZ_ID"?\)/i)
     end
 
     it "should not error when no foreign keys are present" do
@@ -98,7 +98,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump triggers" do
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create or replace TRIGGER TEST_POST_TRIGGER
           BEFORE INSERT
           ON TEST_POSTS
@@ -112,7 +112,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump types" do
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create or replace TYPE TEST_TYPE AS TABLE OF VARCHAR2(10);
       SQL
       dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
@@ -128,7 +128,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
     it "should dump virtual columns" do
       skip "Not supported in this database version" unless @oracle11g_or_higher
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
           id_plus     NUMBER GENERATED ALWAYS AS(id + 2) VIRTUAL,
@@ -136,12 +136,12 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/\"?ID_PLUS\"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/)
+      expect(dump).to match(/"?ID_PLUS"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/)
     end
 
     it "should dump RAW virtual columns" do
       skip "Not supported in this database version" unless @oracle11g_or_higher
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
           super       RAW(255) GENERATED ALWAYS AS \( HEXTORAW\(ID\) \) VIRTUAL,
@@ -149,11 +149,11 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/)
+      expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "SUPER" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/)
     end
 
     it "should dump NCLOB columns" do
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
           nclob_text  NCLOB,
@@ -161,11 +161,11 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"NCLOB_TEXT\" NCLOB/)
+      expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "NCLOB_TEXT" NCLOB/)
     end
 
     it "should dump unique keys" do
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         ALTER TABLE test_posts
           add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
@@ -180,31 +180,31 @@ describe "OracleEnhancedAdapter structure dump" do
       ActiveRecord::Base.connection.add_index(:test_posts, :foo, name: :ix_test_posts_foo)
       ActiveRecord::Base.connection.add_index(:test_posts, :foo_id, name: :ix_test_posts_foo_id, unique: true)
 
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         ALTER TABLE test_posts
           add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
 
       dump = ActiveRecord::Base.connection.structure_dump
       expect(dump).to match(/CREATE UNIQUE INDEX "?IX_TEST_POSTS_FOO_ID"? ON "?TEST_POSTS"? \("?FOO_ID"?\)/i)
-      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO\"? ON "?TEST_POSTS"? \("?FOO"?\)/i)
+      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO"? ON "?TEST_POSTS"? \("?FOO"?\)/i)
       expect(dump).not_to match(/CREATE UNIQUE INDEX "?UK_TEST_POSTS_/i)
     end
 
     it "should dump multi-value and function value indexes" do
       ActiveRecord::Base.connection.add_index(:test_posts, [:foo, :foo_id], name: :ix_test_posts_foo_foo_id)
 
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         CREATE INDEX "IX_TEST_POSTS_FUNCTION" ON "TEST_POSTS" (TO_CHAR(LENGTH("FOO"))||"FOO")
       SQL
 
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID\"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i)
-      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FUNCTION\"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i)
+      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i)
+      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FUNCTION"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i)
     end
 
     it "should dump RAW columns" do
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
           super       RAW(255),
@@ -212,7 +212,7 @@ describe "OracleEnhancedAdapter structure dump" do
         )
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/CREATE TABLE \"BARS\" \(\n \"ID\" NUMBER\(38,0\) NOT NULL,\n \"SUPER\" RAW\(255\)/)
+      expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "SUPER" RAW\(255\)/)
     end
 
     it "should dump table comments" do
@@ -269,7 +269,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
     context "default sequence" do
       let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\"" }
-      it { is_expected.to_not match(%r{CREATE SEQUENCE \"#{sequence_name}" MAXVALUE \d+ MINVALUE \d+ NOORDER NOCYCLE}) }
+      it { is_expected.to_not match(%r{CREATE SEQUENCE "#{sequence_name}" MAXVALUE \d+ MINVALUE \d+ NOORDER NOCYCLE}) }
     end
     context "noorder" do
       let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\" NOORDER" }
@@ -290,7 +290,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
   describe "database structure dump extensions" do
     before(:all) do
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         CREATE TABLE nvarchartable (
           unq_nvarchar  NVARCHAR2(255) DEFAULT NULL
         )
@@ -394,20 +394,20 @@ describe "OracleEnhancedAdapter structure dump" do
         t.string :foo
       end
       # view
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create or replace view full_drop_test_view (foo) as select id as "foo" from full_drop_test
       SQL
       # materialized view
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create materialized view full_drop_test_mview (foo) as select id as "foo" from full_drop_test
       SQL
       # package
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create or replace package full_drop_test_package as
           function test_func return varchar2;
         end test_package;
       SQL
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create or replace package body full_drop_test_package as
           function test_func return varchar2 is
             begin
@@ -416,7 +416,7 @@ describe "OracleEnhancedAdapter structure dump" do
         end test_package;
       SQL
       # function
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create or replace function full_drop_test_function
           return varchar2
         is
@@ -426,7 +426,7 @@ describe "OracleEnhancedAdapter structure dump" do
         end;
       SQL
       # procedure
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create or replace procedure full_drop_test_procedure
         begin
           delete from full_drop_test where id=1231231231
@@ -436,11 +436,11 @@ describe "OracleEnhancedAdapter structure dump" do
         end;
       SQL
       # synonym
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create or replace synonym full_drop_test_synonym for full_drop_test
       SQL
       # type
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         create or replace type full_drop_test_type as table of number
       SQL
     end

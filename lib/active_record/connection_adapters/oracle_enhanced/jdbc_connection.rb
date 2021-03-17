@@ -26,7 +26,7 @@ begin
     ["./lib"].concat($LOAD_PATH).concat(env_path).detect do |dir|
       # check any compatible JDBC driver in the priority order
       ojdbc_jars.any? do |ojdbc_jar|
-        if File.exists?(file_path = File.join(dir, ojdbc_jar))
+        if File.exist?(file_path = File.join(dir, ojdbc_jar))
           require file_path
           true
         end
@@ -113,11 +113,11 @@ module ActiveRecord
             if database && (using_tns_alias || host == "connection-string")
               url = "jdbc:oracle:thin:@#{database}"
             else
-              unless database.match?(/^(\:|\/)/)
+              unless database.match?(/^(:|\/)/)
                 # assume database is a SID if no colon or slash are supplied (backward-compatibility)
-                database = ":#{database}"
+                database = "/#{database}"
               end
-              url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}#{database}"
+              url = config[:url] || "jdbc:oracle:thin:@//#{host || 'localhost'}:#{port || 1521}#{database}"
             end
 
             prefetch_rows = config[:prefetch_rows] || 100
@@ -146,6 +146,12 @@ module ActiveRecord
               @raw_connection.setSessionTimeZone(time_zone)
             elsif ActiveRecord::Base.default_timezone == :utc
               @raw_connection.setSessionTimeZone("UTC")
+            end
+
+            if config[:jdbc_statement_cache_size]
+              raise "Integer value expected for :jdbc_statement_cache_size" unless config[:jdbc_statement_cache_size].instance_of? Integer
+              @raw_connection.setImplicitCachingEnabled(true)
+              @raw_connection.setStatementCacheSize(config[:jdbc_statement_cache_size])
             end
 
             # Set default number of rows to prefetch
@@ -238,7 +244,7 @@ module ActiveRecord
           begin
             yield if block_given?
           rescue Java::JavaSql::SQLException => e
-            raise unless e.message =~ /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
+            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/.match?(e.message)
             @active = false
             raise unless should_retry
             should_retry = false
@@ -512,7 +518,6 @@ module ActiveRecord
         end
 
       private
-
         def lob_to_ruby_value(val)
           case val
           when ::Java::OracleSql::CLOB

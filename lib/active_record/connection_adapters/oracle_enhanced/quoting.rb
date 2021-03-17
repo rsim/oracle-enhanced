@@ -10,9 +10,9 @@ module ActiveRecord
 
         def quote_column_name(name) #:nodoc:
           name = name.to_s
-          @quoted_column_names[name] ||= begin
+          self.class.quoted_column_names[name] ||= begin
             # if only valid lowercase column characters in name
-            if /\A[a-z][a-z_0-9\$#]*\Z/.match?(name)
+            if /\A[a-z][a-z_0-9$#]*\Z/.match?(name)
               "\"#{name.upcase}\""
             else
               # remove double quotes which cannot be used inside quoted identifier
@@ -27,9 +27,9 @@ module ActiveRecord
           name = name.to_s
           case name
           # if only valid lowercase column characters in name
-          when /^[a-z][a-z_0-9\$#]*$/
+          when /^[a-z][a-z_0-9$#]*$/
             "\"#{name.upcase}\""
-          when /^[a-z][a-z_0-9\$#\-]*$/i
+          when /^[a-z][a-z_0-9$#\-]*$/i
             "\"#{name}\""
           # if other characters present then assume that it is expression
           # which should not be quoted
@@ -70,7 +70,7 @@ module ActiveRecord
 
         def quote_table_name(name) #:nodoc:
           name, _link = name.to_s.split("@")
-          @quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
+          self.class.quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
         end
 
         def quote_string(s) #:nodoc:
@@ -132,8 +132,43 @@ module ActiveRecord
           end
         end
 
-        private
+        def column_name_matcher
+          COLUMN_NAME
+        end
 
+        def column_name_with_order_matcher
+          COLUMN_NAME_WITH_ORDER
+        end
+
+        COLUMN_NAME = /
+          \A
+          (
+            (?:
+              # "table_name"."column_name" | function(one or no argument)
+              ((?:\w+\.|"\w+"\.)?(?:\w+|"\w+")) | \w+\((?:|\g<2>)\)
+            )
+            (?:(?:\s+AS)?\s+(?:\w+|"\w+"))?
+          )
+          (?:\s*,\s*\g<1>)*
+          \z
+        /ix
+
+        COLUMN_NAME_WITH_ORDER = /
+          \A
+          (
+            (?:
+              # "table_name"."column_name" | function(one or no argument)
+              ((?:\w+\.|"\w+"\.)?(?:\w+|"\w+")) | \w+\((?:|\g<2>)\)
+            )
+            (?:\s+ASC|\s+DESC)?
+            (?:\s+NULLS\s+(?:FIRST|LAST))?
+          )
+          (?:\s*,\s*\g<1>)*
+          \z
+        /ix
+        private_constant :COLUMN_NAME, :COLUMN_NAME_WITH_ORDER
+
+        private
           def oracle_downcase(column_name)
             return nil if column_name.nil?
             /[a-z]/.match?(column_name) ? column_name : column_name.downcase
@@ -143,8 +178,8 @@ module ActiveRecord
   end
 end
 
-# if MRI or YARV
-if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby"
+# if MRI or YARV or TruffleRuby
+if !defined?(RUBY_ENGINE) || RUBY_ENGINE == "ruby" || RUBY_ENGINE == "truffleruby"
   require "active_record/connection_adapters/oracle_enhanced/oci_quoting"
 # if JRuby
 elsif RUBY_ENGINE == "jruby"

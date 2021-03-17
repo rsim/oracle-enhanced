@@ -21,7 +21,7 @@ describe "OracleEnhancedAdapter schema dump" do
   def create_test_posts_table(options = {})
     options[:force] = true
     schema_define do
-      create_table :test_posts, options do |t|
+      create_table :test_posts, **options do |t|
         t.string :title
         t.timestamps null: true
       end
@@ -71,7 +71,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should be able to dump default values using special characters" do
       output = dump_table_schema "test_defaults"
-      expect(output).to match(/t.string \"special_c\", default: "\\n"/)
+      expect(output).to match(/t.string "special_c", default: "\\n"/)
     end
   end
 
@@ -104,7 +104,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should be able to dump ntext columns" do
       output = dump_table_schema "test_ntexts"
-      expect(output).to match(/t.ntext \"ntext_column\"/)
+      expect(output).to match(/t.ntext "ntext_column"/)
     end
   end
 
@@ -207,7 +207,7 @@ describe "OracleEnhancedAdapter schema dump" do
         end
       end
 
-      @conn.execute <<-SQL
+      @conn.execute <<~SQL
         ALTER TABLE TEST_COMMENTS
         ADD CONSTRAINT TEST_COMMENTS_BAZ_ID_FK FOREIGN KEY (baz_id) REFERENCES test_posts(baz_id)
       SQL
@@ -305,6 +305,33 @@ describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "context indexes" do
+    before(:each) do
+      schema_define do
+        create_table :test_context_indexed_posts, force: true do |t|
+          t.string :title
+          t.string :body
+          t.index :title
+        end
+        add_context_index :test_context_indexed_posts, :body, sync: "ON COMMIT"
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_context_indexed_posts
+      end
+    end
+
+    it "should dump the context index" do
+      expect(standard_dump).to include(%(add_context_index "test_context_indexed_posts", ["body"]))
+    end
+
+    it "dumps the sync option" do
+      expect(standard_dump).to include(%(sync: "ON COMMIT"))
+    end
+  end
+
   describe "virtual columns" do
     before(:all) do
       skip "Not supported in this database version" unless @oracle11g_or_higher
@@ -343,7 +370,7 @@ describe "OracleEnhancedAdapter schema dump" do
       expect(output).to match(/t\.virtual "full_name",(\s*)type: :string,(\s*)limit: 512,(\s*)as: "\\"FIRST_NAME\\"\|\|', '\|\|\\"LAST_NAME\\""/)
       expect(output).to match(/t\.virtual "short_name",(\s*)type: :string,(\s*)limit: 300,(\s*)as:(.*)/)
       expect(output).to match(/t\.virtual "full_name_length",(\s*)type: :integer,(\s*)precision: 38,(\s*)as:(.*)/)
-      expect(output).to match(/t\.virtual "name_ratio",(\s*)as:(.*)\"$/) # no :type
+      expect(output).to match(/t\.virtual "name_ratio",(\s*)as:(.*)"$/) # no :type
       expect(output).to match(/t\.virtual "abbrev_name",(\s*)type: :string,(\s*)limit: 100,(\s*)as:(.*)/)
       expect(output).to match(/t\.virtual "field_with_leading_space",(\s*)type: :string,(\s*)limit: 300,(\s*)as: "' '\|\|\\"FIRST_NAME\\"\|\|' '"/)
     end

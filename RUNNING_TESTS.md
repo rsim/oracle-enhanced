@@ -21,8 +21,8 @@ You can create Oracle enhanced adapter development and test environment by follo
 ## [rails-dev-box runs_oracle branch](https://github.com/yahonda/rails-dev-box/tree/runs_oracle)
 * Please follow the [README](https://github.com/yahonda/rails-dev-box/tree/runs_oracle#a-virtual-machine-for-ruby-on-rails-core-development-with-oracle-database) .
 
-## [rails-dev-box runs_oracle_on_docker branch](https://github.com/yahonda/rails-dev-box/tree/runs_oracle_on_docker)
-* Please follow the [README](https://github.com/yahonda/rails-dev-box/blob/runs_oracle_on_docker/README.md#a-virtual-machine-for-ruby-on-rails-core-development) .
+## [rails-dev-box runs_oracle19c_on_docker branch](https://github.com/yahonda/rails-dev-box/tree/runs_oracle19c_on_docker)
+* Please follow the [README](https://github.com/yahonda/rails-dev-box/blob/runs_oracle19c_on_docker/README.md#a-virtual-machine-for-ruby-on-rails-core-development) .
 
 ## Create by yourself
 You can create your development and test environment by yourself.

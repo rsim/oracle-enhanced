@@ -1,19 +1,27 @@
+require:
+  - rubocop-performance
+  - rubocop-rails
+
 AllCops:
-  TargetRubyVersion: 2.4
+  TargetRubyVersion: 2.7
   DisabledByDefault: true
+  SuggestExtensions: false
+
+Rails/IndexBy:
+  Enabled: true
+
+Rails/IndexWith:
+  Enabled: true
 
 # Prefer &&/|| over and/or.
 Style/AndOr:
   Enabled: true
 
-# Do not use braces for hash literals when they are the last argument of a
-# method call.
-Style/BracesAroundHashParameters:
-  Enabled: true
-  EnforcedStyle: context_dependent
-
 # Align `when` with `case`.
 Layout/CaseIndentation:
+  Enabled: true
+
+Layout/ClosingHeredocIndentation:
   Enabled: true
 
 # Align comments with method definitions.
@@ -25,6 +33,10 @@ Layout/ElseAlignment:
 
 Layout/EmptyLineAfterMagicComment:
   Enabled: true
+
+Layout/EmptyLinesAroundAccessModifier:
+  Enabled: true
+  EnforcedStyle: only_before
 
 Layout/EmptyLinesAroundBlockBody:
   Enabled: true
@@ -52,9 +64,6 @@ Layout/EmptyLinesAroundMethodBody:
 Layout/EmptyLinesAroundModuleBody:
   Enabled: true
 
-Layout/FirstParameterIndentation:
-  Enabled: true
-
 # Use Ruby >= 1.9 syntax for hashes. Prefer { a: :b } over { :a => :b }.
 Style/HashSyntax:
   Enabled: true
@@ -63,7 +72,7 @@ Style/HashSyntax:
 # extra level of indentation.
 Layout/IndentationConsistency:
   Enabled: true
-  EnforcedStyle: rails
+  EnforcedStyle: indented_internal_methods
 
 # Two spaces, no tabs (for indentation).
 Layout/IndentationWidth:
@@ -78,6 +87,9 @@ Layout/SpaceAfterColon:
 Layout/SpaceAfterComma:
   Enabled: true
 
+Layout/SpaceAfterSemicolon:
+  Enabled: true
+
 Layout/SpaceAroundEqualsInParameterDefault:
   Enabled: true
 
@@ -87,14 +99,21 @@ Layout/SpaceAroundKeyword:
 Layout/SpaceAroundOperators:
   Enabled: true
 
+# This cop has not been enabled at rails/rails
+Layout/SpaceBeforeBrackets:
+  Enabled: true
+
 Layout/SpaceBeforeComma:
   Enabled: true
 
+Layout/SpaceBeforeComment:
+  Enabled: true
+
 Layout/SpaceBeforeFirstArg:
-    Enabled: true
+  Enabled: true
 
 Style/DefWithParentheses:
-    Enabled: true
+  Enabled: true
 
 # Defining a method with parameters needs parentheses.
 Style/MethodDefParentheses:
@@ -128,11 +147,11 @@ Style/StringLiterals:
   EnforcedStyle: double_quotes
 
 # Detect hard tabs, no hard tabs.
-Layout/Tab:
+Layout/IndentationStyle:
   Enabled: true
 
-# Blank lines should not have any spaces.
-Layout/TrailingBlankLines:
+# Empty lines should not have any spaces.
+Layout/TrailingEmptyLines:
   Enabled: true
 
 # No trailing whitespace.
@@ -140,25 +159,55 @@ Layout/TrailingWhitespace:
   Enabled: true
 
 # Use quotes for string literals when they are enough.
-Style/UnneededPercentQ:
+Style/RedundantPercentQ:
+  Enabled: true
+
+Lint/AmbiguousOperator:
+  Enabled: true
+
+Lint/AmbiguousRegexpLiteral:
+  Enabled: true
+
+Lint/DuplicateRequire:
+  Enabled: true
+
+Lint/ErbNewArguments:
   Enabled: true
 
 # Use my_method(my_arg) not my_method( my_arg ) or my_method my_arg.
 Lint/RequireParentheses:
   Enabled: true
 
-Lint/StringConversionInInterpolation:
+Lint/RedundantStringCoercion:
   Enabled: true
 
 Lint/UriEscapeUnescape:
   Enabled: true
 
+Lint/UselessAssignment:
+  Enabled: true
+
+Lint/DeprecatedClassMethods:
+  Enabled: true
+
 Style/ParenthesesAroundCondition:
+  Enabled: true
+
+Style/HashTransformKeys:
+  Enabled: true
+
+Style/HashTransformValues:
+  Enabled: true
+
+Style/RedundantBegin:
   Enabled: true
 
 Style/RedundantReturn:
   Enabled: true
   AllowMultipleReturnValues: true
+
+Style/RedundantRegexpEscape:
+  Enabled: true
 
 Style/Semicolon:
   Enabled: true
@@ -169,6 +218,9 @@ Style/ColonMethodCall:
   Enabled: true
 
 Style/TrivialAccessors:
+  Enabled: true
+
+Performance/BindCall:
   Enabled: true
 
 Performance/FlatMap:
@@ -186,6 +238,15 @@ Performance/EndWith:
 Performance/RegexpMatch:
   Enabled: true
 
+Performance/ReverseEach:
+  Enabled: true
+
 # Use unary plus to get an unfrozen string literal.
 Performance/UnfreezeString:
+  Enabled: true
+
+Performance/DeletePrefix:
+  Enabled: true
+
+Performance/DeleteSuffix:
   Enabled: true
