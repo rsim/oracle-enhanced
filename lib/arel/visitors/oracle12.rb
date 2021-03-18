@@ -99,6 +99,10 @@ module Arel # :nodoc: all
           super
         end
 
+        def visit_ActiveModel_Attribute(o, collector)
+          collector.add_bind(o) { |i| ":a#{i}" }
+        end
+
         def visit_Arel_Nodes_BindParam(o, collector)
           collector.add_bind(o.value) { |i| ":a#{i}" }
         end
