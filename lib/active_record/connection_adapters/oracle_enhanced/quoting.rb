@@ -10,14 +10,11 @@ module ActiveRecord
 
         def quote_column_name(name) #:nodoc:
           name = name.to_s
-          self.class.quoted_column_names[name] ||= begin
-            # if only valid lowercase column characters in name
-            if /\A[a-z][a-z_0-9\$#]*\Z/.match?(name)
-              "\"#{name.upcase}\""
-            else
-              # remove double quotes which cannot be used inside quoted identifier
-              "\"#{name.gsub('"', '')}\""
-            end
+          self.class.quoted_column_names[name] ||= if /\A[a-z][a-z_0-9\$#]*\Z/.match?(name)
+            "\"#{name.upcase}\""
+          else
+            # remove double quotes which cannot be used inside quoted identifier
+            "\"#{name.gsub('"', '')}\""
           end
         end
 
