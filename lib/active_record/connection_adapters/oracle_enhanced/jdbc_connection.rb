@@ -98,6 +98,8 @@ module ActiveRecord
               @raw_connection = @raw_connection.underlying_connection
             end
 
+            # Workaround FrozenError (can't modify frozen Hash):
+            config = config.dup
             config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
             username = @raw_connection.meta_data.user_name
           else
