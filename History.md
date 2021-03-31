@@ -1,3 +1,11 @@
+## 6.1.3 / 2021-03-31
+
+* Changes and bug fixes
+  * Address FrozenError (can't modify frozen Hash): error [#2139 #2151 #2160]
+
+* CI
+  * CI against JRuby 9.2.15.0 [#2150]
+
 ## 6.1.2 / 2021-02-10
 * Changes and bug fixes
   * Fixed ORA-01935: missing user or role name with config read issue [#1943 #2135, #2142]
