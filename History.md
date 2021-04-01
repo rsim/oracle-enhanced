@@ -1,3 +1,14 @@
+## 6.1.4 / 2021-04-01
+
+* Changes and bug fixes
+  * Support use of ojdbc11.jar [#2155, #2168]
+  * Add missing default granted permission "ulimited tablespace" [#2156, #2167]
+  * Prevent from including ojdbc8.jar file to gem file [#2163, #2164, #2165]
+  * Oracle enhanced adapter 6.1.3 has been yanked since #2163
+
+* CI
+  * Allow-failure CI against jruby-head for release61 branch [#2166]
+
 ## 6.1.3 / 2021-03-31
 
 * Changes and bug fixes
