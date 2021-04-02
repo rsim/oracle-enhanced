@@ -57,7 +57,7 @@ jobs:
         sudo alien -i oracle-instantclient18.5-devel-18.5.0.0.0-3.x86_64.rpm
     - name: Install JDBC Driver
       run: |
-        cp $ORACLE_HOME/lib/ojdbc8.jar lib/.
+        wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar
     - name: Create database user
       run: |
         ./ci/setup_accounts.sh
