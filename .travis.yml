@@ -38,8 +38,8 @@ script:
 
 language: ruby
 rvm:
-  - 3.0.0
-  - 2.7.2
+  - 3.0.1
+  - 2.7.3
   - ruby-head
   # Rails 7.0 requires Ruby 2.7 or higeher.
   # CI pending until JRuby 9.4 that supports Ruby 2.7 will be released.
