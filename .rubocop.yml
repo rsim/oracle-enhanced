@@ -241,6 +241,9 @@ Performance/RegexpMatch:
 Performance/ReverseEach:
   Enabled: true
 
+Performance/StringReplacement:
+  Enabled: true
+
 # Use unary plus to get an unfrozen string literal.
 Performance/UnfreezeString:
   Enabled: true
