@@ -14,7 +14,7 @@ module ActiveRecord
             "\"#{name.upcase}\""
           else
             # remove double quotes which cannot be used inside quoted identifier
-            "\"#{name.gsub('"', '')}\""
+            "\"#{name.delete('"')}\""
           end
         end
 

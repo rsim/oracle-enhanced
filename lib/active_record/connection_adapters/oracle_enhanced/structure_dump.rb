@@ -76,7 +76,7 @@ module ActiveRecord #:nodoc:
         end
 
         def structure_dump_virtual_column(column, data_default) #:nodoc:
-          data_default = data_default.gsub(/"/, "")
+          data_default = data_default.delete('"')
           col = +"\"#{column['column_name']}\" #{column['data_type']}"
           if (column["data_type"] == "NUMBER") && !column["data_precision"].nil?
             col << "(#{column['data_precision'].to_i}"
