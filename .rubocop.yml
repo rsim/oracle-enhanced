@@ -48,6 +48,9 @@ Layout/EndAlignment:
   EnforcedStyleAlignWith: variable
   AutoCorrect: true
 
+Layout/EndOfLine:
+  Enabled: true
+
 # No extra empty lines.
 Layout/EmptyLines:
   Enabled: true
