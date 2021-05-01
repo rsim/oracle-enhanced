@@ -43,9 +43,9 @@ begin
     java.lang.System.set_property("oracle.net.tns_admin", ENV["TNS_ADMIN"])
   end
 
-rescue LoadError, NameError
+rescue LoadError, NameError => e
   # JDBC driver is unavailable.
-  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars.join(' or ') } library."
+  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars.join(' or ') } library.\n#{e.class}:#{e.message}"
 end
 
 module ActiveRecord
