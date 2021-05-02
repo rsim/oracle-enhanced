@@ -483,6 +483,14 @@ module ActiveRecord
           clear_table_columns_cache(table_name)
         end
 
+        def remove_columns(table_name, *column_names, type: nil, **options) # :nodoc:
+          quoted_column_names = column_names.map { |column_name| quote_column_name(column_name) }.join(", ")
+
+          execute "ALTER TABLE #{quote_table_name(table_name)} DROP (#{quoted_column_names}) CASCADE CONSTRAINTS"
+        ensure
+          clear_table_columns_cache(table_name)
+        end
+
         def change_table_comment(table_name, comment_or_changes)
           clear_cache!
           comment = extract_new_comment_value(comment_or_changes)
