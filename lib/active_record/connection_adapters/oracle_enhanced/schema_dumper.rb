@@ -21,6 +21,8 @@ module ActiveRecord #:nodoc:
               # add table prefix or suffix for schema_migrations
               next if ignored? tbl
               table(tbl, stream)
+              # add primary key trigger if table has it
+              primary_key_trigger(tbl, stream)
             end
             # following table definitions
             # add foreign keys if table has them
@@ -31,6 +33,15 @@ module ActiveRecord #:nodoc:
 
             # add synonyms in local schema
             synonyms(stream)
+          end
+
+          def primary_key_trigger(table_name, stream)
+            if @connection.has_primary_key_trigger?(table_name)
+              pk, _pk_seq = @connection.pk_and_sequence_for(table_name)
+              stream.print "  add_primary_key_trigger #{table_name.inspect}"
+              stream.print ", primary_key: \"#{pk}\"" if pk != "id"
+              stream.print "\n\n"
+            end
           end
 
           def synonyms(stream)

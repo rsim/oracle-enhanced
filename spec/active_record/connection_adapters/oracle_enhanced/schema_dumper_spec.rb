@@ -108,6 +108,24 @@ describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "table with primary key trigger" do
+
+    after(:each) do
+      drop_test_posts_table
+    end
+
+    it "should include primary key trigger in schema dump" do
+      create_test_posts_table(primary_key_trigger: true)
+      expect(standard_dump).to match(/create_table "test_posts".*add_primary_key_trigger "test_posts"/m)
+    end
+
+    it "should include primary key trigger with non-default primary key in schema dump" do
+      create_test_posts_table(primary_key_trigger: true, primary_key: "post_id")
+      expect(standard_dump).to match(/create_table "test_posts", primary_key: "post_id".*add_primary_key_trigger "test_posts", primary_key: "post_id"/m)
+    end
+
+  end
+
   describe "foreign key constraints" do
     before(:all) do
       schema_define do
