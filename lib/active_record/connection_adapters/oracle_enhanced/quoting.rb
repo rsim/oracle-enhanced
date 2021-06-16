@@ -115,7 +115,7 @@ module ActiveRecord
           case value
           when Type::OracleEnhanced::TimestampTz::Data, Type::OracleEnhanced::TimestampLtz::Data
             if value.acts_like?(:time)
-              zone_conversion_method = ActiveRecord::Base.default_timezone == :utc ? :getutc : :getlocal
+              zone_conversion_method = ActiveRecord.default_timezone == :utc ? :getutc : :getlocal
               value.respond_to?(zone_conversion_method) ? value.send(zone_conversion_method) : value
             else
               value

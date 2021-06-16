@@ -289,9 +289,9 @@ module ActiveRecord
           end
           # code from Time.time_with_datetime_fallback
           begin
-            Time.send(Base.default_timezone, year, month, day, hour, min, sec, usec)
+            Time.send(ActiveRecord.default_timezone, year, month, day, hour, min, sec, usec)
           rescue
-            offset = Base.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
+            offset = ActiveRecord.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
             ::DateTime.civil(year, month, day, hour, min, sec, offset)
           end
         end
@@ -343,9 +343,9 @@ module ActiveRecord
           conn.non_blocking = true if async
           conn.prefetch_rows = prefetch_rows
           conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil if cursor_sharing
-          if ActiveRecord::Base.default_timezone == :local
+          if ActiveRecord.default_timezone == :local
             conn.exec "alter session set time_zone = '#{time_zone}'" unless time_zone.blank?
-          elsif ActiveRecord::Base.default_timezone == :utc
+          elsif ActiveRecord.default_timezone == :utc
             conn.exec "alter session set time_zone = '+00:00'"
           end
           conn.exec "alter session set current_schema = #{schema}" unless schema.blank?

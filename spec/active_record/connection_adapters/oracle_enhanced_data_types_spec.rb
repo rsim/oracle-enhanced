@@ -122,7 +122,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   after(:each) do
-    ActiveRecord::Base.default_timezone = :utc
+    ActiveRecord.default_timezone = :utc
   end
 
   it "should assign ISO string to date column" do
@@ -170,7 +170,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   it "should assign ISO time string to datetime column" do
-    ActiveRecord::Base.default_timezone = :local
+    ActiveRecord.default_timezone = :local
     @employee = TestEmployee.create(
       first_name: "First",
       last_name: "Last",
@@ -182,7 +182,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   it "should assign NLS time string to datetime column" do
-    ActiveRecord::Base.default_timezone = :local
+    ActiveRecord.default_timezone = :local
     @employee = TestEmployee.create(
       first_name: "First",
       last_name: "Last",
@@ -205,7 +205,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   it "should assign ISO date string to datetime column" do
-    ActiveRecord::Base.default_timezone = :local
+    ActiveRecord.default_timezone = :local
     @employee = TestEmployee.create(
       first_name: "First",
       last_name: "Last",
@@ -217,7 +217,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   end
 
   it "should assign NLS date string to datetime column" do
-    ActiveRecord::Base.default_timezone = :local
+    ActiveRecord.default_timezone = :local
     @employee = TestEmployee.create(
       first_name: "First",
       last_name: "Last",

@@ -145,9 +145,9 @@ module ActiveRecord
             end
 
             # Set session time zone to current time zone
-            if ActiveRecord::Base.default_timezone == :local
+            if ActiveRecord.default_timezone == :local
               @raw_connection.setSessionTimeZone(time_zone)
-            elsif ActiveRecord::Base.default_timezone == :utc
+            elsif ActiveRecord.default_timezone == :utc
               @raw_connection.setSessionTimeZone("UTC")
             end
 
@@ -498,13 +498,13 @@ module ActiveRecord
             if dt = rset.getDATE(i)
               d = dt.dateValue
               t = dt.timeValue
-              Time.send(Base.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
+              Time.send(ActiveRecord.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
             else
               nil
             end
           when :TIMESTAMP, :TIMESTAMPTZ, :TIMESTAMPLTZ, :"TIMESTAMP WITH TIME ZONE", :"TIMESTAMP WITH LOCAL TIME ZONE"
             ts = rset.getTimestamp(i)
-            ts && Time.send(Base.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
+            ts && Time.send(ActiveRecord.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
               ts.nanos / 1000)
           when :CLOB
             get_lob_value ? lob_to_ruby_value(rset.getClob(i)) : rset.getClob(i)
