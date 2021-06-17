@@ -210,8 +210,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     expect(@employee.first_name).to eq("First")
   end
 
-  it "should not update record if nothing is changed and partial writes are enabled" do
-    TestEmployee.partial_writes = true
+  it "should not update record if nothing is changed and partial updates are enabled" do
+    TestEmployee.partial_updates = true
     @employee = TestEmployee.create(
       first_name: "First",
       last_name: "Last",
@@ -223,8 +223,8 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     expect(@employee.version).to eq(1)
   end
 
-  it "should update record if nothing is changed and partial writes are disabled" do
-    TestEmployee.partial_writes = false
+  it "should update record if nothing is changed and partial updates are disabled" do
+    TestEmployee.partial_updates = false
     @employee = TestEmployee.create(
       first_name: "First",
       last_name: "Last",
@@ -316,7 +316,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   end
 
   it "should log update record" do
-    (TestEmployee.partial_writes = false) rescue nil
+    (TestEmployee.partial_updates = false) rescue nil
     @employee = TestEmployee.create(
       first_name: "First",
       last_name: "Last",
