@@ -232,7 +232,7 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should respect default_timezone = :utc than time_zone setting" do
-      # it expects that ActiveRecord::Base.default_timezone = :utc
+      # it expects that ActiveRecord.default_timezone = :utc
       ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_WITH_TIMEZONE_PARAMS)
       post = Post.create!
       created_at = post.created_at
