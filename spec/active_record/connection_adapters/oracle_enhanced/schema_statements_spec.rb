@@ -154,7 +154,8 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "create table with primary key trigger" do
     def create_table_with_trigger(options = {})
-      options.merge! primary_key_trigger: true, force: true
+      options[:primary_key_trigger] = true
+      options[:force] = true
       schema_define do
         create_table :test_employees, options do |t|
           t.string      :first_name
@@ -164,7 +165,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     def create_table_and_separately_trigger(options = {})
-      options.merge! force: true
+      options[:force] = true
       schema_define do
         create_table :test_employees, options do |t|
           t.string      :first_name
