@@ -218,7 +218,6 @@ describe "OracleEnhancedAdapter schema definition" do
         expect(@logger.output(:error)).not_to match(/^Could not log "sql.active_record" event. NoMethodError: undefined method `name' for :returning_id:Symbol/)
         clear_logger
       end
-
     end
 
     describe "with separate creation of primary key trigger" do
@@ -315,7 +314,6 @@ describe "OracleEnhancedAdapter schema definition" do
         expect(@conn.select_value("SELECT #{@sequence_name}.currval FROM dual")).to eq(e.id)
       end
     end
-
   end
 
   describe "table and column comments" do
@@ -469,7 +467,6 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "create triggers" do
-
     before(:all) do
       @conn = ActiveRecord::Base.connection
       schema_define do

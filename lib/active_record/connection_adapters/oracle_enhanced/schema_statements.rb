@@ -721,7 +721,7 @@ module ActiveRecord
                 END IF;
               END IF;
             END;
-          SQL
+            SQL
           end
 
           def default_trigger_name(table_name)
