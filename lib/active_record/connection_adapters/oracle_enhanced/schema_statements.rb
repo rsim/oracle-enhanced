@@ -726,7 +726,7 @@ module ActiveRecord
 
           def default_trigger_name(table_name)
             # truncate table name if necessary to fit in max length of identifier
-            "#{table_name.to_s[0, table_name_length - 4]}_pkt"
+            "#{table_name.to_s[0, DatabaseLimits::IDENTIFIER_MAX_LENGTH - 4]}_pkt"
           end
 
           def rebuild_primary_key_index_to_default_tablespace(table_name, options)
