@@ -669,7 +669,7 @@ module ActiveRecord
                              type_metadata,
                              field["nullable"] == "Y",
                              comment: field["column_comment"]
-                      )
+            )
           end
 
           def fetch_type_metadata(sql_type, virtual = nil)
