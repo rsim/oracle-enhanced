@@ -9,7 +9,7 @@ gemfile(true) do
 
   gem "rails", github: "rails/rails", branch: "main"
   gem "activerecord-oracle_enhanced-adapter",  github: "rsim/oracle-enhanced", branch: "master"
-  gem "rspec"
+  gem "rspec", require: "rspec/autorun"
 
   platforms :ruby do
     gem "ruby-oci8"
@@ -17,7 +17,6 @@ gemfile(true) do
 end
 
 require "active_record"
-require "rspec"
 require "logger"
 require "active_record/connection_adapters/oracle_enhanced_adapter"
 
