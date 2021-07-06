@@ -157,7 +157,7 @@ describe "OracleEnhancedAdapter schema definition" do
       options[:primary_key_trigger] = true
       options[:force] = true
       schema_define do
-        create_table :test_employees, options do |t|
+        create_table :test_employees, **options do |t|
           t.string      :first_name
           t.string      :last_name
         end
