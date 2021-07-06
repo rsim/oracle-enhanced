@@ -167,7 +167,7 @@ describe "OracleEnhancedAdapter schema definition" do
     def create_table_and_separately_trigger(options = {})
       options[:force] = true
       schema_define do
-        create_table :test_employees, options do |t|
+        create_table :test_employees, **options do |t|
           t.string      :first_name
           t.string      :last_name
         end
@@ -177,8 +177,9 @@ describe "OracleEnhancedAdapter schema definition" do
 
     def drop_table_with_trigger(options = {})
       seq_name = options[:sequence_name]
+      options = (seq_name ? { sequence_name: seq_name } : {})
       schema_define do
-        drop_table :test_employees, (seq_name ? { sequence_name: seq_name } : {})
+        drop_table :test_employees, options
       end
       Object.send(:remove_const, "TestEmployee")
       ActiveRecord::Base.clear_cache!
