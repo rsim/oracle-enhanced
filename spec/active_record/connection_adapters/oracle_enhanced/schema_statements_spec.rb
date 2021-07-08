@@ -1122,13 +1122,13 @@ end
 
     before(:each) do
       @conn.instance_variable_set :@would_execute_sql, @would_execute_sql = +""
-      class <<@conn
+      class << @conn
         def execute(sql, name = nil); @would_execute_sql << sql << ";\n"; end
       end
     end
 
     after(:each) do
-      class <<@conn
+      class << @conn
         remove_method :execute
       end
       @conn.instance_eval { remove_instance_variable :@would_execute_sql }
