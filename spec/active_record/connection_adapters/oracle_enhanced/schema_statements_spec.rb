@@ -334,58 +334,58 @@ describe "OracleEnhancedAdapter schema definition" do
       else
         expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
           "i" + Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
-        )
+          )
       end
     end
   end
 
   describe "rename index" do
-  before(:each) do
-    @conn = ActiveRecord::Base.connection
-    schema_define do
-      create_table  :test_employees do |t|
-        t.string    :first_name
-        t.string    :last_name
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        create_table  :test_employees do |t|
+          t.string    :first_name
+          t.string    :last_name
+        end
+        add_index :test_employees, :first_name
       end
-      add_index :test_employees, :first_name
+      class ::TestEmployee < ActiveRecord::Base; end
     end
-    class ::TestEmployee < ActiveRecord::Base; end
-  end
 
-  after(:each) do
-    schema_define do
-      drop_table :test_employees
+    after(:each) do
+      schema_define do
+        drop_table :test_employees
+      end
+      Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.clear_cache!
     end
-    Object.send(:remove_const, "TestEmployee")
-    ActiveRecord::Base.clear_cache!
-  end
 
-  it "should raise error when current index name and new index name are identical" do
-    expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "i_test_employees_first_name")
-    end.to raise_error(ActiveRecord::StatementInvalid)
-  end
+    it "should raise error when current index name and new index name are identical" do
+      expect do
+        @conn.rename_index("test_employees", "i_test_employees_first_name", "i_test_employees_first_name")
+      end.to raise_error(ActiveRecord::StatementInvalid)
+    end
 
-  it "should raise error when new index name length is too long" do
-    skip if @oracle12cr2_or_higher
-    expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "a" * 31)
-    end.to raise_error(ArgumentError)
-  end
+    it "should raise error when new index name length is too long" do
+      skip if @oracle12cr2_or_higher
+      expect do
+        @conn.rename_index("test_employees", "i_test_employees_first_name", "a" * 31)
+      end.to raise_error(ArgumentError)
+    end
 
-  it "should raise error when current index name does not exist" do
-    expect do
-      @conn.rename_index("test_employees", "nonexist_index_name", "new_index_name")
-    end.to raise_error(ActiveRecord::StatementInvalid)
-  end
+    it "should raise error when current index name does not exist" do
+      expect do
+        @conn.rename_index("test_employees", "nonexist_index_name", "new_index_name")
+      end.to raise_error(ActiveRecord::StatementInvalid)
+    end
 
-  it "should rename index name with new one" do
-    skip if @oracle12cr2_or_higher
-    expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "new_index_name")
-    end.not_to raise_error
+    it "should rename index name with new one" do
+      skip if @oracle12cr2_or_higher
+      expect do
+        @conn.rename_index("test_employees", "i_test_employees_first_name", "new_index_name")
+      end.not_to raise_error
+    end
   end
-end
 
   describe "ignore options for LOB columns" do
     after(:each) do
@@ -622,9 +622,9 @@ end
 
       index_name = @conn.select_value(
         "SELECT index_name FROM all_constraints
-            WHERE table_name = 'TEST_POSTS'
-            AND constraint_type = 'P'
-            AND owner = SYS_CONTEXT('userenv', 'current_schema')")
+        WHERE table_name = 'TEST_POSTS'
+        AND constraint_type = 'P'
+        AND owner = SYS_CONTEXT('userenv', 'current_schema')")
 
       expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'")).to eq("USERS")
     end
@@ -637,9 +637,9 @@ end
 
       index_name = @conn.select_value(
         "SELECT index_name FROM all_constraints
-            WHERE table_name = 'TEST_POSTS'
-            AND constraint_type = 'P'
-            AND owner = SYS_CONTEXT('userenv', 'current_schema')")
+        WHERE table_name = 'TEST_POSTS'
+        AND constraint_type = 'P'
+        AND owner = SYS_CONTEXT('userenv', 'current_schema')")
 
       expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
@@ -1046,7 +1046,7 @@ end
     it "should change virtual column definition" do
       schema_define do
         change_column :test_fractions, :percent, :virtual,
-          as: "ROUND((numerator/NULLIF(denominator,0))*100, 2)", type: :decimal, precision: 15, scale: 2
+        as: "ROUND((numerator/NULLIF(denominator,0))*100, 2)", type: :decimal, precision: 15, scale: 2
       end
       TestFraction.reset_column_information
       tf = TestFraction.columns.detect { |c| c.name == "percent" }
@@ -1247,6 +1247,87 @@ end
 
     after do
       ActiveRecord::SchemaMigration.drop_table
+    end
+  end
+
+  describe "identity columns" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+      end
+    end
+
+    before(:each) do
+      @conn.instance_variable_set :@would_execute_sql, @would_execute_sql = +""
+      class << @conn
+        def execute(sql, name = nil); @would_execute_sql << sql << ";\n"; end
+      end
+    end
+
+    after(:each) do
+      class << @conn
+        remove_method :execute
+      end
+      @conn.instance_eval { remove_instance_variable :@would_execute_sql }
+    end
+
+    it "should 1" do
+      schema_define do
+        create_table :identity_test_table, primary_key_as_identity: true
+      end
+      expect(@would_execute_sql).to match(/CREATE +TABLE .* GENERATED BY DEFAULT ON NULL AS IDENTITY NOT NULL PRIMARY KEY/)
+    end
+
+    it 'should 2' do
+      schema_define do
+        create_table :identity_test_table, id: false do |t|
+          t.primary_key :test, :primary_key, identity: true
+        end
+      end
+      expect(@would_execute_sql).to match(/CREATE +TABLE .* GENERATED BY DEFAULT ON NULL AS IDENTITY NOT NULL PRIMARY KEY/)
+    end
+
+    it 'should 3' do
+      schema_define do
+        check_for_identity(true)  { add_column :identity_test_table, :test_id, :primary_key, identity: true }
+      end
+      expect(@would_execute_sql).to match(/CREATE +TABLE .* GENERATED BY DEFAULT ON NULL AS IDENTITY NOT NULL PRIMARY KEY/)
+    end
+
+    it 'should 4' do
+      schema_define do
+        create_table :identity_test_table, id: false, primary_key_as_identity: true do |t|
+          t.primary_key :test, :primary_key
+        end
+      end
+      expect(@would_execute_sql).to match(/CREATE +TABLE .* GENERATED BY DEFAULT ON NULL AS IDENTITY NOT NULL PRIMARY KEY/)
+    end
+
+    it 'should 5' do
+      schema_define do
+        create_table :identity_test_table, id: false, primary_key_as_identity: false do |t|
+          t.primary_key :test, :primary_key, identity: true
+        end
+      end
+      expect(@would_execute_sql).to match(/CREATE +TABLE .* GENERATED BY DEFAULT ON NULL AS IDENTITY NOT NULL PRIMARY KEY/)
+    end
+
+    it 'should 6' do
+      schema_define do
+        create_table :identity_test_table, id: false, primary_key_as_identity: true do |t|
+          t.primary_key :test, :primary_key, identity: true
+        end
+      end
+      expect(@would_execute_sql).to match(/CREATE +TABLE .* GENERATED BY DEFAULT ON NULL AS IDENTITY NOT NULL PRIMARY KEY/)
+    end
+
+    it 'should 7' do
+      schema_define do
+        create_table :identity_test_table, id: false do |t|
+          t.primary_key :test, :primary_key, identity: true
+        end
+      end
+      expect(@would_execute_sql).to match(/CREATE +TABLE .* GENERATED BY DEFAULT ON NULL AS IDENTITY NOT NULL PRIMARY KEY/)
     end
   end
 end
