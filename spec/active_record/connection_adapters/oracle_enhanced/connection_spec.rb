@@ -495,53 +495,56 @@ describe "OracleEnhancedConnection" do
     before(:all) do
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
       @owner = CONNECTION_PARAMS[:username].upcase
+
+      @oracle12cr2_or_higher = !!@conn.exec(
+        "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,4)) >= 12.2").fetch
     end
 
     it "should describe existing table" do
       @conn.exec "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
-      expect(@conn.describe("test_employees")).to eq([@owner, "TEST_EMPLOYEES"])
+      expect(@conn.describe("test_employees", @oracle12cr2_or_higher)).to eq([@owner, "TEST_EMPLOYEES"])
       @conn.exec "DROP TABLE test_employees" rescue nil
     end
 
     it "should not describe non-existing table" do
-      expect { @conn.describe("test_xxx") }.to raise_error(ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException)
+      expect { @conn.describe("test_xxx", @oracle12cr2_or_higher) }.to raise_error(ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException)
     end
 
     it "should describe table in other schema" do
-      expect(@conn.describe("sys.dual")).to eq(["SYS", "DUAL"])
+      expect(@conn.describe("sys.dual", @oracle12cr2_or_higher)).to eq(["SYS", "DUAL"])
     end
 
     it "should describe table in other schema if the schema and table are in different cases" do
-      expect(@conn.describe("SYS.dual")).to eq(["SYS", "DUAL"])
+      expect(@conn.describe("SYS.dual", @oracle12cr2_or_higher)).to eq(["SYS", "DUAL"])
     end
 
     it "should describe existing view" do
       @conn.exec "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
       @conn.exec "CREATE VIEW test_employees_v AS SELECT * FROM test_employees" rescue nil
-      expect(@conn.describe("test_employees_v")).to eq([@owner, "TEST_EMPLOYEES_V"])
+      expect(@conn.describe("test_employees_v", @oracle12cr2_or_higher)).to eq([@owner, "TEST_EMPLOYEES_V"])
       @conn.exec "DROP VIEW test_employees_v" rescue nil
       @conn.exec "DROP TABLE test_employees" rescue nil
     end
 
     it "should describe view in other schema" do
-      expect(@conn.describe("sys.v_$version")).to eq(["SYS", "V_$VERSION"])
+      expect(@conn.describe("sys.v_$version", @oracle12cr2_or_higher)).to eq(["SYS", "V_$VERSION"])
     end
 
     it "should describe existing private synonym" do
       @conn.exec "CREATE SYNONYM test_dual FOR sys.dual" rescue nil
-      expect(@conn.describe("test_dual")).to eq(["SYS", "DUAL"])
+      expect(@conn.describe("test_dual", @oracle12cr2_or_higher)).to eq(["SYS", "DUAL"])
       @conn.exec "DROP SYNONYM test_dual" rescue nil
     end
 
     it "should describe existing public synonym" do
-      expect(@conn.describe("all_tables")).to eq(["SYS", "ALL_TABLES"])
+      expect(@conn.describe("all_tables", @oracle12cr2_or_higher)).to eq(["SYS", "ALL_TABLES"])
     end
 
     if defined?(OCI8)
       context "OCI8 adapter" do
         it "should not fallback to SELECT-based logic when querying non-existent table information" do
           expect(@conn).not_to receive(:select_one)
-          @conn.describe("non_existent") rescue ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException
+          @conn.describe("non_existent", @oracle12cr2_or_higher) rescue ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException
         end
       end
     end
