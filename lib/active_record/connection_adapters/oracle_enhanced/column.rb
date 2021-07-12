@@ -13,6 +13,10 @@ module ActiveRecord
         def virtual?
           virtual
         end
+
+        def array?
+          false
+        end
       end
     end
   end
