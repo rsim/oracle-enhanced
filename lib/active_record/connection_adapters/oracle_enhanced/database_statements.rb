@@ -13,11 +13,6 @@ module ActiveRecord
           log(sql, name, async: async) { @connection.exec(sql) }
         end
 
-        def clear_cache! # :nodoc:
-          reload_type_map
-          super
-        end
-
         def exec_query(sql, name = "SQL", binds = [], prepare: false, async: false)
           type_casted_binds = type_casted_binds(binds)
 

@@ -690,98 +690,106 @@ module ActiveRecord
         end
       end
 
-      private
-        def initialize_type_map(m = type_map)
-          super
-          # oracle
-          register_class_with_precision m, %r(WITH TIME ZONE)i,       Type::OracleEnhanced::TimestampTz
-          register_class_with_precision m, %r(WITH LOCAL TIME ZONE)i, Type::OracleEnhanced::TimestampLtz
-          register_class_with_limit m, %r(raw)i,            Type::OracleEnhanced::Raw
-          register_class_with_limit m, %r{^(char)}i,        Type::OracleEnhanced::CharacterString
-          register_class_with_limit m, %r{^(nchar)}i,       Type::OracleEnhanced::String
-          register_class_with_limit m, %r(varchar)i,        Type::OracleEnhanced::String
-          register_class_with_limit m, %r(clob)i,           Type::OracleEnhanced::Text
-          register_class_with_limit m, %r(nclob)i,           Type::OracleEnhanced::NationalCharacterText
+      class << self
+        private
+          def initialize_type_map(m)
+            super
+            # oracle
+            register_class_with_precision m, %r(WITH TIME ZONE)i,       Type::OracleEnhanced::TimestampTz
+            register_class_with_precision m, %r(WITH LOCAL TIME ZONE)i, Type::OracleEnhanced::TimestampLtz
+            register_class_with_limit m, %r(raw)i,            Type::OracleEnhanced::Raw
+            register_class_with_limit m, %r{^(char)}i,        Type::OracleEnhanced::CharacterString
+            register_class_with_limit m, %r{^(nchar)}i,       Type::OracleEnhanced::String
+            register_class_with_limit m, %r(varchar)i,        Type::OracleEnhanced::String
+            register_class_with_limit m, %r(clob)i,           Type::OracleEnhanced::Text
+            register_class_with_limit m, %r(nclob)i,           Type::OracleEnhanced::NationalCharacterText
 
-          m.register_type "NCHAR", Type::OracleEnhanced::NationalCharacterString.new
-          m.alias_type %r(NVARCHAR2)i,    "NCHAR"
+            m.register_type "NCHAR", Type::OracleEnhanced::NationalCharacterString.new
+            m.alias_type %r(NVARCHAR2)i,    "NCHAR"
 
-          m.register_type(%r(NUMBER)i) do |sql_type|
-            scale = extract_scale(sql_type)
-            precision = extract_precision(sql_type)
-            limit = extract_limit(sql_type)
-            if scale == 0
-              Type::OracleEnhanced::Integer.new(precision: precision, limit: limit)
-            else
-              Type::Decimal.new(precision: precision, scale: scale)
+            m.register_type(%r(NUMBER)i) do |sql_type|
+              scale = extract_scale(sql_type)
+              precision = extract_precision(sql_type)
+              limit = extract_limit(sql_type)
+              if scale == 0
+                Type::OracleEnhanced::Integer.new(precision: precision, limit: limit)
+              else
+                Type::Decimal.new(precision: precision, scale: scale)
+              end
+            end
+
+            if OracleEnhancedAdapter.emulate_booleans
+              m.register_type %r(^NUMBER\(1\))i, Type::Boolean.new
             end
           end
+      end
 
-          if OracleEnhancedAdapter.emulate_booleans
-            m.register_type %r(^NUMBER\(1\))i, Type::Boolean.new
-          end
+      TYPE_MAP = Type::TypeMap.new.tap { |m| initialize_type_map(m) }
+
+      def type_map
+        TYPE_MAP
+      end
+
+      def extract_value_from_default(default)
+        case default
+        when String
+          default.gsub("''", "'")
+        else
+          default
         end
+      end
 
-        def extract_value_from_default(default)
-          case default
-          when String
-            default.gsub("''", "'")
-          else
-            default
-          end
+      def extract_limit(sql_type) # :nodoc:
+        case sql_type
+        when /^bigint/i
+          19
+        when /\((.*)\)/
+          $1.to_i
         end
+      end
 
-        def extract_limit(sql_type) # :nodoc:
-          case sql_type
-          when /^bigint/i
-            19
-          when /\((.*)\)/
-            $1.to_i
-          end
+      def translate_exception(exception, message:, sql:, binds:) # :nodoc:
+        case @connection.error_code(exception)
+        when 1
+          RecordNotUnique.new(message, sql: sql, binds: binds)
+        when 60
+          Deadlocked.new(message)
+        when 900, 904, 942, 955, 1418, 2289, 2449, 17008
+          ActiveRecord::StatementInvalid.new(message, sql: sql, binds: binds)
+        when 1400
+          ActiveRecord::NotNullViolation.new(message, sql: sql, binds: binds)
+        when 2291, 2292
+          InvalidForeignKey.new(message, sql: sql, binds: binds)
+        when 12899
+          ValueTooLong.new(message, sql: sql, binds: binds)
+        else
+          super
         end
+      end
 
-        def translate_exception(exception, message:, sql:, binds:) # :nodoc:
-          case @connection.error_code(exception)
-          when 1
-            RecordNotUnique.new(message, sql: sql, binds: binds)
-          when 60
-            Deadlocked.new(message)
-          when 900, 904, 942, 955, 1418, 2289, 2449, 17008
-            ActiveRecord::StatementInvalid.new(message, sql: sql, binds: binds)
-          when 1400
-            ActiveRecord::NotNullViolation.new(message, sql: sql, binds: binds)
-          when 2291, 2292
-            InvalidForeignKey.new(message, sql: sql, binds: binds)
-          when 12899
-            ValueTooLong.new(message, sql: sql, binds: binds)
-          else
-            super
-          end
-        end
+      # create bind object for type String
+      def bind_string(name, value)
+        ActiveRecord::Relation::QueryAttribute.new(name, value, Type::OracleEnhanced::String.new)
+      end
 
-        # create bind object for type String
-        def bind_string(name, value)
-          ActiveRecord::Relation::QueryAttribute.new(name, value, Type::OracleEnhanced::String.new)
-        end
+      # call select_values using binds even if surrounding SQL preparation/execution is done + # with conn.unprepared_statement (like AR.to_sql)
+      def select_values_forcing_binds(arel, name, binds)
+        # remove possible force of unprepared SQL during dictionary access
+        unprepared_statement_forced = prepared_statements_disabled_cache.include?(object_id)
+        prepared_statements_disabled_cache.delete(object_id) if unprepared_statement_forced
 
-        # call select_values using binds even if surrounding SQL preparation/execution is done + # with conn.unprepared_statement (like AR.to_sql)
-        def select_values_forcing_binds(arel, name, binds)
-          # remove possible force of unprepared SQL during dictionary access
-          unprepared_statement_forced = prepared_statements_disabled_cache.include?(object_id)
-          prepared_statements_disabled_cache.delete(object_id) if unprepared_statement_forced
+        select_values(arel, name, binds)
+      ensure
+        # Restore unprepared_statement setting for surrounding SQL
+        prepared_statements_disabled_cache.add(object_id) if unprepared_statement_forced
+      end
 
-          select_values(arel, name, binds)
-        ensure
-          # Restore unprepared_statement setting for surrounding SQL
-          prepared_statements_disabled_cache.add(object_id) if unprepared_statement_forced
-        end
+      def select_value_forcing_binds(arel, name, binds)
+        single_value_from_rows(select_values_forcing_binds(arel, name, binds))
+      end
 
-        def select_value_forcing_binds(arel, name, binds)
-          single_value_from_rows(select_values_forcing_binds(arel, name, binds))
-        end
-
-        ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracle_enhanced)
-        ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
+      ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracle_enhanced)
+      ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
     end
   end
 end
