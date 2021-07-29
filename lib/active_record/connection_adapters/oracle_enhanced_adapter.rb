@@ -491,7 +491,7 @@ module ActiveRecord
         table_name = table_name.to_s
         do_not_prefetch = @do_not_prefetch_primary_key[table_name]
         if do_not_prefetch.nil?
-          owner, desc_table_name = @connection.describe(table_name)
+          owner, desc_table_name = @connection.describe(table_name, supports_longer_identifier?)
           @do_not_prefetch_primary_key[table_name] = do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
         end
         !do_not_prefetch
@@ -560,7 +560,7 @@ module ActiveRecord
       end
 
       def column_definitions(table_name)
-        (owner, desc_table_name) = @connection.describe(table_name)
+        (owner, desc_table_name) = @connection.describe(table_name, supports_longer_identifier?)
 
         select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cols.column_name AS name, cols.data_type AS sql_type,
@@ -592,7 +592,7 @@ module ActiveRecord
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) #:nodoc:
-        (owner, desc_table_name) = @connection.describe(table_name)
+        (owner, desc_table_name) = @connection.describe(table_name, supports_longer_identifier?)
 
         seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
           select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ us.sequence_name
@@ -634,7 +634,7 @@ module ActiveRecord
       end
 
       def primary_keys(table_name) # :nodoc:
-        (_owner, desc_table_name) = @connection.describe(table_name)
+        (_owner, desc_table_name) = @connection.describe(table_name, supports_longer_identifier?)
 
         pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name

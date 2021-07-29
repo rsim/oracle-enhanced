@@ -20,14 +20,14 @@ module ActiveRecord
 
         private
           # Used always by JDBC connection as well by OCI connection when describing tables over database link
-          def describe(name)
+          def describe(name, supports_longer_identifier)
             name = name.to_s
             if name.include?("@")
               raise ArgumentError "db link is not supported"
             else
               default_owner = @owner
             end
-            real_name = OracleEnhanced::Quoting.valid_table_name?(name) ? name.upcase : name
+            real_name = OracleEnhanced::Quoting.valid_table_name?(name, supports_longer_identifier) ? name.upcase : name
             if real_name.include?(".")
               table_owner, table_name = real_name.split(".")
             else
@@ -57,7 +57,7 @@ module ActiveRecord
             if result = _select_one(sql, "CONNECTION", [table_owner, table_name, table_owner, table_name, table_owner, table_name, real_name])
               case result["name_type"]
               when "SYNONYM"
-                describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}")
+                describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}", supports_longer_identifier)
               else
                 [result["owner"], result["table_name"]]
               end
