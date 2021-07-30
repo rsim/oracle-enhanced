@@ -425,7 +425,7 @@ module ActiveRecord
 
       def native_database_types #:nodoc:
         types = emulate_booleans_from_strings ? NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS : NATIVE_DATABASE_TYPES
-        types.merge!(NATIVE_DATABASE_TYPES_IDENTITY_PK) if use_identity_for_pk
+        types = types.merge(NATIVE_DATABASE_TYPES_IDENTITY_PK) if use_identity_for_pk
 
         types
       end
