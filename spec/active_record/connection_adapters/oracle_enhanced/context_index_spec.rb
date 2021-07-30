@@ -185,8 +185,6 @@ describe "OracleEnhancedAdapter context index" do
 
   describe "on multiple tables" do
     before(:all) do
-      @old_destroy_all_in_batches = ActiveRecord::Base.destroy_all_in_batches
-      ActiveRecord::Base.destroy_all_in_batches = true
       @conn = ActiveRecord::Base.connection
       create_tables
       class ::Post < ActiveRecord::Base
@@ -203,7 +201,6 @@ describe "OracleEnhancedAdapter context index" do
       Object.send(:remove_const, "Comment")
       Object.send(:remove_const, "Post")
       ActiveRecord::Base.clear_cache!
-      ActiveRecord::Base.destroy_all_in_batches = @old_destroy_all_in_batches
     end
 
     after(:each) do
