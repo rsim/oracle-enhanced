@@ -540,12 +540,12 @@ module ActiveRecord
 
         # Maps logical Rails types to Oracle-specific data types.
         def type_to_sql(type, limit: nil, precision: nil, scale: nil, identity: nil, **) #:nodoc:
-          OracleEnhancedAdapter.using_identity(identity) do
+          # OracleEnhancedAdapter.using_identity(identity) do
             # Ignore options for :text, :ntext and :binary columns
             return super(type) if ["text", "ntext", "binary"].include?(type.to_s)
 
             super
-          end
+          # end
         end
 
         def tablespace(table_name)
