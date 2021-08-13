@@ -34,4 +34,4 @@ jobs:
     - name: Build and run RuboCop
       run: |
         bundle install --jobs 4 --retry 3
-        bundle exec rubocop --parallel
+        bundle exec rubocop
