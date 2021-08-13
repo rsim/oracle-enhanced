@@ -4,7 +4,7 @@ module ActiveRecord
   module ConnectionAdapters
     # interface independent methods
     module OracleEnhanced
-      class Connection #:nodoc:
+      class Connection # :nodoc:
         def self.create(config)
           case ORACLE_ENHANCED_CONNECTION
           when :oci
@@ -118,7 +118,7 @@ module ActiveRecord
       def database_version
         raise NoMethodError, "Not implemented for this raw driver"
       end
-      class ConnectionException < StandardError #:nodoc:
+      class ConnectionException < StandardError # :nodoc:
       end
     end
   end

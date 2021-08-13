@@ -164,7 +164,7 @@ module ActiveRecord
 
         alias :exec_delete :exec_update
 
-        def begin_db_transaction #:nodoc:
+        def begin_db_transaction # :nodoc:
           @connection.autocommit = false
         end
 
@@ -183,27 +183,27 @@ module ActiveRecord
           execute "SET TRANSACTION ISOLATION LEVEL  #{transaction_isolation_levels.fetch(isolation)}"
         end
 
-        def commit_db_transaction #:nodoc:
+        def commit_db_transaction # :nodoc:
           @connection.commit
         ensure
           @connection.autocommit = true
         end
 
-        def exec_rollback_db_transaction #:nodoc:
+        def exec_rollback_db_transaction # :nodoc:
           @connection.rollback
         ensure
           @connection.autocommit = true
         end
 
-        def create_savepoint(name = current_savepoint_name) #:nodoc:
+        def create_savepoint(name = current_savepoint_name) # :nodoc:
           execute("SAVEPOINT #{name}", "TRANSACTION")
         end
 
-        def exec_rollback_to_savepoint(name = current_savepoint_name) #:nodoc:
+        def exec_rollback_to_savepoint(name = current_savepoint_name) # :nodoc:
           execute("ROLLBACK TO #{name}", "TRANSACTION")
         end
 
-        def release_savepoint(name = current_savepoint_name) #:nodoc:
+        def release_savepoint(name = current_savepoint_name) # :nodoc:
           # there is no RELEASE SAVEPOINT statement in Oracle
         end
 
@@ -214,7 +214,7 @@ module ActiveRecord
         end
 
         # Inserts the given fixture into the table. Overridden to properly handle lobs.
-        def insert_fixture(fixture, table_name) #:nodoc:
+        def insert_fixture(fixture, table_name) # :nodoc:
           super
 
           if ActiveRecord::Base.pluralize_table_names
@@ -249,7 +249,7 @@ module ActiveRecord
         end
 
         # Writes LOB values from attributes for specified columns
-        def write_lobs(table_name, klass, attributes, columns) #:nodoc:
+        def write_lobs(table_name, klass, attributes, columns) # :nodoc:
           id = quote(attributes[klass.primary_key])
           columns.each do |col|
             value = attributes[col.name]

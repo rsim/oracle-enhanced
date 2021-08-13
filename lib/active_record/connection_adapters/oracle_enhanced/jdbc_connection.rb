@@ -52,7 +52,7 @@ module ActiveRecord
   module ConnectionAdapters
     # JDBC database interface for JRuby
     module OracleEnhanced
-      class JDBCConnection < OracleEnhanced::Connection #:nodoc:
+      class JDBCConnection < OracleEnhanced::Connection # :nodoc:
         attr_accessor :active
         alias :active? :active
 

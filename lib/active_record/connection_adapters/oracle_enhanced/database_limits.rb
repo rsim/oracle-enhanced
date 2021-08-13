@@ -9,7 +9,7 @@ module ActiveRecord
         # maximum length of Oracle identifiers
         IDENTIFIER_MAX_LENGTH = 30
 
-        def table_alias_length #:nodoc:
+        def table_alias_length # :nodoc:
           IDENTIFIER_MAX_LENGTH
         end
 
