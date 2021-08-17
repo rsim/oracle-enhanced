@@ -35,11 +35,17 @@ jobs:
 
     services:
       oracle:
-        image: quillbuilduser/oracle-18-xe
+        image: gvenzl/oracle-xe:latest
         ports:
           - 1521:1521
         env:
           TZ: Europe/Riga
+          ORACLE_PASSWORD: Oracle18
+        options: >-
+          --health-cmd healthcheck.sh
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
     - uses: actions/checkout@v2
     - name: Set up Ruby
