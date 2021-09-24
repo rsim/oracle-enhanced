@@ -23,8 +23,8 @@ jobs:
           '2.7'
         ]
     env:
-      ORACLE_HOME: /usr/lib/oracle/18.5/client64
-      LD_LIBRARY_PATH: /usr/lib/oracle/18.5/client64/lib
+      ORACLE_HOME: /usr/lib/oracle/21/client64
+      LD_LIBRARY_PATH: /usr/lib/oracle/21/client64/lib
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       TNS_ADMIN: ./ci/network/admin
       DATABASE_NAME: XEPDB1
@@ -35,7 +35,7 @@ jobs:
 
     services:
       oracle:
-        image: gvenzl/oracle-xe:latest
+        image: gvenzl/oracle-xe:21-full
         ports:
           - 1521:1521
         env:
@@ -57,14 +57,14 @@ jobs:
         sudo apt-get install alien
     - name: Download Oracle client
       run: |
-        wget -q https://download.oracle.com/otn_software/linux/instantclient/185000/oracle-instantclient18.5-basic-18.5.0.0.0-3.x86_64.rpm
-        wget -q https://download.oracle.com/otn_software/linux/instantclient/185000/oracle-instantclient18.5-sqlplus-18.5.0.0.0-3.x86_64.rpm
-        wget -q https://download.oracle.com/otn_software/linux/instantclient/185000/oracle-instantclient18.5-devel-18.5.0.0.0-3.x86_64.rpm
+        wget -q https://download.oracle.com/otn_software/linux/instantclient/213000/oracle-instantclient-basic-21.3.0.0.0-1.x86_64.rpm
+        wget -q https://download.oracle.com/otn_software/linux/instantclient/213000/oracle-instantclient-sqlplus-21.3.0.0.0-1.x86_64.rpm
+        wget -q https://download.oracle.com/otn_software/linux/instantclient/213000/oracle-instantclient-devel-21.3.0.0.0-1.x86_64.rpm
     - name: Install Oracle client
       run: |
-        sudo alien -i oracle-instantclient18.5-basic-18.5.0.0.0-3.x86_64.rpm
-        sudo alien -i oracle-instantclient18.5-sqlplus-18.5.0.0.0-3.x86_64.rpm
-        sudo alien -i oracle-instantclient18.5-devel-18.5.0.0.0-3.x86_64.rpm
+        sudo alien -i oracle-instantclient-basic-21.3.0.0.0-1.x86_64.rpm
+        sudo alien -i oracle-instantclient-sqlplus-21.3.0.0.0-1.x86_64.rpm
+        sudo alien -i oracle-instantclient-devel-21.3.0.0.0-1.x86_64.rpm
     - name: Install JDBC Driver
       run: |
         wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar
