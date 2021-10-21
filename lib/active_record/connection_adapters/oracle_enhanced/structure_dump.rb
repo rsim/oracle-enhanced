@@ -51,6 +51,7 @@ module ActiveRecord # :nodoc:
             structure << ddl
             structure << structure_dump_indexes(table_name)
             structure << structure_dump_unique_keys(table_name)
+            structure << structure_dump_check_constraints(table_name)
             structure << structure_dump_table_comments(table_name)
             structure << structure_dump_column_comments(table_name)
           end
@@ -159,6 +160,24 @@ module ActiveRecord # :nodoc:
             end
           end.flatten.compact
           join_with_statement_token(fks)
+        end
+
+        def structure_dump_check_constraints(table)
+          keys = {}
+          check_constraints = select_all(<<~SQL.squish, "SCHEMA")
+              SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ c.CONSTRAINT_NAME, c.SEARCH_CONDITION
+                FROM all_constraints c
+               WHERE c.table_name = '#{table.upcase}'
+                 AND c.constraint_type = 'C'
+                 AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
+                 AND c.generated = 'USER NAME'
+          SQL
+          check_constraints.each do |check_constraint|
+            keys[check_constraint["constraint_name"]] = check_constraint["search_condition"]
+          end
+          keys.map do |k, v|
+            "ALTER TABLE #{table.upcase} ADD CONSTRAINT #{k} CHECK (#{v})"
+          end
         end
 
         def structure_dump_table_comments(table_name)
