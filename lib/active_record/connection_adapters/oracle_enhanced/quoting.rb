@@ -8,7 +8,7 @@ module ActiveRecord
         #
         # see: abstract/quoting.rb
 
-        def quote_column_name(name) #:nodoc:
+        def quote_column_name(name) # :nodoc:
           name = name.to_s
           self.class.quoted_column_names[name] ||= if /\A[a-z][a-z_0-9$#]*\Z/.match?(name)
             "\"#{name.upcase}\""
@@ -20,7 +20,7 @@ module ActiveRecord
 
         # This method is used in add_index to identify either column name (which is quoted)
         # or function based index (in which case function expression is not quoted)
-        def quote_column_name_or_expression(name) #:nodoc:
+        def quote_column_name_or_expression(name) # :nodoc:
           name = name.to_s
           case name
           # if only valid lowercase column characters in name
@@ -55,7 +55,7 @@ module ActiveRecord
         # contain letters, digits, _, $ or #
         # can be prefixed with schema name
         # CamelCase table names should be quoted
-        def self.valid_table_name?(name) #:nodoc:
+        def self.valid_table_name?(name) # :nodoc:
           object_name = name.to_s
           !!(object_name =~ VALID_TABLE_NAME && !mixed_case?(object_name))
         end
@@ -65,16 +65,16 @@ module ActiveRecord
           !!(object_name =~ /[A-Z]/ && object_name =~ /[a-z]/)
         end
 
-        def quote_table_name(name) #:nodoc:
+        def quote_table_name(name) # :nodoc:
           name, _link = name.to_s.split("@")
           self.class.quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
         end
 
-        def quote_string(s) #:nodoc:
+        def quote_string(s) # :nodoc:
           s.gsub(/'/, "''")
         end
 
-        def _quote(value) #:nodoc:
+        def _quote(value) # :nodoc:
           case value
           when Type::OracleEnhanced::CharacterString::Data then
             "'#{quote_string(value.to_s)}'"
@@ -91,22 +91,22 @@ module ActiveRecord
           end
         end
 
-        def quoted_true #:nodoc:
+        def quoted_true # :nodoc:
           return "'Y'" if emulate_booleans_from_strings
           "1"
         end
 
-        def unquoted_true #:nodoc:
+        def unquoted_true # :nodoc:
           return "Y" if emulate_booleans_from_strings
           "1"
         end
 
-        def quoted_false #:nodoc:
+        def quoted_false # :nodoc:
           return "'N'" if emulate_booleans_from_strings
           "0"
         end
 
-        def unquoted_false #:nodoc:
+        def unquoted_false # :nodoc:
           return "N" if emulate_booleans_from_strings
           "0"
         end
