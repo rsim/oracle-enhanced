@@ -74,7 +74,7 @@ module ActiveRecord
           s.gsub(/'/, "''")
         end
 
-        def _quote(value) # :nodoc:
+        def quote(value) # :nodoc:
           case value
           when Type::OracleEnhanced::CharacterString::Data then
             "'#{quote_string(value.to_s)}'"
