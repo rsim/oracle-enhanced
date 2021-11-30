@@ -4,7 +4,7 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
       module OCIQuoting
-        def _type_cast(value)
+        def type_cast(value)
           case value
           when ActiveModel::Type::Binary::Data
             lob_value = value == "" ? " " : value

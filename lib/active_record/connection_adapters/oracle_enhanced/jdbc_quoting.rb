@@ -4,7 +4,7 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
       module JDBCQuoting
-        def _type_cast(value)
+        def type_cast(value)
           case value
           when ActiveModel::Type::Binary::Data
             blob = Java::OracleSql::BLOB.createTemporary(@connection.raw_connection, false, Java::OracleSql::BLOB::DURATION_SESSION)
