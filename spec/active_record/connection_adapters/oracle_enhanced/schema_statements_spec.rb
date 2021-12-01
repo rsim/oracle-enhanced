@@ -333,7 +333,7 @@ describe "OracleEnhancedAdapter schema definition" do
           ("index_test_employees_on_first_name_and_middle_name_and_last_name"))
       else
         expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
-          "i" + Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
+          "i" + OpenSSL::Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
         )
       end
     end
@@ -455,7 +455,7 @@ end
     end
 
     it "should add foreign key" do
-      fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_test_post_id_fk").first(10)}"
+      fk_name = "fk_rails_#{OpenSSL::Digest::SHA256.hexdigest("test_comments_test_post_id_fk").first(10)}"
 
       schema_define do
         add_foreign_key :test_comments, :test_posts
@@ -475,7 +475,7 @@ end
     end
 
     it "should add foreign key with column" do
-      fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_post_id_fk").first(10)}"
+      fk_name = "fk_rails_#{OpenSSL::Digest::SHA256.hexdigest("test_comments_post_id_fk").first(10)}"
 
       schema_define do
         add_foreign_key :test_comments, :test_posts, column: "post_id"
