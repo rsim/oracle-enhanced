@@ -1,3 +1,11 @@
+## 6.1.5 / 2021-12-07
+
+* Changes and bug fixes
+  * get root cause if something went wrong with jdbc.OracleDriver [#2180 #2181]
+
+* CI
+  * Bump CRuby versions at Travis CI for release61 branch [#2192]
+
 ## 6.1.4 / 2021-04-01
 
 * Changes and bug fixes
