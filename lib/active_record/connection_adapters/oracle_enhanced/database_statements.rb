@@ -10,15 +10,14 @@ module ActiveRecord
 
         # Executes a SQL statement
         def execute(sql, name = nil, async: false)
+          sql = transform_query(sql)
+
           log(sql, name, async: async) { @connection.exec(sql) }
         end
 
-        def clear_cache! # :nodoc:
-          reload_type_map
-          super
-        end
-
         def exec_query(sql, name = "SQL", binds = [], prepare: false, async: false)
+          sql = transform_query(sql)
+
           type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds, async: async) do

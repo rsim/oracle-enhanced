@@ -74,7 +74,7 @@ module ActiveRecord
           s.gsub(/'/, "''")
         end
 
-        def _quote(value) # :nodoc:
+        def quote(value) # :nodoc:
           case value
           when Type::OracleEnhanced::CharacterString::Data then
             "'#{quote_string(value.to_s)}'"
@@ -111,7 +111,7 @@ module ActiveRecord
           "0"
         end
 
-        def _type_cast(value)
+        def type_cast(value)
           case value
           when Type::OracleEnhanced::TimestampTz::Data, Type::OracleEnhanced::TimestampLtz::Data
             if value.acts_like?(:time)

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "digest/sha1"
+require "openssl"
 
 module ActiveRecord
   module ConnectionAdapters
@@ -355,7 +355,7 @@ module ActiveRecord
           end
           # generate unique name using hash function
           if shortened_name.length > identifier_max_length
-            shortened_name = "i" + Digest::SHA1.hexdigest(default_name)[0, identifier_max_length - 1]
+            shortened_name = "i" + OpenSSL::Digest::SHA1.hexdigest(default_name)[0, identifier_max_length - 1]
           end
           @logger.warn "#{adapter_name} shortened default index name #{default_name} to #{shortened_name}" if @logger
           shortened_name
