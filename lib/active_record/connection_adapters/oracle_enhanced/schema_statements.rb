@@ -220,9 +220,10 @@ module ActiveRecord
             unless create_sequence
               class << td
                 attr_accessor :create_sequence
-                def primary_key(*args)
+                def primary_key(name, type = :primary_key, **options)
                   self.create_sequence = true
-                  super(*args)
+
+                  super(name, type, **options)
                 end
               end
             end
