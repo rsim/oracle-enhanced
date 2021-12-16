@@ -1,3 +1,7 @@
+## 7.0.0 / 2021-12-16
+* Changes and bug fixes
+  * Support Rails 7.0.0
+
 ## 7.0.0.rc1 / 2021-12-08
 
 * Changes and bug fixes
