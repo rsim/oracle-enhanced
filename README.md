@@ -6,10 +6,21 @@ Oracle enhanced adapter for ActiveRecord
 DESCRIPTION
 -----------
 
-Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 6.1 and it is working with Oracle database versions 10g and higher
+Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 7.0 and it is working with Oracle database versions 10g and higher
 
 INSTALLATION
 ------------
+### Rails 7.0
+
+Oracle enhanced adapter version 7.0 supports Rails 7.0
+When using Ruby on Rails version 7.0 then in Gemfile include
+
+```ruby
+# Use oracle as the database for Active Record
+gem 'activerecord-oracle_enhanced-adapter', '~> 7.0.0'
+gem 'ruby-oci8' # only for CRuby users
+```
+
 ### Rails 6.1
 
 Oracle enhanced adapter version 6.1 supports Rails 6.1.
