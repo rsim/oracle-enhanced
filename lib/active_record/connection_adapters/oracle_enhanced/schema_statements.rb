@@ -198,7 +198,7 @@ module ActiveRecord
 
         def create_table(table_name, **options)
           create_sequence = options[:id] != false
-          td = create_table_definition table_name, options
+          td = create_table_definition table_name, **options
 
           if options[:id] != false && !options[:as]
             pk = options.fetch(:primary_key) do
@@ -619,8 +619,8 @@ module ActiveRecord
             OracleEnhanced::SchemaCreation.new self
           end
 
-          def create_table_definition(*args)
-            OracleEnhanced::TableDefinition.new(self, *args)
+          def create_table_definition(table_name, **args)
+            OracleEnhanced::TableDefinition.new(self, table_name, **args)
           end
 
           def new_column_from_field(table_name, field)
