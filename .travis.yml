@@ -28,6 +28,7 @@ install:
   - .travis/oracle/install.sh
   - .travis/setup_accounts.sh
   - ruby -v
+  - gem update --system
   - bundle install
 
 script:
@@ -39,8 +40,8 @@ script:
 
 language: ruby
 rvm:
-  - 3.0.2
-  - 2.7.4
+  - 3.0.3
+  - 2.7.5
   - ruby-head
   # Rails 7.0 requires Ruby 2.7 or higeher.
   # CI pending until JRuby 9.4 that supports Ruby 2.7 will be released.
