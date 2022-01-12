@@ -18,7 +18,6 @@ When using Ruby on Rails version 7.0 then in Gemfile include
 ```ruby
 # Use oracle as the database for Active Record
 gem 'activerecord-oracle_enhanced-adapter', '~> 7.0.0'
-gem 'ruby-oci8' # only for CRuby users
 ```
 
 ### Rails 6.1
