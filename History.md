@@ -1,3 +1,13 @@
+## 7.0.1 / 2022-01-13
+
+* Changes and bug fixes
+  * Add ruby-oci8 as dependency only for CRuby [#2238 #2240 #2243]
+  * Add if_exists option to remove_index [#2219 #2233]
+  * all attributes serialized before writing [#2203 #2234]
+  * Require 'activerecord', not 'rails' not to attempt to install digest [#2241]
+* CI
+  * Bump Ruby versions at Travis CI [#2242]
+  * CI against Ruby 3.1 at GitHub Actions [#2235 #2244]
 ## 7.0.0 / 2021-12-16
 * Changes and bug fixes
   * Support Rails 7.0.0
