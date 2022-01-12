@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
+require_relative "oracle_common"
+
 module Arel # :nodoc: all
   module Visitors
     class Oracle12 < Arel::Visitors::ToSql
+      include OracleCommon
+
       private
         def visit_Arel_Nodes_SelectStatement(o, collector)
           # Oracle does not allow LIMIT clause with select for update

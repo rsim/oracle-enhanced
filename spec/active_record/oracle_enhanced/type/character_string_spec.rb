@@ -24,6 +24,7 @@ describe "OracleEnhancedAdapter processing CHAR column" do
   end
 
   after(:each) do
+    TestItem.delete_all
     Object.send(:remove_const, "TestItem")
     ActiveRecord::Base.clear_cache!
   end
@@ -39,5 +40,28 @@ describe "OracleEnhancedAdapter processing CHAR column" do
 
     item_reloaded = TestItem.first
     expect(item_reloaded.padded).to eq(str)
+  end
+
+  it "should support case sensitive matching" do
+    TestItem.create!(
+      padded: "First",
+    )
+    TestItem.create!(
+      padded: "first",
+    )
+
+    expect(TestItem.where(TestItem.arel_table[:padded].matches("first%", "\\", true))).to have_attributes(count: 1)
+  end
+
+  it "should support case insensitive matching" do
+    TestItem.create!(
+      padded: "First",
+    )
+    TestItem.create!(
+      padded: "first",
+    )
+
+    expect(TestItem.where(TestItem.arel_table[:padded].matches("first%", "\\", false))).to have_attributes(count: 2)
+    expect(TestItem.where(TestItem.arel_table[:padded].matches("first%"))).to have_attributes(count: 2)
   end
 end
