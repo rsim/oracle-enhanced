@@ -648,7 +648,7 @@ describe "OracleEnhancedAdapter" do
       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
-    it "should not raise missing IN/OUT parameter like issue 1687 " do
+    it "should not raise missing IN/OUT parameter like issue 1678 " do
       # "to_sql" enforces unprepared_statement including dictionary access SQLs
       expect { User.joins(:group).to_sql }.not_to raise_exception
     end

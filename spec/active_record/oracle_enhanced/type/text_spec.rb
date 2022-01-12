@@ -226,4 +226,19 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @employee.reload
     expect(@employee.comments).to eq(length: { is: 2 })
   end
+
+  it "should allow equality on select" do
+    search_data = "text search CLOB"
+    Test2Employee.create!(
+      first_name: "First",
+      last_name: "Last",
+      comments: search_data,
+    )
+    Test2Employee.create!(
+      first_name: "First1",
+      last_name: "Last1",
+      comments: "other data",
+    )
+    expect(Test2Employee.where(comments: search_data)).to have_attributes(count: 1)
+  end
 end
