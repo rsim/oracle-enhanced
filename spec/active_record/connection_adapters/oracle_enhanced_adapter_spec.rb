@@ -632,7 +632,14 @@ describe "OracleEnhancedAdapter" do
        expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
      end
 
-    it "should return content from columns witt bind usage" do
+    it "should not have primary key trigger with bind usage" do
+      expect(@conn.has_primary_key_trigger?("TEST_POSTS")).to eq false
+      expect(@logger.logged(:debug).last).to match(/:owner/)
+      expect(@logger.logged(:debug).last).to match(/:table_name/)
+      expect(@logger.logged(:debug).last).to match(/\[\["owner", "#{DATABASE_USER.upcase}"\], \["trigger_name", "TEST_POSTS_PKT"\], \["owner", "#{DATABASE_USER.upcase}"\], \["table_name", "TEST_POSTS"\]\]/)
+    end
+
+    it "should return content from columns with bind usage" do
       expect(@conn.columns("TEST_POSTS").length).to be > 0
       expect(@logger.logged(:debug).last).to match(/:table_name/)
       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
