@@ -661,7 +661,7 @@ module ActiveRecord
           }.reject(&:blank?).map.with_index { |column, i|
             "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns} ORDER BY #{column}) AS alias_#{i}__"
           }
-        [super, *order_columns].join(", ")
+        (order_columns << super).join(", ")
       end
 
       def temporary_table?(table_name) #:nodoc:
