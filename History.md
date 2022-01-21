@@ -1,3 +1,8 @@
+## 7.0.2 / 2022-01-21
+
+* Changes and bug fixes
+  * Fix `columns_for_distinct` when using Rails 6.1 [#2249 #2251 rails/rails#31966]
+
 ## 7.0.1 / 2022-01-13
 
 * Changes and bug fixes
