@@ -13,6 +13,13 @@ module ActiveRecord
         end
 
         def create
+          if ENV["ORACLE_SYSTEM_USER"]
+            system_user = ENV["ORACLE_SYSTEM_USER"]
+          else
+            system_user = "SYSTEM"
+            $stdout.puts "Using system user '#{system_user}' (set ORACLE_SYSTEM_USER to override)"
+          end
+
           system_password = ENV.fetch("ORACLE_SYSTEM_PASSWORD") {
             print "Please provide the SYSTEM password for your Oracle installation (set ORACLE_SYSTEM_PASSWORD to avoid this prompt)\n>"
             $stdin.gets.strip
