@@ -119,4 +119,19 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data)
   end
+
+  it "should allow equality on select" do
+    TestEmployee.delete_all
+    TestEmployee.create!(
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data,
+    )
+    TestEmployee.create!(
+      first_name: "First1",
+      last_name: "Last1",
+      binary_data: @binary_data2,
+    )
+    expect(TestEmployee.where(binary_data: @binary_data)).to have_attributes(count: 1)
+  end
 end
