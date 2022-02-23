@@ -274,3 +274,6 @@ Performance/DeletePrefix:
 
 Performance/DeleteSuffix:
   Enabled: true
+
+Performance/OpenStruct:
+   Enabled: true
