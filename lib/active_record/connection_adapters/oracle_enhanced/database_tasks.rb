@@ -13,18 +13,14 @@ module ActiveRecord
         end
 
         def create
-          if ENV["ORACLE_SYSTEM_USER"]
-            system_user = ENV["ORACLE_SYSTEM_USER"]
-          else
-            system_user = "SYSTEM"
-            $stdout.puts "Using system user '#{system_user}' (set ORACLE_SYSTEM_USER to override)"
-          end
+          system_username = ENV["ORACLE_SYSTEM_USER"] || 'SYSTEM'
+          $stdout.puts "System user: '#{system_username}' (set ORACLE_SYSTEM_USER to override)" unless ENV["ORACLE_SYSTEM_USER"]
 
           system_password = ENV.fetch("ORACLE_SYSTEM_PASSWORD") {
-            print "Please provide the SYSTEM password for your Oracle installation (set ORACLE_SYSTEM_PASSWORD to avoid this prompt)\n>"
+            print "Please provide the '#{system_username}' password for your Oracle installation (set ORACLE_SYSTEM_PASSWORD to avoid this prompt)\n>"
             $stdin.gets.strip
           }
-          establish_connection(@config.merge(username: "SYSTEM", password: system_password))
+          establish_connection(@config.merge(username: system_username, password: system_password))
           begin
             connection.execute "CREATE USER #{@config[:username]} IDENTIFIED BY #{@config[:password]}"
           rescue => e
