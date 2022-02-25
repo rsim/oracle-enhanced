@@ -41,7 +41,7 @@ module ActiveRecord
           # ActiveRecord Oracle enhanced adapter puts OCI8EnhancedAutoRecover wrapper around OCI8
           # in this case we need to pass original OCI8 connection
           else
-            @raw_connection.instance_variable_get(:@connection)
+            @raw_connection.instance_variable_get(:@raw_connection)
           end
         end
 
@@ -107,7 +107,7 @@ module ActiveRecord
 
         class Cursor
           def initialize(connection, raw_cursor)
-            @connection = connection
+            @raw_connection = connection
             @raw_cursor = raw_cursor
           end
 
@@ -159,7 +159,7 @@ module ActiveRecord
               get_lob_value = options[:get_lob_value]
               col_index = 0
               row.map do |col|
-                col_value = @connection.typecast_result_value(col, get_lob_value)
+                col_value = @raw_connection.typecast_result_value(col, get_lob_value)
                 col_metadata = @raw_cursor.column_metadata.fetch(col_index)
                 if !col_metadata.nil?
                   key = col_metadata.data_type
@@ -390,15 +390,15 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
     @active = true
     @config = config
     @factory = factory
-    @connection = @factory.new_connection @config
-    super @connection
+    @raw_connection = @factory.new_connection @config
+    super @raw_connection
   end
 
   # Checks connection, returns true if active. Note that ping actively
   # checks the connection, while #active? simply returns the last
   # known state.
   def ping # :nodoc:
-    @connection.exec("select 1 from dual") { |r| nil }
+    @raw_connection.exec("select 1 from dual") { |r| nil }
     @active = true
   rescue
     @active = false
@@ -409,8 +409,8 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
   def reset! # :nodoc:
     logoff rescue nil
     begin
-      @connection = @factory.new_connection @config
-      __setobj__ @connection
+      @raw_connection = @factory.new_connection @config
+      __setobj__ @raw_connection
       @active = true
     rescue
       @active = false
@@ -442,7 +442,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
   end
 
   def exec(sql, *bindvars, &block) # :nodoc:
-    with_retry { @connection.exec(sql, *bindvars, &block) }
+    with_retry { @raw_connection.exec(sql, *bindvars, &block) }
   end
 end
 # :startdoc:

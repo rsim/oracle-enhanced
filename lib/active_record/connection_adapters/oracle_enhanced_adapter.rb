@@ -426,12 +426,12 @@ module ActiveRecord
 
       def auto_retry=(value) # :nodoc:
         @auto_retry = value
-        @connection.auto_retry = value if @connection
+        @raw_connection.auto_retry = value if @raw_connection
       end
 
       # return raw OCI8 or JDBC connection
       def raw_connection
-        @connection.raw_connection
+        @raw_connection.raw_connection
       end
 
       # Returns true if the connection is active.
@@ -440,7 +440,7 @@ module ActiveRecord
         # #active? method is also available, but that simply returns the
         # last known state, which isn't good enough if the connection has
         # gone stale since the last use.
-        @connection.ping
+        @raw_connection.ping
       rescue OracleEnhanced::ConnectionException
         false
       end
@@ -448,7 +448,7 @@ module ActiveRecord
       # Reconnects to the database.
       def reconnect! # :nodoc:
         super
-        @connection.reset!
+        @raw_connection.reset!
       rescue OracleEnhanced::ConnectionException => e
         @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
       end
@@ -461,12 +461,12 @@ module ActiveRecord
       # Disconnects from the database.
       def disconnect! # :nodoc:
         super
-        @connection.logoff rescue nil
+        @raw_connection.logoff rescue nil
       end
 
       def discard!
         super
-        @connection = nil
+        @raw_connection = nil
       end
 
       # use in set_sequence_name to avoid fetching primary key value from sequence
@@ -491,7 +491,7 @@ module ActiveRecord
         table_name = table_name.to_s
         do_not_prefetch = @do_not_prefetch_primary_key[table_name]
         if do_not_prefetch.nil?
-          owner, desc_table_name = @connection.describe(table_name)
+          owner, desc_table_name = @raw_connection.describe(table_name)
           @do_not_prefetch_primary_key[table_name] = do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
         end
         !do_not_prefetch
@@ -560,7 +560,7 @@ module ActiveRecord
       end
 
       def column_definitions(table_name)
-        (owner, desc_table_name) = @connection.describe(table_name)
+        (owner, desc_table_name) = @raw_connection.describe(table_name)
 
         select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cols.column_name AS name, cols.data_type AS sql_type,
@@ -592,7 +592,7 @@ module ActiveRecord
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
-        (owner, desc_table_name) = @connection.describe(table_name)
+        (owner, desc_table_name) = @raw_connection.describe(table_name)
 
         seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
           select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ us.sequence_name
@@ -634,7 +634,7 @@ module ActiveRecord
       end
 
       def primary_keys(table_name) # :nodoc:
-        (_owner, desc_table_name) = @connection.describe(table_name)
+        (_owner, desc_table_name) = @raw_connection.describe(table_name)
 
         pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
@@ -679,7 +679,7 @@ module ActiveRecord
       alias index_name_length max_identifier_length
 
       def get_database_version
-        @connection.database_version
+        @raw_connection.database_version
       end
 
       def check_version
@@ -749,7 +749,7 @@ module ActiveRecord
       end
 
       def translate_exception(exception, message:, sql:, binds:) # :nodoc:
-        case @connection.error_code(exception)
+        case @raw_connection.error_code(exception)
         when 1
           RecordNotUnique.new(message, sql: sql, binds: binds)
         when 60
