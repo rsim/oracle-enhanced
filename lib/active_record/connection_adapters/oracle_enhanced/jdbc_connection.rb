@@ -295,7 +295,7 @@ module ActiveRecord
 
         class Cursor
           def initialize(connection, raw_statement)
-            @connection = connection
+            @raw_connection = connection
             @raw_statement = raw_statement
           end
 
@@ -384,7 +384,7 @@ module ActiveRecord
               row_values = []
               column_types.each_with_index do |column_type, i|
                 row_values <<
-                  @connection.get_ruby_value_from_result_set(@raw_result_set, i + 1, column_type, get_lob_value)
+                  @raw_connection.get_ruby_value_from_result_set(@raw_result_set, i + 1, column_type, get_lob_value)
               end
               row_values
             else
