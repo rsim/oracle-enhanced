@@ -101,7 +101,7 @@ module ActiveRecord
               _oracle_downcase(col_name)
             end
             row = cursor.fetch
-            columns.each_with_index.map { |x, i| [x, row[i]] }.to_h if row
+            columns.each_with_index.to_h { |x, i| [x, row[i]] } if row
           ensure
             cursor.close
           end
