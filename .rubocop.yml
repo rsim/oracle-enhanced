@@ -279,4 +279,4 @@ Performance/DeleteSuffix:
   Enabled: true
 
 Performance/OpenStruct:
-   Enabled: true
+  Enabled: true

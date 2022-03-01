@@ -14,8 +14,8 @@ env:
     - DATABASE_VERSION=11.2.0.1
     - ORACLE_SID=XE
     - DATABASE_NAME=XE
-    - ORA_SDTZ='Europe/Riga' #Needed as a client parameter
-    - TZ='Europe/Riga'       #Needed as a DB Server parameter
+    - ORA_SDTZ='Europe/Riga' # Needed as a client parameter
+    - TZ='Europe/Riga'       # Needed as a DB Server parameter
     - "JRUBY_OPTS='--debug --dev -J-Xmx1024M'"
 
 before_install:
@@ -56,4 +56,4 @@ rvm:
 #   - rvm: jruby-head
 
 notifications:
-    email: false
+  email: false
