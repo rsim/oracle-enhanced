@@ -550,6 +550,7 @@ end
       class ::TestPost < ActiveRecord::Base
       end
     end
+
     it "should use default tablespace for clobs" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:nclob] = nil
@@ -1157,6 +1158,7 @@ end
         @conn.drop_table :tablespace_tests, if_exists: true
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:table)
       end
+
       it "should use correct tablespace" do
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:table] = DATABASE_NON_DEFAULT_TABLESPACE
         @conn.create_table :tablespace_tests do |t|
@@ -1171,6 +1173,7 @@ end
         @conn.drop_table :tablespace_tests, if_exists: true
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:table)
       end
+
       it "should use correct tablespace" do
         @conn.create_table :tablespace_tests, id: false, organization: "INDEX INITRANS 4 COMPRESS 1", tablespace: "bogus" do |t|
           t.integer :id

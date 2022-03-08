@@ -16,6 +16,7 @@ describe "Oracle Enhanced adapter database tasks" do
         ActiveRecord::Tasks::DatabaseTasks.create(new_user_config)
       end
     end
+
     it "creates user" do
       query = "SELECT COUNT(*) FROM dba_users WHERE UPPER(username) = '#{new_user_config[:username].upcase}'"
       expect(ActiveRecord::Base.connection.select_value(query)).to eq(1)
@@ -62,6 +63,7 @@ describe "Oracle Enhanced adapter database tasks" do
 
     describe "drop" do
       before { ActiveRecord::Tasks::DatabaseTasks.drop(config) }
+
       it "drops all tables" do
         expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_falsey
       end
@@ -69,6 +71,7 @@ describe "Oracle Enhanced adapter database tasks" do
 
     describe "purge" do
       before { ActiveRecord::Tasks::DatabaseTasks.purge(config) }
+
       it "drops all tables" do
         expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_falsey
         expect(ActiveRecord::Base.connection.select_value("SELECT COUNT(*) FROM RECYCLEBIN")).to eq(0)
@@ -84,6 +87,7 @@ describe "Oracle Enhanced adapter database tasks" do
 
       describe "structure_dump" do
         before { ActiveRecord::Tasks::DatabaseTasks.structure_dump(config, temp_file) }
+
         it "dumps the database structure to a file without the schema information" do
           contents = File.read(temp_file)
           expect(contents).to include('CREATE TABLE "TEST_POSTS"')
@@ -97,6 +101,7 @@ describe "Oracle Enhanced adapter database tasks" do
           ActiveRecord::Tasks::DatabaseTasks.drop(config)
           ActiveRecord::Tasks::DatabaseTasks.structure_load(config, temp_file)
         end
+
         it "loads the database structure from a file" do
           expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_truthy
         end

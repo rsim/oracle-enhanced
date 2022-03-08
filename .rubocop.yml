@@ -1,6 +1,7 @@
 require:
   - rubocop-performance
   - rubocop-rails
+  - rubocop-rspec
 
 AllCops:
   TargetRubyVersion: 2.7
@@ -279,4 +280,17 @@ Performance/DeleteSuffix:
   Enabled: true
 
 Performance/OpenStruct:
+  Enabled: true
+
+# RuboCop RSpec cops
+RSpec/EmptyLineAfterExampleGroup:
+  Enabled: true
+
+RSpec/EmptyLineAfterHook:
+  Enabled: true
+
+RSpec/EmptyLineAfterSubject:
+  Enabled: true
+
+RSpec/ExcessiveDocstringSpacing:
   Enabled: true
