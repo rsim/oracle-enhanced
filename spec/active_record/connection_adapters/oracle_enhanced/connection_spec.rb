@@ -392,7 +392,7 @@ describe "OracleEnhancedConnection" do
       @conn.exec "DROP TABLE test_employees" rescue nil
     end
 
-    it "should execute prepared statement with decimal bind parameter " do
+    it "should execute prepared statement with decimal bind parameter" do
       cursor = @conn.prepare("INSERT INTO test_employees VALUES(:1)")
       type_metadata = ActiveRecord::ConnectionAdapters::SqlTypeMetadata.new(sql_type: "NUMBER", type: :decimal, limit: 10, precision: nil, scale: 2)
       column = ActiveRecord::ConnectionAdapters::OracleEnhanced::Column.new("age", nil, type_metadata, false, comment: nil)

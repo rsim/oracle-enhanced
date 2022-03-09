@@ -11,6 +11,7 @@ group :development do
   gem "rubocop", require: false
   gem "rubocop-performance", require: false
   gem "rubocop-rails", require: false
+  gem "rubocop-rspec", require: false
 
   gem "activerecord",   github: "rails/rails", branch: "main"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"

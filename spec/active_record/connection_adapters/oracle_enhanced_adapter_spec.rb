@@ -129,6 +129,7 @@ describe "OracleEnhancedAdapter" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = "UNUSED"
       @conn = ActiveRecord::Base.connection
     end
+
     after(:all) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces = {}
     end
@@ -136,6 +137,7 @@ describe "OracleEnhancedAdapter" do
     after(:each) do
       @conn.drop_table :foos, if_exists: true
     end
+
     it "should create ok" do
       @conn.create_table :foos, temporary: true, id: false do |t|
         t.integer :id
@@ -648,7 +650,7 @@ describe "OracleEnhancedAdapter" do
       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
-    it "should not raise missing IN/OUT parameter like issue 1678 " do
+    it "should not raise missing IN/OUT parameter like issue 1678" do
       # "to_sql" enforces unprepared_statement including dictionary access SQLs
       expect { User.joins(:group).to_sql }.not_to raise_exception
     end
@@ -721,12 +723,14 @@ describe "OracleEnhancedAdapter" do
         end
       end
     end
+
     after(:all) do
       schema_define do
         drop_table :table_with_name_thats_just_ok,
           sequence_name: "suitably_short_seq" rescue nil
       end
     end
+
     it "should create table with custom sequence name" do
       expect(@conn.select_value("select suitably_short_seq.nextval from dual")).to eq(1)
     end
@@ -767,7 +771,7 @@ describe "OracleEnhancedAdapter" do
       expect(post.explain).to include("|  TABLE ACCESS FULL| TEST_POSTS |")
     end
 
-    it "should explain considers hints with /*+ */ " do
+    it "should explain considers hints with /*+ */" do
       post = TestPost.optimizer_hints("/*+ FULL (\"TEST_POSTS\") */")
       post = post.where(id: 1)
       expect(post.explain).to include("|  TABLE ACCESS FULL| TEST_POSTS |")
