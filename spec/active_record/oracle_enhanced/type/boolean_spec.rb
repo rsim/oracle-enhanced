@@ -151,10 +151,10 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
       expect(@employee3.test_boolean_before_type_cast).to eq("N")
       create_employee3(test_boolean: nil)
       expect(@employee3.test_boolean.class).to eq(NilClass)
-      expect(@employee3.test_boolean_before_type_cast).to eq(nil)
+      expect(@employee3.test_boolean_before_type_cast).to be_nil
       create_employee3(test_boolean: "")
       expect(@employee3.test_boolean.class).to eq(NilClass)
-      expect(@employee3.test_boolean_before_type_cast).to eq(nil)
+      expect(@employee3.test_boolean_before_type_cast).to be_nil
     end
 
     it "should return string value from VARCHAR2 column with boolean column name but attribute is set to :string" do

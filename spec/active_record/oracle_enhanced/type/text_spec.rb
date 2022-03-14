@@ -78,7 +78,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @employee.reload
     expect(@employee.comments).to eq("initial")
     @employee.comments = "changed"
-    expect(@employee.save).to eq(true)
+    expect(@employee.save).to be(true)
     @employee.reload
     expect(@employee.comments).to eq("initial")
   end
@@ -89,12 +89,12 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       comments: nil
     )
     expect(@employee.comments).to be_nil
-    expect(@employee.save).to eq(true)
+    expect(@employee.save).to be(true)
     expect(@employee).to be_valid
     @employee.reload
     expect(@employee.comments).to be_nil
     @employee.comments = {}
-    expect(@employee.save).to eq(true)
+    expect(@employee.save).to be(true)
     @employee.reload
     # should not set readonly
     expect(@employee.comments).to be_nil

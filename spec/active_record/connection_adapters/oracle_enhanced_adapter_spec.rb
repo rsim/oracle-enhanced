@@ -472,12 +472,12 @@ describe "OracleEnhancedAdapter" do
       serialized_column.serialized << new_value
       expect(serialized_column.serialized).to eq([new_value])
       serialized_column.save
-      expect(serialized_column.save!).to eq(true)
+      expect(serialized_column.save!).to be(true)
 
       serialized_column.reload
       expect(serialized_column.serialized).to eq([new_value])
       serialized_column.serialized = []
-      expect(serialized_column.save!).to eq(true)
+      expect(serialized_column.save!).to be(true)
     end
   end
 
@@ -516,7 +516,7 @@ describe "OracleEnhancedAdapter" do
       binary_column_object = TestBinaryColumn.new
       binary_column_object.attachment = binary_value
 
-      expect(binary_column_object.save!).to eq(true)
+      expect(binary_column_object.save!).to be(true)
     end
   end
 
@@ -624,8 +624,8 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should test table existence" do
-      expect(@conn.table_exists?("TEST_POSTS")).to eq true
-      expect(@conn.table_exists?("NOT_EXISTING")).to eq false
+      expect(@conn.table_exists?("TEST_POSTS")).to be true
+      expect(@conn.table_exists?("NOT_EXISTING")).to be false
     end
 
     it "should return array from indexes with bind usage" do
@@ -656,7 +656,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should return false from temporary_table? with bind usage" do
-      expect(@conn.temporary_table?("TEST_POSTS")).to eq false
+      expect(@conn.temporary_table?("TEST_POSTS")).to be false
       expect(@logger.logged(:debug).last).to match(/:table_name/)
       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
