@@ -83,7 +83,7 @@ describe "OracleEnhancedAdapter" do
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
-      it "should get primary key from database at first time" do
+      it "should get primary key from database at second time without query" do
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         @logger.clear(:debug)
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])

@@ -881,7 +881,7 @@ end
       expect(TestPost.columns_hash["a" * 128]).not_to be_nil
     end
 
-    it "should add lob column with non_default tablespace" do
+    it "should add text type lob column with non_default tablespace" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
       schema_define do
         add_column :test_posts, :body, :text
@@ -889,7 +889,7 @@ end
       expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'BODY'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
-    it "should add lob column with non_default tablespace" do
+    it "should add ntext type lob column with non_default tablespace" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:nclob] = DATABASE_NON_DEFAULT_TABLESPACE
       schema_define do
         add_column :test_posts, :body, :ntext
