@@ -283,6 +283,12 @@ Performance/OpenStruct:
   Enabled: true
 
 # RuboCop RSpec cops
+RSpec/BeEq:
+  Enabled: true
+
+RSpec/BeNil:
+  Enabled: true
+
 RSpec/EmptyLineAfterExampleGroup:
   Enabled: true
 

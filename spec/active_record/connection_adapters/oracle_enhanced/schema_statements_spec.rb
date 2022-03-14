@@ -996,12 +996,12 @@ end
 
     it "should include virtual columns and not try to update them" do
       tf = TestFraction.columns.detect { |c| c.virtual? }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.name).to eq("percent")
       expect(tf.virtual?).to be true
       expect do
         tf = TestFraction.new(numerator: 20, denominator: 100)
-        expect(tf.percent).to be nil # not whatever is in DATA_DEFAULT column
+        expect(tf.percent).to be_nil # not whatever is in DATA_DEFAULT column
         tf.save!
         tf.reload
       end.not_to raise_error
@@ -1014,11 +1014,11 @@ end
       end
       TestFraction.reset_column_information
       tf = TestFraction.columns.detect { |c| c.name == "rem" }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.virtual?).to be true
       expect do
         tf = TestFraction.new(numerator: 7, denominator: 5)
-        expect(tf.rem).to be nil
+        expect(tf.rem).to be_nil
         tf.save!
         tf.reload
       end.not_to raise_error
@@ -1031,13 +1031,13 @@ end
       end
       TestFraction.reset_column_information
       tf = TestFraction.columns.detect { |c| c.name == "expression" }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.virtual?).to be true
       expect(tf.type).to be :string
       expect(tf.limit).to be 100
       expect do
         tf = TestFraction.new(numerator: 7, denominator: 5)
-        expect(tf.expression).to be nil
+        expect(tf.expression).to be_nil
         tf.save!
         tf.reload
       end.not_to raise_error
@@ -1051,14 +1051,14 @@ end
       end
       TestFraction.reset_column_information
       tf = TestFraction.columns.detect { |c| c.name == "percent" }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.virtual?).to be true
       expect(tf.type).to be :decimal
       expect(tf.precision).to be 15
       expect(tf.scale).to be 2
       expect do
         tf = TestFraction.new(numerator: 11, denominator: 17)
-        expect(tf.percent).to be nil
+        expect(tf.percent).to be_nil
         tf.save!
         tf.reload
       end.not_to raise_error
@@ -1071,14 +1071,14 @@ end
       end
       TestFraction.reset_column_information
       tf = TestFraction.columns.detect { |c| c.name == "percent" }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.virtual?).to be true
       expect(tf.type).to be :decimal
       expect(tf.precision).to be 12
       expect(tf.scale).to be 5
       expect do
         tf = TestFraction.new(numerator: 11, denominator: 17)
-        expect(tf.percent).to be nil
+        expect(tf.percent).to be_nil
         tf.save!
         tf.reload
       end.not_to raise_error
