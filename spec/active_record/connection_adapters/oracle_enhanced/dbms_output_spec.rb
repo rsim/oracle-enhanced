@@ -47,7 +47,7 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
     expect(@logger.output(:debug)).not_to match(/^DBMS_OUTPUT/)
   end
 
-  it "should log dbms output lines to the rails log" do
+  it "should log dbms output longer lines to the rails log" do
     @conn.enable_dbms_output
 
     expect(@conn.select_all("select more_than_five_characters_long('hi there') is_it_long from dual").to_a).to eq([{ "is_it_long" => 1 }])
@@ -57,7 +57,7 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
     expect(@logger.output(:debug)).to match(/^DBMS_OUTPUT: about to return: 1$/)
   end
 
-  it "should log dbms output lines to the rails log" do
+  it "should log dbms output shorter lines to the rails log" do
     @conn.enable_dbms_output
 
     expect(@conn.select_all("select more_than_five_characters_long('short') is_it_long from dual").to_a).to eq([{ "is_it_long" => 0 }])
