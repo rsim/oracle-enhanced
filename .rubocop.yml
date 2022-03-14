@@ -294,3 +294,6 @@ RSpec/EmptyLineAfterSubject:
 
 RSpec/ExcessiveDocstringSpacing:
   Enabled: true
+
+RSpec/RepeatedExample:
+  Enabled: true
