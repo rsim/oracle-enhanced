@@ -1,7 +1,8 @@
-version: 1
-update_configs:
-  # Update your Gemfile (& lockfiles) as soon as
-  # new versions are published to the RubyGems registry
-  - package_manager: "ruby:bundler"
+version: 2
+updates:
+
+  - package-ecosystem: "github-actions"
     directory: "/"
-    update_schedule: "live"
+    schedule:
+      # Check for updates to GitHub Actions every weekday
+      interval: "daily"
