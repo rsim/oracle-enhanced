@@ -24,6 +24,10 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   s.require_paths = ["lib"]
   s.summary = "Oracle enhanced adapter for ActiveRecord"
   s.test_files = Dir["spec/**/*"]
+  s.metadata = {
+    "rubygems_mfa_required" => "true"
+  }
+
   s.add_runtime_dependency("activerecord", ["~> 7.1.0.alpha"])
   s.add_runtime_dependency("ruby-plsql", [">= 0.6.0"])
   if /java/.match?(RUBY_PLATFORM)
