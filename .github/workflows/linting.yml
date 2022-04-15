@@ -1,8 +1,14 @@
 name: Linting
 on:
   - pull_request
+permissions:
+  contents: read
+
 jobs:
   yamllint:
+    permissions:
+      contents: read  # for actions/checkout to fetch code
+      pull-requests: write  # for karancode/yamllint-github-action to post comments on PRs
     name: Yamllint
     runs-on: ubuntu-latest
     steps:
