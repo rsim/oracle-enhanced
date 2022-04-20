@@ -487,14 +487,16 @@ module ActiveRecord
       # Returns true for Oracle adapter (since Oracle requires primary key
       # values to be pre-fetched before insert). See also #next_sequence_value.
       def prefetch_primary_key?(table_name = nil)
-        return true if table_name.nil?
-        table_name = table_name.to_s
-        do_not_prefetch = @do_not_prefetch_primary_key[table_name]
-        if do_not_prefetch.nil?
-          owner, desc_table_name = @raw_connection.describe(table_name)
-          @do_not_prefetch_primary_key[table_name] = do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
+        @lock.synchronize do
+          return true if table_name.nil?
+          table_name = table_name.to_s
+          do_not_prefetch = @do_not_prefetch_primary_key[table_name]
+          if do_not_prefetch.nil?
+            owner, desc_table_name = @raw_connection.describe(table_name)
+            @do_not_prefetch_primary_key[table_name] = do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
+          end
+          !do_not_prefetch
         end
-        !do_not_prefetch
       end
 
       def reset_pk_sequence!(table_name, primary_key = nil, sequence_name = nil) # :nodoc:
@@ -560,29 +562,31 @@ module ActiveRecord
       end
 
       def column_definitions(table_name)
-        (owner, desc_table_name) = @raw_connection.describe(table_name)
+        @lock.synchronize do
+          (owner, desc_table_name) = @raw_connection.describe(table_name)
 
-        select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
-          SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cols.column_name AS name, cols.data_type AS sql_type,
-                 cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
-                 cols.data_type_owner AS sql_type_owner,
-                 DECODE(cols.data_type, 'NUMBER', data_precision,
-                                   'FLOAT', data_precision,
-                                   'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
-                                   'RAW', DECODE(char_used, 'C', char_length, data_length),
-                                   'CHAR', DECODE(char_used, 'C', char_length, data_length),
-                                    NULL) AS limit,
-                 DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
-                 comments.comments as column_comment
-            FROM all_tab_cols cols, all_col_comments comments
-           WHERE cols.owner      = :owner
-             AND cols.table_name = :table_name
-             AND cols.hidden_column = 'NO'
-             AND cols.owner = comments.owner
-             AND cols.table_name = comments.table_name
-             AND cols.column_name = comments.column_name
-           ORDER BY cols.column_id
-        SQL
+          select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cols.column_name AS name, cols.data_type AS sql_type,
+                   cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
+                   cols.data_type_owner AS sql_type_owner,
+                   DECODE(cols.data_type, 'NUMBER', data_precision,
+                                     'FLOAT', data_precision,
+                                     'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
+                                     'RAW', DECODE(char_used, 'C', char_length, data_length),
+                                     'CHAR', DECODE(char_used, 'C', char_length, data_length),
+                                      NULL) AS limit,
+                   DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
+                   comments.comments as column_comment
+              FROM all_tab_cols cols, all_col_comments comments
+             WHERE cols.owner      = :owner
+               AND cols.table_name = :table_name
+               AND cols.hidden_column = 'NO'
+               AND cols.owner = comments.owner
+               AND cols.table_name = comments.table_name
+               AND cols.column_name = comments.column_name
+             ORDER BY cols.column_id
+          SQL
+        end
       end
 
       def clear_table_columns_cache(table_name)
@@ -592,35 +596,37 @@ module ActiveRecord
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
-        (owner, desc_table_name) = @raw_connection.describe(table_name)
+        @lock.synchronize do
+          (owner, desc_table_name) = @raw_connection.describe(table_name)
 
-        seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
-          select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ us.sequence_name
-          from all_sequences us
-          where us.sequence_owner = :owner
-          and us.sequence_name = upper(:sequence_name)
-        SQL
+          seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
+            select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ us.sequence_name
+            from all_sequences us
+            where us.sequence_owner = :owner
+            and us.sequence_name = upper(:sequence_name)
+          SQL
 
-        # changed back from user_constraints to all_constraints for consistency
-        pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
-          SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
-            FROM all_constraints c, all_cons_columns cc
-           WHERE c.owner = :owner
-             AND c.table_name = :table_name
-             AND c.constraint_type = 'P'
-             AND cc.owner = c.owner
-             AND cc.constraint_name = c.constraint_name
-        SQL
+          # changed back from user_constraints to all_constraints for consistency
+          pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
+              FROM all_constraints c, all_cons_columns cc
+             WHERE c.owner = :owner
+               AND c.table_name = :table_name
+               AND c.constraint_type = 'P'
+               AND cc.owner = c.owner
+               AND cc.constraint_name = c.constraint_name
+          SQL
 
-        warn <<~WARNING if pks.count > 1
-          WARNING: Active Record does not support composite primary key.
+          warn <<~WARNING if pks.count > 1
+            WARNING: Active Record does not support composite primary key.
 
-          #{table_name} has composite primary key. Composite primary key is ignored.
-        WARNING
+            #{table_name} has composite primary key. Composite primary key is ignored.
+          WARNING
 
-        # only support single column keys
-        pks.size == 1 ? [oracle_downcase(pks.first),
-                         oracle_downcase(seqs.first)] : nil
+          # only support single column keys
+          pks.size == 1 ? [oracle_downcase(pks.first),
+                           oracle_downcase(seqs.first)] : nil
+        end
       end
 
       # Returns just a table's primary key
@@ -634,19 +640,21 @@ module ActiveRecord
       end
 
       def primary_keys(table_name) # :nodoc:
-        (_owner, desc_table_name) = @raw_connection.describe(table_name)
+        @lock.synchronize do
+          (_owner, desc_table_name) = @raw_connection.describe(table_name)
 
-        pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
-          SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
-            FROM all_constraints c, all_cons_columns cc
-           WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
-             AND c.table_name = :table_name
-             AND c.constraint_type = 'P'
-             AND cc.owner = c.owner
-             AND cc.constraint_name = c.constraint_name
-             order by cc.position
-        SQL
-        pks.map { |pk| oracle_downcase(pk) }
+          pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
+              FROM all_constraints c, all_cons_columns cc
+             WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
+               AND c.table_name = :table_name
+               AND c.constraint_type = 'P'
+               AND cc.owner = c.owner
+               AND cc.constraint_name = c.constraint_name
+               order by cc.position
+          SQL
+          pks.map { |pk| oracle_downcase(pk) }
+        end
       end
 
       def columns_for_distinct(columns, orders) # :nodoc:

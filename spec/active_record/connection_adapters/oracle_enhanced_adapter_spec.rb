@@ -105,6 +105,23 @@ describe "OracleEnhancedAdapter" do
         expect(@logger.logged(:debug).first).to match(/SELECT "TEST_EMPLOYEES_SEQ".NEXTVAL FROM dual/im)
       end
     end
+
+    describe "with multiple test threads" do
+      it "should not raise `RuntimeError` from executing in another thread when getting columns from database" do
+        @conn.pool.lock_thread = true
+        @conn.clear_table_columns_cache(:test_employees)
+        @conn.query_cache.clear
+        thread_a = Thread.new do
+          Thread.current.report_on_exception = false
+          ActiveRecord::Base.connection.columns("test_employees")
+        end
+        expect {
+          TestEmployee.pluck(:first_name)
+          thread_a.join
+        }.to_not raise_error
+        thread_a.join if thread_a.alive?
+      end
+    end
   end
 
   describe "session information" do
