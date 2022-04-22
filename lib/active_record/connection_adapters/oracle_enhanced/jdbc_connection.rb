@@ -135,6 +135,13 @@ module ActiveRecord
             properties.put("defaultRowPrefetch", "#{prefetch_rows}") if prefetch_rows
             properties.put("internal_logon", privilege) if privilege
 
+            if config[:jdbc_connect_properties] # arbitrary additional properties for JDBC connection
+              raise "jdbc_connect_properties should contain an associative array / hash" unless config[:jdbc_connect_properties].is_a? Hash
+              config[:jdbc_connect_properties].each do |key, value|
+                properties.put(key, value)
+              end
+            end
+
             begin
               @raw_connection = java.sql.DriverManager.getConnection(url, properties)
             rescue

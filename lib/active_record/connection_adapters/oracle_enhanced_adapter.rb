@@ -121,6 +121,12 @@ module ActiveRecord
     # * <tt>:tcp_keepalive</tt> - TCP keepalive is enabled for OCI client, defaults to true
     # * <tt>:tcp_keepalive_time</tt> - TCP keepalive time for OCI client, defaults to 600
     # * <tt>:jdbc_statement_cache_size</tt> - number of cached SQL cursors to keep open, disabled per default (for unpooled JDBC only)
+    # * <tt>:jdbc_connect_properties</tt> - Additional properties for establishing Oracle JDBC connection (for unpooled JDBC only)
+    #   example to require encryption and checksumming for network connection:
+    #     adapter: oracle_enhanced
+    #     jdbc_connect_properties:
+    #       'oracle.net.encryption_client': REQUIRED
+    #       'oracle.net.crypto_checksum_client': REQUIRED
     #
     # Optionals NLS parameters:
     #

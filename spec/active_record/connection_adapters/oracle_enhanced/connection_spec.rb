@@ -58,6 +58,20 @@ describe "OracleEnhancedAdapter establish connection" do
     end
   end
 
+  it "should not encrypt JDBC network connection" do
+    if ORACLE_ENHANCED_CONNECTION == :jdbc
+      @conn = ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REJECTED" }))
+      expect(@conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 0 }])
+    end
+  end
+
+  it "should encrypt JDBC network connection" do
+    if ORACLE_ENHANCED_CONNECTION == :jdbc
+      @conn = ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REQUESTED" }))
+      expect(@conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 1 }])
+    end
+  end
+
   it "should connect to database using service_name" do
     ActiveRecord::Base.establish_connection(SERVICE_NAME_CONNECTION_PARAMS)
     expect(ActiveRecord::Base.connection).not_to be_nil
