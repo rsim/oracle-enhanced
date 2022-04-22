@@ -12,7 +12,7 @@ gemfile(true) do
   gem "minitest"
 
   platforms :ruby do
-    gem "ruby-oci8"
+    gem "ruby-oci8", github: "kubo/ruby-oci8"
   end
 end
 

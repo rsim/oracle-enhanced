@@ -12,7 +12,7 @@ gemfile(true) do
   gem "rspec", require: "rspec/autorun"
 
   platforms :ruby do
-    gem "ruby-oci8"
+    gem "ruby-oci8", github: "kubo/ruby-oci8"
   end
 end
 
