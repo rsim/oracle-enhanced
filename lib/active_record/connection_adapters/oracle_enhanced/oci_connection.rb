@@ -165,7 +165,7 @@ module ActiveRecord
                   key = col_metadata.data_type
                   case key.to_s.downcase
                   when "char"
-                    col_value = col.to_s.rstrip
+                    col_value = col.to_s.rstrip unless col_value.nil?
                   end
                 end
                 col_index = col_index + 1
@@ -207,7 +207,7 @@ module ActiveRecord
                 key = col_metadata.data_type
                 case key.to_s.downcase
                 when "char"
-                  col_value = col_value.to_s.rstrip
+                  col_value = col_value.to_s.rstrip unless col_value.nil?
                 end
               end
               hash[col] = col_value
