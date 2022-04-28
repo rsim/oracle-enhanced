@@ -190,7 +190,7 @@ module ActiveRecord
                   key = col_metadata.data_type
                   case key.to_s.downcase
                   when "char"
-                    col_value = col.to_s.rstrip
+                    col_value = col.to_s.rstrip unless col_value.nil?
                   when "timestamp_tz", "timestamp_ltz"
                     col_value = @raw_connection.typecast_time_with_zone(col) if col.is_a?(Time)
                   end
@@ -238,7 +238,7 @@ module ActiveRecord
                 key = col_metadata.data_type
                 case key.to_s.downcase
                 when "char"
-                  col_value = col_value.to_s.rstrip
+                  col_value = col_value.to_s.rstrip unless col_value.nil?
                 when "timestamp_tz", "timestamp_ltz"
                   col_value = typecast_time_with_zone(row[i]) if row[i].is_a?(Time)
                 end
