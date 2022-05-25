@@ -1209,7 +1209,14 @@ end
       schema_define do
         add_index :keyboards, "lower(name)", unique: true, name: :index_keyboards_on_lower_name
       end
-      expect(@would_execute_sql).not_to match(/ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\(.*\)\)/)
+      expect(@would_execute_sql).not_to include("ADD CONSTRAINT")
+    end
+
+    it "should add unique constraint only to the index where it was defined" do
+      schema_define do
+        add_index :keyboards, ["name"], unique: true, name: :this_index
+      end
+      expect(@would_execute_sql.lines.last).to match(/ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\) USING INDEX "THIS_INDEX";/)
     end
   end
 
