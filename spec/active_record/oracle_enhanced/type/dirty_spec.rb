@@ -125,6 +125,8 @@ describe "OracleEnhancedAdapter dirty object tracking" do
     class << oci_conn
       def write_lob(lob, value, is_binary = false); raise "don't do this'"; end
     end
+    @employee.comments = +"initial"
+    expect(@employee.comments_changed?).to be false
     expect { @employee.save! }.not_to raise_error
     class << oci_conn
       remove_method :write_lob

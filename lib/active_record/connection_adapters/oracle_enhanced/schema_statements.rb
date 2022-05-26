@@ -300,7 +300,7 @@ module ActiveRecord
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
           if index_type == "UNIQUE"
             unless /\(.*\)/.match?(quoted_column_names)
-              execute "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(index_name)} #{index_type} (#{quoted_column_names})"
+              execute "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(index_name)} #{index_type} (#{quoted_column_names}) USING INDEX #{quote_column_name(index_name)}"
             end
           end
         end
