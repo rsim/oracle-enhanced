@@ -90,6 +90,7 @@ describe "OracleEnhancedAdapter integer type detection based on attribute settin
 
     it "should return Integer value from NUMBER(1) column if emulate_booleans is set to false" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = false
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.clear_cache!
       ActiveRecord::Base.clear_cache!
       create_employee2
       expect(@employee2.is_manager).to be_a(Integer)
