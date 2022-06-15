@@ -453,6 +453,11 @@ module ActiveRecord
         @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
       end
 
+      def clear_cache!
+        self.class.clear_type_map!
+        super
+      end
+
       def reset!
         clear_cache!
         super
@@ -691,11 +696,14 @@ module ActiveRecord
       end
 
       class << self
+        def type_map
+          @type_map ||= Type::TypeMap.new.tap { |m| initialize_type_map(m) }
+          @type_map
+        end
 
-          def type_map
-            @type_map ||= Type::TypeMap.new.tap { |m| initialize_type_map(m) }
-            @type_map
-          end
+        def clear_type_map!
+          @type_map = nil
+        end
 
         private
           def initialize_type_map(m)
@@ -729,7 +737,6 @@ module ActiveRecord
             end
           end
       end
-
 
       def type_map
         self.class.type_map
