@@ -20,7 +20,7 @@ module ActiveRecord
             statements = o.columns.map { |c| accept c }
             statements << accept(o.primary_keys) if o.primary_keys
 
-            if supports_foreign_keys?
+            if use_foreign_keys?
               statements.concat(o.foreign_keys.map { |fk| accept fk })
             end
 
