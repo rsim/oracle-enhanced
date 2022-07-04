@@ -10,7 +10,6 @@ jobs:
   build:
 
     runs-on: ubuntu-20.04
-    continue-on-error: true
     strategy:
       matrix:
         # Rails 7.0 requires Ruby 2.7 or higeher.
