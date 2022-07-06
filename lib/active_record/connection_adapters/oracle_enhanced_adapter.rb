@@ -459,9 +459,9 @@ module ActiveRecord
         @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
       end
 
-      def clear_cache!
-        self.class.clear_type_map!
+      def clear_cache!(*args, **kwargs)
         super
+        self.class.clear_type_map!
       end
 
       def reset!
