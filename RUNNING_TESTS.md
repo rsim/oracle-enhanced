@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/rsim/oracle-enhanced.svg?branch=master)](https://travis-ci.org/rsim/oracle-enhanced)
+[![Build Status](https://app.travis-ci.com/rsim/oracle-enhanced.svg?branch=master)](https://app.travis-ci.com/rsim/oracle-enhanced)
 
 # When and Which tests need to be executed
 
