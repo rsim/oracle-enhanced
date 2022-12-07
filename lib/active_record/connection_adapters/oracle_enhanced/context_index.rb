@@ -153,14 +153,14 @@ module ActiveRecord
                 (p_rowid IN	      ROWID,
                 p_clob	IN OUT NOCOPY CLOB) IS
                 -- add_context_index_parameters #{(column_names + select_queries).inspect}#{!options.empty? ? +', ' << options.inspect[1..-2] : ''}
-                #{
+              #{
                 selected_columns.map do |cols|
                   cols.map do |col|
                     raise ArgumentError, "Alias #{col} too large, should be 28 or less characters long" unless col.length <= 28
                     "l_#{col} VARCHAR2(32767);\n"
                   end.join
                 end.join
-                } BEGIN
+              } BEGIN
                 FOR r1 IN (
                   SELECT #{quoted_column_names.join(', ')}
                   FROM	 #{quoted_table_name}
@@ -194,7 +194,7 @@ module ActiveRecord
                       "DBMS_LOB.WRITEAPPEND(p_clob, #{col.length + 3}, '</#{col}>');\n"
                     end.join)
                   end.join)
-                  }
+                }
                 END LOOP;
               END;
             SQL

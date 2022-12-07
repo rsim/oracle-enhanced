@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "rake"
+
 version = File.read(File.expand_path("../VERSION", __FILE__)).strip
 
 Gem::Specification.new do |s|
@@ -17,11 +19,20 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   s.extra_rdoc_files = [
     "README.md"
   ]
-  s.files = Dir["History.md", "License.txt", "README.md", "VERSION", "lib/**/*"]
+  s.files = FileList["History.md", "License.txt", "README.md", "VERSION", "lib/**/*"].exclude("lib/ojdbc*.jar")
   s.homepage = "http://github.com/rsim/oracle-enhanced"
   s.require_paths = ["lib"]
   s.summary = "Oracle enhanced adapter for ActiveRecord"
   s.test_files = Dir["spec/**/*"]
-  s.add_runtime_dependency("activerecord", ["~> 7.0.0.alpha"])
+  s.metadata = {
+    "rubygems_mfa_required" => "true"
+  }
+
+  s.add_runtime_dependency("activerecord", ["~> 7.1.0.alpha"])
   s.add_runtime_dependency("ruby-plsql", [">= 0.6.0"])
+  if /java/.match?(RUBY_PLATFORM)
+    s.platform = Gem::Platform.new("java")
+  else
+    s.add_runtime_dependency("ruby-oci8")
+  end
 end

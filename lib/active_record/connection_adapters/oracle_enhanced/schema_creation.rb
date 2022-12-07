@@ -20,8 +20,8 @@ module ActiveRecord
             statements = o.columns.map { |c| accept c }
             statements << accept(o.primary_keys) if o.primary_keys
 
-            if supports_foreign_keys?
-              statements.concat(o.foreign_keys.map { |to_table, options| foreign_key_in_create(o.name, to_table, options) })
+            if use_foreign_keys?
+              statements.concat(o.foreign_keys.map { |fk| accept fk })
             end
 
             create_sql << "(#{statements.join(', ')})" if statements.present?

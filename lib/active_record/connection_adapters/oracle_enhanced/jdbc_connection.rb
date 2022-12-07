@@ -16,7 +16,8 @@ begin
   # Oracle 11g client ojdbc6.jar is also compatible with Java 1.7
   # Oracle 12c Release 1 client provides ojdbc7.jar
   # Oracle 12c Release 2 client provides ojdbc8.jar
-  ojdbc_jars = %w(ojdbc8.jar ojdbc7.jar ojdbc6.jar)
+  # Oracle 21c provides ojdbc11.jar for Java 11 and above
+  ojdbc_jars = %w(ojdbc11.jar ojdbc8.jar ojdbc7.jar ojdbc6.jar)
 
   if !ENV_JAVA["java.class.path"]&.match?(Regexp.new(ojdbc_jars.join("|")))
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
@@ -42,16 +43,16 @@ begin
     java.lang.System.set_property("oracle.net.tns_admin", ENV["TNS_ADMIN"])
   end
 
-rescue LoadError, NameError
+rescue LoadError, NameError => e
   # JDBC driver is unavailable.
-  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars.join(' or ') } library."
+  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars.join(' or ') } library.\n#{e.class}:#{e.message}"
 end
 
 module ActiveRecord
   module ConnectionAdapters
     # JDBC database interface for JRuby
     module OracleEnhanced
-      class JDBCConnection < OracleEnhanced::Connection #:nodoc:
+      class JDBCConnection < OracleEnhanced::Connection # :nodoc:
         attr_accessor :active
         alias :active? :active
 
@@ -98,6 +99,8 @@ module ActiveRecord
               @raw_connection = @raw_connection.underlying_connection
             end
 
+            # Workaround FrozenError (can't modify frozen Hash):
+            config = config.dup
             config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
             username = @raw_connection.meta_data.user_name
           else
@@ -132,6 +135,13 @@ module ActiveRecord
             properties.put("defaultRowPrefetch", "#{prefetch_rows}") if prefetch_rows
             properties.put("internal_logon", privilege) if privilege
 
+            if config[:jdbc_connect_properties] # arbitrary additional properties for JDBC connection
+              raise "jdbc_connect_properties should contain an associative array / hash" unless config[:jdbc_connect_properties].is_a? Hash
+              config[:jdbc_connect_properties].each do |key, value|
+                properties.put(key, value)
+              end
+            end
+
             begin
               @raw_connection = java.sql.DriverManager.getConnection(url, properties)
             rescue
@@ -142,9 +152,9 @@ module ActiveRecord
             end
 
             # Set session time zone to current time zone
-            if ActiveRecord::Base.default_timezone == :local
+            if ActiveRecord.default_timezone == :local
               @raw_connection.setSessionTimeZone(time_zone)
-            elsif ActiveRecord::Base.default_timezone == :utc
+            elsif ActiveRecord.default_timezone == :utc
               @raw_connection.setSessionTimeZone("UTC")
             end
 
@@ -292,7 +302,7 @@ module ActiveRecord
 
         class Cursor
           def initialize(connection, raw_statement)
-            @connection = connection
+            @raw_connection = connection
             @raw_statement = raw_statement
           end
 
@@ -381,7 +391,7 @@ module ActiveRecord
               row_values = []
               column_types.each_with_index do |column_type, i|
                 row_values <<
-                  @connection.get_ruby_value_from_result_set(@raw_result_set, i + 1, column_type, get_lob_value)
+                  @raw_connection.get_ruby_value_from_result_set(@raw_result_set, i + 1, column_type, get_lob_value)
               end
               row_values
             else
@@ -495,13 +505,13 @@ module ActiveRecord
             if dt = rset.getDATE(i)
               d = dt.dateValue
               t = dt.timeValue
-              Time.send(Base.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
+              Time.send(ActiveRecord.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
             else
               nil
             end
           when :TIMESTAMP, :TIMESTAMPTZ, :TIMESTAMPLTZ, :"TIMESTAMP WITH TIME ZONE", :"TIMESTAMP WITH LOCAL TIME ZONE"
             ts = rset.getTimestamp(i)
-            ts && Time.send(Base.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
+            ts && Time.send(ActiveRecord.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
               ts.nanos / 1000)
           when :CLOB
             get_lob_value ? lob_to_ruby_value(rset.getClob(i)) : rset.getClob(i)

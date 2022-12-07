@@ -333,7 +333,7 @@ describe "OracleEnhancedAdapter schema definition" do
           ("index_test_employees_on_first_name_and_middle_name_and_last_name"))
       else
         expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
-          "i" + Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
+          "i" + OpenSSL::Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
         )
       end
     end
@@ -455,7 +455,7 @@ end
     end
 
     it "should add foreign key" do
-      fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_test_post_id_fk").first(10)}"
+      fk_name = "fk_rails_#{OpenSSL::Digest::SHA256.hexdigest("test_comments_test_post_id_fk").first(10)}"
 
       schema_define do
         add_foreign_key :test_comments, :test_posts
@@ -475,7 +475,7 @@ end
     end
 
     it "should add foreign key with column" do
-      fk_name = "fk_rails_#{Digest::SHA256.hexdigest("test_comments_post_id_fk").first(10)}"
+      fk_name = "fk_rails_#{OpenSSL::Digest::SHA256.hexdigest("test_comments_post_id_fk").first(10)}"
 
       schema_define do
         add_foreign_key :test_comments, :test_posts, column: "post_id"
@@ -550,6 +550,7 @@ end
       class ::TestPost < ActiveRecord::Base
       end
     end
+
     it "should use default tablespace for clobs" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:nclob] = nil
@@ -880,7 +881,7 @@ end
       expect(TestPost.columns_hash["a" * 128]).not_to be_nil
     end
 
-    it "should add lob column with non_default tablespace" do
+    it "should add text type lob column with non_default tablespace" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = DATABASE_NON_DEFAULT_TABLESPACE
       schema_define do
         add_column :test_posts, :body, :text
@@ -888,7 +889,7 @@ end
       expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'BODY'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
-    it "should add lob column with non_default tablespace" do
+    it "should add ntext type lob column with non_default tablespace" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:nclob] = DATABASE_NON_DEFAULT_TABLESPACE
       schema_define do
         add_column :test_posts, :body, :ntext
@@ -995,12 +996,12 @@ end
 
     it "should include virtual columns and not try to update them" do
       tf = TestFraction.columns.detect { |c| c.virtual? }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.name).to eq("percent")
       expect(tf.virtual?).to be true
       expect do
         tf = TestFraction.new(numerator: 20, denominator: 100)
-        expect(tf.percent).to be nil # not whatever is in DATA_DEFAULT column
+        expect(tf.percent).to be_nil # not whatever is in DATA_DEFAULT column
         tf.save!
         tf.reload
       end.not_to raise_error
@@ -1013,11 +1014,11 @@ end
       end
       TestFraction.reset_column_information
       tf = TestFraction.columns.detect { |c| c.name == "rem" }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.virtual?).to be true
       expect do
         tf = TestFraction.new(numerator: 7, denominator: 5)
-        expect(tf.rem).to be nil
+        expect(tf.rem).to be_nil
         tf.save!
         tf.reload
       end.not_to raise_error
@@ -1030,13 +1031,13 @@ end
       end
       TestFraction.reset_column_information
       tf = TestFraction.columns.detect { |c| c.name == "expression" }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.virtual?).to be true
       expect(tf.type).to be :string
       expect(tf.limit).to be 100
       expect do
         tf = TestFraction.new(numerator: 7, denominator: 5)
-        expect(tf.expression).to be nil
+        expect(tf.expression).to be_nil
         tf.save!
         tf.reload
       end.not_to raise_error
@@ -1050,14 +1051,14 @@ end
       end
       TestFraction.reset_column_information
       tf = TestFraction.columns.detect { |c| c.name == "percent" }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.virtual?).to be true
       expect(tf.type).to be :decimal
       expect(tf.precision).to be 15
       expect(tf.scale).to be 2
       expect do
         tf = TestFraction.new(numerator: 11, denominator: 17)
-        expect(tf.percent).to be nil
+        expect(tf.percent).to be_nil
         tf.save!
         tf.reload
       end.not_to raise_error
@@ -1070,14 +1071,14 @@ end
       end
       TestFraction.reset_column_information
       tf = TestFraction.columns.detect { |c| c.name == "percent" }
-      expect(tf).not_to be nil
+      expect(tf).not_to be_nil
       expect(tf.virtual?).to be true
       expect(tf.type).to be :decimal
       expect(tf.precision).to be 12
       expect(tf.scale).to be 5
       expect do
         tf = TestFraction.new(numerator: 11, denominator: 17)
-        expect(tf.percent).to be nil
+        expect(tf.percent).to be_nil
         tf.save!
         tf.reload
       end.not_to raise_error
@@ -1122,13 +1123,13 @@ end
 
     before(:each) do
       @conn.instance_variable_set :@would_execute_sql, @would_execute_sql = +""
-      class <<@conn
+      class << @conn
         def execute(sql, name = nil); @would_execute_sql << sql << ";\n"; end
       end
     end
 
     after(:each) do
-      class <<@conn
+      class << @conn
         remove_method :execute
       end
       @conn.instance_eval { remove_instance_variable :@would_execute_sql }
@@ -1157,6 +1158,7 @@ end
         @conn.drop_table :tablespace_tests, if_exists: true
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:table)
       end
+
       it "should use correct tablespace" do
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:table] = DATABASE_NON_DEFAULT_TABLESPACE
         @conn.create_table :tablespace_tests do |t|
@@ -1171,6 +1173,7 @@ end
         @conn.drop_table :tablespace_tests, if_exists: true
         ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:table)
       end
+
       it "should use correct tablespace" do
         @conn.create_table :tablespace_tests, id: false, organization: "INDEX INITRANS 4 COMPRESS 1", tablespace: "bogus" do |t|
           t.integer :id
@@ -1206,7 +1209,14 @@ end
       schema_define do
         add_index :keyboards, "lower(name)", unique: true, name: :index_keyboards_on_lower_name
       end
-      expect(@would_execute_sql).not_to match(/ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\(.*\)\)/)
+      expect(@would_execute_sql).not_to include("ADD CONSTRAINT")
+    end
+
+    it "should add unique constraint only to the index where it was defined" do
+      schema_define do
+        add_index :keyboards, ["name"], unique: true, name: :this_index
+      end
+      expect(@would_execute_sql.lines.last).to match(/ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\) USING INDEX "THIS_INDEX";/)
     end
   end
 

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/rsim/oracle-enhanced.svg?branch=master)](https://travis-ci.org/rsim/oracle-enhanced)
+[![Build Status](https://app.travis-ci.com/rsim/oracle-enhanced.svg?branch=master)](https://app.travis-ci.com/rsim/oracle-enhanced)
 
 # When and Which tests need to be executed
 
@@ -41,14 +41,14 @@ If no Oracle database with SYS and SYSTEM user access is available, try the dock
 
 * Install [Docker](https://docker.github.io/engine/installation/)
 
-* Pull [docker-oracle-xe-11g](https://hub.docker.com/r/wnameless/oracle-xe-11g/) image from docker hub
+* Pull [docker-oracle-xe-11g-r2](https://hub.docker.com/r/wnameless/oracle-xe-11g-r2/) image from docker hub
   ```sh
-  $ docker pull wnameless/oracle-xe-11g
+  $ docker pull wnameless/oracle-xe-11g-r2
   ```
 
 * Start a Oracle database docker container with mapped ports. Use port `49161` to access the database.
   ```sh
-  $ docker run -d -p 49160:22 -p 49161:1521 wnameless/oracle-xe-11g
+  $ docker run -d -p 49160:22 -p 49161:1521 wnameless/oracle-xe-11g-r2
   ```
 
 * Check connection to the database with `sqlplus`. The user is `system`, the password is `oracle`.

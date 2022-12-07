@@ -1,6 +1,7 @@
 require:
   - rubocop-performance
   - rubocop-rails
+  - rubocop-rspec
 
 AllCops:
   TargetRubyVersion: 2.7
@@ -22,6 +23,9 @@ Layout/CaseIndentation:
   Enabled: true
 
 Layout/ClosingHeredocIndentation:
+  Enabled: true
+
+Layout/ClosingParenthesisIndentation:
   Enabled: true
 
 # Align comments with method definitions.
@@ -47,6 +51,9 @@ Layout/EndAlignment:
   Enabled: true
   EnforcedStyleAlignWith: variable
   AutoCorrect: true
+
+Layout/EndOfLine:
+  Enabled: true
 
 # No extra empty lines.
 Layout/EmptyLines:
@@ -119,9 +126,15 @@ Style/DefWithParentheses:
 Style/MethodDefParentheses:
   Enabled: true
 
+Style/ExplicitBlockArgument:
+  Enabled: true
+
 Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: always
+
+Style/MapToHash:
+  Enabled: true
 
 Style/RedundantFreeze:
   Enabled: true
@@ -171,7 +184,13 @@ Lint/AmbiguousRegexpLiteral:
 Lint/DuplicateRequire:
   Enabled: true
 
+Lint/DuplicateMethods:
+  Enabled: true
+
 Lint/ErbNewArguments:
+  Enabled: true
+
+Lint/EnsureReturn:
   Enabled: true
 
 # Use my_method(my_arg) not my_method( my_arg ) or my_method my_arg.
@@ -220,10 +239,20 @@ Style/ColonMethodCall:
 Style/TrivialAccessors:
   Enabled: true
 
+# Prefer a = b || c over a = b ? b : c
+Style/RedundantCondition:
+  Enabled: true
+
 Performance/BindCall:
   Enabled: true
 
 Performance/FlatMap:
+  Enabled: true
+
+Performance/MapCompact:
+  Enabled: true
+
+Performance/SelectMap:
   Enabled: true
 
 Performance/RedundantMerge:
@@ -241,6 +270,9 @@ Performance/RegexpMatch:
 Performance/ReverseEach:
   Enabled: true
 
+Performance/StringReplacement:
+  Enabled: true
+
 # Use unary plus to get an unfrozen string literal.
 Performance/UnfreezeString:
   Enabled: true
@@ -249,4 +281,32 @@ Performance/DeletePrefix:
   Enabled: true
 
 Performance/DeleteSuffix:
+  Enabled: true
+
+Performance/OpenStruct:
+  Enabled: true
+
+# RuboCop RSpec cops
+RSpec/BeEq:
+  Enabled: true
+
+RSpec/BeNil:
+  Enabled: true
+
+RSpec/EmptyLineAfterExampleGroup:
+  Enabled: true
+
+RSpec/EmptyLineAfterHook:
+  Enabled: true
+
+RSpec/EmptyLineAfterSubject:
+  Enabled: true
+
+RSpec/ExcessiveDocstringSpacing:
+  Enabled: true
+
+RSpec/RepeatedDescription:
+  Enabled: true
+
+RSpec/RepeatedExample:
   Enabled: true

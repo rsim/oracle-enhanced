@@ -113,7 +113,7 @@ describe "OracleEnhancedAdapter dirty object tracking" do
 
   it "should not update unchanged CLOBs" do
     @conn = nil
-    @connection = nil
+    @raw_connection = nil
     @employee = TestEmployee.create!(
       comments: "initial"
     )
@@ -121,10 +121,12 @@ describe "OracleEnhancedAdapter dirty object tracking" do
     @employee.reload
     expect(@employee.comments).to eq("initial")
 
-    oci_conn = @conn.instance_variable_get("@connection")
+    oci_conn = @conn.instance_variable_get("@raw_connection")
     class << oci_conn
       def write_lob(lob, value, is_binary = false); raise "don't do this'"; end
     end
+    @employee.comments = +"initial"
+    expect(@employee.comments_changed?).to be false
     expect { @employee.save! }.not_to raise_error
     class << oci_conn
       remove_method :write_lob

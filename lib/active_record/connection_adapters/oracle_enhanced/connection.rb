@@ -4,7 +4,7 @@ module ActiveRecord
   module ConnectionAdapters
     # interface independent methods
     module OracleEnhanced
-      class Connection #:nodoc:
+      class Connection # :nodoc:
         def self.create(config)
           case ORACLE_ENHANCED_CONNECTION
           when :oci
@@ -101,7 +101,7 @@ module ActiveRecord
               _oracle_downcase(col_name)
             end
             row = cursor.fetch
-            columns.each_with_index.map { |x, i| [x, row[i]] }.to_h if row
+            columns.each_with_index.to_h { |x, i| [x, row[i]] } if row
           ensure
             cursor.close
           end
@@ -118,7 +118,7 @@ module ActiveRecord
       def database_version
         raise NoMethodError, "Not implemented for this raw driver"
       end
-      class ConnectionException < StandardError #:nodoc:
+      class ConnectionException < StandardError # :nodoc:
       end
     end
   end

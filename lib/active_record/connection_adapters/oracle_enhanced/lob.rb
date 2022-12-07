@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module ActiveRecord #:nodoc:
-  module ConnectionAdapters #:nodoc:
-    module OracleEnhanced #:nodoc:
-      module Lob #:nodoc:
+module ActiveRecord # :nodoc:
+  module ConnectionAdapters # :nodoc:
+    module OracleEnhanced # :nodoc:
+      module Lob # :nodoc:
         extend ActiveSupport::Concern
 
         included do

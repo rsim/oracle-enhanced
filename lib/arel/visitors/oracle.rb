@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
+require_relative "oracle_common"
+
 module Arel # :nodoc: all
   module Visitors
     class Oracle < Arel::Visitors::ToSql
+      include OracleCommon
+
       private
         def visit_Arel_Nodes_SelectStatement(o, collector)
           o = order_hacks(o)
@@ -28,7 +32,7 @@ module Arel # :nodoc: all
 
             collector = super(o, collector)
 
-            if offset.expr.is_a? Nodes::BindParam
+            if offset.expr.type.is_a? ActiveModel::Type::Value
               collector << ") raw_sql_ WHERE rownum <= ("
               collector = visit offset.expr, collector
               collector << " + "
@@ -38,7 +42,7 @@ module Arel # :nodoc: all
               return collector
             else
               collector << ") raw_sql_
-                  WHERE rownum <= #{offset.expr.to_i + limit}
+                  WHERE rownum <= #{offset.expr.value_before_type_cast + limit.value_before_type_cast}
                 )
                 WHERE "
               return visit(offset, collector)
@@ -190,6 +194,10 @@ module Arel # :nodoc: all
             i += 1 if array[i].count("(") == array[i].count(")")
           end
           array
+        end
+
+        def visit_ActiveModel_Attribute(o, collector)
+          collector.add_bind(o) { |i| ":a#{i}" }
         end
 
         def visit_Arel_Nodes_BindParam(o, collector)

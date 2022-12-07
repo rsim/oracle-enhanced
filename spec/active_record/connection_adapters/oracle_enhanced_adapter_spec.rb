@@ -83,7 +83,7 @@ describe "OracleEnhancedAdapter" do
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
-      it "should get primary key from database at first time" do
+      it "should get primary key from database at second time without query" do
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         @logger.clear(:debug)
         expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
@@ -129,6 +129,7 @@ describe "OracleEnhancedAdapter" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = "UNUSED"
       @conn = ActiveRecord::Base.connection
     end
+
     after(:all) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces = {}
     end
@@ -136,6 +137,7 @@ describe "OracleEnhancedAdapter" do
     after(:each) do
       @conn.drop_table :foos, if_exists: true
     end
+
     it "should create ok" do
       @conn.create_table :foos, temporary: true, id: false do |t|
         t.integer :id
@@ -470,12 +472,12 @@ describe "OracleEnhancedAdapter" do
       serialized_column.serialized << new_value
       expect(serialized_column.serialized).to eq([new_value])
       serialized_column.save
-      expect(serialized_column.save!).to eq(true)
+      expect(serialized_column.save!).to be(true)
 
       serialized_column.reload
       expect(serialized_column.serialized).to eq([new_value])
       serialized_column.serialized = []
-      expect(serialized_column.save!).to eq(true)
+      expect(serialized_column.save!).to be(true)
     end
   end
 
@@ -514,7 +516,7 @@ describe "OracleEnhancedAdapter" do
       binary_column_object = TestBinaryColumn.new
       binary_column_object.attachment = binary_value
 
-      expect(binary_column_object.save!).to eq(true)
+      expect(binary_column_object.save!).to be(true)
     end
   end
 
@@ -622,8 +624,8 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should test table existence" do
-      expect(@conn.table_exists?("TEST_POSTS")).to eq true
-      expect(@conn.table_exists?("NOT_EXISTING")).to eq false
+      expect(@conn.table_exists?("TEST_POSTS")).to be true
+      expect(@conn.table_exists?("NOT_EXISTING")).to be false
     end
 
     it "should return array from indexes with bind usage" do
@@ -648,13 +650,13 @@ describe "OracleEnhancedAdapter" do
       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
 
-    it "should not raise missing IN/OUT parameter like issue 1687 " do
+    it "should not raise missing IN/OUT parameter like issue 1678" do
       # "to_sql" enforces unprepared_statement including dictionary access SQLs
       expect { User.joins(:group).to_sql }.not_to raise_exception
     end
 
     it "should return false from temporary_table? with bind usage" do
-      expect(@conn.temporary_table?("TEST_POSTS")).to eq false
+      expect(@conn.temporary_table?("TEST_POSTS")).to be false
       expect(@logger.logged(:debug).last).to match(/:table_name/)
       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
     end
@@ -721,12 +723,14 @@ describe "OracleEnhancedAdapter" do
         end
       end
     end
+
     after(:all) do
       schema_define do
         drop_table :table_with_name_thats_just_ok,
           sequence_name: "suitably_short_seq" rescue nil
       end
     end
+
     it "should create table with custom sequence name" do
       expect(@conn.select_value("select suitably_short_seq.nextval from dual")).to eq(1)
     end
@@ -767,7 +771,7 @@ describe "OracleEnhancedAdapter" do
       expect(post.explain).to include("|  TABLE ACCESS FULL| TEST_POSTS |")
     end
 
-    it "should explain considers hints with /*+ */ " do
+    it "should explain considers hints with /*+ */" do
       post = TestPost.optimizer_hints("/*+ FULL (\"TEST_POSTS\") */")
       post = post.where(id: 1)
       expect(post.explain).to include("|  TABLE ACCESS FULL| TEST_POSTS |")

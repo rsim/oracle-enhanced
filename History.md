@@ -1,3 +1,105 @@
+## 7.0.2 / 2022-01-21
+
+* Changes and bug fixes
+  * Fix `columns_for_distinct` when using Rails 6.1 [#2249 #2251 rails/rails#31966]
+
+## 7.0.1 / 2022-01-13
+
+* Changes and bug fixes
+  * Add ruby-oci8 as dependency only for CRuby [#2238 #2240 #2243]
+  * Add if_exists option to remove_index [#2219 #2233]
+  * all attributes serialized before writing [#2203 #2234]
+  * Require 'activerecord', not 'rails' not to attempt to install digest [#2241]
+* CI
+  * Bump Ruby versions at Travis CI [#2242]
+  * CI against Ruby 3.1 at GitHub Actions [#2235 #2244]
+## 7.0.0 / 2021-12-16
+* Changes and bug fixes
+  * Support Rails 7.0.0
+
+## 7.0.0.rc1 / 2021-12-08
+
+* Changes and bug fixes
+  * Support Rails 7.0.0.rc1
+  * Rails 7 requires Ruby 2.7 and prefer Ruby 3+ [#2136]
+  * Allow usage of JDBC statement caching by DB config parameter [#2088]
+  * structure dump: read column comments from all_tab_cols [#2121]
+  * Usage of bind variables for volatile filter conditions (3) [#2125]
+  * attribute should not require a connection is established [#2136]
+  * Allow Adapter#select_all to be performed asynchronously from a background thread pool [#2146]
+  * Avoid extra BindParam allocation to generate placeholder in queries [#2157]
+  * Address undefined method `to_i' for #<ActiveModel::Attribute::WithCastValue [#2159]
+  * Update Rails default branch name change [#2126]
+  * Optimize remove_columns to use a single SQL statement when supported [#2182]
+  * Refactor schema creation to extract new_foreign_key_definition [#2183]
+  * Address "NoMethodError: undefined method `partial_writes?'" [#2188]
+  * Suppress partial_writes deprecation warning [#2189]
+  * Make default_timezone a module instance variable [#2190]
+  * Define adapter type maps statically when possible [#2199]
+  * Rename _type_cast to type_cast [#2199]
+  * Rename _quote to quote [#2199]
+  * Always use OpenSSL constants for Digest operations [#2217]
+  * Refactor ActiveRecord::QueryLogs hook point [#2218]
+  * Enable Style/RedundantRegexpEscape cop [#2074]
+  * Enable Lint/DuplicateRequire cop [#2107]
+  * Enable Layout/SpaceBeforeBrackets cop [#2108]
+  * Enable Performance/BindCall cop [#2140]
+  * Enable Performance/StringReplacement cop [#2175]
+  * Enable Performance/MapCompact cop [#2176]
+  * Enable Layout/EndOfLine cop [#2177]
+  * Enable Performance/SelectMap cop [#2178]
+  * Enable Layout/ClosingParenthesisIndentation cop [#2193]
+  * Enable Style/ExplicitBlockArgument cop [#2209]
+  * Enable Lint/DuplicateMethods cop [#2215]
+  * Disable Lint/ShadowingOuterLocalVariable cop [#2137]
+  * Disable Layout/FirstArgumentIndentation cop [#2149]
+  * Opt out of SuggestExtensions message [#2133]
+  * Suppress RuboCop's offense [#2196]
+  * Support RuboCop 1.19.0 [#2204]
+  * Prevent from including ojdbc8.jar file to gem file [#2164]
+
+* CI
+  * Disable CI against JRuby builds [#2136]
+  * CI against Ruby 3.0.0 [#2091]
+  * CI against Ruby 3.0.1 and 2.7.3 [#2173]
+  * CI against Ruby 3.0.2 and 2.7.4 [#2195]
+  * Exclude ruby-head and ruby-debug until minitest allows Ruby 3.1 [#2094]
+  * Address Travis CI warnings and bump Ubuntu version to 20.04 [#2086]
+  * Tidy up Travis CI configuration [#2116]
+  * Tweak representation of build matrix [#2129]
+  * Install Oracle JDBC driver ojdbc11.jar for GitHub Actions [#2172]
+  * Address guides/bug_report_templates/active_record_gem_spec.rb error [#2101]
+  * Use Oracle Instant Client 21.1.0.0.0 [#2205]
+  * Use Oracle Instant Client 21.4 [#2199]
+  * Use gvenzl/oracle-xe docker image [#2206]
+
+## 6.1.5 / 2021-12-07
+
+* Changes and bug fixes
+  * get root cause if something went wrong with jdbc.OracleDriver [#2180 #2181]
+
+* CI
+  * Bump CRuby versions at Travis CI for release61 branch [#2192]
+
+## 6.1.4 / 2021-04-01
+
+* Changes and bug fixes
+  * Support use of ojdbc11.jar [#2155, #2168]
+  * Add missing default granted permission "ulimited tablespace" [#2156, #2167]
+  * Prevent from including ojdbc8.jar file to gem file [#2163, #2164, #2165]
+  * Oracle enhanced adapter 6.1.3 has been yanked since #2163
+
+* CI
+  * Allow-failure CI against jruby-head for release61 branch [#2166]
+
+## 6.1.3 / 2021-03-31
+
+* Changes and bug fixes
+  * Address FrozenError (can't modify frozen Hash): error [#2139 #2151 #2160]
+
+* CI
+  * CI against JRuby 9.2.15.0 [#2150]
+
 ## 6.1.2 / 2021-02-10
 * Changes and bug fixes
   * Fixed ORA-01935: missing user or role name with config read issue [#1943 #2135, #2142]

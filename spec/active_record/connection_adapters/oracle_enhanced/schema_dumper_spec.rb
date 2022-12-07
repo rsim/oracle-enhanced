@@ -127,6 +127,7 @@ describe "OracleEnhancedAdapter schema dump" do
         remove_foreign_key :test_comments, name: "comments_posts_baz_fooz_fk" rescue nil
       end
     end
+
     after(:all) do
       schema_define do
         drop_table :test_comments, if_exists: true
@@ -383,6 +384,7 @@ describe "OracleEnhancedAdapter schema dump" do
           end
         end
       end
+
       after(:all) do
         if @oracle11g_or_higher
           schema_define do
@@ -390,6 +392,7 @@ describe "OracleEnhancedAdapter schema dump" do
           end
         end
       end
+
       it "should dump correctly" do
         output = dump_table_schema "test_names"
         expect(output).not_to match(/t\.index .+FIRST_NAME.+$/)

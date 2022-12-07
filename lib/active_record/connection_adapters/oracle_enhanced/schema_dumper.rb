@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module ActiveRecord #:nodoc:
-  module ConnectionAdapters #:nodoc:
-    module OracleEnhanced #:nodoc:
-      class SchemaDumper < ConnectionAdapters::SchemaDumper #:nodoc:
+module ActiveRecord # :nodoc:
+  module ConnectionAdapters # :nodoc:
+    module OracleEnhanced # :nodoc:
+      class SchemaDumper < ConnectionAdapters::SchemaDumper # :nodoc:
         DEFAULT_PRIMARY_KEY_COLUMN_SPEC = { precision: "38", null: "false" }.freeze
         private_constant :DEFAULT_PRIMARY_KEY_COLUMN_SPEC
 
@@ -47,7 +47,7 @@ module ActiveRecord #:nodoc:
 
           def _indexes(table, stream)
             if (indexes = @connection.indexes(table)).any?
-              add_index_statements = indexes.map do |index|
+              add_index_statements = indexes.filter_map do |index|
                 case index.type
                 when nil
                   # do nothing here. see indexes_in_create
@@ -67,7 +67,7 @@ module ActiveRecord #:nodoc:
                   statement_parts = ["# unrecognized index #{index.name.inspect} with type #{index.type.inspect}"]
                 end
                 "  " + statement_parts.join(", ") unless statement_parts.empty?
-              end.compact
+              end
 
               return if add_index_statements.empty?
 

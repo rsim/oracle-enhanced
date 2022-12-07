@@ -2,7 +2,7 @@
 
 require "active_support"
 
-module ActiveRecord #:nodoc:
+module ActiveRecord # :nodoc:
   # Custom create, update, delete methods functionality.
   #
   # Example:
@@ -33,7 +33,7 @@ module ActiveRecord #:nodoc:
   #     end
   #   end
   #
-  module OracleEnhancedProcedures #:nodoc:
+  module OracleEnhancedProcedures # :nodoc:
     module ClassMethods
       # Specify custom create method which should be used instead of Rails generated INSERT statement.
       # Provided block should return ID of new record.
@@ -83,7 +83,7 @@ module ActiveRecord #:nodoc:
       end
     end
 
-    def destroy #:nodoc:
+    def destroy # :nodoc:
       # check if class has custom delete method
       if self.class.custom_delete_method
         # wrap destroy in transaction
@@ -150,7 +150,7 @@ module ActiveRecord #:nodoc:
               end
             end
             # update just dirty attributes
-            if partial_writes?
+            if partial_updates?
               # Serialized attributes should always be written in case they've been
               # changed in place.
               update_using_custom_method(changed | (attributes.keys & self.class.columns.select { |column| column.is_a?(Type::Serialized) }))
@@ -185,8 +185,8 @@ module ActiveRecord #:nodoc:
         freeze
       end
 
-      def log_custom_method(*args)
-        self.class.connection.send(:log, *args) { yield }
+      def log_custom_method(*args, &block)
+        self.class.connection.send(:log, *args, &block)
       end
 
       alias_method :update_record, :_update_record if private_method_defined?(:_update_record)

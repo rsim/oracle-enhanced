@@ -4,7 +4,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
   include SchemaSpecHelper
 
   before(:all) do
-    ActiveRecord::Base.default_timezone = :local
+    ActiveRecord.default_timezone = :local
     ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
     @conn = ActiveRecord::Base.connection
     schema_define do
@@ -28,7 +28,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
 
   after(:all) do
     @conn.drop_table :test_employees, if_exists: true
-    ActiveRecord::Base.default_timezone = :utc
+    ActiveRecord.default_timezone = :utc
   end
 
   describe "/ TIMESTAMP WITH TIME ZONE values from ActiveRecord model" do

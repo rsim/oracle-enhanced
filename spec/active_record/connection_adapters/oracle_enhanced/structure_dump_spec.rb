@@ -9,6 +9,7 @@ describe "OracleEnhancedAdapter structure dump" do
     @oracle11g_or_higher = !! @conn.select_value(
       "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
   end
+
   describe "structure dump" do
     before(:each) do
       @conn.create_table :test_posts, force: true do |t|
@@ -228,25 +229,13 @@ describe "OracleEnhancedAdapter structure dump" do
       dump = ActiveRecord::Base.connection.structure_dump
       expect(dump).to match(/#{comment_sql}/)
     end
-
-    it "should dump table comments" do
-      comment_sql = %Q(COMMENT ON TABLE "TEST_POSTS" IS 'Test posts with ''some'' "quotes"')
-      @conn.execute comment_sql
-      dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/#{comment_sql}/)
-    end
-
-    it "should dump column comments" do
-      comment_sql = %Q(COMMENT ON COLUMN "TEST_POSTS"."TITLE" IS 'The title of the post with ''some'' "quotes"')
-      @conn.execute comment_sql
-      dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/#{comment_sql}/)
-    end
   end
+
   describe "temporary tables" do
     after(:all) do
       @conn.drop_table :test_comments, if_exists: true
     end
+
     it "should dump correctly" do
       @conn.create_table :test_comments, temporary: true, id: false do |t|
         t.integer :post_id
@@ -261,26 +250,32 @@ describe "OracleEnhancedAdapter structure dump" do
     before(:each) do
       @conn.execute sql
     end
+
     after(:each) do
       @conn.execute "drop SEQUENCE \"#{sequence_name}\""
     end
+
     subject do
       ActiveRecord::Base.connection.structure_dump
     end
+
     context "default sequence" do
       let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\"" }
       it { is_expected.to_not match(%r{CREATE SEQUENCE "#{sequence_name}" MAXVALUE \d+ MINVALUE \d+ NOORDER NOCYCLE}) }
     end
+
     context "noorder" do
       let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\" NOORDER" }
       it { is_expected.to include("NOORDER") }
       it { is_expected.to_not include(" ORDER") }
     end
+
     context "order" do
       let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\" ORDER" }
       it { is_expected.to include(" ORDER") }
       it { is_expected.to_not include("NOORDER") }
     end
+
     context "min max values" do
       let(:sql) { "CREATE SEQUENCE \"#{sequence_name}\" MINVALUE 7 MAXVALUE 444" }
       it { is_expected.to include("MINVALUE 7") }
@@ -317,6 +312,7 @@ describe "OracleEnhancedAdapter structure dump" do
         t.string :foo
       end
     end
+
     it "should dump drop sql for just temp tables" do
       dump = @conn.temp_table_drop
       expect(dump).to match(/DROP TABLE "TEMP_TBL"/)
@@ -444,6 +440,7 @@ describe "OracleEnhancedAdapter structure dump" do
         create or replace type full_drop_test_type as table of number
       SQL
     end
+
     after(:each) do
       @conn.drop_table :full_drop_test
       @conn.drop_table :full_drop_test_temp
@@ -455,6 +452,7 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute "DROP PROCEDURE FULL_DROP_TEST_PROCEDURE" rescue nil
       @conn.execute "DROP TYPE FULL_DROP_TEST_TYPE" rescue nil
     end
+
     it "should contain correct sql" do
       drop = @conn.full_drop
       expect(drop).to match(/DROP TABLE "FULL_DROP_TEST" CASCADE CONSTRAINTS/)

@@ -14,8 +14,8 @@ env:
     - DATABASE_VERSION=11.2.0.1
     - ORACLE_SID=XE
     - DATABASE_NAME=XE
-    - ORA_SDTZ='Europe/Riga' #Needed as a client parameter
-    - TZ='Europe/Riga'       #Needed as a DB Server parameter
+    - ORA_SDTZ='Europe/Riga' # Needed as a client parameter
+    - TZ='Europe/Riga'       # Needed as a DB Server parameter
     - "JRUBY_OPTS='--debug --dev -J-Xmx1024M'"
 
 before_install:
@@ -28,18 +28,21 @@ install:
   - .travis/oracle/install.sh
   - .travis/setup_accounts.sh
   - ruby -v
+  - gem update --system
   - bundle install
 
 script:
   - bundle exec rake spec
   - rm Gemfile.lock
-  - ruby guides/bug_report_templates/active_record_gem.rb
-  - ruby guides/bug_report_templates/active_record_gem_spec.rb
+  - cd guides/bug_report_templates
+  - ruby active_record_gem.rb
+  - ruby active_record_gem_spec.rb
 
 language: ruby
 rvm:
-  - 3.0.0
-  - 2.7.2
+  - 3.1.2
+  - 3.0.4
+  - 2.7.6
   - ruby-head
   # Rails 7.0 requires Ruby 2.7 or higeher.
   # CI pending until JRuby 9.4 that supports Ruby 2.7 will be released.
@@ -53,4 +56,4 @@ rvm:
 #   - rvm: jruby-head
 
 notifications:
-    email: false
+  email: false
