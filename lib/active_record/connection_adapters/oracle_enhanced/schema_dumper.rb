@@ -4,7 +4,15 @@ module ActiveRecord #:nodoc:
   module ConnectionAdapters #:nodoc:
     module OracleEnhanced #:nodoc:
       class SchemaDumper < ConnectionAdapters::SchemaDumper #:nodoc:
+        DEFAULT_PRIMARY_KEY_COLUMN_SPEC = { precision: "38", null: "false" }.freeze
+        private_constant :DEFAULT_PRIMARY_KEY_COLUMN_SPEC
+
         private
+          def column_spec_for_primary_key(column)
+            spec = super
+            spec.except!(:precision) if prepare_column_options(column) == DEFAULT_PRIMARY_KEY_COLUMN_SPEC
+            spec
+          end
 
           def tables(stream)
             # do not include materialized views in schema dump - they should be created separately after schema creation
@@ -51,6 +59,7 @@ module ActiveRecord #:nodoc:
                   else
                     statement_parts = [ ("add_context_index " + remove_prefix_and_suffix(table).inspect) ]
                     statement_parts << index.columns.inspect
+                    statement_parts << ("sync: " + $1.inspect) if index.parameters =~ /SYNC\((.*?)\)/
                     statement_parts << ("name: " + index.name.inspect)
                   end
                 else
@@ -72,7 +81,7 @@ module ActiveRecord #:nodoc:
               index_statements = indexes.map do |index|
                 "    t.index #{index_parts(index).join(', ')}" unless index.type == "CTXSYS.CONTEXT"
               end
-              stream.puts index_statements.sort.join("\n")
+              stream.puts index_statements.compact.sort.join("\n")
             end
           end
 
@@ -107,7 +116,10 @@ module ActiveRecord #:nodoc:
                 tbl.print ", primary_key: #{pk.inspect}" unless pk == "id"
                 pkcol = columns.detect { |c| c.name == pk }
                 pkcolspec = column_spec_for_primary_key(pkcol)
-                if pkcolspec.present?
+                unless pkcolspec.empty?
+                  if pkcolspec != pkcolspec.slice(:id, :default)
+                    pkcolspec = { id: { type: pkcolspec.delete(:id), **pkcolspec }.compact }
+                  end
                   tbl.print ", #{format_colspec(pkcolspec)}"
                 end
               when Array
@@ -168,8 +180,8 @@ module ActiveRecord #:nodoc:
 
           def extract_expression_for_virtual_column(column)
             column_name = column.name
-            @connection.select_value(<<~SQL.squish, "Table comment", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
-              select data_default from all_tab_columns
+            @connection.select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
+              select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ data_default from all_tab_columns
               where owner = SYS_CONTEXT('userenv', 'current_schema')
               and table_name = :table_name
               and column_name = :column_name

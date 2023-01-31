@@ -3,11 +3,10 @@
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
-      class SchemaCreation < AbstractAdapter::SchemaCreation
+      class SchemaCreation < SchemaCreation
         private
-
           def visit_ColumnDefinition(o)
-            if [:blob, :clob, :nclob].include?(sql_type = type_to_sql(o.type,  **o.options).downcase.to_sym)
+            if [:blob, :clob, :nclob].include?(sql_type = type_to_sql(o.type, **o.options).downcase.to_sym)
               if (tablespace = default_tablespace_for(sql_type))
                 @lob_tablespaces ||= {}
                 @lob_tablespaces[o.name] = tablespace
@@ -36,7 +35,7 @@ module ActiveRecord
                 create_sql << " TABLESPACE #{tablespace}"
               end
             end
-            add_table_options!(create_sql, table_options(o))
+            add_table_options!(create_sql, o)
             create_sql << " AS #{to_sql(o.as)}" if o.as
             create_sql
           end

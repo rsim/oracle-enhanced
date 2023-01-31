@@ -17,21 +17,20 @@ module ActiveRecord
             print "Please provide the SYSTEM password for your Oracle installation (set ORACLE_SYSTEM_PASSWORD to avoid this prompt)\n>"
             $stdin.gets.strip
           }
-          establish_connection(@config.merge("username" => "SYSTEM", "password" => system_password))
+          establish_connection(@config.merge(username: "SYSTEM", password: system_password))
           begin
-            connection.execute "CREATE USER #{@config['username']} IDENTIFIED BY #{@config['password']}"
+            connection.execute "CREATE USER #{@config[:username]} IDENTIFIED BY #{@config[:password]}"
           rescue => e
             if /ORA-01920/.match?(e.message) # user name conflicts with another user or role name
-              connection.execute "ALTER USER #{@config['username']} IDENTIFIED BY #{@config['password']}"
+              connection.execute "ALTER USER #{@config[:username]} IDENTIFIED BY #{@config[:password]}"
             else
               raise e
             end
           end
-          connection.execute "GRANT unlimited tablespace TO #{@config['username']}"
-          connection.execute "GRANT create session TO #{@config['username']}"
-          connection.execute "GRANT create table TO #{@config['username']}"
-          connection.execute "GRANT create view TO #{@config['username']}"
-          connection.execute "GRANT create sequence TO #{@config['username']}"
+
+          OracleEnhancedAdapter.permissions.each do |permission|
+            connection.execute "GRANT #{permission} TO #{@config[:username]}"
+          end
         end
 
         def drop
@@ -47,7 +46,7 @@ module ActiveRecord
         def structure_dump(filename, extra_flags)
           establish_connection(@config)
           File.open(filename, "w:utf-8") { |f| f << connection.structure_dump }
-          if @config["structure_dump"] == "db_stored_code"
+          if @config[:structure_dump] == "db_stored_code"
             File.open(filename, "a") { |f| f << connection.structure_dump_db_stored_code }
           end
         end

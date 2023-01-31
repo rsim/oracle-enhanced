@@ -21,7 +21,7 @@ describe "OracleEnhancedAdapter schema dump" do
   def create_test_posts_table(options = {})
     options[:force] = true
     schema_define do
-      create_table :test_posts, options do |t|
+      create_table :test_posts, **options do |t|
         t.string :title
         t.timestamps null: true
       end
@@ -302,6 +302,33 @@ describe "OracleEnhancedAdapter schema dump" do
       create_test_posts_table
       @conn.execute "CREATE MATERIALIZED VIEW test_posts_mv AS SELECT * FROM test_posts"
       expect(standard_dump).not_to match(/create_table "test_posts_mv"/)
+    end
+  end
+
+  describe "context indexes" do
+    before(:each) do
+      schema_define do
+        create_table :test_context_indexed_posts, force: true do |t|
+          t.string :title
+          t.string :body
+          t.index :title
+        end
+        add_context_index :test_context_indexed_posts, :body, sync: "ON COMMIT"
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_context_indexed_posts
+      end
+    end
+
+    it "should dump the context index" do
+      expect(standard_dump).to include(%(add_context_index "test_context_indexed_posts", ["body"]))
+    end
+
+    it "dumps the sync option" do
+      expect(standard_dump).to include(%(sync: "ON COMMIT"))
     end
   end
 

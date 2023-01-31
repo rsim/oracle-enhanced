@@ -1,5 +1,5 @@
-dist: xenial
-sudo: required
+os: linux
+dist: focal
 cache: bundler
 
 env:
@@ -30,14 +30,23 @@ install:
   - ruby -v
   - bundle install
 
+script:
+  - bundle exec rake spec
+  - rm Gemfile.lock
+  - ruby guides/bug_report_templates/active_record_gem.rb
+  - ruby guides/bug_report_templates/active_record_gem_spec.rb
+
 language: ruby
 rvm:
-  - 2.7.0
-  - 2.6.5
-  - 2.5.7
-  - jruby-9.2.9.0
-  - ruby-head
+  - 3.0.1
+  - 2.7.3
+  - 2.6.7
+  - 2.5.9
+  - jruby-9.2.19.0
   - jruby-head
 
+matrix:
+  allow_failures:
+  - rvm: jruby-head
 notifications:
     email: false

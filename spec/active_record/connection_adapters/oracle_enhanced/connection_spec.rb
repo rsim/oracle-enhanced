@@ -40,6 +40,12 @@ describe "OracleEnhancedAdapter establish connection" do
     ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(cursor_sharing: :exact))
     expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
   end
+
+  it "should connect to database using service_name" do
+    ActiveRecord::Base.establish_connection(SERVICE_NAME_CONNECTION_PARAMS)
+    expect(ActiveRecord::Base.connection).not_to be_nil
+    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+  end
 end
 
 describe "OracleEnhancedConnection" do
@@ -81,13 +87,13 @@ describe "OracleEnhancedConnection" do
       expect(ActiveRecord::Base.connection).to be_active
     end
 
-    it "should swith to specified schema" do
+    it "should switch to specified schema" do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
       expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
       expect(ActiveRecord::Base.connection.current_user).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:username].upcase)
     end
 
-    it "should swith to specified schema after reset" do
+    it "should switch to specified schema after reset" do
       ActiveRecord::Base.connection.reset!
       expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
     end
@@ -180,7 +186,7 @@ describe "OracleEnhancedConnection" do
   describe "with slash-prefixed database name (service name)" do
     before(:all) do
       params = CONNECTION_PARAMS.dup
-      params[:database] = "/#{params[:database]}" unless params[:database].match(/^\//)
+      params[:database] = "/#{params[:database]}" unless params[:database].start_with?("/")
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
     end
 

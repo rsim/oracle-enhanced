@@ -269,7 +269,6 @@ module ActiveRecord
         end
 
       private
-
         def date_without_time?(value)
           case value
           when OraDate
@@ -323,9 +322,9 @@ module ActiveRecord
           # connection using host, port and database name
           elsif host || port
             host ||= "localhost"
-            host = "[#{host}]" if host =~ /^[^\[].*:/  # IPv6
+            host = "[#{host}]" if /^[^\[].*:/.match?(host)  # IPv6
             port ||= 1521
-            database = "/#{database}" unless database.match(/^\//)
+            database = "/#{database}" unless database.start_with?("/")
             "//#{host}:#{port}#{database}"
           # if no host is specified then assume that
           # database parameter is TNS alias or TNS connection string

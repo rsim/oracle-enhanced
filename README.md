@@ -10,6 +10,17 @@ Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby o
 
 INSTALLATION
 ------------
+### Rails 6.1
+
+Oracle enhanced adapter version 6.1 supports Rails 6.1.
+When using Ruby on Rails version 6.1 then in Gemfile include
+
+```ruby
+# Use oracle as the database for Active Record
+gem 'activerecord-oracle_enhanced-adapter', '~> 6.1.0'
+gem 'ruby-oci8' # only for CRuby users
+```
+
 ### Rails 6.0
 
 Oracle enhanced adapter version 6.0 supports Rails 6.0.
@@ -663,7 +674,7 @@ if any database structure changed by migrations, execute `rails db:schema:cache:
 
 UPGRADE
 ---------------
-### Upgrade Rails 5.0 or older version to Rails 5.2
+### Upgrade Rails 5.1 or older version to Rails 5.2
 
 * `emulate_booleans_from_strings = true` change
 

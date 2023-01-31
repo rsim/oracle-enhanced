@@ -16,7 +16,8 @@ begin
   # Oracle 11g client ojdbc6.jar is also compatible with Java 1.7
   # Oracle 12c Release 1 client provides ojdbc7.jar
   # Oracle 12c Release 2 client provides ojdbc8.jar
-  ojdbc_jars = %w(ojdbc8.jar ojdbc7.jar ojdbc6.jar)
+  # Oracle 21c provides ojdbc11.jar for Java 11 and above
+  ojdbc_jars = %w(ojdbc11.jar ojdbc8.jar ojdbc7.jar ojdbc6.jar)
 
   if !ENV_JAVA["java.class.path"]&.match?(Regexp.new(ojdbc_jars.join("|")))
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
@@ -42,9 +43,9 @@ begin
     java.lang.System.set_property("oracle.net.tns_admin", ENV["TNS_ADMIN"])
   end
 
-rescue LoadError, NameError
+rescue LoadError, NameError => e
   # JDBC driver is unavailable.
-  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars.join(' or ') } library."
+  raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars.join(' or ') } library.\n#{e.class}:#{e.message}"
 end
 
 module ActiveRecord
@@ -98,6 +99,8 @@ module ActiveRecord
               @raw_connection = @raw_connection.underlying_connection
             end
 
+            # Workaround FrozenError (can't modify frozen Hash):
+            config = config.dup
             config[:driver] ||= @raw_connection.meta_data.connection.java_class.name
             username = @raw_connection.meta_data.user_name
           else
@@ -115,9 +118,9 @@ module ActiveRecord
             else
               unless database.match?(/^(\:|\/)/)
                 # assume database is a SID if no colon or slash are supplied (backward-compatibility)
-                database = ":#{database}"
+                database = "/#{database}"
               end
-              url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}#{database}"
+              url = config[:url] || "jdbc:oracle:thin:@//#{host || 'localhost'}:#{port || 1521}#{database}"
             end
 
             prefetch_rows = config[:prefetch_rows] || 100
@@ -238,7 +241,7 @@ module ActiveRecord
           begin
             yield if block_given?
           rescue Java::JavaSql::SQLException => e
-            raise unless e.message =~ /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
+            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/.match?(e.message)
             @active = false
             raise unless should_retry
             should_retry = false
@@ -512,7 +515,6 @@ module ActiveRecord
         end
 
       private
-
         def lob_to_ruby_value(val)
           case val
           when ::Java::OracleSql::CLOB

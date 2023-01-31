@@ -1,3 +1,154 @@
+## 6.1.6 / 2022-01-21
+
+* Changes and bug fixes
+  * Fix `columns_for_distinct` when using Rails 6.1 [#2249 #2252 rails/rails#31966]
+
+## 6.1.5 / 2021-12-07
+
+* Changes and bug fixes
+  * get root cause if something went wrong with jdbc.OracleDriver [#2180 #2181]
+
+* CI
+  * Bump CRuby versions at Travis CI for release61 branch [#2192]
+
+## 6.1.4 / 2021-04-01
+
+* Changes and bug fixes
+  * Support use of ojdbc11.jar [#2155, #2168]
+  * Add missing default granted permission "ulimited tablespace" [#2156, #2167]
+  * Prevent from including ojdbc8.jar file to gem file [#2163, #2164, #2165]
+  * Oracle enhanced adapter 6.1.3 has been yanked since #2163
+
+* CI
+  * Allow-failure CI against jruby-head for release61 branch [#2166]
+
+## 6.1.3 / 2021-03-31
+
+* Changes and bug fixes
+  * Address FrozenError (can't modify frozen Hash): error [#2139 #2151 #2160]
+
+* CI
+  * CI against JRuby 9.2.15.0 [#2150]
+
+## 6.1.2 / 2021-02-10
+* Changes and bug fixes
+  * Fixed ORA-01935: missing user or role name with config read issue [#1943 #2135, #2142]
+
+## 6.1.1 / 2021-01-14
+
+* Changes and bug fixes
+  * Remove /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ hint for all_synonyms [#2110, #2119]
+  * Fix write_lobs Invalid byte sequence in UTF-8 [#2097, #2111]
+  * Ensure FKs are properly included in structure dumps [#2109, #2113]
+
+* CI
+  * CI against JRuby 9.2.14.0 [#2085]
+  * CI against Ruby 3.0.0 [#2091, #2092]
+  * Address Travis CI warnings and bump Ubuntu version to 20.04 [#2086]
+  * Exclude `ruby-head` and `ruby-debug` until minitest allows Ruby 3.1 #2094, #2095
+  * CI against Ruby 3.0.0 at Travis CI [#2093]
+
+## 6.1.0 / 2020-12-15
+
+* Changes and bug fixes
+  * Support Rails 6.1.0
+  * Update bug report templates for Oracle enhanced adapter 6.1 [#2063]
+  * Use released version of rake [#2065 #2066]
+  * Add /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ hint to address slow SCHEMA queries [#2055, #2068]
+  * `build_subselect` does not have ordering [#2070]
+  * Remove `visit_Arel_Nodes_NotIn` and `visit_Arel_Nodes_In` visitors [#2075, #2077]
+  * `NOT IN` clause needs separated by `AND` [#2079, #2081]
+
+## 6.1.0.rc1 / 2020-11-03
+
+* Changes and bug fixes
+  * Support Rails 6.1.0.rc1
+  * Add support to change the permissions granted when creating DB [#1885]
+  * Refactor `create_table`'s options separation [#1886]
+  * Move schema cache to pool [#1888]
+  * Clear schema cache when a table is created/dropped/renamed [#1891]
+  * Deduplicate various Active Record schema cache structures [#1897]
+  * Support SQLCounter change to ignore "SCHEMA" and "TRANSACTION" log [#1892]
+  * Share the column and table name quote cache between connections [#1901]
+  * Add database_exists? method to connection adapters [#1906]
+  * Accept columns passed with options in remove_index [#1930]
+  * Fix `NameError` for `SchemaCreation` [#1933]
+  * Add `supports_common_table_expressions?` for CTE testing [#1946]
+  * create_table_definition and add_column take keyword arguments [#1942]
+  * Address `uninitialized constant ActiveRecord::ConnectionAdapters::AbstractAdapter::Quoting (NameError) [#1950]
+  * Fix an error when writing lobs [#1962]
+  * Uninstall SimpleCov [#1968]
+  * fix: Auto retry only works for connection.exec() [#1976]
+  * Fix keyword arguments errors for Ruby 2.8.0-dev [#1977]
+  * Fix a build errors when using Ruby 2.8.0-dev [#1983]
+  * Include sync option when dumping a context index [#1988]
+  * Use `build_result` instead of `ActiveRecord::Result.new` [#1994]
+  * Use the new API for build_results [#1995]
+  * Merge Arel visitors [#2002]
+  * Enable `Rails/IndexBy` and `Rails/IndexWith` cops [#2006]
+  * Don't refer `allowed_index_name_length` directly [#2009]
+  * Should not rely on the global `Arel::Table.engine` in the framework [#2010]
+  * Suppress `warning: already initialized constant` [#2011]
+  * Deprecate passing a column to `type_cast` [#2012]
+  * Limit number of expressions in a list during a "homogenous in" operation [#2013]
+  * Allow column name with function (e.g. `length(title)`) as safe SQL string [#2017]
+  * Default engine `ENGINE=InnoDB` is no longer dumped to make schema more agnostic [#2019]
+  * Separate primary key column options from table options [#2019]
+  * Make index options to kwargs [#2022]
+  * Make remaining migration options to kwargs [#2024]
+  * Allow TruffleRuby RUBY_ENGINE [#2046]
+  * Restore Schema Dumper behavior changed by #2019 [#2047]
+  * Support JDBC service name syntax [#2035]
+  * Use Rake 13.0.0.pre.1 [#1924]
+  * Bump RuboCop version to 0.71 [#1887]
+  * Bump RuboCop to 0.74.0 [#1914]
+  * Bump RuboCop to 0.76.0 [#1947]
+  * Use RuboCop 0.77 [#1959]
+  * Bump RuboCop to 0.82.0 [#2005]
+  * Suppress RuboCop's offenses [#2020]
+  * Enable `Layout/EmptyLinesAroundAccessModifier` cop [#1890]
+  * Disable `Style/BracesAroundHashParameters` cop [#1923]
+  * Enable `Layout/ClosingHeredocIndentation` cop [#1958]
+  * Unlock RuboCop gem versions [#1926]
+  * Enable `Rails/IndexBy` and `Rails/IndexWith` cops [#2006]
+  * Enable `Performance/DeletePrefix` and `Performance/DeleteSuffix` cops [#2021]
+  * Enable `Layout/SpaceAroundOperators` cop [#2057]
+  * Fix links to rails-dev-box running on docker [#1883]
+  * Fix spec config template copy instructions [#1884]
+  * Update UPGRADE section for Rails 5.2 [#1993]
+
+* CI
+  * Enable GitHub Actions and run RuboCop [#1925]
+  * Run CI with GitHub Actions [#2015]
+  * Enabled Dependabot by creating .dependabot/config.yml [#1931]
+  * Disable Code Climate #1938
+  * CI against JRuby 9.2.8.0 [#1911]
+  * CI against JRuby 9.2.9.0 #1948
+  * CI against Ruby 2.6.4 and Ruby 2.5.6 [#1921]
+  * CI against Ruby 2.5.7 and Ruby 2.6.5 [#1949]
+  * CI against Ruby 2.7.0 [#1975]
+  * CI against JRuby 9.2.10.0 [#1989]
+  * CI against JRuby 9.2.11.0 [#1992]
+  * CI against JRuby 9.2.11.1 [#1997]
+  * CI againt Ruby 2.7.1, 2.6.6 and 2.5.8 #1998
+  * CI against JRuby 9.2.12.0 [#2034]
+  * Use Oracle Instant Client 18.5 [#2036]
+  * Support `jruby-head` again [#2037]
+  * CI against JRuby 9.2.13.0 [#2041]
+  * CI against Ruby 2.7.2 [#2052]
+  * Remove unnecessary PATH and LD_LIBRARY_PATH environment variables [#1927]
+  * Use Ubuntu 18.04 (Bionic Beaver) at Travis CI [#1937]
+  * Run bug report template at CI [#1936]
+  * Skip known failures until #1943 is resolved [#1961]
+  * Migrate to `ruby/setup-ruby` to use Ruby 2.7 [#2026]
+
+## 6.0.4 / 2020-08-18
+
+* Changes and bug fixes
+  * create_table_definition and add_column take keyword arguments [#1942, #2043]
+  * Fix keyword arguments errors for Ruby 2.8.0-dev [#1977,#2043]
+  * Fix a build errors when using Ruby 2.8.0-dev [#1983, #2043]
+
 ## 6.0.3 / 2020-06-16
 
 * Changes and bug fixes

@@ -8,10 +8,10 @@ group :development do
   gem "rspec"
   gem "rdoc"
   gem "rake"
-  gem "rubocop", "~> 0.67.0", require: false
+  gem "rubocop", require: false
   gem "rubocop-performance", require: false
-
-  gem "activerecord",   github: "rails/rails", branch: "6-0-stable"
+  gem "rubocop-rails", require: false
+  gem "activerecord",   github: "rails/rails", branch: "6-1-stable"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
