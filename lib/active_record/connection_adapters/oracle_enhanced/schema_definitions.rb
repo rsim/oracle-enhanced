@@ -35,7 +35,7 @@ module ActiveRecord
         end
       end
 
-      class SynonymDefinition < Struct.new(:name, :table_owner, :table_name) #:nodoc:
+      class SynonymDefinition < Struct.new(:name, :table_owner, :table_name) # :nodoc:
       end
 
       class IndexDefinition < ActiveRecord::ConnectionAdapters::IndexDefinition

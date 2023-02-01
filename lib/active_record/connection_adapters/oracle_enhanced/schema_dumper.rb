@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module ActiveRecord #:nodoc:
-  module ConnectionAdapters #:nodoc:
-    module OracleEnhanced #:nodoc:
-      class SchemaDumper < ConnectionAdapters::SchemaDumper #:nodoc:
+module ActiveRecord # :nodoc:
+  module ConnectionAdapters # :nodoc:
+    module OracleEnhanced # :nodoc:
+      class SchemaDumper < ConnectionAdapters::SchemaDumper # :nodoc:
         DEFAULT_PRIMARY_KEY_COLUMN_SPEC = { precision: "38", null: "false" }.freeze
         private_constant :DEFAULT_PRIMARY_KEY_COLUMN_SPEC
 

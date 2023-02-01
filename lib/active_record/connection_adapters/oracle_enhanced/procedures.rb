@@ -2,7 +2,7 @@
 
 require "active_support"
 
-module ActiveRecord #:nodoc:
+module ActiveRecord # :nodoc:
   # Custom create, update, delete methods functionality.
   #
   # Example:
@@ -33,7 +33,7 @@ module ActiveRecord #:nodoc:
   #     end
   #   end
   #
-  module OracleEnhancedProcedures #:nodoc:
+  module OracleEnhancedProcedures # :nodoc:
     module ClassMethods
       # Specify custom create method which should be used instead of Rails generated INSERT statement.
       # Provided block should return ID of new record.
@@ -83,7 +83,7 @@ module ActiveRecord #:nodoc:
       end
     end
 
-    def destroy #:nodoc:
+    def destroy # :nodoc:
       # check if class has custom delete method
       if self.class.custom_delete_method
         # wrap destroy in transaction

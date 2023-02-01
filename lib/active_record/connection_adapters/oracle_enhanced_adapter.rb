@@ -63,9 +63,9 @@ require "active_record/type/oracle_enhanced/timestampltz"
 require "active_record/type/oracle_enhanced/character_string"
 
 module ActiveRecord
-  module ConnectionHandling #:nodoc:
+  module ConnectionHandling # :nodoc:
     # Establishes a connection to the database that's used by all Active Record objects.
-    def oracle_enhanced_connection(config) #:nodoc:
+    def oracle_enhanced_connection(config) # :nodoc:
       if config[:emulate_oracle_adapter] == true
         # allows the enhanced adapter to look like the OracleAdapter. Useful to pick up
         # conditionals in the rails activerecord test suite
@@ -79,7 +79,7 @@ module ActiveRecord
     end
   end
 
-  module ConnectionAdapters #:nodoc:
+  module ConnectionAdapters # :nodoc:
     # Oracle enhanced adapter will work with both
     # CRuby ruby-oci8 gem (which provides interface to Oracle OCI client)
     # or with JRuby and Oracle JDBC driver.
@@ -259,7 +259,7 @@ module ActiveRecord
 
       ADAPTER_NAME = "OracleEnhanced"
 
-      def adapter_name #:nodoc:
+      def adapter_name # :nodoc:
         ADAPTER_NAME
       end
 
@@ -283,11 +283,11 @@ module ActiveRecord
         StatementPool.new(self.class.type_cast_config_to_integer(@config[:statement_limit]))
       end
 
-      def supports_savepoints? #:nodoc:
+      def supports_savepoints? # :nodoc:
         true
       end
 
-      def supports_transaction_isolation? #:nodoc:
+      def supports_transaction_isolation? # :nodoc:
         true
       end
 
@@ -370,7 +370,7 @@ module ActiveRecord
         end
       end
 
-      #:stopdoc:
+      # :stopdoc:
       DEFAULT_NLS_PARAMETERS = {
         nls_calendar: nil,
         nls_comp: nil,
@@ -389,13 +389,13 @@ module ActiveRecord
         nls_time_tz_format: nil
       }
 
-      #:stopdoc:
+      # :stopdoc:
       FIXED_NLS_PARAMETERS = {
         nls_date_format: "YYYY-MM-DD HH24:MI:SS",
         nls_timestamp_format: "YYYY-MM-DD HH24:MI:SS:FF6"
       }
 
-      #:stopdoc:
+      # :stopdoc:
       NATIVE_DATABASE_TYPES = {
         primary_key: "NUMBER(38) NOT NULL PRIMARY KEY",
         string: { name: "VARCHAR2", limit: 255 },
@@ -419,9 +419,9 @@ module ActiveRecord
       NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS = NATIVE_DATABASE_TYPES.dup.merge(
         boolean: { name: "VARCHAR2", limit: 1 }
       )
-      #:startdoc:
+      # :startdoc:
 
-      def native_database_types #:nodoc:
+      def native_database_types # :nodoc:
         emulate_booleans_from_strings ? NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS : NATIVE_DATABASE_TYPES
       end
 
@@ -431,10 +431,10 @@ module ActiveRecord
       # If SQL statement fails due to lost connection then reconnect
       # and retry SQL statement if autocommit mode is enabled.
       # By default this functionality is disabled.
-      attr_reader :auto_retry #:nodoc:
+      attr_reader :auto_retry # :nodoc:
       @auto_retry = false
 
-      def auto_retry=(value) #:nodoc:
+      def auto_retry=(value) # :nodoc:
         @auto_retry = value
         @connection.auto_retry = value if @connection
       end
@@ -445,7 +445,7 @@ module ActiveRecord
       end
 
       # Returns true if the connection is active.
-      def active? #:nodoc:
+      def active? # :nodoc:
         # Pings the connection to check if it's still good. Note that an
         # #active? method is also available, but that simply returns the
         # last known state, which isn't good enough if the connection has
@@ -456,7 +456,7 @@ module ActiveRecord
       end
 
       # Reconnects to the database.
-      def reconnect! #:nodoc:
+      def reconnect! # :nodoc:
         super
         @connection.reset!
       rescue OracleEnhanced::ConnectionException => e
@@ -469,7 +469,7 @@ module ActiveRecord
       end
 
       # Disconnects from the database.
-      def disconnect! #:nodoc:
+      def disconnect! # :nodoc:
         super
         @connection.logoff rescue nil
       end
@@ -490,7 +490,7 @@ module ActiveRecord
           # The primary key will be populated by a trigger which is maintained outside of the application
           return nil
         else
-          raise 'Trigger based primary key is not supported'
+          raise "Trigger based primary key is not supported"
         end
 
         # call directly connection method to avoid prepared statement which causes fetching of next sequence value twice
@@ -512,7 +512,7 @@ module ActiveRecord
         !do_not_prefetch
       end
 
-      def reset_pk_sequence!(table_name, primary_key = nil, sequence_name = nil) #:nodoc:
+      def reset_pk_sequence!(table_name, primary_key = nil, sequence_name = nil) # :nodoc:
         return nil unless data_source_exists?(table_name)
         unless primary_key && sequence_name
           # *Note*: Only primary key is implemented - sequence will be nil.
@@ -606,7 +606,7 @@ module ActiveRecord
 
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
-      def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) #:nodoc:
+      def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
         (owner, desc_table_name) = @connection.describe(table_name)
 
         seqs = select_values(<<~SQL.squish, "SCHEMA")
@@ -644,7 +644,7 @@ module ActiveRecord
         pk_and_sequence && pk_and_sequence.first
       end
 
-      def has_primary_key?(table_name, owner = nil, desc_table_name = nil) #:nodoc:
+      def has_primary_key?(table_name, owner = nil, desc_table_name = nil) # :nodoc:
         !pk_and_sequence_for(table_name, owner, desc_table_name).nil?
       end
 
@@ -664,7 +664,7 @@ module ActiveRecord
         pks.map { |pk| oracle_downcase(pk) }
       end
 
-      def columns_for_distinct(columns, orders) #:nodoc:
+      def columns_for_distinct(columns, orders) # :nodoc:
         # construct a valid columns name for DISTINCT clause,
         # ie. one that includes the ORDER BY columns, using FIRST_VALUE such that
         # the inclusion of these columns doesn't invalidate the DISTINCT
@@ -680,7 +680,7 @@ module ActiveRecord
         (order_columns << super).join(", ")
       end
 
-      def temporary_table?(table_name) #:nodoc:
+      def temporary_table?(table_name) # :nodoc:
         select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
           temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -746,7 +746,7 @@ module ActiveRecord
           end
         end
 
-        def extract_limit(sql_type) #:nodoc:
+        def extract_limit(sql_type) # :nodoc:
           case sql_type
           when /^bigint/i
             19
@@ -755,7 +755,7 @@ module ActiveRecord
           end
         end
 
-        def translate_exception(exception, message:, sql:, binds:) #:nodoc:
+        def translate_exception(exception, message:, sql:, binds:) # :nodoc:
           case @connection.error_code(exception)
           when 1
             RecordNotUnique.new(message, sql: sql, binds: binds)

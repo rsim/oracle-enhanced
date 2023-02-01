@@ -10,7 +10,7 @@ module ActiveRecord
         #
         # see: abstract/schema_statements.rb
 
-        def tables #:nodoc:
+        def tables # :nodoc:
           select_values(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
             DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
@@ -66,7 +66,7 @@ module ActiveRecord
           SQL
         end
 
-        def materialized_views #:nodoc:
+        def materialized_views # :nodoc:
           select_values(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
             LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -86,7 +86,7 @@ module ActiveRecord
            end
         end
 
-        def indexes(table_name) #:nodoc:
+        def indexes(table_name) # :nodoc:
           (_owner, table_name) = @connection.describe(table_name)
           default_tablespace_name = default_tablespace
 
@@ -252,7 +252,7 @@ module ActiveRecord
           rebuild_primary_key_index_to_default_tablespace(table_name, options)
         end
 
-        def rename_table(table_name, new_name) #:nodoc:
+        def rename_table(table_name, new_name) # :nodoc:
           if new_name.to_s.length > DatabaseLimits::IDENTIFIER_MAX_LENGTH
             raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{DatabaseLimits::IDENTIFIER_MAX_LENGTH} characters"
           end
@@ -264,7 +264,7 @@ module ActiveRecord
           rename_table_indexes(table_name, new_name)
         end
 
-        def drop_table(table_name, **options) #:nodoc:
+        def drop_table(table_name, **options) # :nodoc:
           schema_cache.clear_data_source_cache!(table_name.to_s)
           execute "DROP TABLE #{quote_table_name(table_name)}#{' CASCADE CONSTRAINTS' if options[:force] == :cascade}"
           seq_name = options[:sequence_name] || default_sequence_name(table_name)
@@ -295,7 +295,7 @@ module ActiveRecord
           end
         end
 
-        def add_index(table_name, column_name, **options) #:nodoc:
+        def add_index(table_name, column_name, **options) # :nodoc:
           index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, **options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
           if index_type == "UNIQUE"
@@ -305,7 +305,7 @@ module ActiveRecord
           end
         end
 
-        def add_index_options(table_name, column_name, comment: nil, **options) #:nodoc:
+        def add_index_options(table_name, column_name, comment: nil, **options) # :nodoc:
           column_names = Array(column_name)
           index_name   = index_name(table_name, column: column_names)
 
@@ -329,7 +329,7 @@ module ActiveRecord
 
         # Remove the given index from the table.
         # Gives warning if index does not exist
-        def remove_index(table_name, column_name = nil, **options) #:nodoc:
+        def remove_index(table_name, column_name = nil, **options) # :nodoc:
           index_name = index_name_for_remove(table_name, column_name, options)
           # TODO: It should execute only when index_type == "UNIQUE"
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(index_name)}" rescue nil
@@ -337,7 +337,7 @@ module ActiveRecord
         end
 
         # returned shortened index name if default is too large
-        def index_name(table_name, options) #:nodoc:
+        def index_name(table_name, options) # :nodoc:
           default_name = super(table_name, options).to_s
           # sometimes options can be String or Array with column names
           options = {} unless options.is_a?(Hash)
@@ -377,7 +377,7 @@ module ActiveRecord
           result == 1
         end
 
-        def rename_index(table_name, old_name, new_name) #:nodoc:
+        def rename_index(table_name, old_name, new_name) # :nodoc:
           validate_index_length!(table_name, new_name)
           execute "ALTER INDEX #{quote_column_name(old_name)} rename to #{quote_column_name(new_name)}"
         end
@@ -412,7 +412,7 @@ module ActiveRecord
           OracleEnhanced::ReferenceDefinition.new(ref_name, **options).add_to(update_table_definition(table_name, self))
         end
 
-        def add_column(table_name, column_name, type, **options) #:nodoc:
+        def add_column(table_name, column_name, type, **options) # :nodoc:
           type = aliased_types(type.to_s, type)
           at = create_alter_table table_name
           at.add_column(column_name, type, **options)
@@ -429,14 +429,14 @@ module ActiveRecord
           fallback
         end
 
-        def change_column_default(table_name, column_name, default_or_changes) #:nodoc:
+        def change_column_default(table_name, column_name, default_or_changes) # :nodoc:
           default = extract_new_default_value(default_or_changes)
           execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
         ensure
           clear_table_columns_cache(table_name)
         end
 
-        def change_column_null(table_name, column_name, null, default = nil) #:nodoc:
+        def change_column_null(table_name, column_name, null, default = nil) # :nodoc:
           column = column_for(table_name, column_name)
 
           unless null || default.nil?
@@ -446,7 +446,7 @@ module ActiveRecord
           change_column table_name, column_name, column.sql_type, null: null
         end
 
-        def change_column(table_name, column_name, type, **options) #:nodoc:
+        def change_column(table_name, column_name, type, **options) # :nodoc:
           column = column_for(table_name, column_name)
 
           # remove :null option if its value is the same as current column definition
@@ -470,14 +470,14 @@ module ActiveRecord
           clear_table_columns_cache(table_name)
         end
 
-        def rename_column(table_name, column_name, new_column_name) #:nodoc:
+        def rename_column(table_name, column_name, new_column_name) # :nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
           rename_column_indexes(table_name, column_name, new_column_name)
         ensure
           clear_table_columns_cache(table_name)
         end
 
-        def remove_column(table_name, column_name, type = nil, options = {}) #:nodoc:
+        def remove_column(table_name, column_name, type = nil, options = {}) # :nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)} CASCADE CONSTRAINTS"
         ensure
           clear_table_columns_cache(table_name)
@@ -499,7 +499,7 @@ module ActiveRecord
           execute "COMMENT ON COLUMN #{quote_table_name(table_name)}.#{quote_column_name(column_name)} IS '#{comment}'"
         end
 
-        def table_comment(table_name) #:nodoc:
+        def table_comment(table_name) # :nodoc:
           # TODO
           (_owner, table_name) = @connection.describe(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
@@ -515,7 +515,7 @@ module ActiveRecord
           end
         end
 
-        def column_comment(table_name, column_name) #:nodoc:
+        def column_comment(table_name, column_name) # :nodoc:
           # TODO: it  does not exist in Abstract adapter
           (_owner, table_name) = @connection.describe(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
@@ -527,7 +527,7 @@ module ActiveRecord
         end
 
         # Maps logical Rails types to Oracle-specific data types.
-        def type_to_sql(type, limit: nil, precision: nil, scale: nil, **) #:nodoc:
+        def type_to_sql(type, limit: nil, precision: nil, scale: nil, **) # :nodoc:
           # Ignore options for :text, :ntext and :binary columns
           return super(type) if ["text", "ntext", "binary"].include?(type.to_s)
 
@@ -544,7 +544,7 @@ module ActiveRecord
         end
 
         # get table foreign keys for schema dump
-        def foreign_keys(table_name) #:nodoc:
+        def foreign_keys(table_name) # :nodoc:
           (_owner, desc_table_name) = @connection.describe(table_name)
 
           fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
@@ -588,7 +588,7 @@ module ActiveRecord
 
         # REFERENTIAL INTEGRITY ====================================
 
-        def disable_referential_integrity(&block) #:nodoc:
+        def disable_referential_integrity(&block) # :nodoc:
           old_constraints = select_all(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ constraint_name, owner, table_name
               FROM all_constraints
