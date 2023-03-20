@@ -87,6 +87,10 @@ module ActiveRecord
           @raw_connection.active?
         end
 
+        def reset
+          @raw_connection.reset
+        end
+
         def reset!
           @raw_connection.reset!
         rescue OCIException => e
@@ -403,6 +407,11 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
   rescue
     @active = false
     raise
+  end
+
+  def reset
+    # tentative
+    reset!
   end
 
   # Resets connection, by logging off and creating a new connection.

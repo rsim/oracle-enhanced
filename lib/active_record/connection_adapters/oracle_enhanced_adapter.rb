@@ -451,6 +451,12 @@ module ActiveRecord
         false
       end
 
+      def reconnect
+        @raw_connection.reset # tentative
+      rescue OracleEnhanced::ConnectionException
+        connect
+      end
+
       # Reconnects to the database.
       def reconnect! # :nodoc:
         super
