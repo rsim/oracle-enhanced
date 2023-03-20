@@ -26,7 +26,7 @@ module ActiveRecord
           # if only valid lowercase column characters in name
           when /^[a-z][a-z_0-9$#]*$/
             "\"#{name.upcase}\""
-          when /^[a-z][a-z_0-9$#\-]*$/i
+          when /^[a-z][a-z_0-9$#-]*$/i
             "\"#{name}\""
           # if other characters present then assume that it is expression
           # which should not be quoted
