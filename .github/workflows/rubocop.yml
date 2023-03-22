@@ -22,14 +22,14 @@ jobs:
           sudo apt-get install alien
       - name: Download Oracle instant client
         run: |
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/216000/oracle-instantclient-basic-21.6.0.0.0-1.x86_64.rpm
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/216000/oracle-instantclient-sqlplus-21.6.0.0.0-1.x86_64.rpm
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/216000/oracle-instantclient-devel-21.6.0.0.0-1.x86_64.rpm
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/219000/oracle-instantclient-basic-21.9.0.0.0-1.x86_64.rpm
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/219000/oracle-instantclient-sqlplus-21.9.0.0.0-1.x86_64.rpm
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/219000/oracle-instantclient-devel-21.9.0.0.0-1.x86_64.rpm
       - name: Install Oracle instant client
         run: |
-          sudo alien -i oracle-instantclient-basic-21.6.0.0.0-1.x86_64.rpm
-          sudo alien -i oracle-instantclient-sqlplus-21.6.0.0.0-1.x86_64.rpm
-          sudo alien -i oracle-instantclient-devel-21.6.0.0.0-1.x86_64.rpm
+          sudo alien -i oracle-instantclient-basic-21.9.0.0.0-1.x86_64.rpm
+          sudo alien -i oracle-instantclient-sqlplus-21.9.0.0.0-1.x86_64.rpm
+          sudo alien -i oracle-instantclient-devel-21.9.0.0.0-1.x86_64.rpm
 
       - name: Build and run RuboCop
         run: |
