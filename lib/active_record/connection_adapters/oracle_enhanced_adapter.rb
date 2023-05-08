@@ -246,8 +246,8 @@ module ActiveRecord
           end
       end
 
-      def initialize(connection, logger = nil, config = {}) # :nodoc:
-        super(connection, logger, config)
+      def initialize(config_or_deprecated_connection, deprecated_logger = nil, deprecated_connection_options = nil, deprecated_config = nil) # :nodoc:
+        super(config_or_deprecated_connection, deprecated_logger, deprecated_connection_options, deprecated_config)
         @enable_dbms_output = false
         @do_not_prefetch_primary_key = {}
         @columns_cache = {}
