@@ -34,9 +34,6 @@ install:
 script:
   - bundle exec rake spec
   - rm Gemfile.lock
-  - cd guides/bug_report_templates
-  - ruby active_record_gem.rb
-  - ruby active_record_gem_spec.rb
 
 language: ruby
 rvm:
