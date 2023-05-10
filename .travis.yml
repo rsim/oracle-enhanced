@@ -1,5 +1,5 @@
 os: linux
-dist: focal
+dist: jammy
 cache: bundler
 
 env:
