@@ -13,7 +13,7 @@ module ActiveRecord
         end
 
         def create
-          system_username = ENV["ORACLE_SYSTEM_USER"] || 'SYSTEM'
+          system_username = ENV["ORACLE_SYSTEM_USER"] || "SYSTEM"
           $stdout.puts "System user: '#{system_username}' (set ORACLE_SYSTEM_USER to override)" unless ENV["ORACLE_SYSTEM_USER"]
 
           system_password = ENV.fetch("ORACLE_SYSTEM_PASSWORD") {
