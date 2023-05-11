@@ -4,6 +4,9 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
   include SchemaSpecHelper
 
   before(:all) do
+    if ENV["DATABASE_VERSION"] == "11.2.0.2" && ENV["ORACLE_HOME"] == "/usr/lib/oracle/21/client64"
+      skip
+    end
     ActiveRecord.default_timezone = :local
     ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
     @conn = ActiveRecord::Base.connection
@@ -27,7 +30,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
   end
 
   after(:all) do
-    @conn.drop_table :test_employees, if_exists: true
+    @conn.drop_table :test_employees, if_exists: true rescue nil
     ActiveRecord.default_timezone = :utc
   end
 

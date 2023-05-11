@@ -1,0 +1,92 @@
+name: test_11g
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # Rails 7.0 requires Ruby 2.7 or higeher.
+        # CI pending the following matrix until JRuby 9.4 that supports Ruby 2.7 will be released.
+        # https://github.com/jruby/jruby/issues/6464
+        # - jruby,
+        # - jruby-head
+        ruby: [
+          '3.2',
+          '3.1',
+          '3.0',
+          '2.7',
+          'truffleruby-head'
+        ]
+    env:
+      ORACLE_HOME: /usr/lib/oracle/21/client64
+      LD_LIBRARY_PATH: /usr/lib/oracle/21/client64/lib
+      NLS_LANG: AMERICAN_AMERICA.AL32UTF8
+      TNS_ADMIN: ./ci/network/admin
+      DATABASE_NAME: XE
+      TZ: Europe/Riga
+      DATABASE_SYS_PASSWORD: Oracle18
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 1521
+      DATABASE_VERSION: 11.2.0.2
+
+    services:
+      oracle:
+        image: gvenzl/oracle-xe:11
+        ports:
+          - 1521:1521
+        env:
+          TZ: Europe/Riga
+          ORACLE_PASSWORD: Oracle18
+        options: >-
+          --health-cmd healthcheck.sh
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: Install required package
+        run: |
+          sudo apt-get install alien
+      - name: Download Oracle client
+        run: |
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/219000/oracle-instantclient-basic-21.9.0.0.0-1.x86_64.rpm
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/219000/oracle-instantclient-sqlplus-21.9.0.0.0-1.x86_64.rpm
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/219000/oracle-instantclient-devel-21.9.0.0.0-1.x86_64.rpm
+      - name: Install Oracle client
+        run: |
+          sudo alien -i oracle-instantclient-basic-21.9.0.0.0-1.x86_64.rpm
+          sudo alien -i oracle-instantclient-sqlplus-21.9.0.0.0-1.x86_64.rpm
+          sudo alien -i oracle-instantclient-devel-21.9.0.0.0-1.x86_64.rpm
+      - name: Install JDBC Driver
+        run: |
+          wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar
+      - name: Create database user
+        run: |
+          ./ci/setup_accounts.sh
+      - name: Bundle install
+        run: |
+          bundle install --jobs 4 --retry 3
+      - name: Run RSpec
+        run: |
+          bundle exec rspec
+      - name: Workaround jruby-head failure by removing Gemfile.lock
+        run: |
+          rm Gemfile.lock
+      - name: Run bug report templates
+        if: "false"
+        run: |
+          cd guides/bug_report_templates
+          ruby active_record_gem.rb
+          ruby active_record_gem_spec.rb
