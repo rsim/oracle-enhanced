@@ -1,5 +1,5 @@
 os: linux
-dist: focal
+dist: jammy
 cache: bundler
 
 env:
@@ -16,7 +16,6 @@ env:
     - DATABASE_NAME=XE
     - ORA_SDTZ='Europe/Riga' # Needed as a client parameter
     - TZ='Europe/Riga'       # Needed as a DB Server parameter
-    - "JRUBY_OPTS='--debug --dev -J-Xmx1024M'"
 
 before_install:
   - chmod +x .travis/oracle/download.sh
@@ -33,25 +32,11 @@ install:
 
 script:
   - bundle exec rake spec
-  - rm Gemfile.lock
 
 language: ruby
 rvm:
   - 3.2.2
   - 3.1.4
-  - 3.0.6
-  - 2.7.7
-  - ruby-head
-  # Rails 7.0 requires Ruby 2.7 or higeher.
-  # CI pending until JRuby 9.4 that supports Ruby 2.7 will be released.
-  # https://github.com/jruby/jruby/issues/6464
-  # - jruby-9.4.0
-  # - jruby-head
-
-# matrix:
-#   allow_failures:
-#   - rvm: jruby-9.4.0
-#   - rvm: jruby-head
 
 notifications:
   email: false
