@@ -181,7 +181,7 @@ module ActiveRecord # :nodoc:
           def extract_expression_for_virtual_column(column)
             column_name = column.name
             @connection.select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
-              select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ data_default from all_tab_columns
+              select data_default from all_tab_columns
               where owner = SYS_CONTEXT('userenv', 'current_schema')
               and table_name = :table_name
               and column_name = :column_name
