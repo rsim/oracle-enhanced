@@ -80,9 +80,6 @@ jobs:
       - name: Run RSpec
         run: |
           bundle exec rspec
-      - name: Workaround jruby-head failure by removing Gemfile.lock
-        run: |
-          rm Gemfile.lock
       - name: Run bug report templates
         if: "false"
         run: |
