@@ -267,7 +267,7 @@ module ActiveRecord # :nodoc:
 
         def structure_drop # :nodoc:
           sequences = select_values(<<~SQL.squish, "SCHEMA")
-            SELECT/*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
+            SELECT
             sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
           SQL
           statements = sequences.map do |seq|
