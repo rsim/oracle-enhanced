@@ -7,10 +7,12 @@ module ActiveRecord
         # QUOTING ==================================================
         #
         # see: abstract/quoting.rb
+        QUOTED_COLUMN_NAMES = Concurrent::Map.new # :nodoc:
+        QUOTED_TABLE_NAMES = Concurrent::Map.new # :nodoc:
 
         def quote_column_name(name) # :nodoc:
           name = name.to_s
-          self.class.quoted_column_names[name] ||= if /\A[a-z][a-z_0-9$#]*\Z/.match?(name)
+          QUOTED_COLUMN_NAMES[name] ||= if /\A[a-z][a-z_0-9$#]*\Z/.match?(name)
             "\"#{name.upcase}\""
           else
             # remove double quotes which cannot be used inside quoted identifier
@@ -67,7 +69,7 @@ module ActiveRecord
 
         def quote_table_name(name) # :nodoc:
           name, _link = name.to_s.split("@")
-          self.class.quoted_table_names[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
+          QUOTED_TABLE_NAMES[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
         end
 
         def quote_string(s) # :nodoc:
