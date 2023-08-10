@@ -1,3 +1,11 @@
+## 7.0.3 / 2023-08-10
+
+* Changes and bug fixes
+  * Support Rails 7.0.7
+  * Make ActiveRecord's quoted name caches thread-safe on JRuby/TruffleRuby [#2347, #2346]
+  * Address `NameError: uninitialized constant TestEmployee::AttributeSignature::Base64` [#2347]
+  * Address `Style/RedundantRegexpEscape` offense [#2347]
+
 ## 7.0.2 / 2022-01-21
 
 * Changes and bug fixes
