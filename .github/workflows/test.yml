@@ -29,7 +29,7 @@ jobs:
       LD_LIBRARY_PATH: /usr/lib/oracle/21/client64/lib
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       TNS_ADMIN: ./ci/network/admin
-      DATABASE_NAME: XEPDB1
+      DATABASE_NAME: FREEPDB1
       TZ: Europe/Riga
       DATABASE_SYS_PASSWORD: Oracle18
       DATABASE_HOST: localhost
@@ -37,7 +37,7 @@ jobs:
 
     services:
       oracle:
-        image: gvenzl/oracle-xe:latest
+        image: gvenzl/oracle-free:latest
         ports:
           - 1521:1521
         env:
