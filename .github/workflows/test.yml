@@ -59,14 +59,14 @@ jobs:
           sudo apt-get install alien
       - name: Download Oracle instant client
         run: |
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/2110000/oracle-instantclient-basic-21.10.0.0.0-1.x86_64.rpm
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/2110000/oracle-instantclient-sqlplus-21.10.0.0.0-1.x86_64.rpm
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/2110000/oracle-instantclient-devel-21.10.0.0.0-1.x86_64.rpm
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2111000/oracle-instantclient-basic-21.11.0.0.0-1.x86_64.rpm
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2111000/oracle-instantclient-sqlplus-21.11.0.0.0-1.x86_64.rpm
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2111000/oracle-instantclient-devel-21.11.0.0.0-1.x86_64.rpm
       - name: Install Oracle instant client
         run: |
-          sudo alien -i oracle-instantclient-basic-21.10.0.0.0-1.x86_64.rpm
-          sudo alien -i oracle-instantclient-sqlplus-21.10.0.0.0-1.x86_64.rpm
-          sudo alien -i oracle-instantclient-devel-21.10.0.0.0-1.x86_64.rpm
+          sudo alien -i oracle-instantclient-basic-21.11.0.0.0-1.x86_64.rpm
+          sudo alien -i oracle-instantclient-sqlplus-21.11.0.0.0-1.x86_64.rpm
+          sudo alien -i oracle-instantclient-devel-21.11.0.0.0-1.x86_64.rpm
       - name: Install JDBC Driver
         run: |
           wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar
