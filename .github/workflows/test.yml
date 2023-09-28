@@ -73,6 +73,9 @@ jobs:
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
+      - name: Update RubyGems
+        run: |
+          gem update --system
       - name: Bundle install
         run: |
           bundle install --jobs 4 --retry 3
