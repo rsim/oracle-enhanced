@@ -16,6 +16,7 @@ env:
     - DATABASE_NAME=XE
     - ORA_SDTZ='Europe/Riga' # Needed as a client parameter
     - TZ='Europe/Riga'       # Needed as a DB Server parameter
+    - JRUBY_OPTS="--dev -J-Xmx900m" DISPLAY=:99.0 LOGGER_LEVEL=WARN
 
 before_install:
   - chmod +x .travis/oracle/download.sh
@@ -35,8 +36,9 @@ script:
 
 language: ruby
 rvm:
-  - 3.2.2
-  - 3.1.4
+  # - 3.2.2
+  # - 3.1.4
+  - jruby-9.4.5.0
 
 notifications:
   email: false
