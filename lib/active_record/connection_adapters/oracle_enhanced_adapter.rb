@@ -247,6 +247,7 @@ module ActiveRecord
       end
 
       def initialize(config_or_deprecated_connection, deprecated_logger = nil, deprecated_connection_options = nil, deprecated_config = nil) # :nodoc:
+        self.lock_thread = nil
         super(config_or_deprecated_connection, deprecated_logger, deprecated_connection_options, deprecated_config)
         @enable_dbms_output = false
         @do_not_prefetch_primary_key = {}
@@ -446,7 +447,11 @@ module ActiveRecord
         # #active? method is also available, but that simply returns the
         # last known state, which isn't good enough if the connection has
         # gone stale since the last use.
-        @raw_connection.ping
+        @lock.synchronize do
+          return false unless @raw_connection
+          @raw_connection.ping
+        end
+        true
       rescue OracleEnhanced::ConnectionException
         false
       end
@@ -696,7 +701,7 @@ module ActiveRecord
       alias index_name_length max_identifier_length
 
       def get_database_version
-        @raw_connection.database_version
+        valid_raw_connection.database_version
       end
 
       def check_version
