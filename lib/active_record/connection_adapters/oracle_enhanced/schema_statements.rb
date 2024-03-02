@@ -259,7 +259,7 @@ module ActiveRecord
           schema_cache.clear_data_source_cache!(table_name.to_s)
           schema_cache.clear_data_source_cache!(new_name.to_s)
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
-          execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{default_sequence_name(new_name)}" rescue nil
+          execute "RENAME #{default_sequence_name("#{table_name}")} TO #{default_sequence_name(new_name)}" rescue nil
 
           rename_table_indexes(table_name, new_name)
         end
