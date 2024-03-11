@@ -779,13 +779,15 @@ end
 if RUBY_ENGINE == "jruby"
   require "jruby"
 
-  class org.jruby::RubyObjectSpace::WeakMap
-    field_reader :map
-  end
+    unless ObjectSpace::WeakMap.new.respond_to? :values
+      class org.jruby::RubyObjectSpace::WeakMap
+        field_reader :map
+      end
 
-  class ObjectSpace::WeakMap
-    def values
-      JRuby.ref(self).map.values.reject(&:nil?)
+      class ObjectSpace::WeakMap
+        def values
+          JRuby.ref(self).map.values.reject(&:nil?)
+        end
+      end
     end
-  end
 end
