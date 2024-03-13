@@ -13,11 +13,7 @@ group :development do
   gem "rubocop-rails", require: false
   gem "rubocop-rspec", require: false
 
-<<<<<<< HEAD
-  gem "activerecord",   github: "rails/rails", ref: "0e9267767f19065fa513038253179ad6b05c29ab"
-=======
   gem "activerecord",   github: "rails/rails", ref: "deec3004d8d85443dc4f3f5fd22ab86b10adb58b"
->>>>>>> de98281a (Support `Configure legacy-API-supplied connection before first use`)
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do

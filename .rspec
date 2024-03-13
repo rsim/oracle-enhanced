@@ -2,3 +2,4 @@
 --backtrace
 --require spec_helper
 --warnings
+--fail-fast
