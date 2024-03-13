@@ -64,18 +64,21 @@ require "active_record/type/oracle_enhanced/character_string"
 
 module ActiveRecord
   module ConnectionHandling # :nodoc:
-    # Establishes a connection to the database that's used by all Active Record objects.
-    def oracle_enhanced_connection(config) # :nodoc:
+    def oracle_enhanced_adapter_class # :nodoc:
       if config[:emulate_oracle_adapter] == true
         # allows the enhanced adapter to look like the OracleAdapter. Useful to pick up
         # conditionals in the rails activerecord test suite
         require "active_record/connection_adapters/emulation/oracle_adapter"
-        ConnectionAdapters::OracleAdapter.new(
-          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
+        ConnectionAdapters::OracleAdapter
       else
-        ConnectionAdapters::OracleEnhancedAdapter.new(
-          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
+        ConnectionAdapters::OracleEnhancedAdapter
       end
+    end
+
+    # Establishes a connection to the database that's used by all Active Record objects.
+    def oracle_enhanced_connection(config) # :nodoc:
+      oracle_enhanced_adapter_class.new(
+        ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
     end
   end
 
@@ -273,6 +276,19 @@ module ActiveRecord
         else
           Arel::Visitors::Oracle.new(self)
         end
+      end
+
+      def self.dbconsole(config, options = {})
+        oracle_config = config.configuration_hash
+        logon = ""
+
+        if config[:username]
+          logon = oracle_config[:username].dup
+          logon << "/#{oracle_config[:password]}" if oracle_config[:password] && options[:include_password]
+          logon << "@#{config.database}" if config.database
+        end
+
+        find_cmd_and_exec("sqlplus", logon)
       end
 
       def build_statement_pool
