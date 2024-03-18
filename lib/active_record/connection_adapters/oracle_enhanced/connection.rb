@@ -35,22 +35,22 @@ module ActiveRecord
             end
             sql = <<~SQL.squish
               SELECT owner, table_name, 'TABLE' name_type
-              FROM all_tables
+              FROM dba_tables
               WHERE owner = :table_owner
                 AND table_name = :table_name
               UNION ALL
               SELECT owner, view_name table_name, 'VIEW' name_type
-              FROM all_views
+              FROM dba_views
               WHERE owner = :table_owner
                 AND view_name = :table_name
               UNION ALL
               SELECT table_owner, table_name, 'SYNONYM' name_type
-              FROM all_synonyms
+              FROM dba_synonyms
               WHERE owner = :table_owner
                 AND synonym_name = :table_name
               UNION ALL
               SELECT table_owner, table_name, 'SYNONYM' name_type
-              FROM all_synonyms
+              FROM dba_synonyms
               WHERE owner = 'PUBLIC'
                 AND synonym_name = :real_name
             SQL

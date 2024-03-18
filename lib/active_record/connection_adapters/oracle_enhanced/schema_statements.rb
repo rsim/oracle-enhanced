@@ -14,12 +14,12 @@ module ActiveRecord
           select_values(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
             DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
-            FROM all_tables
+            FROM dba_tables
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
             AND secondary = 'N'
             minus
             SELECT DECODE(mview_name, UPPER(mview_name), LOWER(mview_name), mview_name)
-            FROM all_mviews
+            FROM dba_mviews
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
@@ -46,7 +46,7 @@ module ActiveRecord
 
           select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ owner, table_name
-            FROM all_tables
+            FROM dba_tables
             WHERE owner = :owner
             AND table_name = :table_name
           SQL
@@ -62,14 +62,14 @@ module ActiveRecord
         def views # :nodoc:
           select_values(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
-            LOWER(view_name) FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            LOWER(view_name) FROM dba_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         def materialized_views # :nodoc:
           select_values(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
-            LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            LOWER(mview_name) FROM dba_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
@@ -77,7 +77,7 @@ module ActiveRecord
         def synonyms
           result = select_all(<<~SQL.squish, "SCHEMA")
             SELECT synonym_name, table_owner, table_name
-            FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
+            FROM dba_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
 
           result.collect do |row|
@@ -96,16 +96,16 @@ module ActiveRecord
               LOWER(i.tablespace_name) AS tablespace_name,
               LOWER(c.column_name) AS column_name, e.column_expression,
               atc.virtual_column
-            FROM all_indexes i
-              JOIN all_ind_columns c ON c.index_name = i.index_name AND c.index_owner = i.owner
-              LEFT OUTER JOIN all_ind_expressions e ON e.index_name = i.index_name AND
+            FROM dba_indexes i
+              JOIN dba_ind_columns c ON c.index_name = i.index_name AND c.index_owner = i.owner
+              LEFT OUTER JOIN dba_ind_expressions e ON e.index_name = i.index_name AND
                 e.index_owner = i.owner AND e.column_position = c.column_position
-              LEFT OUTER JOIN all_tab_cols atc ON i.table_name = atc.table_name AND
+              LEFT OUTER JOIN dba_tab_cols atc ON i.table_name = atc.table_name AND
                 c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_name = :table_name
-               AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
+               AND NOT EXISTS (SELECT uc.index_name FROM dba_constraints uc
                 WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
             ORDER BY i.index_name, c.column_position
           SQL
@@ -122,7 +122,7 @@ module ActiveRecord
                 procedure_name = default_datastore_procedure(row["index_name"])
                 source = select_values(<<~SQL.squish, "SCHEMA", [bind_string("procedure_name", procedure_name.upcase)]).join
                   SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ text
-                  FROM all_source
+                  FROM dba_source
                   WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
                     AND name = :procedure_name
                   ORDER BY line
@@ -370,7 +370,7 @@ module ActiveRecord
         def index_name_exists?(table_name, index_name)
           (_owner, table_name) = @connection.describe(table_name)
           result = select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("index_name", index_name.to_s.upcase)])
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ 1 FROM all_indexes i
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ 1 FROM dba_indexes i
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
                AND i.table_name = :table_name
@@ -513,7 +513,7 @@ module ActiveRecord
           # TODO
           (_owner, table_name) = @connection.describe(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ comments FROM all_tab_comments
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ comments FROM dba_tab_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
           SQL
@@ -529,7 +529,7 @@ module ActiveRecord
           # TODO: it  does not exist in Abstract adapter
           (_owner, table_name) = @connection.describe(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ comments FROM all_col_comments
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ comments FROM dba_col_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
               AND column_name = :column_name
@@ -547,7 +547,7 @@ module ActiveRecord
         def tablespace(table_name)
           select_value(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ tablespace_name
-            FROM all_tables
+            FROM dba_tables
             WHERE table_name='#{table_name.to_s.upcase}'
             AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
@@ -563,8 +563,8 @@ module ActiveRecord
                   ,cc.column_name
                   ,c.constraint_name name
                   ,c.delete_rule
-              FROM all_constraints c, all_cons_columns cc,
-                   all_constraints r, all_cons_columns rc
+              FROM dba_constraints c, dba_cons_columns cc,
+                   dba_constraints r, dba_cons_columns rc
              WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
                AND c.table_name = :desc_table_name
                AND c.constraint_type = 'R'
@@ -601,7 +601,7 @@ module ActiveRecord
         def disable_referential_integrity(&block) # :nodoc:
           old_constraints = select_all(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ constraint_name, owner, table_name
-              FROM all_constraints
+              FROM dba_constraints
               WHERE constraint_type = 'R'
               AND status = 'ENABLED'
               AND owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -715,7 +715,7 @@ module ActiveRecord
             return unless tablespace
 
             index_name = select_value(<<~SQL.squish, "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
-              SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ index_name FROM all_constraints
+              SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ index_name FROM dba_constraints
                   WHERE table_name = :table_name
                   AND constraint_type = 'P'
                   AND owner = SYS_CONTEXT('userenv', 'current_schema')

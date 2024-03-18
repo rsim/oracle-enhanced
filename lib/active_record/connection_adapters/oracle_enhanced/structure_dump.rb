@@ -11,7 +11,7 @@ module ActiveRecord # :nodoc:
           sequences = select(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
             sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
-            FROM all_sequences
+            FROM dba_sequences
             where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
           SQL
 
@@ -19,11 +19,11 @@ module ActiveRecord # :nodoc:
             "CREATE SEQUENCE #{quote_table_name(result["sequence_name"])} MINVALUE #{result["min_value"]} MAXVALUE #{result["max_value"]} INCREMENT BY #{result["increment_by"]} #{result["order_flag"] == 'Y' ? "ORDER" : "NOORDER"} #{result["cycle_flag"] == 'Y' ? "CYCLE" : "NOCYCLE"}"
           end
           tables = select_values(<<~SQL.squish, "SCHEMA")
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name FROM all_tables t
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name FROM dba_tables t
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
-            AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv
+            AND NOT EXISTS (SELECT mv.mview_name FROM dba_mviews mv
                             WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
-            AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl
+            AND NOT EXISTS (SELECT mvl.log_table FROM dba_mview_logs mvl
                             WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
             ORDER BY 1
           SQL
@@ -33,7 +33,7 @@ module ActiveRecord # :nodoc:
             columns = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
               SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name, data_type, data_length, char_used, char_length,
               data_precision, data_scale, data_default, nullable
-              FROM all_tab_columns
+              FROM dba_tab_columns
               WHERE table_name = :table_name
               AND owner = SYS_CONTEXT('userenv', 'current_schema')
               ORDER BY column_id
@@ -93,8 +93,8 @@ module ActiveRecord # :nodoc:
           opts = { name: "", cols: [] }
           pks = select_all(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ a.constraint_name, a.column_name, a.position
-              FROM all_cons_columns a
-              JOIN all_constraints c
+              FROM dba_cons_columns a
+              JOIN dba_constraints c
                 ON a.constraint_name = c.constraint_name
              WHERE c.table_name = '#{table.upcase}'
                AND c.constraint_type = 'P'
@@ -112,8 +112,8 @@ module ActiveRecord # :nodoc:
           keys = {}
           uks = select_all(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ a.constraint_name, a.column_name, a.position
-              FROM all_cons_columns a
-              JOIN all_constraints c
+              FROM dba_cons_columns a
+              JOIN dba_constraints c
                 ON a.constraint_name = c.constraint_name
              WHERE c.table_name = '#{table.upcase}'
                AND c.constraint_type = 'U'
@@ -147,7 +147,7 @@ module ActiveRecord # :nodoc:
 
         def structure_dump_fk_constraints # :nodoc:
           foreign_keys = select_all(<<~SQL.squish, "SCHEMA")
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name FROM all_tables
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name FROM dba_tables
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
           SQL
           fks = foreign_keys.map do |table|
@@ -175,7 +175,7 @@ module ActiveRecord # :nodoc:
         def structure_dump_column_comments(table_name)
           comments = []
           columns = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name FROM all_tab_columns
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name FROM dba_tab_columns
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
             AND table_name = :table_name ORDER BY column_id
           SQL
@@ -211,7 +211,7 @@ module ActiveRecord # :nodoc:
           structure = []
           all_source = select_all(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ DISTINCT name, type
-            FROM all_source
+            FROM dba_source
             WHERE type IN ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
             AND name NOT LIKE 'BIN$%'
             AND owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY type
@@ -220,7 +220,7 @@ module ActiveRecord # :nodoc:
             ddl = +"CREATE OR REPLACE   \n"
             texts = select_all(<<~SQL.squish, "all source at structure dump", [bind_string("source_name", source["name"]), bind_string("source_type", source["type"])])
               SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ text
-              FROM all_source
+              FROM dba_source
               WHERE name = :source_name
               AND type = :source_type
               AND owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -242,7 +242,7 @@ module ActiveRecord # :nodoc:
         def structure_dump_views # :nodoc:
           structure = []
           views = select_all(<<~SQL.squish, "SCHEMA")
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ view_name, text FROM all_views
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ view_name, text FROM dba_views
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY view_name ASC
           SQL
           views.each do |view|
@@ -255,7 +255,7 @@ module ActiveRecord # :nodoc:
           structure = []
           synonyms = select_all(<<~SQL.squish, "SCHEMA")
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ owner, synonym_name, table_name, table_owner
-            FROM all_synonyms
+            FROM dba_synonyms
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           synonyms.each do |synonym|
@@ -268,17 +268,17 @@ module ActiveRecord # :nodoc:
         def structure_drop # :nodoc:
           sequences = select_values(<<~SQL.squish, "SCHEMA")
             SELECT/*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
-            sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
+            sequence_name FROM dba_sequences where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
           SQL
           statements = sequences.map do |seq|
             "DROP SEQUENCE \"#{seq}\""
           end
           tables = select_values(<<~SQL.squish, "SCHEMA")
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name from all_tables t
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name from dba_tables t
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
-            AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv
+            AND NOT EXISTS (SELECT mv.mview_name FROM dba_mviews mv
                             WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
-            AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl
+            AND NOT EXISTS (SELECT mvl.log_table FROM dba_mview_logs mvl
                             WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
             ORDER BY 1
           SQL
@@ -290,7 +290,7 @@ module ActiveRecord # :nodoc:
 
         def temp_table_drop # :nodoc:
           temporary_tables = select_values(<<~SQL.squish, "SCHEMA")
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name FROM all_tables
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ table_name FROM dba_tables
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
             AND secondary = 'N' AND temporary = 'Y' ORDER BY 1
           SQL
@@ -325,7 +325,7 @@ module ActiveRecord # :nodoc:
         def virtual_columns_for(table)
           select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])
             SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ column_name, data_default
-            FROM all_tab_cols
+            FROM dba_tab_cols
             WHERE virtual_column = 'YES'
             AND owner = SYS_CONTEXT('userenv', 'current_schema')
             AND table_name = :table_name
@@ -335,7 +335,7 @@ module ActiveRecord # :nodoc:
         def drop_sql_for_feature(type)
           short_type = type == "materialized view" ? "mview" : type
           features = select_values(<<~SQL.squish, "SCHEMA")
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ #{short_type}_name FROM all_#{short_type.tableize}
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ #{short_type}_name FROM dba_#{short_type.tableize}
             where owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           statements = features.map do |name|
@@ -346,7 +346,7 @@ module ActiveRecord # :nodoc:
 
         def drop_sql_for_object(type)
           objects = select_values(<<~SQL.squish, "SCHEMA")
-            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ object_name FROM all_objects
+            SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ object_name FROM dba_objects
             WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           statements = objects.map do |name|

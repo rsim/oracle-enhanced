@@ -574,7 +574,7 @@ module ActiveRecord
                                     NULL) AS limit,
                  DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
                  comments.comments as column_comment
-            FROM all_tab_cols cols, all_col_comments comments
+            FROM dba_tab_cols cols, dba_col_comments comments
            WHERE cols.owner      = :owner
              AND cols.table_name = :table_name
              AND cols.hidden_column = 'NO'
@@ -596,7 +596,7 @@ module ActiveRecord
 
         seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
           select /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ us.sequence_name
-          from all_sequences us
+          from dba_sequences us
           where us.sequence_owner = :owner
           and us.sequence_name = upper(:sequence_name)
         SQL
@@ -604,7 +604,7 @@ module ActiveRecord
         # changed back from user_constraints to all_constraints for consistency
         pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
-            FROM all_constraints c, all_cons_columns cc
+            FROM dba_constraints c, dba_cons_columns cc
            WHERE c.owner = :owner
              AND c.table_name = :table_name
              AND c.constraint_type = 'P'
@@ -638,7 +638,7 @@ module ActiveRecord
 
         pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */ cc.column_name
-            FROM all_constraints c, all_cons_columns cc
+            FROM dba_constraints c, dba_cons_columns cc
            WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
              AND c.table_name = :table_name
              AND c.constraint_type = 'P'
@@ -668,7 +668,7 @@ module ActiveRecord
       def temporary_table?(table_name) # :nodoc:
         select_value_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
           SELECT /*+ OPTIMIZER_FEATURES_ENABLE('11.2.0.2') */
-          temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
+          temporary FROM dba_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
       end
 
