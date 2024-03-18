@@ -1,11 +1,11 @@
 # copy this file to spec/spec_config.yaml and set appropriate values
 # you can also use environment variables, see spec_helper.rb
 database:
-  name:         'orcl'
+  name:         'FREEPDB1'
   host:         '127.0.0.1'
   port:         1521
   user:         'oracle_enhanced'
   password:     'oracle_enhanced'
-  sys_password: 'admin'
+  sys_password: 'oracle'
   non_default_tablespace: 'SYSTEM'
 timezone: 'Europe/Riga'
