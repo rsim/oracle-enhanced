@@ -437,7 +437,8 @@ module ActiveRecord
 
       # return raw OCI8 or JDBC connection
       def raw_connection
-        @raw_connection.raw_connection
+        verify!
+        _connection.raw_connection
       end
 
       # Returns true if the connection is active.
