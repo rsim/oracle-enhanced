@@ -461,6 +461,11 @@ describe "OracleEnhancedConnection" do
       expect(@conn.exec("SELECT * FROM dual")).not_to be_nil
     end
 
+    it "should reconnect and execute SQL statement if connection is lost and allow_retry is passed" do
+      kill_current_session
+      expect(@conn.exec("SELECT * FROM dual", allow_retry: true)).not_to be_nil
+    end
+
     it "should not reconnect and execute SQL statement if connection is lost and auto retry is disabled" do
       # @conn.auto_retry = false
       ActiveRecord::Base.connection.auto_retry = false
