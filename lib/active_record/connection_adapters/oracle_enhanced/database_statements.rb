@@ -12,7 +12,7 @@ module ActiveRecord
         def execute(sql, name = nil, async: false)
           sql = transform_query(sql)
 
-          log(sql, name, async: async) { @raw_connection.exec(sql) }
+          log(sql, name, async: async) { _connection.exec(sql) }
         end
 
         def exec_query(sql, name = "SQL", binds = [], prepare: false, async: false)
@@ -25,10 +25,10 @@ module ActiveRecord
             cached = false
             with_retry do
               if without_prepared_statement?(binds)
-                cursor = @raw_connection.prepare(sql)
+                cursor = _connection.prepare(sql)
               else
                 unless @statements.key? sql
-                  @statements[sql] = @raw_connection.prepare(sql)
+                  @statements[sql] = _connection.prepare(sql)
                 end
 
                 cursor = @statements[sql]
@@ -101,10 +101,10 @@ module ActiveRecord
             returning_id_col = returning_id_index = nil
             with_retry do
               if without_prepared_statement?(binds)
-                cursor = @raw_connection.prepare(sql)
+                cursor = _connection.prepare(sql)
               else
                 unless @statements.key?(sql)
-                  @statements[sql] = @raw_connection.prepare(sql)
+                  @statements[sql] = _connection.prepare(sql)
                 end
 
                 cursor = @statements[sql]
@@ -141,12 +141,12 @@ module ActiveRecord
             with_retry do
               cached = false
               if without_prepared_statement?(binds)
-                cursor = @raw_connection.prepare(sql)
+                cursor = _connection.prepare(sql)
               else
                 if @statements.key?(sql)
                   cursor = @statements[sql]
                 else
-                  cursor = @statements[sql] = @raw_connection.prepare(sql)
+                  cursor = @statements[sql] = _connection.prepare(sql)
                 end
 
                 cursor.bind_params(type_casted_binds)
@@ -164,7 +164,7 @@ module ActiveRecord
         alias :exec_delete :exec_update
 
         def begin_db_transaction # :nodoc:
-          @raw_connection.autocommit = false
+          _connection.autocommit = false
         end
 
         def transaction_isolation_levels
@@ -183,15 +183,15 @@ module ActiveRecord
         end
 
         def commit_db_transaction # :nodoc:
-          @raw_connection.commit
+          _connection.commit
         ensure
-          @raw_connection.autocommit = true
+          _connection.autocommit = true
         end
 
         def exec_rollback_db_transaction # :nodoc:
-          @raw_connection.rollback
+          _connection.rollback
         ensure
-          @raw_connection.autocommit = true
+          _connection.autocommit = true
         end
 
         def create_savepoint(name = current_savepoint_name) # :nodoc:
@@ -265,14 +265,14 @@ module ActiveRecord
                 raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
               end
               lob = lob_record[col.name]
-              @raw_connection.write_lob(lob, value.to_s, col.type == :binary)
+              _connection.write_lob(lob, value.to_s, col.type == :binary)
             end
           end
         end
 
         private
           def with_retry
-            @raw_connection.with_retry do
+            _connection.with_retry do
               yield
             rescue
               @statements.clear
