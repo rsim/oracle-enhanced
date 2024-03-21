@@ -276,7 +276,7 @@ module ActiveRecord
         end
 
         def insert_versions_sql(versions) # :nodoc:
-          sm_table = quote_table_name(ActiveRecord::SchemaMigration.table_name)
+          sm_table = quote_table_name(ActiveRecord::Base.connection.schema_migration.table_name)
 
           if supports_multi_insert?
             versions.inject(+"INSERT ALL\n") { |sql, version|
