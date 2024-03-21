@@ -59,6 +59,7 @@ module ActiveRecord
             res
           end
         end
+        alias_method :internal_exec_query, :exec_query
 
         def supports_explain?
           true
