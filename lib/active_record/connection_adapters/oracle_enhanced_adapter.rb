@@ -696,6 +696,12 @@ module ActiveRecord
       alias table_alias_length max_identifier_length
       alias index_name_length max_identifier_length
 
+      # This is to ensure rails is not shortening the index name,
+      # in order to preserve the local shortening behavior.
+      def max_index_name_size
+        128
+      end
+
       def get_database_version
         _connection.database_version
       end
