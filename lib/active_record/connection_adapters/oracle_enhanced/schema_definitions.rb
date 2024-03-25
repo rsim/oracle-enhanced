@@ -49,6 +49,10 @@ module ActiveRecord
         end
       end
 
+      class ColumnDefinition < ActiveRecord::ConnectionAdapters::ColumnDefinition
+        self::OPTION_NAMES.concat([ :as, :sequence_name, :sequence_start_value, :type ])
+      end
+
       class TableDefinition < ActiveRecord::ConnectionAdapters::TableDefinition
         include OracleEnhanced::ColumnMethods
 
