@@ -53,7 +53,7 @@ module ActiveRecord
         end
 
         def data_source_exists?(table_name)
-          (_owner, _table_name) = @raw_connection.describe(table_name)
+          (_owner, _table_name) = _connection.describe(table_name)
           true
         rescue
           false
@@ -87,7 +87,7 @@ module ActiveRecord
         end
 
         def indexes(table_name) # :nodoc:
-          (_owner, table_name) = @raw_connection.describe(table_name)
+          (_owner, table_name) = _connection.describe(table_name)
           default_tablespace_name = default_tablespace
 
           result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
@@ -368,7 +368,7 @@ module ActiveRecord
         #
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
-          (_owner, table_name) = @raw_connection.describe(table_name)
+          (_owner, table_name) = _connection.describe(table_name)
           result = select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("index_name", index_name.to_s.upcase)])
             SELECT 1 FROM all_indexes i
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -511,7 +511,7 @@ module ActiveRecord
 
         def table_comment(table_name) # :nodoc:
           # TODO
-          (_owner, table_name) = @raw_connection.describe(table_name)
+          (_owner, table_name) = _connection.describe(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
             SELECT comments FROM all_tab_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -527,7 +527,7 @@ module ActiveRecord
 
         def column_comment(table_name, column_name) # :nodoc:
           # TODO: it  does not exist in Abstract adapter
-          (_owner, table_name) = @raw_connection.describe(table_name)
+          (_owner, table_name) = _connection.describe(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
             SELECT comments FROM all_col_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -555,7 +555,7 @@ module ActiveRecord
 
         # get table foreign keys for schema dump
         def foreign_keys(table_name) # :nodoc:
-          (_owner, desc_table_name) = @raw_connection.describe(table_name)
+          (_owner, desc_table_name) = _connection.describe(table_name)
 
           fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
             SELECT r.table_name to_table
