@@ -241,7 +241,7 @@ describe "OracleEnhancedConnection" do
     end
 
     after(:all) do
-      Object.send(:remove_const, "Post")
+      Object.send(:remove_const, "Post") if defined?(Post)
       ActiveRecord::Base.clear_cache!
     end
 
@@ -428,7 +428,7 @@ describe "OracleEnhancedConnection" do
 
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.connection.instance_variable_get("@raw_connection")
+      @conn = ActiveRecord::Base.connection.send(:_connection)
       @sys_conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(SYS_CONNECTION_PARAMS)
       schema_define do
         create_table :posts, force: true
