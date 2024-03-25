@@ -96,7 +96,6 @@ module Arel # :nodoc: all
         def visit_Arel_Nodes_HomogeneousIn(o, collector)
           in_clause_length = @connection.in_clause_length
           values = o.casted_values.map { |v| @connection.quote(v) }
-          column_name = quote_table_name(o.table_name) + "." + quote_column_name(o.column_name)
           operator =
             if o.type == :in
               " IN ("
@@ -105,7 +104,7 @@ module Arel # :nodoc: all
             end
 
           if !Array === values || values.length <= in_clause_length
-            collector << column_name
+            visit o.left, collector
             collector << operator
 
             expr =
@@ -127,7 +126,7 @@ module Arel # :nodoc: all
             collector << "("
             values.each_slice(in_clause_length).each_with_index do |valuez, i|
               collector << separator unless i == 0
-              collector << column_name
+              visit o.left, collector
               collector << operator
               collector << valuez.join(",")
               collector << ")"

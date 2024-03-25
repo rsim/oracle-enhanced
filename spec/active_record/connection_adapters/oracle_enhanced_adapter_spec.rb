@@ -443,7 +443,7 @@ describe "OracleEnhancedAdapter" do
         end
       end
       class ::TestSerializedColumn < ActiveRecord::Base
-        serialize :serialized, Array
+        serialize :serialized, type: Array
       end
     end
 
