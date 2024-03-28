@@ -78,7 +78,7 @@ module ActiveRecord
 
         # New method in ActiveRecord 3.1
         # Will add RETURNING clause in case of trigger generated primary keys
-        def sql_for_insert(sql, pk, binds)
+        def sql_for_insert(sql, pk, binds, _returning)
           unless pk == false || pk.nil? || pk.is_a?(Array) || pk.is_a?(String)
             sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
             (binds = binds.dup) << ActiveRecord::Relation::QueryAttribute.new("returning_id", nil, Type::OracleEnhanced::Integer.new)
@@ -86,14 +86,14 @@ module ActiveRecord
           super
         end
 
-        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [])
+        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [], returning: nil)
           pk = nil if id_value
           super
         end
 
         # New method in ActiveRecord 3.1
-        def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil)
-          sql, binds = sql_for_insert(sql, pk, binds)
+        def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil, returning: nil)
+          sql, binds = sql_for_insert(sql, pk, binds, returning)
           type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds) do
@@ -163,6 +163,10 @@ module ActiveRecord
         end
 
         alias :exec_delete :exec_update
+
+        def returning_column_values(result)
+          result.rows.first
+        end
 
         def begin_db_transaction # :nodoc:
           _connection.autocommit = false

@@ -275,6 +275,11 @@ module ActiveRecord
         end
       end
 
+      def return_value_after_insert?(column) # :nodoc:
+        # TODO: Return true if there this column will be populated (e.g by a sequence)
+        super
+      end
+
       def build_statement_pool
         StatementPool.new(self.class.type_cast_config_to_integer(@config[:statement_limit]))
       end
