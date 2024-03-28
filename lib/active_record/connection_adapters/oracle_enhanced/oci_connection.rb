@@ -97,12 +97,12 @@ module ActiveRecord
           raise OracleEnhanced::ConnectionException, e.message
         end
 
-        def exec(sql, *bindvars, &block)
-          @raw_connection.exec(sql, *bindvars, &block)
+        def exec(sql, *bindvars, allow_retry: false, &block)
+          with_retry(allow_retry: allow_retry) { @raw_connection.exec(sql, *bindvars, &block) }
         end
 
-        def with_retry(&block)
-          @raw_connection.with_retry(&block)
+        def with_retry(allow_retry: false, &block)
+          @raw_connection.with_retry(allow_retry: allow_retry, &block)
         end
 
         def prepare(sql)
@@ -435,8 +435,8 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
   LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] # :nodoc:
 
   # Adds auto-recovery functionality.
-  def with_retry # :nodoc:
-    should_retry = self.class.auto_retry? && autocommit?
+  def with_retry(allow_retry: false) # :nodoc:
+    should_retry = (allow_retry || self.class.auto_retry?) && autocommit?
 
     begin
       yield
