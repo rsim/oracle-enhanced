@@ -88,7 +88,7 @@ module ActiveRecord
 
         def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [], returning: nil)
           pk = nil if id_value
-          super
+          Array(super || id_value)
         end
 
         # New method in ActiveRecord 3.1
