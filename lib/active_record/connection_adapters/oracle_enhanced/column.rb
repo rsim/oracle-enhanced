@@ -13,6 +13,11 @@ module ActiveRecord
         def virtual?
           virtual
         end
+
+        def auto_incremented_by_db?
+          # TODO: Identify if a column is the primary key and is auto-incremented (e.g. by a sequence)
+          super
+        end
       end
     end
   end

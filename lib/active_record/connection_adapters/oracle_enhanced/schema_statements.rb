@@ -639,7 +639,7 @@ module ActiveRecord
             OracleEnhanced::TableDefinition.new(self, name, **options)
           end
 
-          def new_column_from_field(table_name, field)
+          def new_column_from_field(table_name, field, definitions)
             limit, scale = field["limit"], field["scale"]
             if limit || scale
               field["sql_type"] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
