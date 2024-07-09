@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "rake"
-
 version = File.read(File.expand_path("../VERSION", __FILE__)).strip
 
 Gem::Specification.new do |s|
@@ -19,7 +17,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
   s.extra_rdoc_files = [
     "README.md"
   ]
-  s.files = FileList["History.md", "License.txt", "README.md", "VERSION", "lib/**/*"].exclude("lib/ojdbc*.jar")
+  s.files = Dir["History.md", "License.txt", "README.md", "VERSION", "lib/**/*"]
   s.homepage = "http://github.com/rsim/oracle-enhanced"
   s.require_paths = ["lib"]
   s.summary = "Oracle enhanced adapter for ActiveRecord"
