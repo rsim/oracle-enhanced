@@ -330,7 +330,7 @@ describe "OracleEnhancedAdapter schema definition" do
     it "should raise error if too large index name cannot be shortened" do
       if @oracle12cr2_or_higher
         expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
-          ("idx_on_first_name_middle_name_last_name_ee1d3958bc"))
+          ("index_test_employees_on_first_name_and_middle_name_and_last_name"))
       else
         expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
           "i" + OpenSSL::Digest::SHA1.hexdigest("idx_on_first_name_middle_name_last_name_ee1d3958bc")[0, 29]
