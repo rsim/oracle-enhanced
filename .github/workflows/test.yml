@@ -26,8 +26,8 @@ jobs:
           '2.7'
         ]
     env:
-      ORACLE_HOME: /opt/oracle/instantclient_23_3
-      LD_LIBRARY_PATH: /opt/oracle/instantclient_23_3
+      ORACLE_HOME: /opt/oracle/instantclient_23_5
+      LD_LIBRARY_PATH: /opt/oracle/instantclient_23_5
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       TNS_ADMIN: ./ci/network/admin
       DATABASE_NAME: FREEPDB1
@@ -57,17 +57,17 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
       - name: Download Oracle instant client
         run: |
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/23c/instantclient-basic-linux.x64-23.3.0.0.0.zip
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/23c/instantclient-sdk-linux.x64-23.3.0.0.0.zip
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/23c/instantclient-sqlplus-linux.x64-23.3.0.0.0.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2350000/instantclient-basic-linux.x64-23.5.0.24.07.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2350000/instantclient-sdk-linux.x64-23.5.0.24.07.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2350000/instantclient-sqlplus-linux.x64-23.5.0.24.07.zip
 
       - name: Install Oracle instant client
         run: |
           sudo mkdir -p /opt/oracle/
-          sudo unzip instantclient-basic-linux.x64-23.3.0.0.0.zip -d /opt/oracle/
-          sudo unzip -o instantclient-sdk-linux.x64-23.3.0.0.0.zip -d /opt/oracle/
-          sudo unzip -o instantclient-sqlplus-linux.x64-23.3.0.0.0.zip -d /opt/oracle/
-          echo "/opt/oracle/instantclient_23_3" >> $GITHUB_PATH
+          sudo unzip instantclient-basic-linux.x64-23.5.0.24.07.zip -d /opt/oracle/
+          sudo unzip -o instantclient-sdk-linux.x64-23.5.0.24.07.zip -d /opt/oracle/
+          sudo unzip -o instantclient-sqlplus-linux.x64-23.5.0.24.07.zip -d /opt/oracle/
+          echo "/opt/oracle/instantclient_23_5" >> $GITHUB_PATH
       - name: Install JDBC Driver
         run: |
           wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar

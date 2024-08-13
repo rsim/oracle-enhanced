@@ -11,25 +11,26 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    env:
+      LD_LIBRARY_PATH: /opt/oracle/instantclient_23_5
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up Ruby 3.3
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.3
-      - name: Install required package
-        run: |
-          sudo apt-get install alien
       - name: Download Oracle instant client
         run: |
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/2111000/oracle-instantclient-basic-21.11.0.0.0-1.x86_64.rpm
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/2111000/oracle-instantclient-sqlplus-21.11.0.0.0-1.x86_64.rpm
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/2111000/oracle-instantclient-devel-21.11.0.0.0-1.x86_64.rpm
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2350000/instantclient-basic-linux.x64-23.5.0.24.07.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2350000/instantclient-sdk-linux.x64-23.5.0.24.07.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2350000/instantclient-sqlplus-linux.x64-23.5.0.24.07.zip
       - name: Install Oracle instant client
         run: |
-          sudo alien -i oracle-instantclient-basic-21.11.0.0.0-1.x86_64.rpm
-          sudo alien -i oracle-instantclient-sqlplus-21.11.0.0.0-1.x86_64.rpm
-          sudo alien -i oracle-instantclient-devel-21.11.0.0.0-1.x86_64.rpm
+          sudo unzip instantclient-basic-linux.x64-23.5.0.24.07.zip -d /opt/oracle/
+          sudo unzip -o instantclient-sdk-linux.x64-23.5.0.24.07.zip -d /opt/oracle/
+          sudo unzip -o instantclient-sqlplus-linux.x64-23.5.0.24.07.zip -d /opt/oracle/
+          echo "/opt/oracle/instantclient_23_5" >> $GITHUB_PATH
       - name: Build and run RuboCop
         run: |
           bundle install --jobs 4 --retry 3
