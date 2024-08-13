@@ -31,7 +31,7 @@ You can create your development and test environment by yourself.
 Install Ruby 2.2.2 or higher version of Ruby and JRuby 9.0.5 or higher. To switch multiple version of ruby, you can use use [ruby-build](https://github.com/rbenv/ruby-build) or [Ruby Version Manager(RVM)](https://rvm.io/).
 
 ### Creating the test database
-To test Oracle enhanced adapter Oracle database is necesssary. You can build by your own or use the Docker to run pre-build Oracle Database Express Edition 11g Release 2.
+To test Oracle enhanced adapter Oracle database is necessary. You can build by your own or use the Docker to run pre-build Oracle Database Express Edition 11g Release 2.
 
 #### Create database by yourself
 Oracle database 11.2 or later with SYS and SYSTEM user access. AL32UTF8 database character set is recommended.
@@ -41,33 +41,36 @@ If no Oracle database with SYS and SYSTEM user access is available, try the dock
 
 * Install [Docker](https://docker.github.io/engine/installation/)
 
-* Pull [docker-oracle-xe-11g-r2](https://hub.docker.com/r/wnameless/oracle-xe-11g-r2/) image from docker hub
+* Pull [gvenzl/oracle-xe](https://hub.docker.com/r/gvenzl/oracle-xe/) image from docker hub
   ```sh
-  $ docker pull wnameless/oracle-xe-11g-r2
+  docker pull gvenzl/oracle-free:latest
   ```
 
-* Start a Oracle database docker container with mapped ports. Use port `49161` to access the database.
+* Start a Oracle database docker container with mapped ports. Use port `1521` to access the database.
   ```sh
-  $ docker run -d -p 49160:22 -p 49161:1521 wnameless/oracle-xe-11g-r2
+  docker run --name oracle \
+    -p 1521:1521 \
+    -e TZ=Europe/Riga \
+    -e ORACLE_PASSWORD=oracle \
+    gvenzl/oracle-free:latest
   ```
 
 * Check connection to the database with `sqlplus`. The user is `system`, the password is `oracle`.
   ```sh
-  $ sqlplus64 system/oracle@localhost:49161
+  sqlplus system/oracle@localhost:1521/FREEPDB1
   ```
 
 
 ### Creating database schemas at the test database
 
 * Create Oracle database schema for test purposes. Review `spec/spec_helper.rb` to see default schema/user names and database names (use environment variables to override defaults)
+  ```sql
+  CREATE USER oracle_enhanced IDENTIFIED BY oracle_enhanced;
+  GRANT unlimited tablespace, create session, create table, create sequence, create procedure, create trigger, create view, create materialized view, create database link, create synonym, create type, ctxapp TO oracle_enhanced;
 
-```sql
-SQL> CREATE USER oracle_enhanced IDENTIFIED BY oracle_enhanced;
-SQL> GRANT unlimited tablespace, create session, create table, create sequence, create procedure, create trigger, create view, create materialized view, create database link, create synonym, create type, ctxapp TO oracle_enhanced;
-
-SQL> CREATE USER oracle_enhanced_schema IDENTIFIED BY oracle_enhanced_schema;
-SQL> GRANT unlimited tablespace, create session, create table, create sequence, create procedure, create trigger, create view, create materialized view, create database link, create synonym, create type, ctxapp TO oracle_enhanced_schema;
-```
+  CREATE USER oracle_enhanced_schema IDENTIFIED BY oracle_enhanced_schema;
+  GRANT unlimited tablespace, create session, create table, create sequence, create procedure, create trigger, create view, create materialized view, create database link, create synonym, create type, ctxapp TO oracle_enhanced_schema;
+  ```
 
 ### Configure database login credentials
 
@@ -81,9 +84,9 @@ SQL> GRANT unlimited tablespace, create session, create table, create sequence, 
   # copy this file to spec/config.yaml and set appropriate values
   # you can also use environment variables, see spec_helper.rb
   database:
-    name:         'xe'
+    name:         'FREEPDB1'
     host:         'localhost'
-    port:         49161
+    port:         1521
     user:         'oracle_enhanced'
     password:     'oracle_enhanced'
     sys_password: 'oracle'
@@ -95,15 +98,15 @@ SQL> GRANT unlimited tablespace, create session, create table, create sequence, 
 
 * Install bundler
   ```sh
-  $ gem install bundler
+  gem install bundler
   ```
 
 * Execute bundle install to install required gems
   ```sh
-  $ bundle install
+  bundle install
   ```
 
 * Run Oracle enhanced adapter unit tests
   ```sh
-  $ bundle exec rake spec
+  bundle exec rake spec
   ```
