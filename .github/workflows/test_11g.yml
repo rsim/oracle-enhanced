@@ -36,6 +36,7 @@ jobs:
       DATABASE_HOST: localhost
       DATABASE_PORT: 1521
       DATABASE_VERSION: 11.2.0.2
+      DATABASE_SERVER_AND_CLIENT_VERSION_DO_NOT_MATCH: true
 
     services:
       oracle:
