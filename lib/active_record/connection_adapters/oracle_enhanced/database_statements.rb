@@ -9,13 +9,13 @@ module ActiveRecord
         # see: abstract/database_statements.rb
 
         # Executes a SQL statement
-        def execute(sql, name = nil, async: false)
+        def execute(sql, name = nil, async: false, allow_retry: false)
           sql = transform_query(sql)
 
-          log(sql, name, async: async) { @raw_connection.exec(sql) }
+          log(sql, name, async: async) { _connection.exec(sql, allow_retry: allow_retry) }
         end
 
-        def exec_query(sql, name = "SQL", binds = [], prepare: false, async: false)
+        def exec_query(sql, name = "SQL", binds = [], prepare: false, async: false, allow_retry: false)
           sql = transform_query(sql)
 
           type_casted_binds = type_casted_binds(binds)
@@ -25,10 +25,10 @@ module ActiveRecord
             cached = false
             with_retry do
               if without_prepared_statement?(binds)
-                cursor = @raw_connection.prepare(sql)
+                cursor = _connection.prepare(sql)
               else
                 unless @statements.key? sql
-                  @statements[sql] = @raw_connection.prepare(sql)
+                  @statements[sql] = _connection.prepare(sql)
                 end
 
                 cursor = @statements[sql]
@@ -59,6 +59,7 @@ module ActiveRecord
             res
           end
         end
+        alias_method :internal_exec_query, :exec_query
 
         def supports_explain?
           true
@@ -77,7 +78,7 @@ module ActiveRecord
 
         # New method in ActiveRecord 3.1
         # Will add RETURNING clause in case of trigger generated primary keys
-        def sql_for_insert(sql, pk, binds)
+        def sql_for_insert(sql, pk, binds, _returning)
           unless pk == false || pk.nil? || pk.is_a?(Array) || pk.is_a?(String)
             sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
             (binds = binds.dup) << ActiveRecord::Relation::QueryAttribute.new("returning_id", nil, Type::OracleEnhanced::Integer.new)
@@ -85,14 +86,14 @@ module ActiveRecord
           super
         end
 
-        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [])
+        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [], returning: nil)
           pk = nil if id_value
-          super
+          Array(super || id_value)
         end
 
         # New method in ActiveRecord 3.1
-        def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil)
-          sql, binds = sql_for_insert(sql, pk, binds)
+        def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil, returning: nil)
+          sql, binds = sql_for_insert(sql, pk, binds, returning)
           type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds) do
@@ -101,10 +102,10 @@ module ActiveRecord
             returning_id_col = returning_id_index = nil
             with_retry do
               if without_prepared_statement?(binds)
-                cursor = @raw_connection.prepare(sql)
+                cursor = _connection.prepare(sql)
               else
                 unless @statements.key?(sql)
-                  @statements[sql] = @raw_connection.prepare(sql)
+                  @statements[sql] = _connection.prepare(sql)
                 end
 
                 cursor = @statements[sql]
@@ -141,12 +142,12 @@ module ActiveRecord
             with_retry do
               cached = false
               if without_prepared_statement?(binds)
-                cursor = @raw_connection.prepare(sql)
+                cursor = _connection.prepare(sql)
               else
                 if @statements.key?(sql)
                   cursor = @statements[sql]
                 else
-                  cursor = @statements[sql] = @raw_connection.prepare(sql)
+                  cursor = @statements[sql] = _connection.prepare(sql)
                 end
 
                 cursor.bind_params(type_casted_binds)
@@ -163,8 +164,12 @@ module ActiveRecord
 
         alias :exec_delete :exec_update
 
+        def returning_column_values(result)
+          result.rows.first
+        end
+
         def begin_db_transaction # :nodoc:
-          @raw_connection.autocommit = false
+          _connection.autocommit = false
         end
 
         def transaction_isolation_levels
@@ -183,15 +188,15 @@ module ActiveRecord
         end
 
         def commit_db_transaction # :nodoc:
-          @raw_connection.commit
+          _connection.commit
         ensure
-          @raw_connection.autocommit = true
+          _connection.autocommit = true
         end
 
         def exec_rollback_db_transaction # :nodoc:
-          @raw_connection.rollback
+          _connection.rollback
         ensure
-          @raw_connection.autocommit = true
+          _connection.autocommit = true
         end
 
         def create_savepoint(name = current_savepoint_name) # :nodoc:
@@ -265,14 +270,14 @@ module ActiveRecord
                 raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
               end
               lob = lob_record[col.name]
-              @raw_connection.write_lob(lob, value.to_s, col.type == :binary)
+              _connection.write_lob(lob, value.to_s, col.type == :binary)
             end
           end
         end
 
         private
           def with_retry
-            @raw_connection.with_retry do
+            _connection.with_retry do
               yield
             rescue
               @statements.clear

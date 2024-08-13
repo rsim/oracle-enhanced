@@ -248,6 +248,8 @@ module ActiveRecord
 
       def initialize(config_or_deprecated_connection, deprecated_logger = nil, deprecated_connection_options = nil, deprecated_config = nil) # :nodoc:
         super(config_or_deprecated_connection, deprecated_logger, deprecated_connection_options, deprecated_config)
+
+        @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
         @enable_dbms_output = false
         @do_not_prefetch_primary_key = {}
         @columns_cache = {}
@@ -273,6 +275,11 @@ module ActiveRecord
         else
           Arel::Visitors::Oracle.new(self)
         end
+      end
+
+      def return_value_after_insert?(column) # :nodoc:
+        # TODO: Return true if there this column will be populated (e.g by a sequence)
+        super
       end
 
       def build_statement_pool
@@ -304,11 +311,12 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        if !use_old_oracle_visitor && database_version.first >= 12
-          true
-        else
-          false
-        end
+        false
+
+        # TODO: At this point the connection is not initialized yet,
+        # so `database_version` raises an error
+        #
+        # !use_old_oracle_visitor && database_version.first >= 12
       end
 
       def supports_datetime_with_precision?
@@ -432,12 +440,13 @@ module ActiveRecord
 
       def auto_retry=(value) # :nodoc:
         @auto_retry = value
-        @raw_connection.auto_retry = value if @raw_connection
+        _connection.auto_retry = value if _connection
       end
 
       # return raw OCI8 or JDBC connection
       def raw_connection
-        @raw_connection.raw_connection
+        verify!
+        _connection.raw_connection
       end
 
       # Returns true if the connection is active.
@@ -446,13 +455,13 @@ module ActiveRecord
         # #active? method is also available, but that simply returns the
         # last known state, which isn't good enough if the connection has
         # gone stale since the last use.
-        @raw_connection.ping
+        _connection.ping
       rescue OracleEnhanced::ConnectionException
         false
       end
 
       def reconnect
-        @raw_connection.reset # tentative
+        _connection.reset # tentative
       rescue OracleEnhanced::ConnectionException
         connect
       end
@@ -460,7 +469,7 @@ module ActiveRecord
       # Reconnects to the database.
       def reconnect! # :nodoc:
         super
-        @raw_connection.reset!
+        _connection.reset!
       rescue OracleEnhanced::ConnectionException => e
         @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
       end
@@ -478,12 +487,12 @@ module ActiveRecord
       # Disconnects from the database.
       def disconnect! # :nodoc:
         super
-        @raw_connection.logoff rescue nil
+        _connection.logoff rescue nil
       end
 
       def discard!
         super
-        @raw_connection = nil
+        _connection = nil
       end
 
       # use in set_sequence_name to avoid fetching primary key value from sequence
@@ -508,7 +517,7 @@ module ActiveRecord
         table_name = table_name.to_s
         do_not_prefetch = @do_not_prefetch_primary_key[table_name]
         if do_not_prefetch.nil?
-          owner, desc_table_name = @raw_connection.describe(table_name)
+          owner, desc_table_name = _connection.describe(table_name)
           @do_not_prefetch_primary_key[table_name] = do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
         end
         !do_not_prefetch
@@ -577,7 +586,7 @@ module ActiveRecord
       end
 
       def column_definitions(table_name)
-        (owner, desc_table_name) = @raw_connection.describe(table_name)
+        (owner, desc_table_name) = _connection.describe(table_name)
 
         select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cols.column_name AS name, cols.data_type AS sql_type,
@@ -609,7 +618,7 @@ module ActiveRecord
       # Find a table's primary key and sequence.
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
-        (owner, desc_table_name) = @raw_connection.describe(table_name)
+        (owner, desc_table_name) = _connection.describe(table_name)
 
         seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
           select us.sequence_name
@@ -651,7 +660,7 @@ module ActiveRecord
       end
 
       def primary_keys(table_name) # :nodoc:
-        (_owner, desc_table_name) = @raw_connection.describe(table_name)
+        (_owner, desc_table_name) = _connection.describe(table_name)
 
         pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
@@ -695,8 +704,14 @@ module ActiveRecord
       alias table_alias_length max_identifier_length
       alias index_name_length max_identifier_length
 
+      # This is to ensure rails is not shortening the index name,
+      # in order to preserve the local shortening behavior.
+      def max_index_name_size
+        128
+      end
+
       def get_database_version
-        @raw_connection.database_version
+        _connection.database_version
       end
 
       def check_version
@@ -705,6 +720,10 @@ module ActiveRecord
         if version < 10
           raise "Your version of Oracle (#{version}) is too old. Active Record Oracle enhanced adapter supports Oracle >= 10g."
         end
+      end
+
+      private def _connection
+        @unconfigured_connection || @raw_connection
       end
 
       class << self
@@ -773,7 +792,7 @@ module ActiveRecord
       end
 
       def translate_exception(exception, message:, sql:, binds:) # :nodoc:
-        case @raw_connection.error_code(exception)
+        case _connection.error_code(exception)
         when 1
           RecordNotUnique.new(message, sql: sql, binds: binds)
         when 60

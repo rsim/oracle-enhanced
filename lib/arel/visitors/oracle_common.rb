@@ -31,7 +31,7 @@ module Arel # :nodoc: all
         def cached_column_for(attr)
           return unless Arel::Attributes::Attribute === attr
 
-          table = attr.relation.table_name
+          table = attr.relation.name
           return unless schema_cache.columns_hash?(table)
 
           column = attr.name.to_s

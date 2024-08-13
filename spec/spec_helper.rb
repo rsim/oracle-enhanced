@@ -57,6 +57,8 @@ module LoggerSpecHelper
   end
 
   class MockLogger
+    LEVELS = %i[debug info warn error fatal unknown]
+
     attr_reader :flush_count
 
     def initialize
@@ -64,13 +66,22 @@ module LoggerSpecHelper
       @logged = Hash.new { |h, k| h[k] = [] }
     end
 
-    # used in AtiveRecord 2.x
+    # used in ActiveRecord 2.x
     def debug?
       true
     end
 
-    def method_missing(level, message)
-      @logged[level] << message
+    def level
+      0
+    end
+
+    def method_missing(*args)
+      if LEVELS.include?(args[0])
+        level, message  = args
+        @logged[level] << message
+      else
+        super
+      end
     end
 
     def logged(level)

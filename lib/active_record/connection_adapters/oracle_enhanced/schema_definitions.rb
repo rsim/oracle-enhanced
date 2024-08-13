@@ -81,6 +81,11 @@ module ActiveRecord
           super(*args, type: :integer, **options)
         end
         alias :belongs_to :references
+
+        private
+          def valid_column_definition_options
+            super + [ :as, :sequence_name, :sequence_start_value, :type ]
+          end
       end
 
       class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable
