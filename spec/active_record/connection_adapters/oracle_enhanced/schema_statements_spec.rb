@@ -333,7 +333,7 @@ describe "OracleEnhancedAdapter schema definition" do
           ("index_test_employees_on_first_name_and_middle_name_and_last_name"))
       else
         expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
-          "i" + OpenSSL::Digest::SHA1.hexdigest("idx_on_first_name_middle_name_last_name_ee1d3958bc")[0, 29]
+          "i" + OpenSSL::Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
         )
       end
     end
