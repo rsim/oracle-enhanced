@@ -1,3 +1,27 @@
+## 7.1.0.beta1 / 2024-09-23
+
+* Changes and bug fixes
+  * Support Rails 7.1 [#2384]
+  * All attributes serialized before writing [#2203]
+  * Support LIKE case-insensitive matching [#2247]
+  * Support LOB equality [#2258]
+  * Rename the raw connection ivar to @raw_connection [#2265]
+  * Require 'activerecord', not 'rails' not to attempt to install digest [#2241]
+  * Add ruby-oci8 as dependency only for CRuby [#2240]
+  * Address uninitialized constant TestEmployee::AttributeSignature::Base64 [#2264]
+  * Enable Lint/EnsureReturn cop [#2259]
+  * Enable Performance/OpenStruct cop [#2263]
+  * Enable Style/MapToHash cop [#2266]
+  * Fix broken link [#2250]
+  * Use debug gem to replace byebug [#2275]
+  * Support linting YAML files [#2272]
+
+* Known issues
+  * `build_explain_clause(options = [])` has not been implemented yet [#2394]
+  * `supports_fetch_first_n_rows_and_offset?` always returns `false` [#2395]
+  * Oracle enhanced adapter has not been tested against JRuby
+  * bug_report_templates are not tested [#2318]
+
 ## 7.0.3 / 2023-08-10
 
 * Changes and bug fixes
