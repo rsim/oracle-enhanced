@@ -65,7 +65,7 @@ module ActiveRecord
           true
         end
 
-        def explain(arel, binds = [])
+        def explain(arel, binds = [], options = [])
           sql = "EXPLAIN PLAN FOR #{to_sql(arel, binds)}"
           return if /FROM all_/.match?(sql)
           if ORACLE_ENHANCED_CONNECTION == :jdbc
@@ -74,6 +74,11 @@ module ActiveRecord
             exec_query(sql, "EXPLAIN")
           end
           select_values("SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)", "EXPLAIN").join("\n")
+        end
+
+        def build_explain_clause(options = [])
+          # Oracle does not have anything similar to "EXPLAIN ANALYZE"
+          # https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/EXPLAIN-PLAN.html#GUID-FD540872-4ED3-4936-96A2-362539931BA0
         end
 
         # New method in ActiveRecord 3.1
