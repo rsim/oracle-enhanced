@@ -1,3 +1,7 @@
+## 7.1.0.beta2 / 2024-09-23
+* Changes and bug fixes
+  * Implement `build_explain_clause(options = [])` as no-op [#2394, #2398, #2402]
+
 ## 7.1.0.beta1 / 2024-09-23
 
 * Changes and bug fixes
