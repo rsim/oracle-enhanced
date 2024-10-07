@@ -844,7 +844,8 @@ module ActiveRecord
 end
 
 # Workaround for https://github.com/jruby/jruby/issues/6267
-if RUBY_ENGINE == "jruby"
+# This is for older versions of JRuby and not necessary for moderm JRuby (>9) now
+if RUBY_ENGINE == "jruby" && RUBY_VERSION.to_f < 3.0
   require "jruby"
 
   class org.jruby::RubyObjectSpace::WeakMap
