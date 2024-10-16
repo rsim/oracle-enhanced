@@ -241,4 +241,25 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     )
     expect(Test2Employee.where(comments: search_data)).to have_attributes(count: 1)
   end
+
+  it "should find NULL CLOB data when queried with nil" do
+    TestEmployee.delete_all
+    TestEmployee.create!(comments: nil)
+    TestEmployee.create!(comments: @char_data)
+    expect(TestEmployee.where(comments: nil)).to have_attributes(count: 1)
+  end
+
+  it "should find serialized NULL CLOB data when queried with nil" do
+    Test2Employee.delete_all
+    Test2Employee.create!(comments: nil)
+    Test2Employee.create!(comments: { some: 'text' })
+    expect(Test2Employee.where(comments: nil)).to have_attributes(count: 1)
+  end
+
+  it "should find serialized NULL CLOB data when queried with {}" do
+    TestSerializedHashEmployee.delete_all
+    TestSerializedHashEmployee.create!(comments: nil)
+    TestSerializedHashEmployee.create!(comments: { some: 'text' })
+    expect(TestSerializedHashEmployee.where(comments: {})).to have_attributes(count: 1)
+  end
 end

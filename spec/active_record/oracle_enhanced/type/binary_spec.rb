@@ -116,4 +116,25 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data)
   end
+
+  it "should find serialized NULL BLOB data when queried with nil" do
+    TestEmployee.delete_all
+    TestEmployee.create!(binary_data: nil)
+    TestEmployee.create!(binary_data: @binary_data)
+    expect(TestEmployee.where(binary_data: nil)).to have_attributes(count: 1)
+  end
+
+  it "should find serialized NULL BLOB data when queried with nil" do
+    TestSerializedHashEmployee.delete_all
+    TestSerializedHashEmployee.create!(binary_data: nil)
+    TestSerializedHashEmployee.create!(binary_data: { data: 'some data' })
+    expect(TestSerializedHashEmployee.where(binary_data: nil)).to have_attributes(count: 1)
+  end
+
+  it "should find serialized NULL BLOB data when queried with {}" do
+    TestSerializedHashEmployee.delete_all
+    TestSerializedHashEmployee.create!(binary_data: nil)
+    TestSerializedHashEmployee.create!(binary_data: { data: 'some data' })
+    expect(TestSerializedHashEmployee.where(binary_data: {})).to have_attributes(count: 1)
+  end
 end

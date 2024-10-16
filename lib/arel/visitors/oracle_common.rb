@@ -9,7 +9,9 @@ module Arel # :nodoc: all
         # Fixes ORA-00932: inconsistent datatypes: expected - got CLOB
         def visit_Arel_Nodes_Equality(o, collector)
           left = o.left
+
           return super unless %i(text binary).include?(cached_column_for(left)&.type)
+          return super if o.right.nil?
 
           # https://docs.oracle.com/cd/B19306_01/appdev.102/b14258/d_lob.htm#i1016668
           # returns 0 when the comparison succeeds
