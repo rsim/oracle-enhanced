@@ -31,6 +31,10 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     class ::Test2Employee < ActiveRecord::Base
       serialize :comments
     end
+    class ::TestSerializedHashEmployee < ActiveRecord::Base
+      self.table_name = "test_employees"
+      serialize :comments, type: Hash, coder: YAML
+    end
     class ::TestEmployeeReadOnlyClob < ActiveRecord::Base
       self.table_name = "test_employees"
       attr_readonly :comments
