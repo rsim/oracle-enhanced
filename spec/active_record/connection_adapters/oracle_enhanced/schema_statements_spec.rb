@@ -393,17 +393,18 @@ end
       schema_define do
         create_table :test_employees, force: true
       end
+      class ::TestEmployee < ActiveRecord::Base; end
     end
 
     after(:each) do
       schema_define do
         drop_table :test_employees, if_exists: true
       end
+      Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.clear_cache!
     end
 
     it "should add created_at and updated_at" do
-      class ::TestEmployee < ActiveRecord::Base; end
-
       expect do
         @conn.add_timestamps("test_employees")
       end.not_to raise_error
