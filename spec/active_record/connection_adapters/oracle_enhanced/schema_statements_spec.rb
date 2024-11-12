@@ -387,6 +387,33 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 end
 
+  describe "add timestamps" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        create_table :test_employees, force: true
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_employees, if_exists: true
+      end
+    end
+
+    it "should add created_at and updated_at" do
+      class ::TestEmployee < ActiveRecord::Base; end
+
+      expect do
+        @conn.add_timestamps("test_employees")
+      end.not_to raise_error
+
+      TestEmployee.reset_column_information
+      expect(TestEmployee.columns_hash["created_at"]).not_to be_nil
+      expect(TestEmployee.columns_hash["updated_at"]).not_to be_nil
+    end
+  end
+
   describe "ignore options for LOB columns" do
     after(:each) do
       schema_define do
