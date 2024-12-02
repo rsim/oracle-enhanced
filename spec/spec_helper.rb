@@ -33,9 +33,16 @@ require "active_support/log_subscriber"
 require "active_record/log_subscriber"
 
 require "logger"
+require "ruby-plsql"
 
 require "active_record/connection_adapters/oracle_enhanced_adapter"
-require "ruby-plsql"
+if ActiveRecord::ConnectionAdapters.respond_to?(:register)
+  ActiveRecord::ConnectionAdapters.register(
+    "oracle_enhanced",
+    "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter",
+    "active_record/connection_adapters/oracle_enhanced_adapter"
+  )
+end
 
 puts "==> Effective ActiveRecord version #{ActiveRecord::VERSION::STRING}"
 
