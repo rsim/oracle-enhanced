@@ -33,9 +33,9 @@ require "active_support/log_subscriber"
 require "active_record/log_subscriber"
 
 require "logger"
+require "ruby-plsql"
 
 require "active_record/connection_adapters/oracle_enhanced_adapter"
-require "ruby-plsql"
 
 puts "==> Effective ActiveRecord version #{ActiveRecord::VERSION::STRING}"
 
