@@ -13,7 +13,7 @@ group :development do
   gem "rubocop-rails", require: false
   gem "rubocop-rspec", require: false
 
-  gem "activerecord",   github: "rails/rails", branch: "7-1-stable"
+  gem "activerecord",   github: "rails/rails", branch: "7-2-stable"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
