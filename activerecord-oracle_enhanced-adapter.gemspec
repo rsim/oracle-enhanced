@@ -26,7 +26,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "rubygems_mfa_required" => "true"
   }
 
-  s.add_runtime_dependency("activerecord", ["~> 7.1.0"])
+  s.add_runtime_dependency("activerecord", ["~> 7.2.0"])
   s.add_runtime_dependency("ruby-plsql", [">= 0.6.0"])
   if /java/.match?(RUBY_PLATFORM)
     s.platform = Gem::Platform.new("java")
