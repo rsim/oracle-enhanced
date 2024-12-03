@@ -81,7 +81,7 @@ describe "Oracle Enhanced adapter database tasks" do
     describe "structure" do
       let(:temp_file) { Tempfile.create(["oracle_enhanced", ".sql"]).path }
       before do
-        ActiveRecord::Base.connection.schema_migration.create_table
+        ActiveRecord::Base.connection_pool.schema_migration.create_table
         ActiveRecord::Base.connection.execute "INSERT INTO schema_migrations (version) VALUES ('20150101010000')"
       end
 
@@ -109,7 +109,7 @@ describe "Oracle Enhanced adapter database tasks" do
 
       after do
         File.unlink(temp_file)
-        ActiveRecord::Base.connection.schema_migration.drop_table
+        ActiveRecord::Base.connection_pool.schema_migration.drop_table
       end
     end
 
