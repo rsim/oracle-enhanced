@@ -14,7 +14,7 @@ describe "OracleEnhancedAdapter schema dump" do
   def standard_dump(options = {})
     stream = StringIO.new
     ActiveRecord::SchemaDumper.ignore_tables = options[:ignore_tables] || []
-    ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
+    ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
     stream.string
   end
 
