@@ -252,7 +252,7 @@ module ActiveRecord
           rebuild_primary_key_index_to_default_tablespace(table_name, options)
         end
 
-        def rename_table(table_name, new_name) # :nodoc:
+        def rename_table(table_name, new_name, **options) # :nodoc:
           if new_name.to_s.length > DatabaseLimits::IDENTIFIER_MAX_LENGTH
             raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{DatabaseLimits::IDENTIFIER_MAX_LENGTH} characters"
           end
@@ -261,7 +261,7 @@ module ActiveRecord
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
           execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{default_sequence_name(new_name)}" rescue nil
 
-          rename_table_indexes(table_name, new_name)
+          rename_table_indexes(table_name, new_name, **options)
         end
 
         def drop_table(table_name, **options) # :nodoc:
