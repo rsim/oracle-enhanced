@@ -15,6 +15,10 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     end
     class ::TestEmployee < ActiveRecord::Base
     end
+    class ::TestSerializedEmployee < ActiveRecord::Base
+      self.table_name = "test_employees"
+      serialize :binary_data, coder: YAML
+    end
     class ::TestSerializedHashEmployee < ActiveRecord::Base
       self.table_name = "test_employees"
       serialize :binary_data, type: Hash, coder: YAML
@@ -26,6 +30,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
   after(:all) do
     @conn.drop_table :test_employees, if_exists: true
     Object.send(:remove_const, "TestEmployee")
+    Object.send(:remove_const, "TestSerializedEmployee")
     Object.send(:remove_const, "TestSerializedHashEmployee")
   end
 
@@ -130,13 +135,20 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
   end
 
   it "should find serialized NULL BLOB data when queried with nil" do
+    TestSerializedEmployee.delete_all
+    TestSerializedEmployee.create!(binary_data: nil)
+    TestSerializedEmployee.create!(binary_data: { data: 'some data' })
+    expect(TestSerializedEmployee.where(binary_data: nil)).to have_attributes(count: 1)
+  end
+
+  it "should find serialized Hash NULL BLOB data when queried with nil" do
     TestSerializedHashEmployee.delete_all
     TestSerializedHashEmployee.create!(binary_data: nil)
     TestSerializedHashEmployee.create!(binary_data: { data: 'some data' })
     expect(TestSerializedHashEmployee.where(binary_data: nil)).to have_attributes(count: 1)
   end
 
-  it "should find serialized NULL BLOB data when queried with {}" do
+  it "should find serialized Hash NULL BLOB data when queried with {}" do
     TestSerializedHashEmployee.delete_all
     TestSerializedHashEmployee.create!(binary_data: nil)
     TestSerializedHashEmployee.create!(binary_data: { data: 'some data' })
