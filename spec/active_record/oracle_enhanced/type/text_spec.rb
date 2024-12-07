@@ -51,6 +51,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @conn.drop_table :test_serialize_employees, if_exists: true
     Object.send(:remove_const, "TestEmployee")
     Object.send(:remove_const, "Test2Employee")
+    Object.send(:remove_const, "TestSerializedHashEmployee")
     Object.send(:remove_const, "TestEmployeeReadOnlyClob")
     Object.send(:remove_const, "TestSerializeEmployee")
     ActiveRecord::Base.clear_cache!
@@ -254,13 +255,20 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
   end
 
   it "should find serialized NULL CLOB data when queried with nil" do
-    Test2Employee.delete_all
-    Test2Employee.create!(comments: nil)
-    Test2Employee.create!(comments: { some: 'text' })
-    expect(Test2Employee.where(comments: nil)).to have_attributes(count: 1)
+    TestSerializeEmployee.delete_all
+    TestSerializeEmployee.create!(comments: nil)
+    TestSerializeEmployee.create!(comments: { some: 'text' })
+    expect(TestSerializeEmployee.where(comments: nil)).to have_attributes(count: 1)
   end
 
-  it "should find serialized NULL CLOB data when queried with {}" do
+  it "should find serialized Hash NULL CLOB data when queried with nil" do
+    TestSerializedHashEmployee.delete_all
+    TestSerializedHashEmployee.create!(comments: nil)
+    TestSerializedHashEmployee.create!(comments: { some: 'text' })
+    expect(TestSerializedHashEmployee.where(comments: nil)).to have_attributes(count: 1)
+  end
+
+  it "should find serialized Hash NULL CLOB data when queried with {}" do
     TestSerializedHashEmployee.delete_all
     TestSerializedHashEmployee.create!(comments: nil)
     TestSerializedHashEmployee.create!(comments: { some: 'text' })

@@ -26,6 +26,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
   after(:all) do
     @conn.drop_table :test_employees, if_exists: true
     Object.send(:remove_const, "TestEmployee")
+    Object.send(:remove_const, "TestSerializedHashEmployee")
   end
 
   after(:each) do
