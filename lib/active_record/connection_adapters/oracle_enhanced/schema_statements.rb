@@ -622,6 +622,13 @@ module ActiveRecord
           OracleEnhanced::AlterTable.new create_table_definition(name)
         end
 
+        def add_timestamps(table_name, **options)
+          fragments = add_timestamps_for_alter(table_name, **options)
+          fragments.each do |fragment|
+            execute "ALTER TABLE #{quote_table_name(table_name)} #{fragment}"
+          end
+        end
+
         def update_table_definition(table_name, base)
           OracleEnhanced::Table.new(table_name, base)
         end
