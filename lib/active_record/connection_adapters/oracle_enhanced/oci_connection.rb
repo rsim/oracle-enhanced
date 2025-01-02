@@ -128,6 +128,7 @@ module ActiveRecord
           end
 
           def bind_param(position, value)
+            warn("bind_param(#{position}, #{value.inspect})") # XXX DEBUG
             case value
             when Type::OracleEnhanced::Raw
               @raw_cursor.bind_param(position, OracleEnhanced::Quoting.encode_raw(value))

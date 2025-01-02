@@ -21,6 +21,7 @@ module ActiveRecord
           type_casted_binds = type_casted_binds(binds)
 
           log(sql, name, binds, type_casted_binds, async: async) do
+            warn("exec_query : #{sql} <- #{type_casted_binds.inspect}") # DEBUG XXX
             cursor = nil
             cached = false
             with_retry do

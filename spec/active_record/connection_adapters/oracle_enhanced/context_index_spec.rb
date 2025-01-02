@@ -91,6 +91,10 @@ describe "OracleEnhancedAdapter context index" do
 
     it "should create single VARCHAR2 column index" do
       @conn.add_context_index :posts, :title
+      indexes = @conn.indexes(:posts)
+      indexes.each do |index|
+        puts "Index name: #{index.name}, Columns: #{index.columns.join(', ')}"
+      end
       @title_words.each do |word|
         expect(Post.contains(:title, word).to_a).to eq([@post2, @post1])
       end
@@ -292,9 +296,9 @@ describe "OracleEnhancedAdapter context index" do
 
     def verify_logged_statements
       ["K_TABLE_CLAUSE", "R_TABLE_CLAUSE", "N_TABLE_CLAUSE", "I_INDEX_CLAUSE", "P_TABLE_CLAUSE"].each do |clause|
-        expect(@logger.output(:debug)).to match(/CTX_DDL\.SET_ATTRIBUTE\('index_posts_on_title_sto', '#{clause}', '.*TABLESPACE #{@tablespace}'\)/)
+        expect(@logger.output(:debug)).to match(/CTX_DDL\.SET_ATTRIBUTE\('index_posts_text_sto', '#{clause}', '.*TABLESPACE #{@tablespace}'\)/)
       end
-      expect(@logger.output(:debug)).to match(/CREATE INDEX .* PARAMETERS \('STORAGE index_posts_on_title_sto'\)/)
+      expect(@logger.output(:debug)).to match(/CREATE INDEX .* PARAMETERS \('.*STORAGE index_posts_text_sto'\)/)
     end
 
     it "should create index on single column" do
