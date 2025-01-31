@@ -330,8 +330,23 @@ module ActiveRecord
             # Add context index condition.
             def contains(column, query, options = {})
               score_label = options[:label].to_i || 1
-              where("CONTAINS(#{connection.quote_table_name(column)}, ?, #{score_label}) > 0", query).
-                order(Arel.sql("SCORE(#{score_label}) DESC"))
+              quoted_column = connection.quote_table_name(column)
+
+              # Create an Arel node for the CONTAINS function
+              contains_node = Arel::Nodes::NamedFunction.new(
+                "CONTAINS",
+                [
+                  Arel::Nodes::SqlLiteral.new(quoted_column),
+                  Arel::Nodes::BindParam.new(query),
+                  Arel::Nodes::SqlLiteral.new(score_label.to_s)
+                ]
+              )
+
+              # Create comparison node: CONTAINS(...) > 0
+              condition = Arel::Nodes::GreaterThan.new(contains_node, Arel::Nodes::SqlLiteral.new("0"))
+
+              # Create the where clause and order by score
+              where(condition).order(Arel.sql("SCORE(#{score_label}) DESC"))
             end
           end
       end
