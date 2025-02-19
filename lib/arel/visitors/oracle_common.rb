@@ -3,6 +3,12 @@
 module Arel # :nodoc: all
   module Visitors
     module OracleCommon
+
+      BIND_BLOCK = proc { |i| ":a#{i}" }
+      private_constant :BIND_BLOCK
+
+      def bind_block; BIND_BLOCK; end
+
       private
         # Oracle can't compare CLOB columns with standard SQL operators for comparison.
         # We need to replace standard equality for text/binary columns to use DBMS_LOB.COMPARE function.
