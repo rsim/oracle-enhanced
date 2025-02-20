@@ -10,13 +10,13 @@ module ActiveRecord
 
         # Executes a SQL statement
         def execute(sql, name = nil, async: false, allow_retry: false)
-          sql = transform_query(sql)
+          sql = preprocess_query(sql)
 
           log(sql, name, async: async) { _connection.exec(sql, allow_retry: allow_retry) }
         end
 
         def exec_query(sql, name = "SQL", binds = [], prepare: false, async: false, allow_retry: false)
-          sql = transform_query(sql)
+          sql = preprocess_query(sql)
 
           type_casted_binds = type_casted_binds(binds)
 
