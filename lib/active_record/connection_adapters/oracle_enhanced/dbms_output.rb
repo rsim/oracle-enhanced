@@ -32,7 +32,7 @@ module ActiveRecord
 
       private
         def log(sql, name = "SQL", binds = [], type_casted_binds = [], statement_name = nil, async: false, &block)
-          @instrumenter.instrument(
+          instrumenter.instrument(
             "sql.active_record",
             sql:               sql,
             name:              name,
