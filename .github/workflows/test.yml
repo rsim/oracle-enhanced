@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Rails 7.2 requires Ruby 3.1 or higeher.
+        # Rails 8.0 requires Ruby 3.2 or higeher.
         # CI pending the following matrix until JRuby 9.4 that supports Ruby 2.7 will be released.
         # https://github.com/jruby/jruby/issues/6464
         # - jruby,
@@ -22,7 +22,6 @@ jobs:
           '3.4',
           '3.3',
           '3.2',
-          '3.1',
         ]
     env:
       ORACLE_HOME: /opt/oracle/instantclient_23_8
