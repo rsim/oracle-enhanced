@@ -158,6 +158,10 @@ module ActiveRecord
             @raw_cursor.get_col_names
           end
 
+          def row_count
+            @raw_cursor.row_count
+          end
+
           def fetch(options = {})
             if row = @raw_cursor.fetch
               get_lob_value = options[:get_lob_value]
