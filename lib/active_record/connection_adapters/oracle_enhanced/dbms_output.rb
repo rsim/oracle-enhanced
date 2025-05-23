@@ -31,6 +31,10 @@ module ActiveRecord
         end
 
       private
+        def instrumenter # :nodoc:
+          ActiveSupport::IsolatedExecutionState[:active_record_instrumenter] ||= ActiveSupport::Notifications.instrumenter
+        end
+
         def log(sql, name = "SQL", binds = [], type_casted_binds = [], statement_name = nil, async: false, &block)
           instrumenter.instrument(
             "sql.active_record",
