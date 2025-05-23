@@ -54,7 +54,7 @@ module ActiveRecord
               end
 
               rows = []
-              if sql =~ /\A\s*SELECT/i # This seems a naive way to detect queries that will have row results.
+              if cursor.select_statement?
                 fetch_options = { get_lob_value: (name != "Writable Large Object") }
                 while row = cursor.fetch(fetch_options)
                   rows << row

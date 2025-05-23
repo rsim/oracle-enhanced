@@ -162,6 +162,10 @@ module ActiveRecord
             @raw_cursor.row_count
           end
 
+          def select_statement?
+            @raw_cursor.type == :select_stmt
+          end
+
           def fetch(options = {})
             if row = @raw_cursor.fetch
               get_lob_value = options[:get_lob_value]
