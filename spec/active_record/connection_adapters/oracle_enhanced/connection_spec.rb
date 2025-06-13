@@ -30,6 +30,12 @@ describe "OracleEnhancedAdapter establish connection" do
     expect(ActiveRecord::Base.connection).to be_active
   end
 
+  it "should be active after reconnection to database with restore_transactions: true" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    ActiveRecord::Base.connection.reconnect!(restore_transactions: true)
+    expect(ActiveRecord::Base.connection).to be_active
+  end
+
   it "should use database default cursor_sharing parameter value force by default" do
     # Use `SYSTEM_CONNECTION_PARAMS` to query v$parameter
     ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS)
