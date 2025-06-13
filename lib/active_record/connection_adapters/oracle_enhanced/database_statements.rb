@@ -285,7 +285,7 @@ module ActiveRecord
             _connection.with_retry do
               yield
             rescue
-              @statements.clear
+              @statements.reset # FIXME: this is unsafe. Should reset only if it is safe
               raise
             end
           end
