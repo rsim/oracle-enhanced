@@ -1227,8 +1227,7 @@ end
 
     before do
       @conn = ActiveRecord::Base.connection
-
-      ActiveRecord::Base.connection.schema_migration.create_table
+      ActiveRecord::Base.connection_pool.schema_migration.create_table
     end
 
     context "multi insert is supported" do
@@ -1256,7 +1255,7 @@ end
     end
 
     after do
-      ActiveRecord::Base.connection.schema_migration.drop_table
+      ActiveRecord::Base.connection_pool.schema_migration.drop_table
     end
   end
 end

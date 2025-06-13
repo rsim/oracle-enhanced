@@ -4,20 +4,60 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
       module Quoting
+        extend ActiveSupport::Concern
         # QUOTING ==================================================
         #
         # see: abstract/quoting.rb
         QUOTED_COLUMN_NAMES = Concurrent::Map.new # :nodoc:
         QUOTED_TABLE_NAMES = Concurrent::Map.new # :nodoc:
 
-        def quote_column_name(name) # :nodoc:
-          name = name.to_s
-          QUOTED_COLUMN_NAMES[name] ||= if /\A[a-z][a-z_0-9$#]*\Z/.match?(name)
-            "\"#{name.upcase}\""
-          else
-            # remove double quotes which cannot be used inside quoted identifier
-            "\"#{name.delete('"')}\""
+        module ClassMethods # :nodoc:
+          def column_name_matcher
+            /
+          \A
+          (
+            (?:
+              # "table_name"."column_name" | function(one or no argument)
+              ((?:\w+\.|"\w+"\.)?(?:\w+|"\w+") | \w+\((?:|\g<2>)\))
+            )
+            (?:(?:\s+AS)?\s+(?:\w+|"\w+"))?
+          )
+          (?:\s*,\s*\g<1>)*
+          \z
+        /ix
           end
+
+          def column_name_with_order_matcher
+            /
+          \A
+          (
+            (?:
+              # "table_name"."column_name" | function(one or no argument)
+              ((?:\w+\.|"\w+"\.)?(?:\w+|"\w+") | \w+\((?:|\g<2>)\))
+            )
+            (?:\s+ASC|\s+DESC)?
+            (?:\s+NULLS\s+(?:FIRST|LAST))?
+          )
+          (?:\s*,\s*\g<1>)*
+          \z
+        /ix
+          end
+
+          def quote_column_name(name) # :nodoc:
+            name = name.to_s
+            QUOTED_COLUMN_NAMES[name] ||= if /\A[a-z][a-z_0-9$#]*\Z/.match?(name)
+                                            "\"#{name.upcase}\""
+                                          else
+                                            # remove double quotes which cannot be used inside quoted identifier
+                                            "\"#{name.delete('"')}\""
+                                          end
+          end
+
+          def quote_table_name(name) # :nodoc:
+            name, _link = name.to_s.split("@")
+            QUOTED_TABLE_NAMES[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
+          end
+
         end
 
         # This method is used in add_index to identify either column name (which is quoted)
@@ -67,10 +107,6 @@ module ActiveRecord
           !!(object_name =~ /[A-Z]/ && object_name =~ /[a-z]/)
         end
 
-        def quote_table_name(name) # :nodoc:
-          name, _link = name.to_s.split("@")
-          QUOTED_TABLE_NAMES[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
-        end
 
         def quote_string(s) # :nodoc:
           s.gsub(/'/, "''")
@@ -130,42 +166,6 @@ module ActiveRecord
             super
           end
         end
-
-        def column_name_matcher
-          COLUMN_NAME
-        end
-
-        def column_name_with_order_matcher
-          COLUMN_NAME_WITH_ORDER
-        end
-
-        COLUMN_NAME = /
-          \A
-          (
-            (?:
-              # "table_name"."column_name" | function(one or no argument)
-              ((?:\w+\.|"\w+"\.)?(?:\w+|"\w+") | \w+\((?:|\g<2>)\))
-            )
-            (?:(?:\s+AS)?\s+(?:\w+|"\w+"))?
-          )
-          (?:\s*,\s*\g<1>)*
-          \z
-        /ix
-
-        COLUMN_NAME_WITH_ORDER = /
-          \A
-          (
-            (?:
-              # "table_name"."column_name" | function(one or no argument)
-              ((?:\w+\.|"\w+"\.)?(?:\w+|"\w+") | \w+\((?:|\g<2>)\))
-            )
-            (?:\s+ASC|\s+DESC)?
-            (?:\s+NULLS\s+(?:FIRST|LAST))?
-          )
-          (?:\s*,\s*\g<1>)*
-          \z
-        /ix
-        private_constant :COLUMN_NAME, :COLUMN_NAME_WITH_ORDER
 
         private
           def oracle_downcase(column_name)

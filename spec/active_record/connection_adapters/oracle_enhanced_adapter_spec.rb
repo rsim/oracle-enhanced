@@ -354,15 +354,15 @@ describe "OracleEnhancedAdapter" do
 
     it "should explain query" do
       explain = TestPost.where(id: 1).explain
-      expect(explain).to include("Cost")
-      expect(explain).to include("INDEX UNIQUE SCAN")
+      expect(explain.inspect).to include("Cost")
+      expect(explain.inspect).to include("INDEX UNIQUE SCAN")
     end
 
     it "should explain query with binds" do
       binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
       explain = TestPost.where(id: binds).explain
-      expect(explain).to include("Cost")
-      expect(explain).to include("INDEX UNIQUE SCAN").or include("TABLE ACCESS FULL")
+      expect(explain.inspect).to include("Cost")
+      expect(explain.inspect).to include("INDEX UNIQUE SCAN").or include("TABLE ACCESS FULL")
     end
   end
 
@@ -768,13 +768,13 @@ describe "OracleEnhancedAdapter" do
     it "should explain considers hints" do
       post = TestPost.optimizer_hints("FULL (\"TEST_POSTS\")")
       post = post.where(id: 1)
-      expect(post.explain).to include("|  TABLE ACCESS FULL| TEST_POSTS |")
+      expect(post.explain.inspect).to include("|  TABLE ACCESS FULL| TEST_POSTS |")
     end
 
     it "should explain considers hints with /*+ */" do
       post = TestPost.optimizer_hints("/*+ FULL (\"TEST_POSTS\") */")
       post = post.where(id: 1)
-      expect(post.explain).to include("|  TABLE ACCESS FULL| TEST_POSTS |")
+      expect(post.explain.inspect).to include("|  TABLE ACCESS FULL| TEST_POSTS |")
     end
   end
 

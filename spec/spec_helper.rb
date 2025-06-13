@@ -33,9 +33,9 @@ require "active_support/log_subscriber"
 require "active_record/log_subscriber"
 
 require "logger"
+require "ruby-plsql"
 
 require "active_record/connection_adapters/oracle_enhanced_adapter"
-require "ruby-plsql"
 
 puts "==> Effective ActiveRecord version #{ActiveRecord::VERSION::STRING}"
 
@@ -133,7 +133,7 @@ module SchemaDumpingHelper
     old_ignore_tables = ActiveRecord::SchemaDumper.ignore_tables
     ActiveRecord::SchemaDumper.ignore_tables = connection.data_sources - [table]
     stream = StringIO.new
-    ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
+    ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
     stream.string
   ensure
     ActiveRecord::SchemaDumper.ignore_tables = old_ignore_tables

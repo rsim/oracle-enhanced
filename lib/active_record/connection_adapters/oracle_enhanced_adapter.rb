@@ -63,21 +63,6 @@ require "active_record/type/oracle_enhanced/timestampltz"
 require "active_record/type/oracle_enhanced/character_string"
 
 module ActiveRecord
-  module ConnectionHandling # :nodoc:
-    # Establishes a connection to the database that's used by all Active Record objects.
-    def oracle_enhanced_connection(config) # :nodoc:
-      if config[:emulate_oracle_adapter] == true
-        # allows the enhanced adapter to look like the OracleAdapter. Useful to pick up
-        # conditionals in the rails activerecord test suite
-        require "active_record/connection_adapters/emulation/oracle_adapter"
-        ConnectionAdapters::OracleAdapter.new(
-          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
-      else
-        ConnectionAdapters::OracleEnhancedAdapter.new(
-          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
-      end
-    end
-  end
 
   module ConnectionAdapters # :nodoc:
     # Oracle enhanced adapter will work with both
@@ -835,6 +820,26 @@ module ActiveRecord
       ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
     end
   end
+end
+
+## Register OracleEnhancedAdapter as the adapter to use for "oracle_enhanced" connection string
+if ActiveRecord::ConnectionAdapters.respond_to?(:register)
+  ActiveRecord::ConnectionAdapters.register(
+    "oracle_enhanced",
+    "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter",
+    "active_record/connection_adapters/oracle_enhanced_adapter"
+  )
+
+  # This is similar to the notion of emulating the original OracleAdapter but
+  # using the OracleEnhancedAdapter instead, but without using the emulate flag.
+  # Instead this will get picked up if you set the adapter to 'oracle' in the database config.
+  #
+  # Register OracleAdapter as the adapter to use for "oracle" connection string
+  ActiveRecord::ConnectionAdapters.register(
+    "oracle",
+    "ActiveRecord::ConnectionAdapters::OracleAdapter",
+    "active_record/connection_adapters/emulation/oracle_adapter"
+  )
 end
 
 require "active_record/connection_adapters/oracle_enhanced/version"
