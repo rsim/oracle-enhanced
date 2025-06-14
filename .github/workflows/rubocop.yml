@@ -16,22 +16,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Ruby 3.3
+      - name: Set up Ruby 3.4
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.3
-      - name: Download Oracle instant client
-        run: |
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/2360000/instantclient-basic-linux.x64-23.6.0.24.10.zip
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/2360000/instantclient-sdk-linux.x64-23.6.0.24.10.zip
-          wget -q https://download.oracle.com/otn_software/linux/instantclient/2360000/instantclient-sqlplus-linux.x64-23.6.0.24.10.zip
-      - name: Install Oracle instant client
-        run: |
-          sudo unzip instantclient-basic-linux.x64-23.6.0.24.10.zip -d /opt/oracle/
-          sudo unzip -o instantclient-sdk-linux.x64-23.6.0.24.10.zip -d /opt/oracle/
-          sudo unzip -o instantclient-sqlplus-linux.x64-23.6.0.24.10.zip -d /opt/oracle/
-          echo "/opt/oracle/instantclient_23_6" >> $GITHUB_PATH
+          ruby-version: 3.4
       - name: Build and run RuboCop
         run: |
-          bundle install --jobs 4 --retry 3
-          bundle exec rubocop
+          BUNDLE_ONLY=rubocop bundle install --jobs 4 --retry 3
+          BUNDLE_ONLY=rubocop bundle exec rubocop
