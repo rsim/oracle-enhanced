@@ -385,6 +385,10 @@ module ActiveRecord
           end
           alias :get_col_names :column_names
 
+          def row_count
+            @raw_statement.getUpdateCount
+          end
+
           def fetch(options = {})
             if @raw_result_set.next
               get_lob_value = options[:get_lob_value]
