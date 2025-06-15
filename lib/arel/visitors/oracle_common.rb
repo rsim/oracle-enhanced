@@ -3,7 +3,6 @@
 module Arel # :nodoc: all
   module Visitors
     module OracleCommon
-
       BIND_BLOCK = proc { |i| ":a#{i}" }
       private_constant :BIND_BLOCK
 
