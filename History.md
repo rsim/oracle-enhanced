@@ -1,3 +1,11 @@
+## 7.1.1 / 2025-06-16
+
+* Changes and bug fixes
+  * Address `add_timestamps` error [#2417, #2438]
+  * Address `rename_table` ArgumentError [#2418, #2437]
+  * Update `reconnect!` method signature [#2433, #2436]
+  * Update README.md to support status of Rails 7.1 [#2408, #2409]
+
 ## 7.1.0 / 2024-09-25
 
 * Changes and bug fixes
