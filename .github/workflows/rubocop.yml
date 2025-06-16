@@ -10,10 +10,6 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
-    env:
-      LD_LIBRARY_PATH: /opt/oracle/instantclient_23_6
-
     steps:
       - uses: actions/checkout@v4
       - name: Set up Ruby 3.4
