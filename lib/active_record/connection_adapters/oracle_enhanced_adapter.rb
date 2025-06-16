@@ -63,7 +63,6 @@ require "active_record/type/oracle_enhanced/timestampltz"
 require "active_record/type/oracle_enhanced/character_string"
 
 module ActiveRecord
-
   module ConnectionAdapters # :nodoc:
     # Oracle enhanced adapter will work with both
     # CRuby ruby-oci8 gem (which provides interface to Oracle OCI client)

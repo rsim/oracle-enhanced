@@ -46,18 +46,17 @@ module ActiveRecord
           def quote_column_name(name) # :nodoc:
             name = name.to_s
             QUOTED_COLUMN_NAMES[name] ||= if /\A[a-z][a-z_0-9$#]*\Z/.match?(name)
-                                            "\"#{name.upcase}\""
-                                          else
-                                            # remove double quotes which cannot be used inside quoted identifier
-                                            "\"#{name.delete('"')}\""
-                                          end
+              "\"#{name.upcase}\""
+            else
+              # remove double quotes which cannot be used inside quoted identifier
+              "\"#{name.delete('"')}\""
+            end
           end
 
           def quote_table_name(name) # :nodoc:
             name, _link = name.to_s.split("@")
             QUOTED_TABLE_NAMES[name] ||= [name.split(".").map { |n| quote_column_name(n) }].join(".")
           end
-
         end
 
         # This method is used in add_index to identify either column name (which is quoted)
@@ -106,7 +105,6 @@ module ActiveRecord
           object_name = name.include?(".") ? name.split(".").second : name
           !!(object_name =~ /[A-Z]/ && object_name =~ /[a-z]/)
         end
-
 
         def quote_string(s) # :nodoc:
           s.gsub(/'/, "''")
