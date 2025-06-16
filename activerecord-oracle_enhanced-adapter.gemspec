@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.version = version
 
   s.required_rubygems_version = ">= 1.8.11"
-  s.required_ruby_version     = ">= 2.7.0"
+  s.required_ruby_version     = ">= 3.1.0"
   s.license = "MIT"
   s.authors = ["Raimonds Simanovskis"]
   s.description = 'Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
