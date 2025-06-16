@@ -248,13 +248,15 @@ module ActiveRecord
           end
         end
 
+        alias_method :reset, :reset!
+
         # mark connection as dead if connection lost
         def with_retry(&block)
           should_retry = auto_retry? && autocommit?
           begin
             yield if block_given?
           rescue Java::JavaSql::SQLException => e
-            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/.match?(e.message)
+            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:|ORA-03113)/.match?(e.message)
             @active = false
             raise unless should_retry
             should_retry = false
@@ -263,7 +265,7 @@ module ActiveRecord
           end
         end
 
-        def exec(sql)
+        def exec(sql, *_)
           with_retry do
             exec_no_retry(sql)
           end
@@ -283,10 +285,12 @@ module ActiveRecord
             s.setEscapeProcessing(false)
             s.execute(sql)
             true
-          else
+          when /\A\s*(BEGIN)/i
             s = @raw_connection.prepareStatement(sql)
             s.execute
             true
+          else
+            select_no_retry(sql)
           end
         ensure
           s.close rescue nil
@@ -327,9 +331,16 @@ module ActiveRecord
             when BigDecimal
               @raw_statement.setBigDecimal(position, value)
             when Java::OracleSql::BLOB
-              @raw_statement.setBlob(position, value)
+              blob_value = value.getBytes(1, value.length)
+              new_blob = @raw_connection.raw_connection.createBlob()
+              new_blob.setBytes(1, blob_value)
+              @raw_statement.setBlob(position, new_blob)
             when Java::OracleSql::CLOB
-              @raw_statement.setClob(position, value)
+              clob_value = value.getSubString(1, value.length)
+              new_clob = @raw_connection.raw_connection.createClob()
+              sS = new_clob.java_method :setString, [Java::long, java.lang.String]
+              sS.call(1, clob_value)
+              @raw_statement.setClob(position, new_clob)
             when Java::OracleSql::NCLOB
               @raw_statement.setClob(position, value)
             when Type::OracleEnhanced::Raw
