@@ -73,7 +73,7 @@ jobs:
           ./ci/setup_accounts.sh
       - name: Update RubyGems
         run: |
-          gem update --system || gem update --system 3.4.22
+          gem update --system
       - name: Bundle install
         run: |
           bundle install --jobs 4 --retry 3
