@@ -1,0 +1,81 @@
+name: ruby_head
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  build:
+    name: "ruby-${{ matrix.ruby }}-yjit-enabled: ${{ matrix.yjit-enabled }}"
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['head', 'debug']
+        yjit-enabled: [0, 1]
+    env:
+      RUBY_YJIT_ENABLE: ${{ matrix.yjit-enabled }}
+      RUBYOPT: "-W2 --debug-frozen-string-literal"
+      NLS_LANG: AMERICAN_AMERICA.AL32UTF8
+      TNS_ADMIN: ./ci/network/admin
+      DATABASE_NAME: FREEPDB1
+      TZ: Europe/Riga
+      DATABASE_SYS_PASSWORD: Oracle18
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 1521
+
+    services:
+      oracle:
+        image: gvenzl/oracle-free:latest
+        ports:
+          - 1521:1521
+        env:
+          TZ: Europe/Riga
+          ORACLE_PASSWORD: Oracle18
+        options: >-
+          --health-cmd healthcheck.sh
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: Download Oracle instant client
+        run: |
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linuxx64.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/instantclient-sdk-linuxx64.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/instantclient-sqlplus-linuxx64.zip
+      - name: Install Oracle instant client
+        run: |
+          sudo unzip instantclient-basic-linuxx64.zip -d /opt/oracle/
+          sudo unzip -o instantclient-sdk-linuxx64.zip -d /opt/oracle/
+          sudo unzip -o instantclient-sqlplus-linuxx64.zip -d /opt/oracle/
+          ORACLE_HOME=$(find /opt/oracle -name "instantclient_*" -type d | head -1)
+          echo "ORACLE_HOME=$ORACLE_HOME" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$ORACLE_HOME" >> $GITHUB_ENV
+          echo "$ORACLE_HOME" >> $GITHUB_PATH
+      - name: Install JDBC Driver
+        run: |
+          cp /opt/oracle/instantclient_23_8/ojdbc17.jar ./lib/
+      - name: Create database user
+        run: |
+          ./ci/setup_accounts.sh
+      - name: Update RubyGems
+        run: |
+          gem update --system
+      - name: Bundle install
+        run: |
+          bundle install --jobs 4 --retry 3
+      - name: Run RSpec
+        run: |
+          bundle exec rspec
+      - name: Run bug report templates
+        if: false
+        run: |
+          cd guides/bug_report_templates
+          ruby active_record_gem.rb
+          ruby active_record_gem_spec.rb
