@@ -8,58 +8,79 @@ module ActiveRecord
         #
         # see: abstract/database_statements.rb
 
-        # Executes a SQL statement
-        def execute(sql, name = nil, async: false, allow_retry: false)
-          sql = transform_query(sql)
+        READ_QUERY = ActiveRecord::ConnectionAdapters::AbstractAdapter.build_read_query_regexp(
+          :close, :declare, :fetch, :move, :set, :show
+        ) # :nodoc:
+        private_constant :READ_QUERY
 
-          log(sql, name, async: async) { _connection.exec(sql, allow_retry: allow_retry) }
+        def write_query?(sql) # :nodoc:
+          !READ_QUERY.match?(sql)
+        rescue ArgumentError # Invalid encoding
+          !READ_QUERY.match?(sql.b)
         end
 
-        def exec_query(sql, name = "SQL", binds = [], prepare: false, async: false, allow_retry: false)
-          sql = transform_query(sql)
+        # Executes a SQL statement
+        def execute(...)
+          super
+        end
+
+        # Low level execution of a SQL statement on the connection returning adapter specific result object.
+        def raw_execute(sql, name = "SQL", binds = [], prepare: false, async: false, allow_retry: false, materialize_transactions: false)
+          sql = preprocess_query(sql)
 
           type_casted_binds = type_casted_binds(binds)
+          with_raw_connection(allow_retry: allow_retry, materialize_transactions: materialize_transactions) do |conn|
+            log(sql, name, binds, type_casted_binds, async: async) do
+              cursor = nil
+              cached = false
+              with_retry do
+                if binds.nil? || binds.empty?
+                  cursor = conn.prepare(sql)
+                else
+                  unless @statements.key? sql
+                    @statements[sql] = conn.prepare(sql)
+                  end
 
-          log(sql, name, binds, type_casted_binds, async: async) do
-            cursor = nil
-            cached = false
-            with_retry do
-              if without_prepared_statement?(binds)
-                cursor = _connection.prepare(sql)
-              else
-                unless @statements.key? sql
-                  @statements[sql] = _connection.prepare(sql)
+                  cursor = @statements[sql]
+                  cursor.bind_params(type_casted_binds)
+
+                  cached = true
                 end
-
-                cursor = @statements[sql]
-
-                cursor.bind_params(type_casted_binds)
-
-                cached = true
+                cursor.exec
               end
 
-              cursor.exec
-            end
-
-            if (name == "EXPLAIN") && sql.start_with?("EXPLAIN")
-              res = true
-            else
               columns = cursor.get_col_names.map do |col_name|
                 oracle_downcase(col_name)
               end
-              rows = []
-              fetch_options = { get_lob_value: (name != "Writable Large Object") }
-              while row = cursor.fetch(fetch_options)
-                rows << row
-              end
-              res = build_result(columns: columns, rows: rows)
-            end
 
-            cursor.close unless cached
-            res
+              rows = []
+              if cursor.select_statement?
+                fetch_options = { get_lob_value: (name != "Writable Large Object") }
+                while row = cursor.fetch(fetch_options)
+                  rows << row
+                end
+              end
+
+              affected_rows_count = cursor.row_count
+
+              cursor.close unless cached
+
+              { columns: columns, rows: rows, affected_rows_count: affected_rows_count }
+            end
           end
         end
-        alias_method :internal_exec_query, :exec_query
+
+        def cast_result(result)
+          if result.nil?
+            ActiveRecord::Result.empty
+          else
+            ActiveRecord::Result.new(result[:columns], result[:rows])
+          end
+        end
+
+        def affected_rows(result)
+          result[:affected_rows_count]
+        end
 
         def supports_explain?
           true
@@ -106,7 +127,7 @@ module ActiveRecord
             cursor = nil
             returning_id_col = returning_id_index = nil
             with_retry do
-              if without_prepared_statement?(binds)
+              if binds.nil? || binds.empty?
                 cursor = _connection.prepare(sql)
               else
                 unless @statements.key?(sql)
@@ -146,7 +167,7 @@ module ActiveRecord
           log(sql, name, binds, type_casted_binds) do
             with_retry do
               cached = false
-              if without_prepared_statement?(binds)
+              if binds.nil? || binds.empty?
                 cursor = _connection.prepare(sql)
               else
                 if @statements.key?(sql)
@@ -287,6 +308,15 @@ module ActiveRecord
             rescue
               @statements.clear
               raise
+            end
+          end
+
+          def handle_warnings(sql)
+            @notice_receiver_sql_warnings.each do |warning|
+              next if warning_ignored?(warning)
+
+              warning.sql = sql
+              ActiveRecord.db_warnings_action.call(warning)
             end
           end
       end
