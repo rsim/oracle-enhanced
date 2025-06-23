@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: "ruby-${{ matrix.ruby }}-yjit-enabled: ${{ matrix.yjit-enabled }}"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +44,9 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
+      - name: Create symbolic link for libaio library compatibility
+        run: |
+          sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
       - name: Download Oracle instant client
         run: |
           wget -q https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linuxx64.zip
