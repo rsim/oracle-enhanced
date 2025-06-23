@@ -1,3 +1,5 @@
+This file is no longer being updated. For the latest updates and release information, please see: https://github.com/rsim/oracle-enhanced/releases
+
 ## 7.2.0 / 2025-06-23
 
 * Changes and bug fixes
