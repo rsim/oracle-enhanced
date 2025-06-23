@@ -1,4 +1,4 @@
-## 7.2.0.rc1 / 2025-06-23
+## 7.2.0 / 2025-06-23
 
 * Changes and bug fixes
   * No changes since 7.2.0.rc1
