@@ -25,11 +25,15 @@ describe "compatibility migrations" do
       end
     }.new
 
-    migration.migrate(:up)
+    ActiveRecord::Migration.suppress_messages do
+      migration.migrate(:up)
+    end
     expect(@conn.table_exists?(:new_test_employees)).to be_truthy
     expect(@conn.table_exists?(:test_employees)).not_to be_truthy
 
-    migration.migrate(:down)
+    ActiveRecord::Migration.suppress_messages do
+      migration.migrate(:down)
+    end
     expect(@conn.table_exists?(:new_test_employees)).not_to be_truthy
     expect(@conn.table_exists?(:test_employees)).to be_truthy
   end
