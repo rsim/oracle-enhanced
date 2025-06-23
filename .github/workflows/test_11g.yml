@@ -55,10 +55,8 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-      - name: Install libaio1t64
+      - name: Create symbolic link for libaio library compatibility
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libaio1t64
           sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
       - name: Download Oracle instant client
         run: |
