@@ -1,3 +1,12 @@
+## 7.2.0.rc1 / 2025-06-23
+
+* Changes and bug fixes
+  * No changes since 7.2.0.rc1
+  * Support Rails 7.2 [#2424]
+  * Bump the minimum Ruby version to 3.1 [#2442]
+  * Use RuboCop Plugin [#2427]
+  * Use Oracle Instant Client Version 23.8
+
 ## 7.2.0.rc1 / 2025-06-18
 
 * Changes and bug fixes
