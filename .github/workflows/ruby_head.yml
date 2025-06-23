@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ['head', 'debug']
+        ruby: ['head', 'debug', 'asan']
         yjit-enabled: [0, 1]
     env:
       RUBY_YJIT_ENABLE: ${{ matrix.yjit-enabled }}
