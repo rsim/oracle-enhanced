@@ -1,0 +1,28 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../..:/workspaces:cached
+    command: sleep infinity
+    network_mode: service:oracle
+
+  oracle:
+    image: gvenzl/oracle-free:latest
+    ports:
+      - "1521:1521"
+    environment:
+      TZ: Europe/Riga
+      ORACLE_PASSWORD: Oracle18
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ../spec/support/create_oracle_enhanced_users.sql:/container-entrypoint-initdb.d/01-create-users.sql
+
+volumes:
+  oracle-data:
