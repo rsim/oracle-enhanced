@@ -1,0 +1,25 @@
+{
+  "name": "Oracle Enhanced ActiveRecord Adapter",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/oracle-enhanced",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "shopify.ruby-lsp"
+      ]
+    }
+  },
+  "postCreateCommand": "bundle install",
+  "remoteEnv": {
+    "DATABASE_NAME": "FREEPDB1",
+    "DATABASE_SYS_PASSWORD": "Oracle18",
+    "NLS_LANG": "American_America.AL32UTF8",
+    "TNS_ADMIN": "/workspaces/oracle-enhanced/ci/network/admin",
+    "TWO_TASK": "FREEPDB1"
+  },
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localWorkspaceFolder}/.bundle,target=/home/vscode/.bundle,type=bind,consistency=delegated"
+  ]
+}

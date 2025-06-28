@@ -833,6 +833,70 @@ complete.
 
 See the **Timeouts** section above.
 
+Development with Devcontainer
+------------------------------
+
+This project includes a devcontainer configuration that provides a complete development environment with Oracle Database and all necessary dependencies pre-configured. The devcontainer supports both x64 and ARM64 architectures.
+
+### Prerequisites
+
+- [Docker](https://www.docker.com/get-started) installed and running
+- [VS Code](https://code.visualstudio.com/) with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+### Getting Started
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/rsim/oracle-enhanced.git
+   cd oracle-enhanced
+   ```
+
+2. Open the project in VS Code:
+   ```bash
+   code .
+   ```
+
+3. When prompted, click "Reopen in Container" or use the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and select "Dev Containers: Reopen in Container"
+
+4. VS Code will build and start the development environment automatically. This includes:
+   - Ruby 3.4
+   - Oracle Database Free
+   - Oracle Instant Client 23.8
+   - All required gems installed via `bundle install`
+
+### What's Included
+
+The devcontainer provides:
+
+- **Ruby**: 3.4
+- **Oracle Database**: Oracle Database Free (23c)
+- **Oracle Instant Client**: Version 23.8
+- **Database Configuration**:
+  - Database: `FREEPDB1`
+  - System password: `Oracle18`
+  - TNS configuration in `ci/network/admin`
+
+### Database Access
+
+The Oracle database is automatically started and configured with:
+- Port: `1521` (forwarded from container)
+- Service Name: `FREEPDB1`
+- System Password: `Oracle18`
+- Test users are created automatically from `spec/support/create_oracle_enhanced_users.sql`
+
+
+### Running Tests
+
+Once the devcontainer is running, you can run tests directly:
+
+```bash
+# Run all tests
+bundle exec rspec
+
+# Run specific test files
+bundle exec rspec spec/test_file_spec.rb
+```
+
 RUNNING TESTS
 -------------
 
