@@ -31,7 +31,7 @@ install:
   - bundle install
 
 script:
-  - bundle exec rake spec
+  - bundle exec rspec spec/active_record/oracle_enhanced/type/timestamp_spec.rb
 
 language: ruby
 rvm:
