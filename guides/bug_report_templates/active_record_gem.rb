@@ -7,8 +7,8 @@ gemfile(true) do
 
   git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-  gem "activerecord", github: "rails/rails", branch: "main"
-  gem "activerecord-oracle_enhanced-adapter",  github: "rsim/oracle-enhanced", branch: "master"
+  gem "activerecord", github: "rails/rails", branch: "8-0-stable"
+  gem "activerecord-oracle_enhanced-adapter",  github: "rsim/oracle-enhanced", branch: "release80"
   gem "minitest"
 
   platforms :ruby do
