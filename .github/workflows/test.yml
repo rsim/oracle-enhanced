@@ -83,7 +83,6 @@ jobs:
         run: |
           bundle exec rspec
       - name: Run bug report templates
-        if: "false"
         run: |
           cd guides/bug_report_templates
           ruby active_record_gem.rb
