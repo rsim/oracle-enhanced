@@ -848,7 +848,7 @@ module ActiveRecord
 end
 
 # Workaround for https://github.com/jruby/jruby/issues/6267
-if RUBY_ENGINE == "jruby"
+if defined?(JRUBY_VERSION) && Gem::Version.new(JRUBY_VERSION) < Gem::Version.new("9.4.6.0")
   require "jruby"
 
   class org.jruby::RubyObjectSpace::WeakMap
