@@ -83,6 +83,9 @@ jobs:
       - name: Bundle install
         run: |
           bundle install --jobs 4 --retry 3
+      - name: Show Gemfile.lock
+        run: |
+          cat Gemfile.lock
       - name: Run RSpec
         run: |
           bundle exec rspec
