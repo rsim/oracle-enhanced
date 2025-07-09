@@ -34,25 +34,11 @@ module ActiveRecord
               table_owner, table_name = default_owner, real_name
             end
             sql = <<~SQL.squish
-              SELECT owner, table_name, 'TABLE' name_type
-              FROM all_tables
-              WHERE owner = :table_owner
-                AND table_name = :table_name
-              UNION ALL
-              SELECT owner, view_name table_name, 'VIEW' name_type
-              FROM all_views
-              WHERE owner = :table_owner
-                AND view_name = :table_name
-              UNION ALL
-              SELECT table_owner, table_name, 'SYNONYM' name_type
-              FROM all_synonyms
-              WHERE owner = :table_owner
-                AND synonym_name = :table_name
-              UNION ALL
-              SELECT table_owner, table_name, 'SYNONYM' name_type
-              FROM all_synonyms
-              WHERE owner = 'PUBLIC'
-                AND synonym_name = :real_name
+            SELECT owner, object_name, object_type
+            FROM all_objects
+            WHERE owner = :table_owner
+            AND object_name = :table_name
+            AND object_type IN ('TABLE','VIEW','SYNONYM')
             SQL
             if result = _select_one(sql, "CONNECTION", [table_owner, table_name, table_owner, table_name, table_owner, table_name, real_name])
               case result["name_type"]
