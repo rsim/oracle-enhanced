@@ -110,3 +110,7 @@ If no Oracle database with SYS and SYSTEM user access is available, try the dock
   ```sh
   bundle exec rake spec
   ```
+
+# Troubleshooting
+
+If you observe strange errors when running tests, make sure the activerecord version loaded by the tests is the expected one for the oracle_enhanced version.
