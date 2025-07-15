@@ -403,19 +403,23 @@ describe "OracleEnhancedConnection" do
   describe "SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', '" do
     before(:all) do
       ENV["NLS_NUMERIC_CHARACTERS"] = ", "
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      @conn_base = ActiveRecord::Base.connection
+      @conn = @conn_base.send(:_connection)
       @conn.exec "CREATE TABLE test_employees (age NUMBER(10,2))"
     end
 
     after(:all) do
       ENV["NLS_NUMERIC_CHARACTERS"] = nil
       @conn.exec "DROP TABLE test_employees" rescue nil
+      ActiveRecord::Base.clear_cache!
     end
 
     it "should execute prepared statement with decimal bind parameter" do
       cursor = @conn.prepare("INSERT INTO test_employees VALUES(:1)")
       type_metadata = ActiveRecord::ConnectionAdapters::SqlTypeMetadata.new(sql_type: "NUMBER", type: :decimal, limit: 10, precision: nil, scale: 2)
-      column = ActiveRecord::ConnectionAdapters::OracleEnhanced::Column.new("age", nil, type_metadata, false, comment: nil)
+      cast_type = @conn_base.lookup_cast_type("NUMBER(10)")
+      column = ActiveRecord::ConnectionAdapters::OracleEnhanced::Column.new("age", cast_type, nil, type_metadata, false, comment: nil)
       expect(column.type).to eq(:decimal)
       # Here 1.5 expects that this value has been type casted already
       # it should use bind_params in the long term.
