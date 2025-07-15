@@ -674,6 +674,7 @@ module ActiveRecord
             default_value = extract_value_from_default(field["data_default"])
             default_value = nil if is_virtual
             OracleEnhanced::Column.new(oracle_downcase(field["name"]),
+                             lookup_cast_type(field["sql_type"]),
                              default_value,
                              type_metadata,
                              field["nullable"] == "Y",
