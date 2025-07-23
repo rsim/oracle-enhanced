@@ -699,7 +699,7 @@ module ActiveRecord
           end
 
           def default_tablespace_for(type)
-            (default_tablespaces[type] || default_tablespaces[native_database_types[type][:name]]) rescue nil
+            default_tablespaces[type]
           end
 
           def column_for(table_name, column_name)
