@@ -410,7 +410,7 @@ module ActiveRecord
       # :startdoc:
 
       def native_database_types # :nodoc:
-        emulate_booleans_from_strings ? NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS : NATIVE_DATABASE_TYPES
+        self.class.native_database_types
       end
 
       # CONNECTION MANAGEMENT ====================================
@@ -711,6 +711,10 @@ module ActiveRecord
       end
 
       class << self
+        def native_database_types
+          emulate_booleans_from_strings ? NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS : NATIVE_DATABASE_TYPES
+        end
+
         def type_map
           @type_map ||= Type::TypeMap.new.tap { |m| initialize_type_map(m) }
           @type_map
