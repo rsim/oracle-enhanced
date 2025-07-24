@@ -284,7 +284,7 @@ module ActiveRecord
             } << "SELECT * FROM DUAL\n"
           else
             if versions.is_a?(Array)
-              # called from ActiveRecord::Base.connection#dump_schema_information
+              # called from ActiveRecord::Base.connection#dump_schema_versions
               versions.map { |version|
                 "INSERT INTO #{sm_table} (version) VALUES (#{quote(version)})"
               }.join("\n\n/\n\n")
