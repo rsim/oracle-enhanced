@@ -389,6 +389,13 @@ module ActiveRecord
             @raw_statement.getUpdateCount
           end
 
+          # Is the current statement a SELECT statement?
+          def select_statement?
+            # Only simple SELECT and WITH statements are considered SELECT statements.
+            # because no other valid ojdbc method found to check it.
+            @raw_statement.get_original_sql.strip.match?(/\A\s*(SELECT|WITH)/i)
+          end
+
           def fetch(options = {})
             if @raw_result_set.next
               get_lob_value = options[:get_lob_value]
