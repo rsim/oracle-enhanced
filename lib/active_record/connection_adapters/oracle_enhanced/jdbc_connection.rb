@@ -393,7 +393,14 @@ module ActiveRecord
           def select_statement?
             # Only simple SELECT and WITH statements are considered SELECT statements.
             # because no other valid ojdbc method found to check it.
-            @raw_statement.get_original_sql.strip.match?(/\A\s*(SELECT|WITH)/i)
+
+            sql = @raw_statement.get_original_sql.strip
+
+            sql.gsub!(/\A\n+/, '')            # remove leading newlines
+            sql.gsub!(/\A\r+/, '')            # remove leading carriage returns
+            sql.gsub!(/--.*$/, '')            # remove single line comments
+            sql.gsub!(/\/\*.*?\*\//m, '')     # Remove multi-line comments (/* ... */)
+            sql.match?(/\A\s*(SELECT|WITH)/i)
           end
 
           def fetch(options = {})
