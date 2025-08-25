@@ -389,6 +389,20 @@ module ActiveRecord
             @raw_statement.getUpdateCount
           end
 
+          # Is the current statement a SELECT statement?
+          def select_statement?
+            # Only simple SELECT and WITH statements are considered SELECT statements.
+            # because no other valid ojdbc method found to check it.
+
+            sql = @raw_statement.get_original_sql.strip
+
+            sql.gsub!(/\A\n+/, "")            # remove leading newlines
+            sql.gsub!(/\A\r+/, "")            # remove leading carriage returns
+            sql.gsub!(/--.*$/, "")            # remove single line comments
+            sql.gsub!(/\/\*.*?\*\//m, "")     # Remove multi-line comments (/* ... */)
+            sql.match?(/\A\s*(SELECT|WITH)/i)
+          end
+
           def fetch(options = {})
             if @raw_result_set.next
               get_lob_value = options[:get_lob_value]
