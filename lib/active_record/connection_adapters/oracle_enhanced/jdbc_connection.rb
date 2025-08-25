@@ -396,10 +396,10 @@ module ActiveRecord
 
             sql = @raw_statement.get_original_sql.strip
 
-            sql.gsub!(/\A\n+/, '')            # remove leading newlines
-            sql.gsub!(/\A\r+/, '')            # remove leading carriage returns
-            sql.gsub!(/--.*$/, '')            # remove single line comments
-            sql.gsub!(/\/\*.*?\*\//m, '')     # Remove multi-line comments (/* ... */)
+            sql.gsub!(/\A\n+/, "")            # remove leading newlines
+            sql.gsub!(/\A\r+/, "")            # remove leading carriage returns
+            sql.gsub!(/--.*$/, "")            # remove single line comments
+            sql.gsub!(/\/\*.*?\*\//m, "")     # Remove multi-line comments (/* ... */)
             sql.match?(/\A\s*(SELECT|WITH)/i)
           end
 
