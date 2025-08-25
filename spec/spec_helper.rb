@@ -154,56 +154,32 @@ CONNECTION_PARAMS = {
   host: DATABASE_HOST,
   port: DATABASE_PORT,
   username: DATABASE_USER,
-  password: DATABASE_PASSWORD
+  password: DATABASE_PASSWORD,
+  nls_numeric_characters: ".,"
 }
 
-CONNECTION_WITH_SCHEMA_PARAMS = {
-  adapter: "oracle_enhanced",
-  database: DATABASE_NAME,
-  host: DATABASE_HOST,
-  port: DATABASE_PORT,
-  username: DATABASE_USER,
-  password: DATABASE_PASSWORD,
+CONNECTION_WITH_SCHEMA_PARAMS = CONNECTION_PARAMS.merge({
   schema: DATABASE_SCHEMA
-}
+})
 
-CONNECTION_WITH_TIMEZONE_PARAMS = {
-  adapter: "oracle_enhanced",
-  database: DATABASE_NAME,
-  host: DATABASE_HOST,
-  port: DATABASE_PORT,
-  username: DATABASE_USER,
-  password: DATABASE_PASSWORD,
+CONNECTION_WITH_TIMEZONE_PARAMS = CONNECTION_PARAMS.merge({
   time_zone: "Europe/Riga"
-}
+})
 
-SYS_CONNECTION_PARAMS = {
-  adapter: "oracle_enhanced",
-  database: DATABASE_NAME,
-  host: DATABASE_HOST,
-  port: DATABASE_PORT,
+SYS_CONNECTION_PARAMS = CONNECTION_PARAMS.merge({
   username: "sys",
   password: DATABASE_SYS_PASSWORD,
   privilege: "SYSDBA"
-}
+})
 
-SYSTEM_CONNECTION_PARAMS = {
-  adapter: "oracle_enhanced",
-  database: DATABASE_NAME,
-  host: DATABASE_HOST,
-  port: DATABASE_PORT,
+SYSTEM_CONNECTION_PARAMS = CONNECTION_PARAMS.merge({
   username: "system",
   password: DATABASE_SYS_PASSWORD
-}
+})
 
-SERVICE_NAME_CONNECTION_PARAMS = {
-  adapter: "oracle_enhanced",
+SERVICE_NAME_CONNECTION_PARAMS = CONNECTION_PARAMS.merge({
   database: "/#{DATABASE_NAME}",
-  host: DATABASE_HOST,
-  port: DATABASE_PORT,
-  username: DATABASE_USER,
-  password: DATABASE_PASSWORD
-}
+})
 
 DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] || ENV["DATABASE_NON_DEFAULT_TABLESPACE"] || "SYSTEM"
 
