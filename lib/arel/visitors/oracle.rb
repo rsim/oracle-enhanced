@@ -4,7 +4,7 @@ require_relative "oracle_common"
 
 module Arel # :nodoc: all
   module Visitors
-    class Oracle < Arel::Visitors::ToSql
+    class Oracle < Arel::Visitors::Visitor
       include OracleCommon
 
       private
