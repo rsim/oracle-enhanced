@@ -241,4 +241,55 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     )
     expect(Test2Employee.where(comments: search_data)).to have_attributes(count: 1)
   end
+
+  describe "with prepared_statements disabled" do
+    around(:each) do |example|
+      old_prepared_statements = @conn.prepared_statements
+      @conn.instance_variable_set(:@prepared_statements, false)
+      example.run
+      @conn.instance_variable_set(:@prepared_statements, old_prepared_statements)
+    end
+
+    it "should create record with CLOB data when prepared_statements is false" do
+      @employee = TestEmployee.create!(
+        first_name: "First",
+        last_name: "Last",
+        comments: @char_data
+      )
+      @employee.reload
+      expect(@employee.comments).to eq(@char_data)
+    end
+
+    it "should create record with short CLOB data when prepared_statements is false" do
+      short_data = "Short CLOB content"
+      @employee = TestEmployee.create!(
+        first_name: "First",
+        last_name: "Last",
+        comments: short_data
+      )
+      @employee.reload
+      expect(@employee.comments).to eq(short_data)
+    end
+
+    it "should create record with empty CLOB when prepared_statements is false" do
+      @employee = TestEmployee.create!(
+        first_name: "First",
+        last_name: "Last",
+        comments: ""
+      )
+      @employee.reload
+      expect(@employee.comments).to eq("")
+    end
+
+    it "should create record with serialized CLOB data when prepared_statements is false" do
+      ruby_data = { "test" => ["ruby", :data, 123] }
+      @employee = Test2Employee.create!(
+        first_name: "First",
+        last_name: "Last",
+        comments: ruby_data
+      )
+      @employee.reload
+      expect(@employee.comments).to eq(ruby_data)
+    end
+  end
 end
