@@ -155,6 +155,13 @@ module ActiveRecord
               returning_id = cursor.get_returning_param(returning_id_index, Integer).to_i
               rows << [returning_id]
             end
+
+            # Capture ROWID for LOB writes on tables without primary keys
+            # This must happen right after exec_update while the cursor still has the rowid
+            if cursor.respond_to?(:rowid)
+              @last_insert_rowid = cursor.rowid
+            end
+
             cursor.close unless cached
             build_result(columns: returning_id_col || [], rows: rows)
           end
@@ -280,7 +287,22 @@ module ActiveRecord
 
         # Writes LOB values from attributes for specified columns
         def write_lobs(table_name, klass, attributes, columns) # :nodoc:
-          id = quote(attributes[klass.primary_key])
+          pk = klass.primary_key
+
+          where_clause = if pk.nil? && @last_insert_rowid
+            "ROWID = #{quote(@last_insert_rowid)}"
+          elsif pk.nil?
+            if columns.any? { |col| attributes[col.name].present? }
+              @logger&.warn "Cannot write LOB columns for #{table_name} - table has no primary key " \
+                            "and ROWID is not available. LOB data may be truncated."
+            end
+            return
+          elsif pk.is_a?(Array)
+            pk.map { |col| "#{quote_column_name(col)} = #{quote(attributes[col])}" }.join(" AND ")
+          else
+            "#{quote_column_name(pk)} = #{quote(attributes[pk])}"
+          end
+
           columns.each do |col|
             value = attributes[col.name]
             # changed sequence of next two lines - should check if value is nil before converting to yaml
@@ -289,16 +311,18 @@ module ActiveRecord
             # value can be nil after serialization because ActiveRecord serializes [] and {} as nil
             next unless value
             uncached do
-              unless lob_record = select_one(sql = <<~SQL.squish, "Writable Large Object")
-                SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)}
-                WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE
-              SQL
+              sql = "SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)} " \
+                    "WHERE #{where_clause} FOR UPDATE"
+              unless lob_record = select_one(sql, "Writable Large Object")
                 raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
               end
               lob = lob_record[col.name]
               _connection.write_lob(lob, value.to_s, col.type == :binary)
             end
           end
+
+          # Clear the stored ROWID after use to prevent it being used for wrong row
+          @last_insert_rowid = nil
         end
 
         private
