@@ -193,6 +193,12 @@ module ActiveRecord
           def close
             @raw_cursor.close
           end
+
+          # Returns the ROWID of the last inserted/updated/deleted row
+          # This is useful for LOB writes on tables without primary keys
+          def rowid
+            @raw_cursor.rowid
+          end
         end
 
         def select(sql, name = nil, return_column_names = false)
