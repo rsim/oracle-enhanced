@@ -284,7 +284,7 @@ module ActiveRecord
             } << "SELECT * FROM DUAL\n"
           else
             if versions.is_a?(Array)
-              # called from ActiveRecord::Base.connection#dump_schema_information
+              # called from ActiveRecord::Base.connection#dump_schema_versions
               versions.map { |version|
                 "INSERT INTO #{sm_table} (version) VALUES (#{quote(version)})"
               }.join("\n\n/\n\n")
@@ -674,6 +674,7 @@ module ActiveRecord
             default_value = extract_value_from_default(field["data_default"])
             default_value = nil if is_virtual
             OracleEnhanced::Column.new(oracle_downcase(field["name"]),
+                             lookup_cast_type(field["sql_type"]),
                              default_value,
                              type_metadata,
                              field["nullable"] == "Y",
@@ -698,7 +699,7 @@ module ActiveRecord
           end
 
           def default_tablespace_for(type)
-            (default_tablespaces[type] || default_tablespaces[native_database_types[type][:name]]) rescue nil
+            default_tablespaces[type]
           end
 
           def column_for(table_name, column_name)
