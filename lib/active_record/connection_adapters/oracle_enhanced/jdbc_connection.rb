@@ -462,14 +462,6 @@ module ActiveRecord
           stmt.close rescue nil
         end
 
-        def write_lob(lob, value, is_binary = false)
-          if is_binary
-            lob.setBytes(1, value.to_java_bytes)
-          else
-            lob.setString(1, value)
-          end
-        end
-
         # To allow private method called from `JDBCConnection`
         def describe(name)
           super

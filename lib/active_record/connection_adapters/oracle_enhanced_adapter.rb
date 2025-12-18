@@ -20,8 +20,7 @@
 # 2. The OCI8 driver is patched to properly handle values for LONG and
 #    TIMESTAMP columns. The driver-author has indicated that a future
 #    release of the driver will obviate this patch.
-# 3. LOB support is implemented through an after_save callback.
-# 4. Oracle does not offer native LIMIT and OFFSET options; this
+# 3. Oracle does not offer native LIMIT and OFFSET options; this
 #    functionality is mimiced through the use of nested selects.
 #    See http://asktom.oracle.com/pls/ask/f?p=4950:8:::::F4950_P8_DISPLAYID:127412348064
 #
@@ -48,7 +47,6 @@ require "active_record/connection_adapters/oracle_enhanced/database_limits"
 require "active_record/connection_adapters/oracle_enhanced/dbms_output"
 require "active_record/connection_adapters/oracle_enhanced/type_metadata"
 require "active_record/connection_adapters/oracle_enhanced/structure_dump"
-require "active_record/connection_adapters/oracle_enhanced/lob"
 
 require "active_record/type/oracle_enhanced/raw"
 require "active_record/type/oracle_enhanced/integer"

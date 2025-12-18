@@ -25,6 +25,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
   end
 
   after(:each) do
+    TestEmployee.delete_all
     ActiveRecord::Base.clear_cache!
   end
 
@@ -132,9 +133,9 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     blob_data = ActiveModel::Type::Binary::Data.new("")
     quoted = @conn.quote(blob_data)
 
-    @conn.execute("INSERT INTO test_employees (id, first_name, last_name, binary_data) VALUES (test_employees_seq.nextval, 'Raw', 'SQL', #{quoted})")
+    @conn.execute("INSERT INTO test_employees (id, first_name, last_name, binary_data) VALUES (test_employees_seq.nextval, 'Empty', 'Blob', #{quoted})")
 
-    employee = TestEmployee.find_by(first_name: "Raw", last_name: "SQL")
+    employee = TestEmployee.find_by(first_name: "Empty", last_name: "Blob")
     expect(employee.binary_data).to be_empty
   end
 end
