@@ -241,4 +241,26 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     )
     expect(Test2Employee.where(comments: search_data)).to have_attributes(count: 1)
   end
+
+  it "should handle long CLOB data using inline quoting" do
+    inline_text = "a" * 512.kilobytes
+    clob_data = ActiveRecord::Type::OracleEnhanced::Text::Data.new(inline_text)
+    quoted = @conn.quote(clob_data)
+
+    @conn.execute("INSERT INTO test_employees (id, first_name, last_name, comments) VALUES (test_employees_seq.nextval, 'First', 'Last', #{quoted})")
+
+    employee = TestEmployee.last
+    expect(employee.comments).to eq(inline_text)
+    expect(employee.comments.bytesize).to eq(512.kilobytes)
+  end
+
+  it "should handle empty CLOB data using inline quoting" do
+    clob_data = ActiveRecord::Type::OracleEnhanced::Text::Data.new("")
+    quoted = @conn.quote(clob_data)
+
+    @conn.execute("INSERT INTO test_employees (id, first_name, last_name, comments) VALUES (test_employees_seq.nextval, 'First', 'Last', #{quoted})")
+
+    employee = TestEmployee.last
+    expect(employee.comments).to be_empty
+  end
 end

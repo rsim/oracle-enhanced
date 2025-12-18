@@ -116,4 +116,25 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data)
   end
+
+  it "should properly inline-quote BLOBs" do
+    inline_data = Random.bytes(2000)
+    blob_data = ActiveModel::Type::Binary::Data.new(inline_data)
+    quoted = @conn.quote(blob_data)
+
+    @conn.execute("INSERT INTO test_employees (id, first_name, last_name, binary_data) VALUES (test_employees_seq.nextval, 'Raw', 'SQL', #{quoted})")
+
+    employee = TestEmployee.find_by(first_name: "Raw", last_name: "SQL")
+    expect(employee.binary_data).to eq(inline_data)
+  end
+
+  it "should properly inline-quote empty BLOBs" do
+    blob_data = ActiveModel::Type::Binary::Data.new("")
+    quoted = @conn.quote(blob_data)
+
+    @conn.execute("INSERT INTO test_employees (id, first_name, last_name, binary_data) VALUES (test_employees_seq.nextval, 'Raw', 'SQL', #{quoted})")
+
+    employee = TestEmployee.find_by(first_name: "Raw", last_name: "SQL")
+    expect(employee.binary_data).to be_empty
+  end
 end
