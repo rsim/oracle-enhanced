@@ -227,4 +227,25 @@ describe "OracleEnhancedAdapter handling of NCLOB columns" do
     @employee.reload
     expect(@employee.comments).to eq(length: { is: 2 })
   end
+
+  it "should handle long NCLOB using inline quoting" do
+    max_inline_text = "a" * 512.kilobytes
+    nclob_data = ActiveRecord::Type::OracleEnhanced::NationalCharacterText::Data.new(max_inline_text)
+    quoted = @conn.quote(nclob_data)
+
+    @conn.execute("INSERT INTO test_employees (id, first_name, last_name, comments) VALUES (test_employees_seq.nextval, 'First', 'Last', #{quoted})")
+
+    employee = TestEmployee.last
+    expect(employee.comments).to eq(max_inline_text)
+  end
+
+  it "should handle empty NCLOB using inline quoting" do
+    nclob_data = ActiveRecord::Type::OracleEnhanced::NationalCharacterText::Data.new("")
+    quoted = @conn.quote(nclob_data)
+
+    @conn.execute("INSERT INTO test_employees (id, first_name, last_name, comments) VALUES (test_employees_seq.nextval, 'First', 'Last', #{quoted})")
+
+    employee = TestEmployee.last
+    expect(employee.comments).to be_empty
+  end
 end

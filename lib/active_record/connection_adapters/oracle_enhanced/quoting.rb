@@ -59,6 +59,11 @@ module ActiveRecord
           end
         end
 
+        # Oracle SQL VARCHAR2 limit for string literals is 4000 bytes normally.
+        # Server MAX_STRING_SIZE=EXTENDED will increase this to 32767 (32KB - 1).
+        # Using 1000 chars to be safe with multi-byte UTF-8 (max 4 bytes/char).
+        VARCHAR2_CHUNK_CHARS = 1000
+
         # This method is used in add_index to identify either column name (which is quoted)
         # or function based index (in which case function expression is not quoted)
         def quote_column_name_or_expression(name) # :nodoc:
@@ -116,12 +121,24 @@ module ActiveRecord
             "'#{quote_string(value.to_s)}'"
           when Type::OracleEnhanced::NationalCharacterString::Data then
             +"N" << "'#{quote_string(value.to_s)}'"
-          when ActiveModel::Type::Binary::Data then
-            "empty_blob()"
-          when Type::OracleEnhanced::Text::Data then
-            "empty_clob()"
-          when Type::OracleEnhanced::NationalCharacterText::Data then
-            "empty_nclob()"
+          when ActiveModel::Type::Binary::Data
+            # Unlike CLOB, concatenating BLOB does not help so this will work up to
+            # * 2000 data bytes normally or
+            # * 16383 data bytes (16KB - 1) with server MAX_STRING_SIZE=EXTENDED
+            data = value.to_s
+            data.empty? ? "empty_blob()" : "to_blob(hextoraw('#{value.to_s.unpack1('H*')}'))"
+          when Type::OracleEnhanced::Text::Data
+            text = value.to_s
+            text.empty? ? "empty_clob()" :
+              value.to_s.scan(/.{1,#{VARCHAR2_CHUNK_CHARS}}/m)
+                   .map { |chunk| "to_clob('#{quote_string(chunk)}')" }
+                   .join(" || ")
+          when Type::OracleEnhanced::NationalCharacterText::Data
+            text = value.to_s
+            text.empty? ? "empty_clob()" :
+            value.to_s.scan(/.{1,#{VARCHAR2_CHUNK_CHARS}}/m)
+                .map { |chunk| "to_nclob(N'#{quote_string(chunk)}')" }
+                .join(" || ")
           else
             super
           end

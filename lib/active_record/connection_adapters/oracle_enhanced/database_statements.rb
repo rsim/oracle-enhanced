@@ -243,31 +243,62 @@ module ActiveRecord
           table_name.to_s.gsub((/(^|\.)([\w$-]{1,#{sequence_name_length - 4}})([\w$-]*)$/), '\1\2_seq')
         end
 
-        # Inserts the given fixture into the table. Overridden to properly handle lobs.
-        def insert_fixture(fixture, table_name) # :nodoc:
-          super
-
-          if ActiveRecord::Base.pluralize_table_names
-            klass = table_name.to_s.singularize.camelize
-          else
-            klass = table_name.to_s.camelize
-          end
-
-          klass = klass.constantize rescue nil
-          if klass.respond_to?(:ancestors) && klass.ancestors.include?(ActiveRecord::Base)
-            write_lobs(table_name, klass, fixture, klass.lob_columns)
-          end
-        end
-
         def insert_fixtures_set(fixture_set, tables_to_delete = [])
           disable_referential_integrity do
             transaction(requires_new: true) do
               tables_to_delete.each { |table| delete "DELETE FROM #{quote_table_name(table)}", "Fixture Delete" }
 
               fixture_set.each do |table_name, rows|
-                rows.each { |row| insert_fixture(row, table_name) }
+                next if rows.empty?
+                insert_fixtures_using_binds(table_name, rows)
               end
             end
+          end
+        end
+
+        # Inserts fixture rows using a single prepared statement and bound variables
+        # It follows a similar logic to #build_fixture_sql but more efficient and supports large LOBs
+        def insert_fixtures_using_binds(table_name, rows)
+          columns = schema_cache.columns_hash(table_name).reject do |_, column|
+            supports_virtual_columns? && column.virtual?
+          end
+
+          # Get column names from all fixtures (union of all keys)
+          fixture_column_names = rows.first.stringify_keys.keys
+
+          # Check for unknown columns (same as build_fixture_sql)
+          unknown_columns = fixture_column_names - columns.keys
+          if unknown_columns.any?
+            raise Fixture::FixtureError, %(table "#{table_name}" has no columns named #{unknown_columns.map(&:inspect).join(', ')}.)
+          end
+
+          return if fixture_column_names.empty?
+
+          # Build SQL with bind placeholders
+          quoted_columns = fixture_column_names.map { |col| quote_column_name(col) }.join(", ")
+          bind_placeholders = fixture_column_names.each_with_index.map { |_, i| ":#{i + 1}" }.join(", ")
+          sql = "INSERT INTO #{quote_table_name(table_name)} (#{quoted_columns}) VALUES (#{bind_placeholders})"
+
+          # Prepare statement once and reuse for all rows
+          cursor = _connection.prepare(sql)
+          begin
+            rows.each do |row|
+              fixture = row.stringify_keys
+
+              # Build type-casted bind values for this row (same serialization as build_fixture_sql)
+              bind_values = fixture_column_names.map do |name|
+                column = columns[name]
+                type = lookup_cast_type_from_column(column)
+                serialized = with_yaml_fallback(type.serialize(fixture[name]))
+                # Apply connection-level type casting (handles LOBs -> OCI8::CLOB/BLOB/NCLOB)
+                type_cast(serialized)
+              end
+
+              cursor.bind_params(bind_values)
+              cursor.exec_update
+            end
+          ensure
+            cursor.close
           end
         end
 
@@ -276,29 +307,6 @@ module ActiveRecord
         # if you need this feature.
         def empty_insert_statement_value
           raise NotImplementedError
-        end
-
-        # Writes LOB values from attributes for specified columns
-        def write_lobs(table_name, klass, attributes, columns) # :nodoc:
-          id = quote(attributes[klass.primary_key])
-          columns.each do |col|
-            value = attributes[col.name]
-            # changed sequence of next two lines - should check if value is nil before converting to yaml
-            next unless value
-            value = klass.attribute_types[col.name].serialize(value)
-            # value can be nil after serialization because ActiveRecord serializes [] and {} as nil
-            next unless value
-            uncached do
-              unless lob_record = select_one(sql = <<~SQL.squish, "Writable Large Object")
-                SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)}
-                WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE
-              SQL
-                raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
-              end
-              lob = lob_record[col.name]
-              _connection.write_lob(lob, value.to_s, col.type == :binary)
-            end
-          end
         end
 
         private
