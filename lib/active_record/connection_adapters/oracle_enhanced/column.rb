@@ -6,8 +6,8 @@ module ActiveRecord
       class Column < ActiveRecord::ConnectionAdapters::Column
         delegate :virtual, to: :sql_type_metadata, allow_nil: true
 
-        def initialize(name, default, sql_type_metadata = nil, null = true, comment: nil) # :nodoc:
-          super(name, default, sql_type_metadata, null, comment: comment)
+        def initialize(name, cast_type, default, sql_type_metadata = nil, null = true, comment: nil) # :nodoc:
+          super(name, cast_type, default, sql_type_metadata, null, comment: comment)
         end
 
         def virtual?

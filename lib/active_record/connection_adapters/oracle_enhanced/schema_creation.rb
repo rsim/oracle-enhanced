@@ -12,6 +12,7 @@ module ActiveRecord
                 @lob_tablespaces[o.name] = tablespace
               end
             end
+            o.cast_type = lookup_cast_type(sql_type)
             super
           end
 
