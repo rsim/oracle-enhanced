@@ -26,8 +26,6 @@ module ActiveRecord
 
         # Low level execution of a SQL statement on the connection returning adapter specific result object.
         def raw_execute(sql, name = "SQL", binds = [], prepare: false, async: false, allow_retry: false, materialize_transactions: false)
-          sql = preprocess_query(sql)
-
           type_casted_binds = type_casted_binds(binds)
           with_raw_connection(allow_retry: allow_retry, materialize_transactions: materialize_transactions) do |conn|
             log(sql, name, binds, type_casted_binds, async: async) do
