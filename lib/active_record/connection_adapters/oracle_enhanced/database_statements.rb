@@ -19,6 +19,19 @@ module ActiveRecord
           !READ_QUERY.match?(sql.b)
         end
 
+        # Add /*+ WITH_PLSQL */ hint for INSERT/UPDATE statements containing
+        # PL/SQL function definitions. Oracle requires this hint for DML
+        # statements that use PL/SQL in a WITH clause.
+        def preprocess_query(sql)
+          sql = super
+
+          if sql =~ /\A\s*(INSERT|UPDATE)\b(?=.*\bBEGIN\b)/im
+            sql = sql.sub($1, "#{$1} /*+ WITH_PLSQL */")
+          end
+
+          sql
+        end
+
         # Executes a SQL statement
         def execute(...)
           super

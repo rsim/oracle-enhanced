@@ -2,6 +2,7 @@
 
 describe "OracleEnhancedAdapter handling of BLOB columns" do
   include SchemaSpecHelper
+  include DatabaseVersionHelper
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -118,7 +119,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     expect(@employee.binary_data).to eq(@binary_data)
   end
 
-  it "should properly inline-quote BLOBs" do
+  it "should properly inline insert small BLOBs" do
     inline_data = Random.bytes(2000)
     blob_data = ActiveModel::Type::Binary::Data.new(inline_data)
     quoted = @conn.quote(blob_data)
@@ -129,7 +130,7 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     expect(employee.binary_data).to eq(inline_data)
   end
 
-  it "should properly inline-quote empty BLOBs" do
+  it "should properly inline insert empty BLOBs" do
     blob_data = ActiveModel::Type::Binary::Data.new("")
     quoted = @conn.quote(blob_data)
 
@@ -137,5 +138,36 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
 
     employee = TestEmployee.find_by(first_name: "Empty", last_name: "Blob")
     expect(employee.binary_data).to be_empty
+  end
+
+  it "should properly inline insert large BLOBs" do
+    skip "WITH FUNCTION not supported in this database version" unless oracle12c_or_higher?
+    inline_data = Random.bytes(512.kilobytes)
+    blob_data = ActiveModel::Type::Binary::Data.new(inline_data)
+    quoted = @conn.quote(blob_data)
+
+    @conn.execute("INSERT INTO test_employees (id, first_name, last_name, binary_data) VALUES (test_employees_seq.nextval, 'Raw', 'SQL', #{quoted})")
+
+    employee = TestEmployee.find_by(first_name: "Raw", last_name: "SQL")
+    expect(employee.binary_data).to eq(inline_data)
+  end
+
+  it "should properly inline update large BLOBs" do
+    skip "WITH FUNCTION not supported in this database version" unless oracle12c_or_higher?
+    @employee = TestEmployee.create!(
+      first_name: "First",
+      last_name: "Last",
+      binary_data: ""
+    )
+    @employee.reload
+    expect(@employee.binary_data).to eq("")
+
+    inline_data = Random.bytes(512.kilobytes)
+    blob_data = ActiveModel::Type::Binary::Data.new(inline_data)
+    quoted = @conn.quote(blob_data)
+    @conn.execute("UPDATE test_employees SET binary_data = #{quoted} WHERE id = #{@employee.id}")
+
+    @employee.reload
+    expect(@employee.binary_data).to eq(inline_data)
   end
 end

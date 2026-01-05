@@ -62,7 +62,17 @@ module ActiveRecord
         # Oracle SQL VARCHAR2 limit for string literals is 4000 bytes normally.
         # Server MAX_STRING_SIZE=EXTENDED will increase this to 32767 (32KB - 1).
         # Using 1000 chars to be safe with multi-byte UTF-8 (max 4 bytes/char).
-        VARCHAR2_CHUNK_CHARS = 1000
+        SQL_UTF8_CHUNK_CHARS = 1000
+
+        # Maximum BLOB size that can be inlined using hextoraw().
+        # With MAX_STRING_SIZE=EXTENDED this is 16383 bytes (32766 hex chars).
+        # Using 2000 bytes (4000 hex chars) to be safe with standard config.
+        BLOB_INLINE_LIMIT = 2000
+
+        # Chunk size for large BLOBs using DBMS_LOB.WRITEAPPEND with base64.
+        # Base64 encodes 3 bytes into 4 chars. With VARCHAR2 max of 32767 chars,
+        # we can encode floor(32767/4)*3 = 24573 bytes per chunk.
+        PLSQL_BASE64_CHUNK_SIZE = 24_573
 
         # This method is used in add_index to identify either column name (which is quoted)
         # or function based index (in which case function expression is not quoted)
@@ -122,21 +132,24 @@ module ActiveRecord
           when Type::OracleEnhanced::NationalCharacterString::Data then
             +"N" << "'#{quote_string(value.to_s)}'"
           when ActiveModel::Type::Binary::Data
-            # Unlike CLOB, concatenating BLOB does not help so this will work up to
-            # * 2000 data bytes normally or
-            # * 16383 data bytes (16KB - 1) with server MAX_STRING_SIZE=EXTENDED
             data = value.to_s
-            data.empty? ? "empty_blob()" : "to_blob(hextoraw('#{value.to_s.unpack1('H*')}'))"
+            if data.empty?
+              "empty_blob()"
+            elsif data.bytesize <= BLOB_INLINE_LIMIT
+              "to_blob(hextoraw('#{data.unpack1('H*')}'))"
+            else
+              quote_blob_as_subquery(data)
+            end
           when Type::OracleEnhanced::Text::Data
             text = value.to_s
             text.empty? ? "empty_clob()" :
-              value.to_s.scan(/.{1,#{VARCHAR2_CHUNK_CHARS}}/m)
+              value.to_s.scan(/.{1,#{SQL_UTF8_CHUNK_CHARS}}/m)
                    .map { |chunk| "to_clob('#{quote_string(chunk)}')" }
                    .join(" || ")
           when Type::OracleEnhanced::NationalCharacterText::Data
             text = value.to_s
             text.empty? ? "empty_clob()" :
-            value.to_s.scan(/.{1,#{VARCHAR2_CHUNK_CHARS}}/m)
+            value.to_s.scan(/.{1,#{SQL_UTF8_CHUNK_CHARS}}/m)
                 .map { |chunk| "to_nclob(N'#{quote_string(chunk)}')" }
                 .join(" || ")
           else
@@ -186,6 +199,35 @@ module ActiveRecord
           def oracle_downcase(column_name)
             return nil if column_name.nil?
             /[a-z]/.match?(column_name) ? column_name : column_name.downcase
+          end
+
+          # Generate a scalar subquery with PL/SQL function to build large BLOBs.
+          # Uses DBMS_LOB.WRITEAPPEND with base64-encoded chunks for efficiency.
+          # Testing showed hextoraw() unusable for being more than 100x slower.
+          def quote_blob_as_subquery(data)
+            out = +""
+            out << "(\n"
+            out << "  WITH FUNCTION make_blob RETURN BLOB IS\n"
+            out << "    l_blob BLOB;\n"
+            out << "  BEGIN\n"
+            out << "    DBMS_LOB.CREATETEMPORARY(l_blob, TRUE, DBMS_LOB.CALL);\n"
+
+            offset = 0
+            while offset < data.bytesize
+              chunk = data.byteslice(offset, PLSQL_BASE64_CHUNK_SIZE)
+              out << "    DBMS_LOB.WRITEAPPEND(l_blob, "
+              out << chunk.bytesize.to_s
+              out << ", UTL_ENCODE.BASE64_DECODE(UTL_RAW.CAST_TO_RAW('"
+              out << [chunk].pack("m0")  # Base64 encoding without newlines
+              out << "')));\n"
+              offset += PLSQL_BASE64_CHUNK_SIZE
+            end
+
+            out << "    RETURN l_blob;\n"
+            out << "  END;\n"
+            out << "  SELECT make_blob() FROM dual\n"
+            out << ")"
+            out
           end
       end
     end
