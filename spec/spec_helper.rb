@@ -128,6 +128,13 @@ module SchemaSpecHelper
   end
 end
 
+module DatabaseVersionHelper
+  def oracle12c_or_higher?
+    @oracle12c_or_higher ||= !!ActiveRecord::Base.connection.select_value(
+      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 12")
+  end
+end
+
 module SchemaDumpingHelper
   def dump_table_schema(table, connection = ActiveRecord::Base.connection)
     old_ignore_tables = ActiveRecord::SchemaDumper.ignore_tables

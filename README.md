@@ -779,6 +779,30 @@ ALTER TABLE "POSTS" MODIFY "UPDATED_AT" TIMESTAMP
 In Rails 5 without running this migration or sql statement, 
 these attributes will be handled as Rails `:date` type.
 
+ORACLE VERSION SUPPORT
+----------------------
+
+The adapter primarily supports Oracle database versions that are officially supported by Oracle Corporation.
+
+Oracle 10g and 11g are deprecated and receive best-effort support only because they use a different Arel SQL generator (`use_old_oracle_visitor = true`) and lack features available in newer versions.
+
+### Prepared statements recommended
+
+Prepared statements (bind variables) is the default mode and the recommended mode for all Oracle database versions. Using literal SQL is discouraged and subject to limitations and performance penalties.
+
+### BLOB limitations on Oracle 11g
+
+BLOBs larger than 2000 bytes require prepared statements on Oracle 11g. The adapter uses inline PL/SQL with `WITH FUNCTION` clause for literal large BLOBs, which is only available in Oracle 12c+.
+
+### Rails 8 prepared statements
+
+In Rails 8, `query_log_tags_enabled` is enabled by default in development mode. When enabled, it disables prepared statements. You should disable it if you need prepared statements, which is especially important for Oracle 11g:
+
+```ruby
+# config/environments/development.rb
+config.active_record.query_log_tags_enabled = false
+```
+
 TROUBLESHOOTING
 ---------------
 
