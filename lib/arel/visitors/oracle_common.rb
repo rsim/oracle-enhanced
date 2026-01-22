@@ -14,11 +14,14 @@ module Arel # :nodoc: all
         # Fixes ORA-00932: inconsistent datatypes: expected - got CLOB
         def visit_Arel_Nodes_Equality(o, collector)
           left = o.left
+          right = o.right
+
+          return super if right.nil?
           return super unless %i(text binary).include?(cached_column_for(left)&.type)
 
           # https://docs.oracle.com/cd/B19306_01/appdev.102/b14258/d_lob.htm#i1016668
           # returns 0 when the comparison succeeds
-          comparator = Arel::Nodes::NamedFunction.new("DBMS_LOB.COMPARE", [left, o.right])
+          comparator = Arel::Nodes::NamedFunction.new("DBMS_LOB.COMPARE", [left, right])
           collector = visit comparator, collector
           collector << " = 0"
           collector

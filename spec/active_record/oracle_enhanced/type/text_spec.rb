@@ -31,6 +31,10 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     class ::Test2Employee < ActiveRecord::Base
       serialize :comments
     end
+    class ::TestSerializedHashEmployee < ActiveRecord::Base
+      self.table_name = "test_employees"
+      serialize :comments, type: Hash, coder: YAML
+    end
     class ::TestEmployeeReadOnlyClob < ActiveRecord::Base
       self.table_name = "test_employees"
       attr_readonly :comments
@@ -47,6 +51,7 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     @conn.drop_table :test_serialize_employees, if_exists: true
     Object.send(:remove_const, "TestEmployee")
     Object.send(:remove_const, "Test2Employee")
+    Object.send(:remove_const, "TestSerializedHashEmployee")
     Object.send(:remove_const, "TestEmployeeReadOnlyClob")
     Object.send(:remove_const, "TestSerializeEmployee")
     ActiveRecord::Base.clear_cache!
@@ -240,5 +245,33 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       comments: "other data",
     )
     expect(Test2Employee.where(comments: search_data)).to have_attributes(count: 1)
+  end
+
+  it "should find NULL CLOB data when queried with nil" do
+    TestEmployee.delete_all
+    TestEmployee.create!(comments: nil)
+    TestEmployee.create!(comments: @char_data)
+    expect(TestEmployee.where(comments: nil)).to have_attributes(count: 1)
+  end
+
+  it "should find serialized NULL CLOB data when queried with nil" do
+    TestSerializeEmployee.delete_all
+    TestSerializeEmployee.create!(comments: nil)
+    TestSerializeEmployee.create!(comments: { some: "text" })
+    expect(TestSerializeEmployee.where(comments: nil)).to have_attributes(count: 1)
+  end
+
+  it "should find serialized Hash NULL CLOB data when queried with nil" do
+    TestSerializedHashEmployee.delete_all
+    TestSerializedHashEmployee.create!(comments: nil)
+    TestSerializedHashEmployee.create!(comments: { some: "text" })
+    expect(TestSerializedHashEmployee.where(comments: nil)).to have_attributes(count: 1)
+  end
+
+  it "should find serialized Hash NULL CLOB data when queried with {}" do
+    TestSerializedHashEmployee.delete_all
+    TestSerializedHashEmployee.create!(comments: nil)
+    TestSerializedHashEmployee.create!(comments: { some: "text" })
+    expect(TestSerializedHashEmployee.where(comments: {})).to have_attributes(count: 1)
   end
 end
