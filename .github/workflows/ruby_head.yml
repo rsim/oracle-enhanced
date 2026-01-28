@@ -63,7 +63,7 @@ jobs:
           echo "$ORACLE_HOME" >> $GITHUB_PATH
       - name: Install JDBC Driver
         run: |
-          cp /opt/oracle/instantclient_23_8/ojdbc17.jar ./lib/
+          cp /opt/oracle/instantclient_23_26/ojdbc17.jar ./lib/
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
