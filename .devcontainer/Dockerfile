@@ -12,16 +12,20 @@ WORKDIR /tmp
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
         ARCH_SUFFIX="arm64"; \
+        IC_VERSION="23.26.0.0.0"; \
+        IC_PATH="2326000"; \
     else \
         ARCH_SUFFIX="x64"; \
+        IC_VERSION="23.26.1.0.0"; \
+        IC_PATH="2326100"; \
     fi && \
-    wget -q https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-basic-linux.${ARCH_SUFFIX}-23.8.0.25.04.zip \
-    && wget -q https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-sdk-linux.${ARCH_SUFFIX}-23.8.0.25.04.zip \
-    && wget -q https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-sqlplus-linux.${ARCH_SUFFIX}-23.8.0.25.04.zip \
-    && unzip -qo instantclient-basic-linux.${ARCH_SUFFIX}-23.8.0.25.04.zip \
-    && unzip -qo instantclient-sdk-linux.${ARCH_SUFFIX}-23.8.0.25.04.zip \
-    && unzip -qo instantclient-sqlplus-linux.${ARCH_SUFFIX}-23.8.0.25.04.zip \
-    && mv instantclient_23_8 /opt/oracle/instantclient \
+    wget -q https://download.oracle.com/otn_software/linux/instantclient/${IC_PATH}/instantclient-basic-linux.${ARCH_SUFFIX}-${IC_VERSION}.zip \
+    && wget -q https://download.oracle.com/otn_software/linux/instantclient/${IC_PATH}/instantclient-sdk-linux.${ARCH_SUFFIX}-${IC_VERSION}.zip \
+    && wget -q https://download.oracle.com/otn_software/linux/instantclient/${IC_PATH}/instantclient-sqlplus-linux.${ARCH_SUFFIX}-${IC_VERSION}.zip \
+    && unzip -qo instantclient-basic-linux.${ARCH_SUFFIX}-${IC_VERSION}.zip \
+    && unzip -qo instantclient-sdk-linux.${ARCH_SUFFIX}-${IC_VERSION}.zip \
+    && unzip -qo instantclient-sqlplus-linux.${ARCH_SUFFIX}-${IC_VERSION}.zip \
+    && mv instantclient_23_26 /opt/oracle/instantclient \
     && rm -f instantclient-*.zip
 
 # Set Oracle environment variables
