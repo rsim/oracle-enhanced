@@ -8,7 +8,7 @@ group :development do
   gem "rspec"
   gem "rdoc"
   gem "rake"
-  gem "activerecord",   github: "rails/rails", branch: "main"
+  gem "activerecord",   github: "rails/rails", branch: "8-1-stable"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do

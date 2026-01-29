@@ -3,9 +3,9 @@
 describe "OracleEnhancedAdapter integer type detection based on attribute settings" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
-    @conn.execute "DROP TABLE test2_employees" rescue nil
-    @conn.execute <<~SQL
+    conn = ActiveRecord::Base.lease_connection
+    conn.execute "DROP TABLE test2_employees" rescue nil
+    conn.execute <<~SQL
       CREATE TABLE test2_employees (
         id            NUMBER PRIMARY KEY,
         first_name    VARCHAR2(20),
@@ -22,16 +22,18 @@ describe "OracleEnhancedAdapter integer type detection based on attribute settin
         created_at    DATE
       )
     SQL
-    @conn.execute "DROP SEQUENCE test2_employees_seq" rescue nil
-    @conn.execute <<~SQL
+    conn.execute "DROP SEQUENCE test2_employees_seq" rescue nil
+    conn.execute <<~SQL
       CREATE SEQUENCE test2_employees_seq  MINVALUE 1
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
 
   after(:all) do
-    @conn.execute "DROP TABLE test2_employees"
-    @conn.execute "DROP SEQUENCE test2_employees_seq"
+    conn = ActiveRecord::Base.lease_connection
+    conn.execute "DROP TABLE test2_employees"
+    conn.execute "DROP SEQUENCE test2_employees_seq"
+    ActiveRecord::Base.release_connection
   end
 
   describe "/ NUMBER values from ActiveRecord model" do
@@ -43,6 +45,7 @@ describe "OracleEnhancedAdapter integer type detection based on attribute settin
     after(:each) do
       Object.send(:remove_const, "Test2Employee")
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.clear_type_map!
       ActiveRecord::Base.clear_cache!
     end
 
@@ -90,8 +93,7 @@ describe "OracleEnhancedAdapter integer type detection based on attribute settin
 
     it "should return Integer value from NUMBER(1) column if emulate_booleans is set to false" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = false
-      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.clear_type_map!
-      ActiveRecord::Base.clear_cache!
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       create_employee2
       expect(@employee2.is_manager).to be_a(Integer)
     end
