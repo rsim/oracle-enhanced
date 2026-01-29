@@ -75,6 +75,8 @@ jobs:
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
+      - name: Fix gem directory permissions
+        run: sudo chmod +t $(ruby -e 'puts Gem.default_dir')/gems
       - name: Bundle install
         run: |
           bundle install --jobs 4 --retry 3
