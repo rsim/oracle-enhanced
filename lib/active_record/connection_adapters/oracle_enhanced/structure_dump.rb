@@ -315,7 +315,13 @@ module ActiveRecord # :nodoc:
 
         def execute_structure_dump(string)
           string.split(STATEMENT_TOKEN).each do |ddl|
-            execute(ddl) unless ddl.blank?
+            next if ddl.blank?
+            begin
+              execute(ddl) unless ddl.blank?
+            rescue
+              puts "Failed to execute #{ddl}"
+              raise
+            end
           end
         end
 

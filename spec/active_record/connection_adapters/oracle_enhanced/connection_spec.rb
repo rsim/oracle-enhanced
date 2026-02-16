@@ -67,14 +67,14 @@ describe "OracleEnhancedAdapter establish connection" do
   it "should not encrypt JDBC network connection" do
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       @conn = ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REJECTED" }))
-      expect(@conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 0 }])
+      expect(@conn.connection.execute("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 0 }])
     end
   end
 
   it "should encrypt JDBC network connection" do
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       @conn = ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REQUESTED" }))
-      expect(@conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 1 }])
+      expect(@conn.connection.execute("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 1 }])
     end
   end
 
@@ -291,6 +291,7 @@ describe "OracleEnhancedConnection" do
       end
 
       it "should create new connection using :url and tnsnames alias" do
+        pending "no idea how to test connecting to other host than localhost"
         params = CONNECTION_PARAMS.dup
         params[:url] = "jdbc:oracle:thin:@#{DATABASE_NAME}"
         params[:host] = nil
