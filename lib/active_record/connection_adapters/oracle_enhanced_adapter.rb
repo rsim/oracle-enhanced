@@ -410,7 +410,7 @@ module ActiveRecord
       # :startdoc:
 
       def native_database_types # :nodoc:
-        emulate_booleans_from_strings ? NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS : NATIVE_DATABASE_TYPES
+        self.class.native_database_types
       end
 
       # CONNECTION MANAGEMENT ====================================
@@ -670,7 +670,7 @@ module ActiveRecord
             # remove any ASC/DESC modifiers
             s.gsub(/\s+(ASC|DESC)\s*?/i, "")
           }.reject(&:blank?).map.with_index { |column, i|
-            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns} ORDER BY #{column}) AS alias_#{i}__"
+            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns.join(', ')} ORDER BY #{column}) AS alias_#{i}__"
           }
         (order_columns << super).join(", ")
       end
@@ -711,6 +711,10 @@ module ActiveRecord
       end
 
       class << self
+        def native_database_types
+          emulate_booleans_from_strings ? NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS : NATIVE_DATABASE_TYPES
+        end
+
         def type_map
           @type_map ||= Type::TypeMap.new.tap { |m| initialize_type_map(m) }
           @type_map
