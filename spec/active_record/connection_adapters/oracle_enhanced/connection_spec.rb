@@ -418,7 +418,7 @@ describe "OracleEnhancedConnection" do
     it "should execute prepared statement with decimal bind parameter" do
       cursor = @conn.prepare("INSERT INTO test_employees VALUES(:1)")
       type_metadata = ActiveRecord::ConnectionAdapters::SqlTypeMetadata.new(sql_type: "NUMBER", type: :decimal, limit: 10, precision: nil, scale: 2)
-      cast_type = @conn_base.lookup_cast_type("NUMBER(10)")
+      cast_type = @conn_base.lookup_cast_type("NUMBER(10,2)")
       column = ActiveRecord::ConnectionAdapters::OracleEnhanced::Column.new("age", cast_type, nil, type_metadata, false, comment: nil)
       expect(column.type).to eq(:decimal)
       # Here 1.5 expects that this value has been type casted already
