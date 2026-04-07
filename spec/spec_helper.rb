@@ -53,7 +53,6 @@ module LoggerSpecHelper
     ActiveSupport::Notifications.notifier = @notifier
 
     ActiveRecord::LogSubscriber.attach_to(:active_record)
-    ActiveSupport::Notifications.subscribe("sql.active_record", ActiveRecord::ExplainSubscriber.new)
   end
 
   class MockLogger

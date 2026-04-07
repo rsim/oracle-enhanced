@@ -331,7 +331,7 @@ describe "OracleEnhancedAdapter structure dump" do
       end
     end
 
-    let(:dump) { ActiveRecord::Base.connection.dump_schema_information }
+    let(:dump) { ActiveRecord::Base.connection.dump_schema_versions }
 
     before do
       ActiveRecord::Base.connection_pool.schema_migration.create_table
