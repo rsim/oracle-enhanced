@@ -65,9 +65,9 @@ describe "OracleEnhancedAdapter should support composite primary" do
   end
 
   it "should support distinct" do
-    TestAuthor.distinct.count.should == 1
+    expect(TestAuthor.distinct.count).to eq(1)
     skip "this appears to be a rails bug https://github.com/rails/rails/issues/55401"
-    TestAuthorsTestBook.distinct.count.should == 1
+    expect(TestAuthorsTestBook.distinct.count).to eq(1)
   end
 
   it "should support includes when requesting the first record by a referenced composite idx association" do
