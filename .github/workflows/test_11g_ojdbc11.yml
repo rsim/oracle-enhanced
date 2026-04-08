@@ -1,0 +1,90 @@
+name: test_11g_ojdbc11
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [
+          'jruby-10.0.5.0',
+          'jruby-head',
+        ]
+    env:
+      ORACLE_HOME: /opt/oracle/instantclient_21_15
+      LD_LIBRARY_PATH: /opt/oracle/instantclient_21_15
+      NLS_LANG: AMERICAN_AMERICA.AL32UTF8
+      TNS_ADMIN: ./ci/network/admin
+      DATABASE_NAME: XE
+      TZ: Europe/Riga
+      DATABASE_SYS_PASSWORD: Oracle18
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 1521
+      DATABASE_VERSION: 11.2.0.2
+      DATABASE_SERVER_AND_CLIENT_VERSION_DO_NOT_MATCH: true
+
+    services:
+      oracle:
+        image: gvenzl/oracle-xe:11
+        ports:
+          - 1521:1521
+        env:
+          TZ: Europe/Riga
+          ORACLE_PASSWORD: Oracle18
+        options: >-
+          --health-cmd healthcheck.sh
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: Create symbolic link for libaio library compatibility
+        run: |
+          sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
+      - name: Download Oracle instant client
+        run: |
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2115000/instantclient-basic-linux.x64-21.15.0.0.0dbru.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2115000/instantclient-sqlplus-linux.x64-21.15.0.0.0dbru.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2115000/instantclient-sdk-linux.x64-21.15.0.0.0dbru.zip
+      - name: Install Oracle instant client
+        run: |
+          sudo mkdir -p /opt/oracle/
+          sudo unzip instantclient-basic-linux.x64-21.15.0.0.0dbru.zip -d /opt/oracle
+          sudo unzip -o instantclient-sqlplus-linux.x64-21.15.0.0.0dbru.zip -d /opt/oracle
+          sudo unzip -o instantclient-sdk-linux.x64-21.15.0.0.0dbru.zip -d /opt/oracle
+          echo "/opt/oracle/instantclient_21_15" >> $GITHUB_PATH
+      - name: Install JDBC Driver
+        run: |
+          wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/23261/ojdbc11.jar -O ./lib/ojdbc11.jar
+      - name: Create database user
+        run: |
+          ./ci/setup_accounts.sh
+      - name: Update RubyGems
+        run: |
+          gem update --system || gem update --system 3.4.22
+      - name: Bundle install
+        run: |
+          bundle install --jobs 4 --retry 3
+      - name: Show Gemfile.lock
+        run: |
+          cat Gemfile.lock
+      - name: Run RSpec
+        run: |
+          bundle exec rspec
+      - name: Run bug report templates
+        if: "false"
+        run: |
+          cd guides/bug_report_templates
+          ruby active_record_gem.rb
+          ruby active_record_gem_spec.rb
