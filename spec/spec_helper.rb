@@ -33,9 +33,12 @@ require "active_support/log_subscriber"
 require "active_record/log_subscriber"
 
 require "logger"
-require "ruby-plsql"
 
+# On JRuby, load the oracle_enhanced adapter first so that the JDBC driver
+# (ojdbc17.jar) is registered with DriverManager before ruby-plsql tries to
+# load it. ruby-plsql only looks for ojdbc6/7.jar and would fail otherwise.
 require "active_record/connection_adapters/oracle_enhanced_adapter"
+require "ruby-plsql"
 
 puts "==> Effective ActiveRecord version #{ActiveRecord::VERSION::STRING}"
 
