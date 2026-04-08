@@ -69,6 +69,14 @@ jobs:
       - name: Install JDBC Driver
         run: |
           wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/23261/ojdbc17.jar -O ./lib/ojdbc17.jar
+      - name: Enable Oracle native network encryption in the server container
+        run: |
+          ORACLE_CONTAINER=$(docker ps --filter "ancestor=gvenzl/oracle-free" -q)
+          docker exec -u oracle "$ORACLE_CONTAINER" bash -c "
+            SQLNET=\$ORACLE_HOME/network/admin/sqlnet.ora
+            grep -q ENCRYPTION_SERVER \$SQLNET 2>/dev/null || echo 'SQLNET.ENCRYPTION_SERVER = REQUESTED' >> \$SQLNET
+            grep -q ENCRYPTION_TYPES_SERVER \$SQLNET 2>/dev/null || echo 'SQLNET.ENCRYPTION_TYPES_SERVER = (AES256)' >> \$SQLNET
+          "
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
