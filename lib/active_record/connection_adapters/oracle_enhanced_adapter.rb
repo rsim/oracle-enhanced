@@ -852,7 +852,8 @@ module ActiveRecord
 end
 
 # Workaround for https://github.com/jruby/jruby/issues/6267
-if RUBY_ENGINE == "jruby"
+# Fixed in JRuby 9.3.0.0 or higher via https://github.com/jruby/jruby/pull/6683
+if RUBY_ENGINE == "jruby" && !ObjectSpace::WeakMap.method_defined?(:values)
   require "jruby"
 
   class org.jruby::RubyObjectSpace::WeakMap
