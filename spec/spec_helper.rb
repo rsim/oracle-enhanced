@@ -42,6 +42,11 @@ require "logger"
 # ruby-plsql's JDBC connection code can load under JRuby 10.x (Ruby 3.4).
 require "active_record/connection_adapters/oracle_enhanced_adapter"
 File.singleton_class.alias_method(:exists?, :exist?) unless File.respond_to?(:exists?)
+# ruby-plsql calls ActiveRecord::Base.default_timezone (moved to ActiveRecord
+# module in Rails 7.0). Restore the class-level accessor as a shim.
+unless ActiveRecord::Base.respond_to?(:default_timezone)
+  ActiveRecord::Base.define_singleton_method(:default_timezone) { ActiveRecord.default_timezone }
+end
 require "ruby-plsql"
 
 puts "==> Effective ActiveRecord version #{ActiveRecord::VERSION::STRING}"
