@@ -263,7 +263,7 @@ module ActiveRecord
           begin
             yield if block_given?
           rescue Java::JavaSql::SQLException => e
-            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/.match?(e.message)
+            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:|ORA-03113:|ORA-03114:|ORA-17008:)/.match?(e.message)
             @active = false
             raise unless should_retry
             should_retry = false
@@ -459,6 +459,17 @@ module ActiveRecord
 
           def close
             @raw_statement.close
+          rescue Java::JavaSql::SQLException => e
+            # Tolerate closing a statement whose underlying connection or
+            # statement has already been torn down (typical after with_retry
+            # has reset the connection). Re-raise anything else so genuine
+            # driver/resource bugs surface.
+            #
+            #   ORA-17002 "Io exception"        - network/socket failure
+            #   ORA-17008 "Closed Connection"   - connection already closed
+            #   ORA-17009 "Closed Statement"    - statement already closed
+            raise unless [17_002, 17_008, 17_009].include?(e.getErrorCode)
+            nil
           end
         end
 
