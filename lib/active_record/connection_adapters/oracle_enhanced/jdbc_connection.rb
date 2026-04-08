@@ -17,7 +17,8 @@ begin
   # Oracle 12c Release 1 client provides ojdbc7.jar
   # Oracle 12c Release 2 client provides ojdbc8.jar
   # Oracle 21c provides ojdbc11.jar for Java 11 and above
-  ojdbc_jars = %w(ojdbc11.jar ojdbc8.jar ojdbc7.jar ojdbc6.jar)
+  # Oracle 23c provides ojdbc17.jar for Java 17 and above
+  ojdbc_jars = %w(ojdbc17.jar ojdbc11.jar ojdbc8.jar ojdbc7.jar ojdbc6.jar)
 
   if !ENV_JAVA["java.class.path"]&.match?(Regexp.new(ojdbc_jars.join("|")))
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
