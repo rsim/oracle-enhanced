@@ -48,11 +48,15 @@ rescue LoadError, NameError => e
   raise LoadError, "ERROR: ActiveRecord oracle_enhanced adapter could not load Oracle JDBC driver. Please install #{ojdbc_jars.join(' or ') } library.\n#{e.class}:#{e.message}"
 end
 
+require "active_record/connection_adapters/oracle_enhanced/database_description"
+
 module ActiveRecord
   module ConnectionAdapters
     # JDBC database interface for JRuby
     module OracleEnhanced
       class JDBCConnection < OracleEnhanced::Connection # :nodoc:
+        include OracleEnhanced::DatabaseDescription
+
         attr_accessor :active
         alias :active? :active
 
@@ -470,11 +474,6 @@ module ActiveRecord
           end
         end
 
-        # To allow private method called from `JDBCConnection`
-        def describe(name)
-          super
-        end
-
         # Return java.sql.SQLException error code
         def error_code(exception)
           case exception
@@ -555,6 +554,8 @@ module ActiveRecord
           end
         end
       end
+
+      Connection.connection_class = JDBCConnection
     end
   end
 end

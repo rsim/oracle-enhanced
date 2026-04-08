@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "delegate"
+require "active_record/connection_adapters/oracle_enhanced/database_description"
 
 begin
   require "oci8"
@@ -27,6 +28,8 @@ module ActiveRecord
     # OCI database interface for MRI
     module OracleEnhanced
       class OCIConnection < OracleEnhanced::Connection # :nodoc:
+        include OracleEnhanced::DatabaseDescription
+
         def initialize(config)
           @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
           # default schema owner
@@ -237,10 +240,6 @@ module ActiveRecord
           lob.write value
         end
 
-        def describe(name)
-          super
-        end
-
         # Return OCIError error code
         def error_code(exception)
           case exception
@@ -376,6 +375,8 @@ module ActiveRecord
           conn
         end
       end
+
+      Connection.connection_class = OCIConnection
     end
   end
 end
