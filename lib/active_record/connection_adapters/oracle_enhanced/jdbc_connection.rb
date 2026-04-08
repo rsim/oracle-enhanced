@@ -237,6 +237,10 @@ module ActiveRecord
         end
 
         # Resets connection, by logging off and creating a new connection.
+        def reset
+          reset!
+        end
+
         def reset!
           logoff rescue nil
           begin
@@ -384,6 +388,10 @@ module ActiveRecord
             @column_names ||= (1..metadata.getColumnCount).map { |i| metadata.getColumnName(i) }
           end
           alias :get_col_names :column_names
+
+          def select_statement?
+            !@raw_result_set.nil?
+          end
 
           def row_count
             @raw_statement.getUpdateCount
