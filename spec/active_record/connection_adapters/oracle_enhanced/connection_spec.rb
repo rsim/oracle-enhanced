@@ -116,6 +116,13 @@ describe "OracleEnhancedConnection" do
     it "should be in autocommit mode after connection" do
       expect(@conn).to be_autocommit
     end
+
+    it "should raise ArgumentError when JDBC exec is called with bindvars" do
+      skip unless ORACLE_ENHANCED_CONNECTION == :jdbc
+      expect {
+        @conn.exec("SELECT ? FROM dual", 1)
+      }.to raise_error(ArgumentError, /JDBC exec does not support bindvars/)
+    end
   end
 
   describe "create connection with schema option" do
