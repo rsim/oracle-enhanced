@@ -68,7 +68,7 @@ jobs:
           echo "/opt/oracle/instantclient_23_26" >> $GITHUB_PATH
       - name: Install JDBC Driver
         run: |
-          wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar
+          wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/23261/ojdbc17.jar -O ./lib/ojdbc17.jar
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
