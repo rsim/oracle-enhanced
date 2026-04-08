@@ -70,11 +70,9 @@ module ActiveRecord
             /[a-z]/.match?(column_name) ? column_name : column_name.downcase
           end
 
-          # _select_one and _select_value methods are expected to be called
-          # only from `DatabaseDescription#describe`.
-          # Other methods should call `ActiveRecord::ConnectionAdapters::DatabaseStatements#select_one`
-          # and `ActiveRecord::ConnectionAdapters::DatabaseStatements#select_value`.
-          # To avoid being called from elsewhere a leading underscore is added to each method.
+          # _select_one is expected to be called only from `DatabaseDescription#describe`.
+          # Other methods should call `ActiveRecord::ConnectionAdapters::DatabaseStatements#select_one`.
+          # To avoid being called from elsewhere a leading underscore is added.
 
           # Returns a record hash with the column names as keys and column values
           # as values.
@@ -90,13 +88,6 @@ module ActiveRecord
             columns.each_with_index.to_h { |x, i| [x, row[i]] } if row
           ensure
             cursor.close
-          end
-
-          # Returns a single value from a record
-          def _select_value(arel, name = nil, binds = [])
-            if result = _select_one(arel, name, binds)
-              result.values.first
-            end
           end
       end
     end
