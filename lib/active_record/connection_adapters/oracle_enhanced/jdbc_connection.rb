@@ -305,7 +305,16 @@ module ActiveRecord
         end
 
         def prepare(sql)
-          Cursor.new(self, @raw_connection.prepareStatement(sql))
+          # Use a plain Statement for DDL and PL/SQL blocks: PreparedStatement
+          # interprets colons as bind-parameter markers which breaks trigger
+          # definitions (:NEW/:OLD) and PL/SQL with named parameters.
+          if /\A\s*(CREATE|DROP|BEGIN|DECLARE)/i.match?(sql)
+            s = @raw_connection.createStatement()
+            s.setEscapeProcessing(false)
+            Cursor.new(self, s, sql)
+          else
+            Cursor.new(self, @raw_connection.prepareStatement(sql))
+          end
         end
 
         def database_version
@@ -313,9 +322,10 @@ module ActiveRecord
         end
 
         class Cursor
-          def initialize(connection, raw_statement)
+          def initialize(connection, raw_statement, exec_sql = nil)
             @raw_connection = connection
             @raw_statement = raw_statement
+            @exec_sql = exec_sql  # non-nil for DDL/PL/SQL using createStatement
           end
 
           def bind_params(*bind_vars)
@@ -382,7 +392,13 @@ module ActiveRecord
           end
 
           def exec
-            @raw_result_set = @raw_statement.executeQuery
+            if @exec_sql
+              # DDL / PL/SQL block executed via createStatement — never returns rows
+              @raw_statement.execute(@exec_sql)
+            elsif @raw_statement.execute
+              # execute() returns true when the result is a ResultSet (SELECT)
+              @raw_result_set = @raw_statement.getResultSet
+            end
             true
           end
 
@@ -391,14 +407,16 @@ module ActiveRecord
           end
 
           def metadata
-            @metadata ||= @raw_result_set.getMetaData
+            @metadata ||= @raw_result_set&.getMetaData
           end
 
           def column_types
+            return [] unless @raw_result_set
             @column_types ||= (1..metadata.getColumnCount).map { |i| metadata.getColumnTypeName(i).to_sym }
           end
 
           def column_names
+            return [] unless @raw_result_set
             @column_names ||= (1..metadata.getColumnCount).map { |i| metadata.getColumnName(i) }
           end
           alias :get_col_names :column_names
