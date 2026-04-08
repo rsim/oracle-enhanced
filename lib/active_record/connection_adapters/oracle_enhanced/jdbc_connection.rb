@@ -60,6 +60,8 @@ module ActiveRecord
         alias :auto_retry? :auto_retry
         @auto_retry = false
 
+        attr_reader :session_time_zone
+
         def initialize(config)
           @active = true
           @config = config
@@ -154,8 +156,10 @@ module ActiveRecord
             # Set session time zone to current time zone
             if ActiveRecord.default_timezone == :local
               @raw_connection.setSessionTimeZone(time_zone)
+              @session_time_zone = time_zone
             elsif ActiveRecord.default_timezone == :utc
               @raw_connection.setSessionTimeZone("UTC")
+              @session_time_zone = "UTC"
             end
 
             if config[:jdbc_statement_cache_size]
@@ -347,8 +351,14 @@ module ActiveRecord
             when Java::JavaSql::Timestamp
               @raw_statement.setTimestamp(position, value)
             when Time
-              new_value = Java::java.sql.Timestamp.new(value.year - 1900, value.month - 1, value.day, value.hour, value.min, value.sec, value.usec * 1000)
-              @raw_statement.setTimestamp(position, new_value)
+              new_value = java.sql.Timestamp.new(value.to_i * 1000)
+              new_value.setNanos(value.nsec)
+              # Oracle JDBC getTimestamp uses the session timezone, but setTimestamp
+              # (without Calendar) uses the JVM default timezone. Pass a Calendar
+              # matching the session timezone so both sides use the same reference.
+              tz_id = @raw_connection.session_time_zone || java.util.TimeZone.default.getID
+              cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone(tz_id))
+              @raw_statement.setTimestamp(position, new_value, cal)
             when NilClass
               # TODO: currently nil is always bound as NULL with VARCHAR type.
               # When nils will actually be used by ActiveRecord as bound parameters
@@ -521,10 +531,27 @@ module ActiveRecord
             else
               nil
             end
-          when :TIMESTAMP, :TIMESTAMPTZ, :TIMESTAMPLTZ, :"TIMESTAMP WITH TIME ZONE", :"TIMESTAMP WITH LOCAL TIME ZONE"
+          when :TIMESTAMP
+            # Oracle JDBC getTimestamp for plain TIMESTAMP uses the JVM default timezone,
+            # but we store values using the session timezone. Pass a matching Calendar so
+            # the driver interprets the stored wall-clock value in the session timezone.
+            tz_id = @session_time_zone || java.util.TimeZone.default.getID
+            cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone(tz_id))
+            ts = rset.getTimestamp(i, cal)
+            if ts
+              instant = ts.toInstant
+              t = Time.at(instant.getEpochSecond, instant.getNano, :nanosecond)
+              ActiveRecord.default_timezone == :utc ? t.utc : t.localtime
+            end
+          when :TIMESTAMPTZ, :TIMESTAMPLTZ, :"TIMESTAMP WITH TIME ZONE", :"TIMESTAMP WITH LOCAL TIME ZONE"
+            # TIMESTAMPTZ/TIMESTAMPLTZ include timezone info so getTimestamp returns
+            # the correct UTC epoch without needing a Calendar.
             ts = rset.getTimestamp(i)
-            ts && Time.send(ActiveRecord.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
-              ts.nanos / 1000)
+            if ts
+              instant = ts.toInstant
+              t = Time.at(instant.getEpochSecond, instant.getNano, :nanosecond)
+              ActiveRecord.default_timezone == :utc ? t.utc : t.localtime
+            end
           when :CLOB
             get_lob_value ? lob_to_ruby_value(rset.getClob(i)) : rset.getClob(i)
           when :NCLOB
