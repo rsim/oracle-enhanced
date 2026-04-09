@@ -1,25 +1,14 @@
-name: test
+name: jruby_head
 
 on:
-  push:
-  pull_request:
   schedule:
     - cron: "0 0 * * *"
+  workflow_dispatch:
 
 jobs:
   build:
-
+    name: "jruby-head"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        ruby: [
-          '4.0',
-          '3.4',
-          '3.3',
-          '3.2',
-          'jruby-10.0.5.0',
-        ]
     env:
       ORACLE_HOME: /opt/oracle/instantclient_23_26
       LD_LIBRARY_PATH: /opt/oracle/instantclient_23_26
@@ -44,12 +33,13 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
+
     steps:
       - uses: actions/checkout@v6
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby }}
+          ruby-version: jruby-head
           rubygems: latest
       - name: Create symbolic link for libaio library compatibility
         run: |
@@ -88,9 +78,3 @@ jobs:
       - name: Run RSpec
         run: |
           bundle exec rspec
-      - name: Run bug report templates
-        if: "false"
-        run: |
-          cd guides/bug_report_templates
-          ruby active_record_gem.rb
-          ruby active_record_gem_spec.rb
