@@ -66,7 +66,7 @@ jobs:
           ruby-version: '4.0'
           rubygems: latest
       - name: Configure RubyGems credentials
-        uses: rubygems/configure-rubygems-credentials@v1
+        uses: rubygems/configure-rubygems-credentials@main
       - name: Push gems
         run: |
           for gem in *.gem; do
