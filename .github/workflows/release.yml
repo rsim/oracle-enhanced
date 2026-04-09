@@ -1,0 +1,75 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-cruby:
+    name: Build gem (CRuby)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+          rubygems: latest
+      - name: Build gem
+        run: gem build activerecord-oracle_enhanced-adapter.gemspec
+      - name: Upload gem artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gem-cruby
+          path: "*.gem"
+
+  build-jruby:
+    name: Build gem (JRuby)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 'jruby-10.0.5.0'
+          rubygems: latest
+      - name: Build gem
+        run: gem build activerecord-oracle_enhanced-adapter.gemspec
+      - name: Upload gem artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gem-jruby
+          path: "*.gem"
+
+  release:
+    name: Push gems to RubyGems
+    needs: [build-cruby, build-jruby]
+    runs-on: ubuntu-latest
+    environment: rubygems
+    permissions:
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - name: Download CRuby gem
+        uses: actions/download-artifact@v4
+        with:
+          name: gem-cruby
+      - name: Download JRuby gem
+        uses: actions/download-artifact@v4
+        with:
+          name: gem-jruby
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+          rubygems: latest
+      - name: Configure RubyGems credentials
+        uses: rubygems/configure-rubygems-credentials@v1
+      - name: Push gems
+        run: |
+          for gem in *.gem; do
+            echo "Pushing $gem"
+            gem push "$gem"
+          done
