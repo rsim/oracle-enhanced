@@ -266,6 +266,24 @@ module ActiveRecord
         super
       end
 
+      # Opens a database console session via sqlplus.
+      #
+      # Called by Rails' `bin/rails dbconsole` command on the adapter class
+      # returned from adapter registration. Builds an Oracle logon string of
+      # the form `user[/password]@database` and execs `sqlplus`.
+      def self.dbconsole(config, options = {})
+        oracle_config = config.configuration_hash
+        logon = +""
+
+        if oracle_config[:username]
+          logon << oracle_config[:username]
+          logon << "/#{oracle_config[:password]}" if oracle_config[:password] && options[:include_password]
+          logon << "@#{config.database}" if config.database
+        end
+
+        find_cmd_and_exec(ActiveRecord.database_cli[:oracle] || "sqlplus", logon)
+      end
+
       def build_statement_pool
         StatementPool.new(self.class.type_cast_config_to_integer(@config[:statement_limit]))
       end
