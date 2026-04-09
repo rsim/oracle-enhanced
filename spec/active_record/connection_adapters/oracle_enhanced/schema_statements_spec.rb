@@ -69,6 +69,35 @@ describe "OracleEnhancedAdapter schema definition" do
     end
   end
 
+  describe "primary_key inside create_table block with type and keyword options" do
+    before(:all) do
+      @conn = ActiveRecord::Base.connection
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_lookups, if_exists: true
+      end
+    end
+
+    it "accepts a type argument and keyword options without raising ArgumentError" do
+      expect {
+        schema_define do
+          create_table :test_lookups, force: true, id: false do |t|
+            t.primary_key :zlookupid, :string, limit: 1, null: false
+            t.string :name
+          end
+        end
+      }.not_to raise_error
+
+      columns = @conn.columns(:test_lookups)
+      pk = columns.find { |c| c.name == "zlookupid" }
+      expect(pk).not_to be_nil
+      expect(pk.sql_type).to match(/VARCHAR2\(1\)/i)
+      expect(pk.null).to be(false)
+    end
+  end
+
   describe "default sequence name" do
     it "should return sequence name without truncating too much" do
       seq_name_length = ActiveRecord::Base.connection.sequence_name_length
