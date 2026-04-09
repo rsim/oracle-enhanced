@@ -17,7 +17,8 @@ begin
   # Oracle 12c Release 1 client provides ojdbc7.jar
   # Oracle 12c Release 2 client provides ojdbc8.jar
   # Oracle 21c provides ojdbc11.jar for Java 11 and above
-  ojdbc_jars = %w(ojdbc11.jar ojdbc8.jar ojdbc7.jar ojdbc6.jar)
+  # Oracle 23c provides ojdbc17.jar for Java 17 and above
+  ojdbc_jars = %w(ojdbc17.jar ojdbc11.jar ojdbc8.jar ojdbc7.jar ojdbc6.jar)
 
   if !ENV_JAVA["java.class.path"]&.match?(Regexp.new(ojdbc_jars.join("|")))
     # On Unix environment variable should be PATH, on Windows it is sometimes Path
@@ -59,6 +60,8 @@ module ActiveRecord
         attr_accessor :auto_retry
         alias :auto_retry? :auto_retry
         @auto_retry = false
+
+        attr_reader :session_time_zone
 
         def initialize(config)
           @active = true
@@ -154,8 +157,10 @@ module ActiveRecord
             # Set session time zone to current time zone
             if ActiveRecord.default_timezone == :local
               @raw_connection.setSessionTimeZone(time_zone)
+              @session_time_zone = time_zone
             elsif ActiveRecord.default_timezone == :utc
               @raw_connection.setSessionTimeZone("UTC")
+              @session_time_zone = "UTC"
             end
 
             if config[:jdbc_statement_cache_size]
@@ -237,6 +242,10 @@ module ActiveRecord
         end
 
         # Resets connection, by logging off and creating a new connection.
+        def reset
+          reset!
+        end
+
         def reset!
           logoff rescue nil
           begin
@@ -249,12 +258,12 @@ module ActiveRecord
         end
 
         # mark connection as dead if connection lost
-        def with_retry(&block)
-          should_retry = auto_retry? && autocommit?
+        def with_retry(allow_retry: false, &block)
+          should_retry = (allow_retry || auto_retry?) && autocommit?
           begin
             yield if block_given?
           rescue Java::JavaSql::SQLException => e
-            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/.match?(e.message)
+            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:|ORA-03113:|ORA-03114:|ORA-17008:)/.match?(e.message)
             @active = false
             raise unless should_retry
             should_retry = false
@@ -263,8 +272,12 @@ module ActiveRecord
           end
         end
 
-        def exec(sql)
-          with_retry do
+        def exec(sql, *bindvars, allow_retry: false)
+          # The signature mirrors the OCI implementation for polymorphic
+          # callers, but the JDBC path here has no bindvar handling. Fail
+          # loudly rather than silently dropping values on the floor.
+          raise ArgumentError, "JDBC exec does not support bindvars" unless bindvars.empty?
+          with_retry(allow_retry: allow_retry) do
             exec_no_retry(sql)
           end
         end
@@ -293,7 +306,16 @@ module ActiveRecord
         end
 
         def prepare(sql)
-          Cursor.new(self, @raw_connection.prepareStatement(sql))
+          # Use a plain Statement for DDL and PL/SQL blocks: PreparedStatement
+          # interprets colons as bind-parameter markers which breaks trigger
+          # definitions (:NEW/:OLD) and PL/SQL with named parameters.
+          if /\A\s*(CREATE|DROP|BEGIN|DECLARE)/i.match?(sql)
+            s = @raw_connection.createStatement()
+            s.setEscapeProcessing(false)
+            Cursor.new(self, s, sql)
+          else
+            Cursor.new(self, @raw_connection.prepareStatement(sql))
+          end
         end
 
         def database_version
@@ -301,9 +323,10 @@ module ActiveRecord
         end
 
         class Cursor
-          def initialize(connection, raw_statement)
+          def initialize(connection, raw_statement, exec_sql = nil)
             @raw_connection = connection
             @raw_statement = raw_statement
+            @exec_sql = exec_sql  # non-nil for DDL/PL/SQL using createStatement
           end
 
           def bind_params(*bind_vars)
@@ -343,8 +366,14 @@ module ActiveRecord
             when Java::JavaSql::Timestamp
               @raw_statement.setTimestamp(position, value)
             when Time
-              new_value = Java::java.sql.Timestamp.new(value.year - 1900, value.month - 1, value.day, value.hour, value.min, value.sec, value.usec * 1000)
-              @raw_statement.setTimestamp(position, new_value)
+              new_value = java.sql.Timestamp.new(value.to_i * 1000)
+              new_value.setNanos(value.nsec)
+              # Oracle JDBC getTimestamp uses the session timezone, but setTimestamp
+              # (without Calendar) uses the JVM default timezone. Pass a Calendar
+              # matching the session timezone so both sides use the same reference.
+              tz_id = @raw_connection.session_time_zone || java.util.TimeZone.default.getID
+              cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone(tz_id))
+              @raw_statement.setTimestamp(position, new_value, cal)
             when NilClass
               # TODO: currently nil is always bound as NULL with VARCHAR type.
               # When nils will actually be used by ActiveRecord as bound parameters
@@ -364,7 +393,13 @@ module ActiveRecord
           end
 
           def exec
-            @raw_result_set = @raw_statement.executeQuery
+            if @exec_sql
+              # DDL / PL/SQL block executed via createStatement — never returns rows
+              @raw_statement.execute(@exec_sql)
+            elsif @raw_statement.execute
+              # execute() returns true when the result is a ResultSet (SELECT)
+              @raw_result_set = @raw_statement.getResultSet
+            end
             true
           end
 
@@ -373,17 +408,23 @@ module ActiveRecord
           end
 
           def metadata
-            @metadata ||= @raw_result_set.getMetaData
+            @metadata ||= @raw_result_set&.getMetaData
           end
 
           def column_types
+            return [] unless @raw_result_set
             @column_types ||= (1..metadata.getColumnCount).map { |i| metadata.getColumnTypeName(i).to_sym }
           end
 
           def column_names
+            return [] unless @raw_result_set
             @column_names ||= (1..metadata.getColumnCount).map { |i| metadata.getColumnName(i) }
           end
           alias :get_col_names :column_names
+
+          def select_statement?
+            !@raw_result_set.nil?
+          end
 
           def row_count
             @raw_statement.getUpdateCount
@@ -418,6 +459,17 @@ module ActiveRecord
 
           def close
             @raw_statement.close
+          rescue Java::JavaSql::SQLException => e
+            # Tolerate closing a statement whose underlying connection or
+            # statement has already been torn down (typical after with_retry
+            # has reset the connection). Re-raise anything else so genuine
+            # driver/resource bugs surface.
+            #
+            #   ORA-17002 "Io exception"        - network/socket failure
+            #   ORA-17008 "Closed Connection"   - connection already closed
+            #   ORA-17009 "Closed Statement"    - statement already closed
+            raise unless [17_002, 17_008, 17_009].include?(e.getErrorCode)
+            nil
           end
         end
 
@@ -513,10 +565,27 @@ module ActiveRecord
             else
               nil
             end
-          when :TIMESTAMP, :TIMESTAMPTZ, :TIMESTAMPLTZ, :"TIMESTAMP WITH TIME ZONE", :"TIMESTAMP WITH LOCAL TIME ZONE"
+          when :TIMESTAMP
+            # Oracle JDBC getTimestamp for plain TIMESTAMP uses the JVM default timezone,
+            # but we store values using the session timezone. Pass a matching Calendar so
+            # the driver interprets the stored wall-clock value in the session timezone.
+            tz_id = @session_time_zone || java.util.TimeZone.default.getID
+            cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone(tz_id))
+            ts = rset.getTimestamp(i, cal)
+            if ts
+              instant = ts.toInstant
+              t = Time.at(instant.getEpochSecond, instant.getNano, :nanosecond)
+              ActiveRecord.default_timezone == :utc ? t.utc : t.localtime
+            end
+          when :TIMESTAMPTZ, :TIMESTAMPLTZ, :"TIMESTAMP WITH TIME ZONE", :"TIMESTAMP WITH LOCAL TIME ZONE"
+            # TIMESTAMPTZ/TIMESTAMPLTZ include timezone info so getTimestamp returns
+            # the correct UTC epoch without needing a Calendar.
             ts = rset.getTimestamp(i)
-            ts && Time.send(ActiveRecord.default_timezone, ts.year + 1900, ts.month + 1, ts.date, ts.hours, ts.minutes, ts.seconds,
-              ts.nanos / 1000)
+            if ts
+              instant = ts.toInstant
+              t = Time.at(instant.getEpochSecond, instant.getNano, :nanosecond)
+              ActiveRecord.default_timezone == :utc ? t.utc : t.localtime
+            end
           when :CLOB
             get_lob_value ? lob_to_ruby_value(rset.getClob(i)) : rset.getClob(i)
           when :NCLOB

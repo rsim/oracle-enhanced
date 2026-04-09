@@ -13,16 +13,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Rails 8.0 requires Ruby 3.2 or higeher.
-        # CI pending the following matrix until JRuby 9.4 that supports Ruby 2.7 will be released.
-        # https://github.com/jruby/jruby/issues/6464
-        # - jruby,
-        # - jruby-head
         ruby: [
           '4.0',
           '3.4',
           '3.3',
           '3.2',
+          'jruby-10.0.5.0',
+          'jruby-head',
         ]
     env:
       ORACLE_HOME: /opt/oracle/instantclient_21_15
@@ -74,7 +71,7 @@ jobs:
 
       - name: Install JDBC Driver
         run: |
-          wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar
+          wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/23261/ojdbc17.jar -O ./lib/ojdbc17.jar
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
