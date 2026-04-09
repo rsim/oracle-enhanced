@@ -216,6 +216,17 @@ describe "OracleEnhancedAdapter structure dump" do
       expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "SUPER" RAW\(255\)/)
     end
 
+    it "should dump check constraints" do
+      @conn.execute <<~SQL
+        ALTER TABLE test_posts ADD CONSTRAINT test_posts_title_check CHECK (LENGTH(title) > 0)
+      SQL
+      dump = ActiveRecord::Base.connection.structure_dump_check_constraints("test_posts")
+      expect(dump.first).to match(/ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "TEST_POSTS_TITLE_CHECK" CHECK/)
+
+      dump = ActiveRecord::Base.connection.structure_dump
+      expect(dump).to match(/ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "TEST_POSTS_TITLE_CHECK" CHECK/)
+    end
+
     it "should dump table comments" do
       comment_sql = %Q(COMMENT ON TABLE "TEST_POSTS" IS 'Test posts with ''some'' "quotes"')
       @conn.execute comment_sql
