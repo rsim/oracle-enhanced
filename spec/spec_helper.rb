@@ -55,16 +55,9 @@ module LoggerSpecHelper
   def set_logger
     @logger = MockLogger.new
     @old_logger = ActiveRecord::Base.logger
-
-    @notifier = ActiveSupport::Notifications::Fanout.new
-
-    ActiveSupport::LogSubscriber.colorize_logging = false
-
+    @old_colorize_logging = ActiveSupport.colorize_logging
+    ActiveSupport.colorize_logging = false
     ActiveRecord::Base.logger = @logger
-    @old_notifier = ActiveSupport::Notifications.notifier
-    ActiveSupport::Notifications.notifier = @notifier
-
-    ActiveRecord::LogSubscriber.attach_to(:active_record)
   end
 
   class MockLogger
@@ -114,16 +107,8 @@ module LoggerSpecHelper
 
   def clear_logger
     ActiveRecord::Base.logger = @old_logger
+    ActiveSupport.colorize_logging = @old_colorize_logging
     @logger = nil
-
-    ActiveSupport::Notifications.notifier = @old_notifier
-    @notifier = nil
-  end
-
-  # Wait notifications to be published (for Rails 3.0)
-  # should not be currently used with sync queues in tests
-  def wait
-    @notifier.wait if @notifier
   end
 end
 
