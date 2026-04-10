@@ -36,11 +36,12 @@ module ActiveRecord # :nodoc:
             ddl = dbms_metadata_get_ddl("TABLE", table_name)
             structure << ddl if ddl
 
-            # Indexes — use the adapter's indexes() method to get non-constraint indexes,
-            # then fetch DDL for each. GET_DEPENDENT_DDL('INDEX') includes constraint-backing
-            # indexes (PK/UK) which cause ORA-01408 on structure_load.
+            # Indexes — use the adapter's indexes() method which filters PK-backing
+            # indexes, then fetch DDL for each via DBMS_METADATA.
+            # Note: indexes() returns names in lowercase; DBMS_METADATA needs uppercase.
+            # UK-backing indexes may raise ORA-31603 (rescued in dbms_metadata_get_ddl).
             indexes(table_name).each do |idx|
-              idx_ddl = dbms_metadata_get_ddl("INDEX", idx.name)
+              idx_ddl = dbms_metadata_get_ddl("INDEX", idx.name.upcase)
               structure << idx_ddl if idx_ddl
             end
 
