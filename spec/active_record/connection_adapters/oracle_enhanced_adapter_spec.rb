@@ -313,14 +313,13 @@ describe "OracleEnhancedAdapter" do
     it "should cache UPDATE statements with bind variables" do
       expect {
         binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
-        @conn.exec_update("UPDATE test_posts SET id = :id", "SQL", binds)
+        @conn.exec_query("UPDATE test_posts SET id = :id", "SQL", binds)
       }.to change(@statements, :length).by(+1)
     end
 
     it "should not cache UPDATE statements without bind variables" do
       expect {
-        binds = []
-        @conn.exec_update("UPDATE test_posts SET id = 1", "SQL", binds)
+        @conn.exec_query("UPDATE test_posts SET id = 1", "SQL", [])
       }.not_to change(@statements, :length)
     end
   end
