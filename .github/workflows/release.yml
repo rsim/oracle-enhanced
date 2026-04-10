@@ -19,7 +19,7 @@ jobs:
       - name: Build gem
         run: gem build activerecord-oracle_enhanced-adapter.gemspec
       - name: Upload gem artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: gem-cruby
           path: "*.gem"
@@ -37,7 +37,7 @@ jobs:
       - name: Build gem
         run: gem build activerecord-oracle_enhanced-adapter.gemspec
       - name: Upload gem artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: gem-jruby
           path: "*.gem"
