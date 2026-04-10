@@ -24,52 +24,6 @@ module ActiveRecord
           super
         end
 
-        # Low level execution of a SQL statement on the connection returning adapter specific result object.
-        def raw_execute(sql, name = "SQL", binds = [], prepare: false, async: false, allow_retry: false, materialize_transactions: false)
-          sql = preprocess_query(sql)
-
-          type_casted_binds = type_casted_binds(binds)
-          with_raw_connection(allow_retry: allow_retry, materialize_transactions: materialize_transactions) do |conn|
-            log(sql, name, binds, type_casted_binds, async: async) do
-              cursor = nil
-              cached = false
-              with_retry do
-                if binds.nil? || binds.empty?
-                  cursor = conn.prepare(sql)
-                else
-                  unless @statements.key? sql
-                    @statements[sql] = conn.prepare(sql)
-                  end
-
-                  cursor = @statements[sql]
-                  cursor.bind_params(type_casted_binds)
-
-                  cached = true
-                end
-                cursor.exec
-              end
-
-              columns = cursor.get_col_names.map do |col_name|
-                oracle_downcase(col_name)
-              end
-
-              rows = []
-              if cursor.select_statement?
-                fetch_options = { get_lob_value: (name != "Writable Large Object") }
-                while row = cursor.fetch(fetch_options)
-                  rows << row
-                end
-              end
-
-              affected_rows_count = cursor.row_count
-
-              cursor.close unless cached
-
-              { columns: columns, rows: rows, affected_rows_count: affected_rows_count }
-            end
-          end
-        end
-
         def cast_result(result)
           if result.nil?
             ActiveRecord::Result.empty
@@ -117,12 +71,14 @@ module ActiveRecord
           Array(super || id_value)
         end
 
-        # New method in ActiveRecord 3.1
-        def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil, returning: nil)
-          sql, binds = sql_for_insert(sql, pk, binds, returning)
-          type_casted_binds = type_casted_binds(binds)
+        def _exec_insert(intent, pk = nil, sequence_name = nil, returning: nil) # :nodoc:
+          sql, binds = sql_for_insert(intent.raw_sql, pk, intent.binds, returning)
+          intent.raw_sql = sql
+          intent.binds = binds
 
-          log(sql, name, binds, type_casted_binds) do
+          type_casted_binds = intent.type_casted_binds
+
+          log(intent) do
             cached = false
             cursor = nil
             returning_id_col = returning_id_index = nil
@@ -159,36 +115,6 @@ module ActiveRecord
             build_result(columns: returning_id_col || [], rows: rows)
           end
         end
-
-        # New method in ActiveRecord 3.1
-        def exec_update(sql, name = nil, binds = [])
-          type_casted_binds = type_casted_binds(binds)
-
-          log(sql, name, binds, type_casted_binds) do
-            with_retry do
-              cached = false
-              if binds.nil? || binds.empty?
-                cursor = _connection.prepare(sql)
-              else
-                if @statements.key?(sql)
-                  cursor = @statements[sql]
-                else
-                  cursor = @statements[sql] = _connection.prepare(sql)
-                end
-
-                cursor.bind_params(type_casted_binds)
-
-                cached = true
-              end
-
-              res = cursor.exec_update
-              cursor.close unless cached
-              res
-            end
-          end
-        end
-
-        alias :exec_delete :exec_update
 
         def returning_column_values(result)
           result.rows.first
@@ -302,6 +228,50 @@ module ActiveRecord
         end
 
         private
+          def perform_query(raw_connection, intent)
+            sql = intent.processed_sql
+            binds = intent.binds
+            type_casted_binds = intent.type_casted_binds
+
+            cursor = nil
+            cached = false
+            with_retry do
+              if binds.nil? || binds.empty?
+                cursor = raw_connection.prepare(sql)
+              else
+                unless @statements.key? sql
+                  @statements[sql] = raw_connection.prepare(sql)
+                end
+
+                cursor = @statements[sql]
+                cursor.bind_params(type_casted_binds)
+
+                cached = true
+              end
+              cursor.exec
+            end
+
+            columns = cursor.get_col_names.map do |col_name|
+              oracle_downcase(col_name)
+            end
+
+            rows = []
+            if cursor.select_statement?
+              fetch_options = { get_lob_value: (intent.name != "Writable Large Object") }
+              while row = cursor.fetch(fetch_options)
+                rows << row
+              end
+            end
+
+            affected_rows_count = cursor.row_count
+            cursor.close unless cached
+
+            intent.notification_payload[:affected_rows] = affected_rows_count
+            intent.notification_payload[:row_count] = rows.length
+
+            { columns: columns, rows: rows, affected_rows_count: affected_rows_count }
+          end
+
           def with_retry
             _connection.with_retry do
               yield

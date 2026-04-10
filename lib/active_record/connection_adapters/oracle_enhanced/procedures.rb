@@ -185,8 +185,12 @@ module ActiveRecord # :nodoc:
         freeze
       end
 
-      def log_custom_method(*args, &block)
-        self.class.connection.send(:log, *args, &block)
+      def log_custom_method(sql, name, &block)
+        connection = self.class.connection
+        intent = ActiveRecord::ConnectionAdapters::QueryIntent.new(
+          adapter: connection, raw_sql: sql, name: name, binds: []
+        )
+        connection.send(:log, intent, &block)
       end
 
       alias_method :update_record, :_update_record if private_method_defined?(:_update_record)
