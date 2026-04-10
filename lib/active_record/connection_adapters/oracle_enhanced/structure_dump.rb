@@ -36,9 +36,13 @@ module ActiveRecord # :nodoc:
             ddl = dbms_metadata_get_ddl("TABLE", table_name)
             structure << ddl if ddl
 
-            # Indexes (excluding constraint-backing indexes handled by CONSTRAINTS_AS_ALTER)
-            idx_ddl = dbms_metadata_get_dependent_ddl("INDEX", table_name)
-            structure.concat(split_dbms_metadata_ddl(idx_ddl)) if idx_ddl
+            # Indexes — use the adapter's indexes() method to get non-constraint indexes,
+            # then fetch DDL for each. GET_DEPENDENT_DDL('INDEX') includes constraint-backing
+            # indexes (PK/UK) which cause ORA-01408 on structure_load.
+            indexes(table_name).each do |idx|
+              idx_ddl = dbms_metadata_get_ddl("INDEX", idx.name)
+              structure << idx_ddl if idx_ddl
+            end
 
             # Comments (table and column)
             comment_ddl = dbms_metadata_get_dependent_ddl("COMMENT", table_name)
@@ -174,6 +178,7 @@ module ActiveRecord # :nodoc:
               DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'TABLESPACE', FALSE);
               DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SEGMENT_ATTRIBUTES', FALSE);
               DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SQLTERMINATOR', FALSE);
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'EMIT_SCHEMA', FALSE);
               DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'CONSTRAINTS', TRUE);
               DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'REF_CONSTRAINTS', FALSE);
               DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'CONSTRAINTS_AS_ALTER', FALSE);

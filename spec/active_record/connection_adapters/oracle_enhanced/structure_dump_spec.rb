@@ -68,7 +68,11 @@ describe "OracleEnhancedAdapter structure dump" do
         ADD CONSTRAINT fk_test_post_foo FOREIGN KEY (foo_id) REFERENCES foos(id)
       SQL
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_FOO"? FOREIGN KEY \("?FOO_ID"?\) REFERENCES "?FOOS"?\s*\("?ID"?\)/i)
+      # DBMS_METADATA outputs FK as multiline with ENABLE suffix:
+      #   ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "FK_TEST_POST_FOO" FOREIGN KEY ("FOO_ID")
+      #     REFERENCES "FOOS" ("ID") ENABLE
+      expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_FOO"? FOREIGN KEY \("?FOO_ID"?\)/i)
+      expect(dump).to match(/REFERENCES "?FOOS"?\s*\("?ID"?\)/i)
     end
 
     it "should dump foreign keys when reference column name is not 'id'" do
@@ -87,7 +91,9 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
 
       dump = ActiveRecord::Base.connection.structure_dump
-      expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_BAZ"? FOREIGN KEY \("?BAZ_ID"?\) REFERENCES "?FOOS"?\s*\("?BAZ_ID"?\)/i)
+      # DBMS_METADATA outputs FK as multiline with ENABLE suffix
+      expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_BAZ"? FOREIGN KEY \("?BAZ_ID"?\)/i)
+      expect(dump).to match(/REFERENCES "?FOOS"?\s*\("?BAZ_ID"?\)/i)
     end
 
     it "should not error when no foreign keys are present" do
