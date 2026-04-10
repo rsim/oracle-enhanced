@@ -237,6 +237,7 @@ module ActiveRecord
         @enable_dbms_output = false
         @do_not_prefetch_primary_key = {}
         @columns_cache = {}
+        @notice_receiver_sql_warnings = []
       end
 
       ADAPTER_NAME = "OracleEnhanced"
