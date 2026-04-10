@@ -53,11 +53,11 @@ jobs:
       actions: read
     steps:
       - name: Download CRuby gem
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: gem-cruby
       - name: Download JRuby gem
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: gem-jruby
       - name: Set up Ruby
