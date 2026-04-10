@@ -281,7 +281,7 @@ module ActiveRecord
             end
           end
 
-          def handle_warnings(sql)
+          def handle_warnings(raw_result, sql)
             @notice_receiver_sql_warnings.each do |warning|
               next if warning_ignored?(warning)
 
