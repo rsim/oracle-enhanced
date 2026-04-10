@@ -113,6 +113,7 @@ module LoggerSpecHelper
 end
 
 ActiveRecord::LogSubscriber::IGNORE_PAYLOAD_NAMES.replace(["EXPLAIN"])
+ActiveRecord::StructuredEventSubscriber::IGNORE_PAYLOAD_NAMES.replace(["EXPLAIN"]) if defined?(ActiveRecord::StructuredEventSubscriber)
 
 module SchemaSpecHelper
   def schema_define(&block)
