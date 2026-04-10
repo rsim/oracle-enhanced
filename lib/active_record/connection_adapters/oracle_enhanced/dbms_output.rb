@@ -31,21 +31,8 @@ module ActiveRecord
         end
 
       private
-        def log(sql, name = "SQL", binds = [], type_casted_binds = [], statement_name = nil, async: false, &block)
-          instrumenter.instrument(
-            "sql.active_record",
-            sql:               sql,
-            name:              name,
-            binds:             binds,
-            type_casted_binds: type_casted_binds,
-            statement_name:    statement_name,
-            async:             async,
-            connection:        self,
-            &block
-          )
-        rescue => e
-          # FIXME: raise ex.set_query(sql, binds)
-          raise translate_exception_class(e, sql, binds)
+        def log(intent_or_sql, name = "SQL", binds = [], type_casted_binds = [], async: false, allow_retry: false, &block)
+          super
         ensure
           log_dbms_output if dbms_output_enabled?
         end
