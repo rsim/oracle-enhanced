@@ -45,8 +45,8 @@ module ActiveRecord # :nodoc:
             end
 
             # Comments (table and column)
-            comment_ddl = dbms_metadata_get_dependent_ddl("COMMENT", table_name)
-            structure.concat(split_dbms_metadata_ddl(comment_ddl)) if comment_ddl
+            structure.concat(structure_dump_table_comments(table_name))
+            structure.concat(structure_dump_column_comments(table_name))
           end
 
           # Foreign key constraints (after all tables are created)
@@ -164,6 +164,30 @@ module ActiveRecord # :nodoc:
           s.join
         end
 
+        # COMMENT ON is not reliably available via DBMS_METADATA.GET_DEPENDENT_DDL('COMMENT'),
+        # so we query table/column comments directly.
+        def structure_dump_table_comments(table_name)
+          comment = table_comment(table_name)
+          return [] if comment.nil?
+          ["COMMENT ON TABLE #{quote_table_name(table_name)} IS '#{quote_string(comment)}'"]
+        end
+
+        def structure_dump_column_comments(table_name)
+          comments = []
+          columns = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
+            SELECT column_name FROM all_tab_columns
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            AND table_name = :table_name ORDER BY column_id
+          SQL
+          columns.each do |column|
+            comment = column_comment(table_name, column)
+            unless comment.nil?
+              comments << "COMMENT ON COLUMN #{quote_table_name(table_name)}.#{quote_column_name(column)} IS '#{quote_string(comment)}'"
+            end
+          end
+          comments
+        end
+
         def execute_structure_dump(string)
           string.split(STATEMENT_TOKEN).each do |ddl|
             execute(ddl) unless ddl.blank?
@@ -201,6 +225,11 @@ module ActiveRecord # :nodoc:
             "SCHEMA"
           )
           clean_dbms_metadata_ddl(result)
+        rescue ActiveRecord::StatementInvalid => e
+          # ORA-31603: object not found — e.g., constraint-backing index names
+          # returned by indexes() that DBMS_METADATA classifies as CONSTRAINT not INDEX
+          raise unless e.message.include?("ORA-31603")
+          nil
         end
 
         def dbms_metadata_get_dependent_ddl(dependent_type, base_object_name)
