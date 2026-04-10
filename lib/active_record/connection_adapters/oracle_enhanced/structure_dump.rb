@@ -8,16 +8,21 @@ module ActiveRecord # :nodoc:
         STATEMENT_TOKEN = "\n\n/\n\n"
 
         def structure_dump # :nodoc:
-          sequences = select(<<~SQL.squish, "SCHEMA")
-            SELECT
-            sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
-            FROM all_sequences
-            where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
-          SQL
+          configure_dbms_metadata_transforms
+          structure = []
 
-          structure = sequences.map do |result|
-            "CREATE SEQUENCE #{quote_table_name(result["sequence_name"])} MINVALUE #{result["min_value"]} MAXVALUE #{result["max_value"]} INCREMENT BY #{result["increment_by"]} #{result["order_flag"] == 'Y' ? "ORDER" : "NOORDER"} #{result["cycle_flag"] == 'Y' ? "CYCLE" : "NOCYCLE"}"
+          # Sequences
+          sequence_names = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT sequence_name FROM all_sequences
+            WHERE sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
+            ORDER BY 1
+          SQL
+          sequence_names.each do |seq_name|
+            ddl = dbms_metadata_get_ddl("SEQUENCE", seq_name)
+            structure << ddl if ddl
           end
+
+          # Tables (excluding materialized views and their logs)
           tables = select_values(<<~SQL.squish, "SCHEMA")
             SELECT table_name FROM all_tables t
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
@@ -28,215 +33,47 @@ module ActiveRecord # :nodoc:
             ORDER BY 1
           SQL
           tables.each do |table_name|
-            virtual_columns = virtual_columns_for(table_name) if supports_virtual_columns?
-            ddl = +"CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
-            columns = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
-              SELECT column_name, data_type, data_length, char_used, char_length,
-              data_precision, data_scale, data_default, nullable
-              FROM all_tab_columns
-              WHERE table_name = :table_name
-              AND owner = SYS_CONTEXT('userenv', 'current_schema')
-              ORDER BY column_id
-            SQL
-            cols = columns.map do |row|
-              if (v = virtual_columns.find { |col| col["column_name"] == row["column_name"] })
-                structure_dump_virtual_column(row, v["data_default"])
-              else
-                structure_dump_column(row)
-              end
-            end
-            ddl << cols.map { |col| " #{col}" }.join(",\n")
-            ddl << structure_dump_primary_key(table_name)
-            ddl << "\n)"
-            structure << ddl
-            structure << structure_dump_indexes(table_name)
-            structure << structure_dump_unique_keys(table_name)
-            structure << structure_dump_check_constraints(table_name)
-            structure << structure_dump_table_comments(table_name)
-            structure << structure_dump_column_comments(table_name)
+            ddl = dbms_metadata_get_ddl("TABLE", table_name)
+            structure << ddl if ddl
+
+            # Indexes (excluding constraint-backing indexes handled by CONSTRAINTS_AS_ALTER)
+            idx_ddl = dbms_metadata_get_dependent_ddl("INDEX", table_name)
+            structure.concat(split_dbms_metadata_ddl(idx_ddl)) if idx_ddl
+
+            # Comments (table and column)
+            comment_ddl = dbms_metadata_get_dependent_ddl("COMMENT", table_name)
+            structure.concat(split_dbms_metadata_ddl(comment_ddl)) if comment_ddl
+          end
+
+          # Foreign key constraints (after all tables are created)
+          fk_statements = []
+          tables.each do |table_name|
+            fk_ddl = dbms_metadata_get_dependent_ddl("REF_CONSTRAINT", table_name)
+            fk_statements.concat(split_dbms_metadata_ddl(fk_ddl)) if fk_ddl
+          end
+
+          # Views
+          view_names = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT view_name FROM all_views
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            ORDER BY view_name ASC
+          SQL
+          view_names.each do |view_name|
+            ddl = dbms_metadata_get_ddl("VIEW", view_name)
+            structure << ddl if ddl
           end
 
           join_with_statement_token(structure) <<
-            structure_dump_fk_constraints <<
-            structure_dump_views
-        end
-
-        def structure_dump_column(column) # :nodoc:
-          col = +"\"#{column['column_name']}\" #{column['data_type']}"
-          if (column["data_type"] == "NUMBER") && !column["data_precision"].nil?
-            col << "(#{column['data_precision'].to_i}"
-            col << ",#{column['data_scale'].to_i}" if !column["data_scale"].nil?
-            col << ")"
-          elsif column["data_type"].include?("CHAR") || column["data_type"] == "RAW"
-            length = column["char_used"] == "C" ? column["char_length"].to_i : column["data_length"].to_i
-            col << "(#{length})"
-          end
-          col << " DEFAULT #{column['data_default']}" if !column["data_default"].nil?
-          col << " NOT NULL" if column["nullable"] == "N"
-          col
-        end
-
-        def structure_dump_virtual_column(column, data_default) # :nodoc:
-          data_default = data_default.delete('"')
-          col = +"\"#{column['column_name']}\" #{column['data_type']}"
-          if (column["data_type"] == "NUMBER") && !column["data_precision"].nil?
-            col << "(#{column['data_precision'].to_i}"
-            col << ",#{column['data_scale'].to_i}" if !column["data_scale"].nil?
-            col << ")"
-          elsif column["data_type"].include?("CHAR") || column["data_type"] == "RAW"
-            length = column["char_used"] == "C" ? column["char_length"].to_i : column["data_length"].to_i
-            col << "(#{length})"
-          end
-          col << " GENERATED ALWAYS AS (#{data_default}) VIRTUAL"
-        end
-
-        def structure_dump_primary_key(table) # :nodoc:
-          opts = { name: "", cols: [] }
-          pks = select_all(<<~SQL.squish, "SCHEMA")
-            SELECT a.constraint_name, a.column_name, a.position
-              FROM all_cons_columns a
-              JOIN all_constraints c
-                ON a.constraint_name = c.constraint_name
-             WHERE c.table_name = '#{table.upcase}'
-               AND c.constraint_type = 'P'
-               AND a.owner = c.owner
-               AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
-          SQL
-          pks.each do |row|
-            opts[:name] = row["constraint_name"]
-            opts[:cols][row["position"] - 1] = row["column_name"]
-          end
-          opts[:cols].length > 0 ? ",\n CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})" : ""
-        end
-
-        def structure_dump_unique_keys(table) # :nodoc:
-          keys = {}
-          uks = select_all(<<~SQL.squish, "SCHEMA")
-            SELECT a.constraint_name, a.column_name, a.position
-              FROM all_cons_columns a
-              JOIN all_constraints c
-                ON a.constraint_name = c.constraint_name
-             WHERE c.table_name = '#{table.upcase}'
-               AND c.constraint_type = 'U'
-               AND a.owner = c.owner
-               AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
-          SQL
-          uks.each do |uk|
-            keys[uk["constraint_name"]] ||= []
-            keys[uk["constraint_name"]][uk["position"] - 1] = uk["column_name"]
-          end
-          keys.map do |k, v|
-            "ALTER TABLE #{table.upcase} ADD CONSTRAINT #{k} UNIQUE (#{v.join(',')})"
-          end
-        end
-
-        def structure_dump_indexes(table_name) # :nodoc:
-          indexes(table_name).map do |options|
-            column_names = options.columns
-            options = { name: options.name, unique: options.unique }
-            index_name = index_name(table_name, column: column_names)
-            if Hash === options # legacy support, since this param was a string
-              index_type = options[:unique] ? "UNIQUE" : ""
-              index_name = options[:name] || index_name
-            else
-              index_type = options
-            end
-            quoted_column_names = column_names.map { |e| quote_column_name_or_expression(e) }.join(", ")
-            "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
-          end
-        end
-
-        def structure_dump_fk_constraints # :nodoc:
-          foreign_keys = select_all(<<~SQL.squish, "SCHEMA")
-            SELECT table_name FROM all_tables
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
-          SQL
-          fks = foreign_keys.map do |table|
-            if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?
-              foreign_keys.map do |fk|
-                sql = +"ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} "
-                sql << "#{foreign_key_definition(fk.to_table, fk.options)}"
-              end
-            end
-          end.flatten.compact
-          join_with_statement_token(fks)
-        end
-
-        # Only user-named CHECK constraints are preserved. Anonymous
-        # constraints created via `ALTER TABLE ... ADD CHECK (...)` receive
-        # Oracle-generated names (e.g. SYS_C00123) and are skipped to avoid
-        # also emitting the implicit NOT NULL check constraints that Oracle
-        # stores with constraint_type = 'C'.
-        def structure_dump_check_constraints(table_name) # :nodoc:
-          # `search_condition` is a LONG column, so it cannot appear in a
-          # WHERE clause (ORA-00997). The driver reads it as a String on
-          # SELECT. Implicit NOT NULL constraints Oracle stores with
-          # constraint_type = 'C' are excluded by `generated = 'USER NAME'`
-          # since they receive system-generated names.
-          check_constraints = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)])
-            SELECT constraint_name, search_condition
-            FROM all_constraints
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-              AND table_name = :table_name
-              AND constraint_type = 'C'
-              AND generated = 'USER NAME'
-            ORDER BY constraint_name
-          SQL
-          check_constraints.filter_map do |row|
-            condition = row["search_condition"]
-            next if condition.nil?
-            "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(row["constraint_name"])} CHECK (#{condition})"
-          end
-        end
-
-        def structure_dump_table_comments(table_name)
-          comments = []
-          comment = table_comment(table_name)
-
-          unless comment.nil?
-            comments << "COMMENT ON TABLE #{quote_table_name(table_name)} IS '#{quote_string(comment)}'"
-          end
-
-          join_with_statement_token(comments)
-        end
-
-        def structure_dump_column_comments(table_name)
-          comments = []
-          columns = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
-            SELECT column_name FROM all_tab_columns
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-            AND table_name = :table_name ORDER BY column_id
-          SQL
-
-          columns.each do |column|
-            comment = column_comment(table_name, column)
-            unless comment.nil?
-              comments << "COMMENT ON COLUMN #{quote_table_name(table_name)}.#{quote_column_name(column)} IS '#{quote_string(comment)}'"
-            end
-          end
-
-          join_with_statement_token(comments)
-        end
-
-        def foreign_key_definition(to_table, options = {}) # :nodoc:
-          column_sql = quote_column_name(options[:column] || "#{to_table.to_s.singularize}_id")
-          references = options[:references] ? options[:references].first : nil
-          references_sql = quote_column_name(options[:primary_key] || references || "id")
-
-          sql = "FOREIGN KEY (#{column_sql}) REFERENCES #{quote_table_name(to_table)}(#{references_sql})"
-
-          case options[:dependent]
-          when :nullify
-            sql << " ON DELETE SET NULL"
-          when :delete
-            sql << " ON DELETE CASCADE"
-          end
-          sql
+            join_with_statement_token(fk_statements)
+        ensure
+          reset_dbms_metadata_transforms
         end
 
         # Extract all stored procedures, packages, synonyms.
         def structure_dump_db_stored_code # :nodoc:
+          configure_dbms_metadata_transforms
           structure = []
+
           all_source = select_all(<<~SQL.squish, "SCHEMA")
             SELECT DISTINCT name, type
             FROM all_source
@@ -245,52 +82,34 @@ module ActiveRecord # :nodoc:
             AND owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY type
           SQL
           all_source.each do |source|
-            ddl = +"CREATE OR REPLACE   \n"
-            texts = select_all(<<~SQL.squish, "all source at structure dump", [bind_string("source_name", source["name"]), bind_string("source_type", source["type"])])
-              SELECT text
-              FROM all_source
-              WHERE name = :source_name
-              AND type = :source_type
-              AND owner = SYS_CONTEXT('userenv', 'current_schema')
-              ORDER BY line
-            SQL
-            texts.each do |row|
-              ddl << row["text"]
-            end
-            ddl << ";" unless ddl.strip[-1, 1] == ";"
-            structure << ddl
+            # DBMS_METADATA uses 'PACKAGE_BODY' (underscore) not 'PACKAGE BODY' (space)
+            metadata_type = source["type"].tr(" ", "_")
+            ddl = dbms_metadata_get_ddl(metadata_type, source["name"])
+            structure << ddl if ddl
           end
 
           # export synonyms
           structure << structure_dump_synonyms
 
           join_with_statement_token(structure)
-        end
-
-        def structure_dump_views # :nodoc:
-          structure = []
-          views = select_all(<<~SQL.squish, "SCHEMA")
-            SELECT view_name, text FROM all_views
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY view_name ASC
-          SQL
-          views.each do |view|
-            structure << "CREATE OR REPLACE FORCE VIEW #{view['view_name']} AS\n #{view['text']}"
-          end
-          join_with_statement_token(structure)
+        ensure
+          reset_dbms_metadata_transforms
         end
 
         def structure_dump_synonyms # :nodoc:
+          configure_dbms_metadata_transforms
           structure = []
-          synonyms = select_all(<<~SQL.squish, "SCHEMA")
-            SELECT owner, synonym_name, table_name, table_owner
-            FROM all_synonyms
+          synonym_names = select_values(<<~SQL.squish, "SCHEMA")
+            SELECT synonym_name FROM all_synonyms
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
-          synonyms.each do |synonym|
-            structure << "CREATE OR REPLACE #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']}
-            FOR #{synonym['table_owner']}.#{synonym['table_name']}"
+          synonym_names.each do |synonym_name|
+            ddl = dbms_metadata_get_ddl("SYNONYM", synonym_name)
+            structure << ddl if ddl
           end
           join_with_statement_token(structure)
+        ensure
+          reset_dbms_metadata_transforms
         end
 
         def structure_drop # :nodoc:
@@ -348,16 +167,61 @@ module ActiveRecord # :nodoc:
         end
 
       private
-        # Called only if `supports_virtual_columns?` returns true
-        # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
-        def virtual_columns_for(table)
-          select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])
-            SELECT column_name, data_default
-            FROM all_tab_cols
-            WHERE virtual_column = 'YES'
-            AND owner = SYS_CONTEXT('userenv', 'current_schema')
-            AND table_name = :table_name
+        def configure_dbms_metadata_transforms
+          execute(<<~SQL)
+            BEGIN
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'STORAGE', FALSE);
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'TABLESPACE', FALSE);
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SEGMENT_ATTRIBUTES', FALSE);
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SQLTERMINATOR', FALSE);
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'CONSTRAINTS', TRUE);
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'REF_CONSTRAINTS', FALSE);
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'CONSTRAINTS_AS_ALTER', FALSE);
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'PRETTY', TRUE);
+            END;
           SQL
+        end
+
+        def reset_dbms_metadata_transforms
+          execute(<<~SQL)
+            BEGIN
+              DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'DEFAULT');
+            END;
+          SQL
+        end
+
+        def dbms_metadata_get_ddl(object_type, object_name)
+          result = select_value(
+            "SELECT DBMS_METADATA.GET_DDL(#{quote(object_type)}, #{quote(object_name)}) FROM DUAL",
+            "SCHEMA"
+          )
+          clean_dbms_metadata_ddl(result)
+        end
+
+        def dbms_metadata_get_dependent_ddl(dependent_type, base_object_name)
+          result = select_value(
+            "SELECT DBMS_METADATA.GET_DEPENDENT_DDL(#{quote(dependent_type)}, #{quote(base_object_name)}) FROM DUAL",
+            "SCHEMA"
+          )
+          clean_dbms_metadata_ddl(result)
+        rescue ActiveRecord::StatementInvalid => e
+          raise unless e.message.include?("ORA-31608")
+          nil
+        end
+
+        def clean_dbms_metadata_ddl(ddl)
+          return nil if ddl.nil?
+          result = ddl.to_s.strip
+          result.empty? ? nil : result
+        end
+
+        # DBMS_METADATA.GET_DEPENDENT_DDL can return multiple DDL statements
+        # concatenated in a single CLOB. Split them into individual statements.
+        def split_dbms_metadata_ddl(ddl)
+          return [] if ddl.nil?
+          # Dependent DDL statements are typically separated by newlines.
+          # Split on blank-line boundaries and filter empties.
+          ddl.split(/\n\s*\n/).map(&:strip).reject(&:empty?)
         end
 
         def drop_sql_for_feature(type)
