@@ -8,7 +8,7 @@ module ActiveRecord # :nodoc:
         STATEMENT_TOKEN = "\n\n/\n\n"
 
         def structure_dump # :nodoc:
-          sequences = select(<<~SQL.squish, "SCHEMA")
+          sequences = select_all(<<~SQL.squish, "SCHEMA")
             SELECT
             sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
             FROM all_sequences
