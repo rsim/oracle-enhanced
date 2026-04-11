@@ -28,7 +28,6 @@ jobs:
       DATABASE_HOST: localhost
       DATABASE_PORT: 1521
       DATABASE_VERSION: 11.2.0.2
-      DATABASE_SERVER_AND_CLIENT_VERSION_DO_NOT_MATCH: true
 
     services:
       oracle:
@@ -67,6 +66,19 @@ jobs:
       - name: Install JDBC Driver
         run: |
           wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/23261/ojdbc11.jar -O ./lib/ojdbc11.jar
+      - name: Configure ORA_TZFILE to match Oracle 11g server
+        run: |
+          # Oracle 11g XE uses timezone file v14; Instant Client 21.15 embeds
+          # v35. This mismatch causes ORA-01805 when fetching DATE/TIMESTAMP
+          # values. Copy the v14 files from the 11g container and point the
+          # Instant Client at them via ORA_TZFILE.
+          ORACLE_CONTAINER="${{ job.services.oracle.id }}"
+          sudo mkdir -p "$ORACLE_HOME/oracore/zoneinfo"
+          docker cp "$ORACLE_CONTAINER":/u01/app/oracle/product/11.2.0/xe/oracore/zoneinfo/timezlrg_14.dat /tmp/timezlrg_14.dat
+          docker cp "$ORACLE_CONTAINER":/u01/app/oracle/product/11.2.0/xe/oracore/zoneinfo/timezone_14.dat /tmp/timezone_14.dat
+          sudo mv /tmp/timezlrg_14.dat "$ORACLE_HOME/oracore/zoneinfo/"
+          sudo mv /tmp/timezone_14.dat "$ORACLE_HOME/oracore/zoneinfo/"
+          echo "ORA_TZFILE=timezlrg_14.dat" >> $GITHUB_ENV
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh

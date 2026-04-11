@@ -65,7 +65,7 @@ describe "OracleEnhancedAdapter establish connection" do
   end
 
   it "should not encrypt JDBC network connection" do
-    skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_SERVER_AND_CLIENT_VERSION_DO_NOT_MATCH"] == "true"
+    skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_VERSION"] == "11.2.0.2"
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REJECTED" }))
       conn = ActiveRecord::Base.connection.send(:_connection)
@@ -74,7 +74,7 @@ describe "OracleEnhancedAdapter establish connection" do
   end
 
   it "should encrypt JDBC network connection" do
-    skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_SERVER_AND_CLIENT_VERSION_DO_NOT_MATCH"] == "true"
+    skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_VERSION"] == "11.2.0.2"
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REQUESTED" }))
       conn = ActiveRecord::Base.connection.send(:_connection)
