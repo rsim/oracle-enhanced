@@ -6,8 +6,7 @@ Gem::Specification.new do |s|
   s.name = "activerecord-oracle_enhanced-adapter"
   s.version = version
 
-  s.required_rubygems_version = ">= 1.8.11"
-  s.required_ruby_version     = ">= 3.1.0"
+  s.required_ruby_version = ">= 3.3.1"
   s.license = "MIT"
   s.authors = ["Raimonds Simanovskis"]
   s.description = 'Oracle "enhanced" ActiveRecord adapter contains useful additional methods for working with new and legacy Oracle databases.
@@ -26,7 +25,7 @@ This adapter is superset of original ActiveRecord Oracle adapter.
     "rubygems_mfa_required" => "true"
   }
 
-  s.add_runtime_dependency("activerecord", ["~> 8.1.0"])
+  s.add_runtime_dependency("activerecord", ["~> 8.2.0.alpha"])
   s.add_runtime_dependency("ruby-plsql", [">= 0.6.0"])
   if /java/.match?(RUBY_PLATFORM)
     s.platform = Gem::Platform.new("java")
