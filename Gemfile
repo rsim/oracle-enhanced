@@ -9,7 +9,7 @@ group :development do
   gem "rdoc"
   gem "rake"
   gem "activerecord",   github: "rails/rails", branch: "8-1-stable"
-  gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
+  gem "ruby-plsql", github: "yahonda/ruby-plsql", branch: "bump_oracle_free_23"
 
   platforms :ruby do
     gem "ruby-oci8",    github: "kubo/ruby-oci8"
