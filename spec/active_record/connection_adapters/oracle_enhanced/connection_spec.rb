@@ -475,6 +475,13 @@ describe "OracleEnhancedConnection" do
       @sys_conn.exec "ALTER SYSTEM KILL SESSION '#{sid_serial}' IMMEDIATE"
     end
 
+    def connection_id_from_server(conn)
+      audsid = conn.select("SELECT userenv('sessionid') audsid FROM dual").first["audsid"]
+      @sys_conn.select("SELECT s.sid||','||s.serial# sid_serial
+          FROM   v$session s
+          WHERE  audsid = '#{audsid}'").first["sid_serial"]
+    end
+
     it "should reconnect and execute SQL statement if connection is lost and auto retry is enabled" do
       # @conn.auto_retry = true
       ActiveRecord::Base.connection.auto_retry = true
@@ -485,6 +492,21 @@ describe "OracleEnhancedConnection" do
     it "should reconnect and execute SQL statement if connection is lost and allow_retry is passed" do
       kill_current_session
       expect(@conn.exec("SELECT * FROM dual", allow_retry: true)).not_to be_nil
+    end
+
+    # Regression test ported from rails/rails#46273, which only covers
+    # Mysql2 and PostgreSQL in the Rails repository.
+    it "adapter #execute is retryable when allow_retry: true is passed" do
+      previous_auto_retry = ActiveRecord::Base.connection.auto_retry
+      ActiveRecord::Base.connection.auto_retry = false
+      begin
+        initial_connection_id = connection_id_from_server(@conn)
+        kill_current_session
+        expect { ActiveRecord::Base.connection.execute("SELECT 1 FROM dual", allow_retry: true) }.not_to raise_error
+        expect(connection_id_from_server(@conn)).not_to eq(initial_connection_id)
+      ensure
+        ActiveRecord::Base.connection.auto_retry = previous_auto_retry
+      end
     end
 
     it "should not reconnect and execute SQL statement if connection is lost and auto retry is disabled" do
