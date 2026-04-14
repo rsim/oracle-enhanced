@@ -251,6 +251,10 @@ module ActiveRecord
           end
         end
 
+        def lost_connection?(exception)
+          exception.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(exception.code)
+        end
+
         def typecast_result_value(value, get_lob_value)
           case value
           when Integer
@@ -435,13 +439,6 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
     end
   end
 
-  # ORA-00028: your session has been killed
-  # ORA-01012: not logged on
-  # ORA-03113: end-of-file on communication channel
-  # ORA-03114: not connected to ORACLE
-  # ORA-03135: connection lost contact
-  LOST_CONNECTION_ERROR_CODES = [ 28, 1012, 3113, 3114, 3135 ] # :nodoc:
-
   # Adds auto-recovery functionality.
   def with_retry(allow_retry: false) # :nodoc:
     should_retry = (allow_retry || self.class.auto_retry?) && autocommit?
@@ -449,7 +446,7 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
     begin
       yield
     rescue OCIException => e
-      raise unless e.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(e.code)
+      raise unless e.is_a?(OCIError) && ActiveRecord::ConnectionAdapters::OracleEnhanced::LOST_CONNECTION_ERROR_CODES.include?(e.code)
       @active = false
       raise unless should_retry
       should_retry = false

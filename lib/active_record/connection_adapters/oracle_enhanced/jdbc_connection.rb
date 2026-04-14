@@ -263,7 +263,7 @@ module ActiveRecord
           begin
             yield if block_given?
           rescue Java::JavaSql::SQLException => e
-            raise unless /^(Closed Connection|Io exception:|No more data to read from socket|IO Error:|ORA-03113:|ORA-03114:|ORA-17008:)/.match?(e.message)
+            raise unless lost_connection?(e)
             @active = false
             raise unless should_retry
             should_retry = false
@@ -535,6 +535,17 @@ module ActiveRecord
           else
             nil
           end
+        end
+
+        # JDBC SQLException messages that signal a dropped connection
+        # without a meaningful Oracle error code attached. ORA-17008
+        # (Closed Connection) surfaces as the "Closed Connection" message.
+        LOST_CONNECTION_MESSAGE = /\A(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
+
+        def lost_connection?(exception)
+          return false unless exception.is_a?(Java::JavaSql::SQLException)
+          LOST_CONNECTION_ERROR_CODES.include?(exception.getErrorCode) ||
+            LOST_CONNECTION_MESSAGE.match?(exception.message)
         end
 
         def get_ruby_value_from_result_set(rset, i, type_name, get_lob_value = true)

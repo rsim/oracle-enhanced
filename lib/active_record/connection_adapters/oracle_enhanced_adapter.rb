@@ -799,6 +799,8 @@ module ActiveRecord
       end
 
       def translate_exception(exception, message:, sql:, binds:) # :nodoc:
+        return ActiveRecord::ConnectionFailed.new(message, sql: sql, binds: binds, connection_pool: @pool) if _connection.lost_connection?(exception)
+
         case _connection.error_code(exception)
         when 1
           RecordNotUnique.new(message, sql: sql, binds: binds)
