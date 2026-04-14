@@ -1,4 +1,4 @@
-[![Build Status](https://app.travis-ci.com/rsim/oracle-enhanced.svg?branch=master)](https://app.travis-ci.com/rsim/oracle-enhanced)
+[![test](https://github.com/rsim/oracle-enhanced/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/rsim/oracle-enhanced/actions/workflows/test.yml)
 
 # When and Which tests need to be executed
 
