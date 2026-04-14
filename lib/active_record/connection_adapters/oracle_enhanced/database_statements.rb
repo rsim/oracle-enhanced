@@ -102,6 +102,7 @@ module ActiveRecord
 
         def begin_db_transaction # :nodoc:
           _connection.autocommit = false
+          @transaction_isolation = nil
         end
 
         def transaction_isolation_levels
@@ -117,18 +118,30 @@ module ActiveRecord
         def begin_isolated_db_transaction(isolation)
           begin_db_transaction
           execute "SET TRANSACTION ISOLATION LEVEL  #{transaction_isolation_levels.fetch(isolation)}"
+          @transaction_isolation = isolation
         end
 
         def commit_db_transaction # :nodoc:
           _connection.commit
         ensure
           _connection.autocommit = true
+          @transaction_isolation = nil
         end
 
         def exec_rollback_db_transaction # :nodoc:
           _connection.rollback
         ensure
           _connection.autocommit = true
+          @transaction_isolation = nil
+        end
+
+        # Leaves autocommit off (logical txn still alive); re-issues SET TRANSACTION
+        # ISOLATION LEVEL since Oracle drops it on ROLLBACK (Postgres uses ROLLBACK AND CHAIN).
+        def exec_restart_db_transaction # :nodoc:
+          _connection.rollback
+          if @transaction_isolation
+            execute "SET TRANSACTION ISOLATION LEVEL  #{transaction_isolation_levels.fetch(@transaction_isolation)}"
+          end
         end
 
         def create_savepoint(name = current_savepoint_name) # :nodoc:

@@ -694,6 +694,14 @@ describe "OracleEnhancedAdapter" do
       Thread.report_on_exception, @original_report_on_exception = false, Thread.report_on_exception
     end
 
+    before(:each) do
+      set_logger
+    end
+
+    after(:each) do
+      clear_logger
+    end
+
     it "supports with_lock without raising ArgumentError (#2237)" do
       post = TestPost.create!(title: "lock me")
       expect {
@@ -727,6 +735,37 @@ describe "OracleEnhancedAdapter" do
           thread.join
         end
       }.to raise_error(ActiveRecord::Deadlocked)
+    end
+
+    it "advertises supports_restart_db_transaction?" do
+      expect(ActiveRecord::Base.connection.supports_restart_db_transaction?).to be true
+    end
+
+    it "restarts the parent transaction on nested rollback without issuing a SAVEPOINT" do
+      TestPost.transaction do
+        TestPost.transaction(requires_new: true) do
+          TestPost.create!(title: "inner")
+          raise ActiveRecord::Rollback
+        end
+        TestPost.create!(title: "outer")
+      end
+      expect(TestPost.where(title: "inner").count).to eq 0
+      expect(TestPost.where(title: "outer").count).to eq 1
+      sql_log = @logger.logged(:debug)
+      expect(sql_log.grep(/INSERT INTO.*TEST_POSTS/i)).not_to be_empty
+      expect(sql_log.grep(/SAVEPOINT/i)).to be_empty
+    end
+
+    it "re-issues SET TRANSACTION ISOLATION LEVEL after exec_restart_db_transaction" do
+      conn = ActiveRecord::Base.connection
+      conn.begin_isolated_db_transaction(:serializable)
+      begin
+        conn.exec_restart_db_transaction
+        issued = @logger.logged(:debug).grep(/SET TRANSACTION ISOLATION LEVEL\s+SERIALIZABLE/i)
+        expect(issued.size).to eq 2
+      ensure
+        conn.exec_rollback_db_transaction
+      end
     end
 
     after(:all) do

@@ -432,6 +432,10 @@ module ActiveRecord
         true
       end
 
+      def supports_restart_db_transaction? # :nodoc:
+        true
+      end
+
       def supports_foreign_keys?
         true
       end
