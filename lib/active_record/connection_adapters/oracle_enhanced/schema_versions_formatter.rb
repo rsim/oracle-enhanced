@@ -12,9 +12,13 @@ module ActiveRecord
       # support the standard multi-row +VALUES+ syntax the default formatter
       # uses.
       #
-      # Versions are dumped newest-first (rails/rails#44363) so appending a
-      # migration adds a line at the bottom of the INSERT block rather than
-      # inserting at the top, which reduces merge conflicts.
+      # Versions are dumped newest-first (rails/rails#44363), so a newly
+      # added migration appears at the top of the INSERT ALL block. The
+      # merge-conflict rationale behind 44363 is specific to the default
+      # formatter's VALUES list (semicolon/comma shuffle on the last line);
+      # Oracle's INSERT ALL has no such coupling between adjacent lines,
+      # but we keep the same order to stay consistent with structure.sql
+      # from the other Rails adapters.
       class SchemaVersionsFormatter
         def initialize(connection)
           @connection = connection
