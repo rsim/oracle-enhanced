@@ -276,23 +276,11 @@ module ActiveRecord
         end
 
         def insert_versions_sql(versions) # :nodoc:
-          sm_table = quote_table_name(ActiveRecord::Tasks::DatabaseTasks.migration_connection_pool.schema_migration.table_name)
-
-          if supports_multi_insert?
-            versions.inject(+"INSERT ALL\n") { |sql, version|
-              sql << "INTO #{sm_table} (version) VALUES (#{quote(version)})\n"
-            } << "SELECT * FROM DUAL\n"
-          else
-            if versions.is_a?(Array)
-              # called from ActiveRecord::Base.connection#dump_schema_versions
-              versions.map { |version|
-                "INSERT INTO #{sm_table} (version) VALUES (#{quote(version)})"
-              }.join("\n\n/\n\n")
-            else
-              # called from ActiveRecord::Base.connection#assume_migrated_upto_version
-              "INSERT INTO #{sm_table} (version) VALUES (#{quote(versions)})"
-            end
+          formatter_class = ActiveRecord.schema_versions_formatter
+          if formatter_class == ActiveRecord::Migration::DefaultSchemaVersionsFormatter
+            formatter_class = OracleEnhanced::SchemaVersionsFormatter
           end
+          formatter_class.new(self).format(versions)
         end
 
         def add_index(table_name, column_name, **options) # :nodoc:
