@@ -322,6 +322,20 @@ describe "OracleEnhancedAdapter" do
         @conn.exec_query("UPDATE test_posts SET id = 1", "SQL", [])
       }.not_to change(@statements, :length)
     end
+
+    # See rails/rails#44527: on reconnect/reset the server already
+    # discards prepared statements, so the pool should drop the cache
+    # rather than iterating dealloc.
+    it "drops the statement cache without deallocating on reset!" do
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
+      @conn.exec_query("SELECT * FROM test_posts WHERE id = :id", "SQL", binds)
+      expect(@statements.length).to be > 0
+
+      expect(@statements).to receive(:reset).at_least(:once).and_call_original
+      expect(@statements).not_to receive(:clear)
+      @conn.reset!
+      expect(@statements.length).to eq(0)
+    end
   end
 
   describe "database_exists?" do
