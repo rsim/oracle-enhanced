@@ -323,14 +323,10 @@ module ActiveRecord
           username = config[:username] && config[:username].to_s
           password = config[:password] && config[:password].to_s
           database = config[:database] && config[:database].to_s
-          schema = config[:schema] && config[:schema].to_s
           host, port = config[:host], config[:port]
           privilege = config[:privilege] && config[:privilege].to_sym
           async = config[:allow_concurrency]
           prefetch_rows = config[:prefetch_rows] || 100
-          cursor_sharing = config[:cursor_sharing] || "force"
-          # get session time_zone from configuration or from TZ environment variable
-          time_zone = config[:time_zone] || ENV["TZ"]
 
           # using a connection string via DATABASE_URL
           connection_string = if host == "connection-string"
@@ -358,25 +354,6 @@ module ActiveRecord
           conn.autocommit = true
           conn.non_blocking = true if async
           conn.prefetch_rows = prefetch_rows
-          conn.exec "alter session set cursor_sharing = #{cursor_sharing}" rescue nil if cursor_sharing
-          if ActiveRecord.default_timezone == :local
-            conn.exec "alter session set time_zone = '#{time_zone}'" unless time_zone.blank?
-          elsif ActiveRecord.default_timezone == :utc
-            conn.exec "alter session set time_zone = '+00:00'"
-          end
-          conn.exec "alter session set current_schema = #{schema}" unless schema.blank?
-
-          # Initialize NLS parameters
-          OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS.each do |key, default_value|
-            value = config[key] || ENV[key.to_s.upcase] || default_value
-            if value
-              conn.exec "alter session set #{key} = '#{value}'"
-            end
-          end
-
-          OracleEnhancedAdapter::FIXED_NLS_PARAMETERS.each do |key, value|
-            conn.exec "alter session set #{key} = '#{value}'"
-          end
           conn
         end
       end

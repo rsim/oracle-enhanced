@@ -238,6 +238,8 @@ module ActiveRecord
         @do_not_prefetch_primary_key = {}
         @columns_cache = {}
         @notice_receiver_sql_warnings = []
+
+        configure_connection
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -463,16 +465,9 @@ module ActiveRecord
         false
       end
 
-      def reconnect
-        _connection.reset # tentative
-      rescue OracleEnhanced::ConnectionException
-        connect
-      end
-
       # Reconnects to the database.
       def reconnect!(restore_transactions: false) # :nodoc:
         super
-        _connection.reset!
       rescue OracleEnhanced::ConnectionException => e
         @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
       end
@@ -727,6 +722,45 @@ module ActiveRecord
 
       private def _connection
         @unconfigured_connection || @raw_connection
+      end
+
+      private def connect
+        @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
+      end
+
+      private def reconnect
+        _connection.reset
+      rescue OracleEnhanced::ConnectionException
+        connect
+      end
+
+      private def configure_connection
+        super
+
+        cursor_sharing = @config[:cursor_sharing] || "force"
+        execute("alter session set cursor_sharing = #{cursor_sharing}", "SCHEMA") if cursor_sharing
+
+        if ORACLE_ENHANCED_CONNECTION == :oci
+          time_zone = @config[:time_zone] || ENV["TZ"]
+          case ActiveRecord.default_timezone
+          when :local
+            execute("alter session set time_zone = '#{time_zone}'", "SCHEMA") unless time_zone.blank?
+          when :utc
+            execute("alter session set time_zone = '+00:00'", "SCHEMA")
+          end
+        end
+
+        schema = @config[:schema].to_s
+        execute("alter session set current_schema = #{schema}", "SCHEMA") unless schema.blank?
+
+        DEFAULT_NLS_PARAMETERS.each do |key, default_value|
+          value = @config[key] || ENV[key.to_s.upcase] || default_value
+          execute("alter session set #{key} = '#{value}'", "SCHEMA") if value
+        end
+
+        FIXED_NLS_PARAMETERS.each do |key, value|
+          execute("alter session set #{key} = '#{value}'", "SCHEMA")
+        end
       end
 
       class << self
