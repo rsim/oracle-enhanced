@@ -1,5 +1,3 @@
-[![Build Status](https://app.travis-ci.com/rsim/oracle-enhanced.svg?branch=master)](https://app.travis-ci.com/rsim/oracle-enhanced)
-
 # When and Which tests need to be executed
 
 When you are creating a fix and/or some new features for Oracle enhanced adapter,
