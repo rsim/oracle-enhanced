@@ -1,3 +1,5 @@
+[![test](https://github.com/rsim/oracle-enhanced/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/rsim/oracle-enhanced/actions/workflows/test.yml)
+
 # When and Which tests need to be executed
 
 When you are creating a fix and/or some new features for Oracle enhanced adapter,
