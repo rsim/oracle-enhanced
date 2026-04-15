@@ -26,17 +26,21 @@ module ActiveRecord
           def describe(name)
             name = name.to_s
             if name.include?("@")
-              raise ArgumentError "db link is not supported"
+              raise ArgumentError, "db link is not supported"
             end
             if OracleEnhanced::Quoting.valid_table_name?(name)
               _resolve_name(name.upcase)
             else
-              # case-preserving (quoted) identifier: wrap each dotted part
-              # in double quotes so DBMS_UTILITY.NAME_RESOLVE doesn't
-              # uppercase it internally.
-              _resolve_name(name.split(".").map { |p| %("#{p}") }.join("."))
+              # Per-part normalization so that e.g. "sys.test_Mixed" becomes
+              # SYS."test_Mixed" — quoting a schema that's actually upcase
+              # internally would make Oracle search for a lowercase schema
+              # and miss it.
+              parts = name.split(".").map do |p|
+                OracleEnhanced::Quoting.valid_table_name?(p) ? p.upcase : %("#{p}")
+              end
+              _resolve_name(parts.join("."))
             end
-          rescue OracleEnhanced::ConnectionException
+          rescue OracleEnhanced::ConnectionException, ArgumentError
             raise
           rescue => e
             raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist? (#{e.message})}
