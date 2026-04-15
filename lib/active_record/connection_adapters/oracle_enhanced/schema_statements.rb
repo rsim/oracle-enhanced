@@ -278,7 +278,21 @@ module ActiveRecord
         def insert_versions_sql(versions) # :nodoc:
           sm_table = quote_table_name(ActiveRecord::Tasks::DatabaseTasks.migration_connection_pool.schema_migration.table_name)
 
-          if supports_multi_insert?
+          # Oracle 10.2 and 11.1 cap the INTO clauses of a multitable
+          # INSERT at 999 target columns per the 10.2 and 11.1 SQL
+          # References; above that the server raises
+          # "ORA-24335: cannot support more than 1000 columns". Each row
+          # contributes one target column here, so a single INSERT ALL
+          # can hold at most 999 rows. The restriction was lifted in
+          # 11.2. rsim/oracle-enhanced#1084 empirically reproduced
+          # ORA-24335 on 10.2.0.5; 11.1 was not retested, but the docs
+          # for 10.2 and 11.1 are identically worded, so keep the
+          # per-statement fallback on 11.1 and earlier as a safety net
+          # so that `rails db:schema:load` still works when
+          # schema_migrations exceeds ~999 rows.
+          #   https://docs.oracle.com/cd/B19306_01/server.102/b14200/statements_9014.htm#i2080134
+          #   https://docs.oracle.com/cd/B28359_01/server.111/b28286/statements_9014.htm#i2080134
+          if database_version.to_s >= [11, 2].to_s
             versions.inject(+"INSERT ALL\n") { |sql, version|
               sql << "INTO #{sm_table} (version) VALUES (#{quote(version)})\n"
             } << "SELECT * FROM DUAL\n"

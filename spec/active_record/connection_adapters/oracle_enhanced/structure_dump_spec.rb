@@ -353,7 +353,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
     context "multi insert is supported" do
       it "should dump schema migrations using multi inserts" do
-        skip "Not supported in this database version" unless ActiveRecord::Base.connection.supports_multi_insert?
+        skip "Not supported in this database version" unless ActiveRecord::Base.connection.database_version.to_s >= [11, 2].to_s
 
         expect(dump).to eq <<~SQL
           INSERT ALL
@@ -380,7 +380,7 @@ describe "OracleEnhancedAdapter structure dump" do
       }
 
       it "should dump schema migrations one version per insert" do
-        skip "Not supported in this database version" if ActiveRecord::Base.connection.supports_multi_insert?
+        skip "Not supported in this database version" if ActiveRecord::Base.connection.database_version.to_s >= [11, 2].to_s
 
         expect(dump).to eq insert_statement_per_migration
       end

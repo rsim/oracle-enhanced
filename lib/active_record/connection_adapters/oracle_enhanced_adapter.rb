@@ -330,10 +330,6 @@ module ActiveRecord
         true
       end
 
-      def supports_multi_insert?
-        database_version.to_s >= [11, 2].to_s
-      end
-
       def supports_virtual_columns?
         database_version.first >= 11
       end

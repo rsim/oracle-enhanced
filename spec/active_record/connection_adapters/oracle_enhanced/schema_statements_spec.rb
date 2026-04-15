@@ -1289,7 +1289,7 @@ end
 
     context "multi insert is supported" do
       it "should loads the migration schema table from insert versions sql" do
-        skip "Not supported in this database version" unless ActiveRecord::Base.connection.supports_multi_insert?
+        skip "Not supported in this database version" unless ActiveRecord::Base.connection.database_version.to_s >= [11, 2].to_s
 
         expect {
           @conn.execute @conn.insert_versions_sql(versions)
@@ -1301,7 +1301,7 @@ end
 
     context "multi insert is NOT supported" do
       it "should loads the migration schema table from insert versions sql" do
-        skip "Not supported in this database version" if ActiveRecord::Base.connection.supports_multi_insert?
+        skip "Not supported in this database version" if ActiveRecord::Base.connection.database_version.to_s >= [11, 2].to_s
 
         expect {
           versions.each { |version| @conn.execute @conn.insert_versions_sql(version) }
