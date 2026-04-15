@@ -1,0 +1,25 @@
+name: devcontainer
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"  # 1st of every month at 6:00 AM UTC
+  workflow_dispatch:
+
+env:
+  RUBYOPT: "-w"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Boot dev container and run tests
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            uname -a
+            lsb_release -a
+            ruby --version
+            bundle exec rspec
+            bundle exec rubocop
