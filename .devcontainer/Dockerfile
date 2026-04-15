@@ -1,7 +1,8 @@
 FROM mcr.microsoft.com/devcontainers/ruby:1-3.4-bookworm
 
 # Install libaio1 (required for Oracle Instant Client)
-RUN apt-get update && apt-get install -y libaio1 \
+RUN rm -f /etc/apt/sources.list.d/yarn.list \
+    && apt-get update && apt-get install -y libaio1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create directory structure for Oracle
