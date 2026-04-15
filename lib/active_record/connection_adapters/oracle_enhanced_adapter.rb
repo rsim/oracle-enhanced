@@ -233,7 +233,7 @@ module ActiveRecord
       def initialize(config_or_deprecated_connection, deprecated_logger = nil, deprecated_connection_options = nil, deprecated_config = nil) # :nodoc:
         super(config_or_deprecated_connection, deprecated_logger, deprecated_connection_options, deprecated_config)
 
-        @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
+        connect
         @enable_dbms_output = false
         @do_not_prefetch_primary_key = {}
         @columns_cache = {}
