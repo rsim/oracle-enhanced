@@ -3,6 +3,11 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspaces/oracle-enhanced",
+  "features": {
+    "ghcr.io/rails/devcontainer/features/ruby:2": {
+      "version": "4.0.2"
+    }
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -10,7 +15,7 @@
       ]
     }
   },
-  "postCreateCommand": "bundle install",
+  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
   "remoteEnv": {
     "DATABASE_NAME": "FREEPDB1",
     "DATABASE_SYS_PASSWORD": "Oracle18",
