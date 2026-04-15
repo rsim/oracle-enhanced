@@ -357,16 +357,16 @@ describe "OracleEnhancedAdapter structure dump" do
 
         expect(dump).to eq <<~SQL
           INSERT ALL
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160101000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160102000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160103000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160104000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160105000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160106000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160107000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160108000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160109000000')
           INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160110000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160109000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160108000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160107000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160106000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160105000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160104000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160103000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160102000000')
+          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160101000000')
           SELECT * FROM DUAL
         SQL
       end
@@ -374,7 +374,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
     context "multi insert is NOT supported" do
       let(:insert_statement_per_migration) {
-        1.step(10).map { |i|
+        10.step(1, -1).map { |i|
           %Q|INSERT INTO "SCHEMA_MIGRATIONS" (version) VALUES ('201601#{sprintf("%02d", i)}000000')|
         }.join("\n\n/\n\n")
       }
@@ -383,6 +383,67 @@ describe "OracleEnhancedAdapter structure dump" do
         skip "Not supported in this database version" if ActiveRecord::Base.connection.supports_multi_insert?
 
         expect(dump).to eq insert_statement_per_migration
+      end
+    end
+
+    # See rails/rails#53797: ActiveRecord.schema_versions_formatter is a
+    # pluggable hook. The adapter must honor a user-configured formatter
+    # instead of always dumping in its own Oracle-flavored format.
+    context "with a user-configured schema_versions_formatter" do
+      # Stub formatter echoes the versions it was handed in a recognisable
+      # shape so the assertion below can prove both (a) the adapter went
+      # through ActiveRecord.schema_versions_formatter rather than its own
+      # Oracle-flavored INSERT ALL path, and (b) the versions reached the
+      # formatter intact.
+      let(:custom_formatter) do
+        Class.new do
+          def initialize(_connection); end
+          def format(versions) = "-- custom: #{Array(versions).join(',')}"
+        end
+      end
+
+      around do |example|
+        previous = ActiveRecord.schema_versions_formatter
+        ActiveRecord.schema_versions_formatter = custom_formatter
+        begin
+          example.run
+        ensure
+          ActiveRecord.schema_versions_formatter = previous
+        end
+      end
+
+      # The expected string mirrors what custom_formatter#format would
+      # produce for the `versions` fixture: the "-- custom: " prefix comes
+      # from the stub, and the comma-joined versions come from the fixture
+      # (1..10 dates in "20160101000000".."20160110000000"). If Oracle's
+      # own formatter were used instead we'd see an INSERT ALL ... SELECT
+      # * FROM DUAL block and this expectation would fail loudly.
+      it "dumps through the configured formatter" do
+        expect(dump).to eq "-- custom: #{versions.join(',')}"
+      end
+    end
+
+    # The scalar branch in #format is reached via assume_migrated_upto_version
+    # rather than dump_schema_versions, so exercise insert_versions_sql
+    # directly with a single version string.
+    context "with a single version (assume_migrated_upto_version path)" do
+      it "produces a single-row Oracle INSERT" do
+        expect(ActiveRecord::Base.connection.insert_versions_sql("20160101000000"))
+          .to eq(%Q|INSERT INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160101000000')|)
+      end
+
+      it "still routes through a user-configured formatter" do
+        previous = ActiveRecord.schema_versions_formatter
+        ActiveRecord.schema_versions_formatter = Class.new do
+          def initialize(_connection); end
+          def format(versions) = "-- custom: #{Array(versions).join(',')}"
+        end
+        begin
+          expect(ActiveRecord::Base.connection.insert_versions_sql("20160101000000"))
+            .to eq("-- custom: 20160101000000")
+        ensure
+          ActiveRecord.schema_versions_formatter = previous
+        end
       end
     end
 
