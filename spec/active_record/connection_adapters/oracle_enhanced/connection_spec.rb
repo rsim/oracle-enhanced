@@ -599,6 +599,23 @@ describe "OracleEnhancedConnection" do
       expect(@conn.describe("all_tables")).to eq(["SYS", "ALL_TABLES"])
     end
 
+    it "should describe table, view, private synonym and public synonym for the same underlying table" do
+      @conn.exec "CREATE TABLE test_describe_all (id NUMBER)" rescue nil
+      @conn.exec "CREATE VIEW test_describe_all_v AS SELECT * FROM test_describe_all" rescue nil
+      @conn.exec "CREATE SYNONYM test_describe_all_syn FOR test_describe_all" rescue nil
+      @conn.exec "CREATE PUBLIC SYNONYM test_describe_all_pub FOR #{@owner}.test_describe_all" rescue nil
+
+      expect(@conn.describe("test_describe_all")).to eq([@owner, "TEST_DESCRIBE_ALL"])
+      expect(@conn.describe("test_describe_all_v")).to eq([@owner, "TEST_DESCRIBE_ALL_V"])
+      expect(@conn.describe("test_describe_all_syn")).to eq([@owner, "TEST_DESCRIBE_ALL"])
+      expect(@conn.describe("test_describe_all_pub")).to eq([@owner, "TEST_DESCRIBE_ALL"])
+    ensure
+      @conn.exec "DROP PUBLIC SYNONYM test_describe_all_pub" rescue nil
+      @conn.exec "DROP SYNONYM test_describe_all_syn" rescue nil
+      @conn.exec "DROP VIEW test_describe_all_v" rescue nil
+      @conn.exec "DROP TABLE test_describe_all" rescue nil
+    end
+
     if defined?(OCI8)
       context "OCI8 adapter" do
         it "should not fallback to SELECT-based logic when querying non-existent table information" do

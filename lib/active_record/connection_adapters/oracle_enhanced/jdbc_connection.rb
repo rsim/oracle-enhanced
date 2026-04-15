@@ -322,6 +322,23 @@ module ActiveRecord
           @database_version ||= (md = raw_connection.getMetaData) && [md.getDatabaseMajorVersion, md.getDatabaseMinorVersion]
         end
 
+        # POC: call DBMS_UTILITY.NAME_RESOLVE via JDBC CallableStatement with
+        # registered OUT parameters. Returns [schema, object_name].
+        def _resolve_name(name)
+          cs = @raw_connection.prepareCall("BEGIN DBMS_UTILITY.NAME_RESOLVE(?, 0, ?, ?, ?, ?, ?, ?); END;")
+          cs.setString(1, name)
+          cs.registerOutParameter(2, java.sql.Types::VARCHAR) # schema
+          cs.registerOutParameter(3, java.sql.Types::VARCHAR) # part1 (object name)
+          cs.registerOutParameter(4, java.sql.Types::VARCHAR) # part2
+          cs.registerOutParameter(5, java.sql.Types::VARCHAR) # dblink
+          cs.registerOutParameter(6, java.sql.Types::NUMERIC) # part1_type
+          cs.registerOutParameter(7, java.sql.Types::NUMERIC) # object_number
+          cs.execute
+          [cs.getString(2), cs.getString(3)]
+        ensure
+          cs.close rescue nil
+        end
+
         class Cursor
           def initialize(connection, raw_statement, exec_sql = nil)
             @raw_connection = connection
