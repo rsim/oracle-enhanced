@@ -205,3 +205,10 @@ DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] |
 ENV["TZ"] ||= config["timezone"] || "Europe/Riga"
 
 ActiveRecord::Base.logger = ActiveSupport::Logger.new("debug.log", 0, 100 * 1024 * 1024)
+
+RSpec.configure do |config|
+  config.before(:suite) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    ActiveRecord::Base.connection.execute("PURGE RECYCLEBIN")
+  end
+end
