@@ -22,7 +22,6 @@ services:
       retries: 10
     volumes:
       - oracle-data:/opt/oracle/oradata
-      - ../spec/support/create_oracle_enhanced_users.sql:/container-entrypoint-initdb.d/01-create-users.sql
 
 volumes:
   oracle-data:
