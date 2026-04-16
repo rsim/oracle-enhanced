@@ -6,223 +6,16 @@ Oracle enhanced adapter for ActiveRecord
 DESCRIPTION
 -----------
 
-Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. Oracle enhanced adapter can be used from Ruby on Rails versions between 2.3.x and 8.1 and it is working with Oracle database versions 10g and higher
+Oracle enhanced ActiveRecord adapter provides Oracle database access from Ruby on Rails applications. This branch supports Ruby on Rails 8.1 and is tested with Oracle Database 11g Release 2 (11.2) and higher. For earlier Rails versions, see the corresponding release branch or Git tag.
 
 INSTALLATION
 ------------
-### Rails 8.1
 
-Oracle enhanced adapter version 8.1 supports Rails 8.1
-When using Ruby on Rails version 8.1 then in Gemfile include
+Oracle enhanced adapter version 8.1 supports Rails 8.1. In `Gemfile`:
 
 ```ruby
 # Use oracle as the database for Active Record
 gem 'activerecord-oracle_enhanced-adapter', '~> 8.1.0'
-```
-
-### Rails 8.0
-
-Oracle enhanced adapter version 8.0 supports Rails 8.0
-When using Ruby on Rails version 8.0 then in Gemfile include
-
-```ruby
-# Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 8.0.0'
-```
-
-### Rails 7.2
-
-Oracle enhanced adapter version 7.2 supports Rails 7.2
-When using Ruby on Rails version 7.2 then in Gemfile include
-
-```ruby
-# Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 7.2.0'
-```
-
-### Rails 7.1
-
-Oracle enhanced adapter version 7.1 supports Rails 7.1
-When using Ruby on Rails version 7.1 then in Gemfile include
-
-```ruby
-# Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 7.1.0'
-```
-
-### Rails 7.0
-
-Oracle enhanced adapter version 7.0 supports Rails 7.0
-When using Ruby on Rails version 7.0 then in Gemfile include
-
-```ruby
-# Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 7.0.0'
-```
-
-### Rails 6.1
-
-Oracle enhanced adapter version 6.1 supports Rails 6.1.
-When using Ruby on Rails version 6.1 then in Gemfile include
-
-```ruby
-# Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 6.1.0'
-gem 'ruby-oci8' # only for CRuby users
-```
-
-### Rails 6.0
-
-Oracle enhanced adapter version 6.0 supports Rails 6.0.
-When using Ruby on Rails version 6.0 then in Gemfile include
-
-```ruby
-# Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 6.0.0'
-gem 'ruby-oci8' # only for CRuby users
-```
-
-### Rails 5.2
-
-Oracle enhanced adapter version 5.2 supports Rails 5.2.
-When using Ruby on Rails version 5.2 then in Gemfile include
-
-```ruby
-# Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 5.2.0'
-gem 'ruby-oci8' # only for CRuby users
-```
-
-### Rails 5.1
-
-Oracle enhanced adapter version 1.8 just supports Rails 5.1 and does not support Rails 5.0 or lower version of Rails.
-When using Ruby on Rails version 5.1 then in Gemfile include
-
-```ruby
-# Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.8.0'
-gem 'ruby-oci8' # only for CRuby users
-```
-
-### Rails 5.0
-
-Oracle enhanced adapter version 1.7 just supports Rails 5.0 and does not support Rails 4.2 or lower version of Rails.
-When using Ruby on Rails version 5.0 then in Gemfile include
-
-```ruby
-# Use oracle as the database for Active Record
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.7.0'
-gem 'ruby-oci8' # only for CRuby users
-```
-
-### Rails 4.2
-
-Oracle enhanced adapter version 1.6 just supports Rails 4.2 and does not support Rails 4.1 or lower version of Rails.
-When using Ruby on Rails version 4.2 then in Gemfile include
-
-```ruby
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.6.0'
-```
-
-where instead of 1.6.0 you can specify any other desired version. It is recommended to specify version with `~>` which means that use specified version or later patch versions (in this example any later 1.6.x version but not 1.7.x version). Oracle enhanced adapter maintains API backwards compatibility during patch version upgrades and therefore it is safe to always upgrade to latest patch version.
-
-### Rails 4.0 and 4.1
-
-Oracle enhanced adapter version 1.5 supports Rails 4.0 and 4.1 and does not support Rails 3.2 or lower version of Rails.
-
-When using Ruby on Rails version 4.0 and 4.1 then in Gemfile include
-
-```ruby
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.5.0'
-```
-
-where instead of 1.5.0 you can specify any other desired version. It is recommended to specify version with `~>` which means that use specified version or later patch versions (in this example any later 1.5.x version but not 1.6.x version). Oracle enhanced adapter maintains API backwards compatibility during patch version upgrades and therefore it is safe to always upgrade to latest patch version.
-
-If you would like to use latest adapter version from github then specify
-
-```ruby
-gem 'activerecord-oracle_enhanced-adapter', :git => 'git://github.com/rsim/oracle-enhanced.git'
-```
-
-If you are using CRuby >= 1.9.3 then you need to install ruby-oci8 gem as well as Oracle client, e.g. [Oracle Instant Client](http://www.oracle.com/technetwork/database/features/instant-client/index-097480.html). Include in Gemfile also ruby-oci8:
-
-```ruby
-gem 'ruby-oci8', '~> 2.1.0'
-```
-
-If you are using JRuby then you need to download latest [Oracle JDBC driver](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html) - either ojdbc7.jar or ojdbc6.jar for Java 7, ojdbc6.jar for Java 6 or ojdbc5.jar for Java 5. And copy this file to one of these locations:
-
-  * in `./lib` directory of Rails application
-  * in some directory which is in `PATH`
-  * in `JRUBY_HOME/lib` directory
-  * or include path to JDBC driver jar file in Java `CLASSPATH`
-
-After specifying necessary gems in Gemfile run
-
-```bash
-bundle install
-```
-
-to install the adapter (or later run `bundle update` to force updating to latest version).
-
-### Rails 3
-
-When using Ruby on Rails version 3 then in Gemfile include
-
-```ruby
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.4.0'
-```
-
-where instead of 1.4.0 you can specify any other desired version. It is recommended to specify version with `~>` which means that use specified version or later patch versions (in this example any later 1.4.x version but not 1.5.x version). Oracle enhanced adapter maintains API backwards compatibility during patch version upgrades and therefore it is safe to always upgrade to latest patch version.
-
-If you would like to use latest adapter version from github then specify
-
-```ruby
-gem 'activerecord-oracle_enhanced-adapter', :git => 'git://github.com/rsim/oracle-enhanced.git'
-```
-
-If you are using MRI 1.8 or 1.9 Ruby implementation then you need to install ruby-oci8 gem as well as Oracle client, e.g. [Oracle Instant Client](http://www.oracle.com/technetwork/database/features/instant-client/index-097480.html). Include in Gemfile also ruby-oci8:
-
-```ruby
-gem 'ruby-oci8', '~> 2.1.0'
-```
-
-If you are using JRuby then you need to download latest [Oracle JDBC driver](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html) - either ojdbc6.jar for Java 6 or ojdbc5.jar for Java 5. And copy this file to one of these locations:
-
-  * in `./lib` directory of Rails application
-  * in some directory which is in `PATH`
-  * in `JRUBY_HOME/lib` directory
-  * or include path to JDBC driver jar file in Java `CLASSPATH`
-
-After specifying necessary gems in Gemfile run
-
-```bash
-bundle install
-```
-
-to install the adapter (or later run `bundle update` to force updating to latest version).
-
-### Rails 2.3
-
-If you don't use Bundler in Rails 2 application then you need to specify gems in `config/environment.rb`, e.g.
-
-```ruby
-Rails::Initializer.run do |config|
-  # ...
-  config.gem 'activerecord-oracle_enhanced-adapter', :lib => 'active_record/connection_adapters/oracle_enhanced_adapter'
-  config.gem 'ruby-oci8'
-  # ...
-end
-```
-
-But it is recommended to use Bundler for gem version management also for Rails 2.3 applications (search for instructions in Google).
-
-### Without Rails and Bundler
-
-If you want to use ActiveRecord and Oracle enhanced adapter without Rails and Bundler then install it just as a gem:
-
-```bash
-gem install activerecord-oracle_enhanced-adapter
 ```
 
 USAGE
@@ -310,7 +103,7 @@ development:
 
 To use jndi with Tomcat you need to set the accessToUnderlyingConnectionAllowed to true property on the pool. See  the [Tomcat Documentation](http://tomcat.apache.org/tomcat-7.0-doc/jndi-resources-howto.html) for reference.
 
-You can find other available database.yml connection parameters in [oracle_enhanced_adapter.rb](http://github.com/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb). There are many NLS settings as well as some other Oracle session settings.
+You can find other available database.yml connection parameters in [oracle_enhanced_adapter.rb](https://github.com/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb). There are many NLS settings as well as some other Oracle session settings.
 
 ### Adapter settings
 
@@ -338,7 +131,7 @@ end
 
 In case of Rails 2 application you do not need to use `ActiveSupport.on_load(:active_record) do ... end` around settings code block.
 
-See other adapter settings in [oracle_enhanced_adapter.rb](http://github.com/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb).
+See other adapter settings in [oracle_enhanced_adapter.rb](https://github.com/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb).
 
 ### Legacy schema support
 
@@ -375,69 +168,7 @@ end
 You can also access remote tables over database link using
 
 ```ruby
-self.table_name "hr_employees@db_link"
-```
-
-Examples for Rails 4.x
-
-```ruby
-class Employee < ActiveRecord::Base
-  # specify schema and table name
-  self.table_name = "hr.hr_employees"
-
-  # specify primary key name
-  self.primary_key = "employee_id"
-
-  # specify sequence name
-  self.sequence_name = "hr.hr_employee_s"
-
-  # If you're using Rails 4.2 or earlier you can do this
-
-  # set which DATE columns should be converted to Ruby Date
-  set_date_columns :hired_on, :birth_date_on
-
-  # set which DATE columns should be converted to Ruby Time
-  set_datetime_columns :last_login_time
-
-  # set which VARCHAR2 columns should be converted to true and false
-  set_boolean_columns :manager, :active
-
-  # set which columns should be ignored in ActiveRecord
-  ignore_table_columns :attribute1, :attribute2
-end
-```
-
-Examples for Rails 3.2 and lower version of Rails
-
-```ruby
-class Employee < ActiveRecord::Base
-  # specify schema and table name
-  set_table_name "hr.hr_employees"
-
-  # specify primary key name
-  set_primary_key "employee_id"
-
-  # specify sequence name
-  set_sequence_name "hr.hr_employee_s"
-
-  # set which DATE columns should be converted to Ruby Date
-  set_date_columns :hired_on, :birth_date_on
-
-  # set which DATE columns should be converted to Ruby Time
-  set_datetime_columns :last_login_time
-
-  # set which VARCHAR2 columns should be converted to true and false
-  set_boolean_columns :manager, :active
-
-  # set which columns should be ignored in ActiveRecord
-  ignore_table_columns :attribute1, :attribute2
-end
-```
-
-You can also access remote tables over database link using
-
-```ruby
-set_table_name "hr_employees@db_link"
+self.table_name = "hr_employees@db_link"
 ```
 
 ### Custom create, update and delete methods
@@ -722,73 +453,6 @@ development:
 
 if any database structure changed by migrations, execute `rails db:schema:cache:dump` again and restart Rails server to reflect changes.
 
-UPGRADE
----------------
-### Upgrade Rails 5.1 or older version to Rails 5.2
-
-* `emulate_booleans_from_strings = true` change
-
-`VARCHAR2(1)` sql type is not registered as `Type:Boolean` even if `emulate_booleans_from_strings = true`
-
-Configure each model attribute as follows:
-
-```ruby
-class Post < ActiveRecord::Base
-  attribute :is_default, :boolean
-end
-```
-
-* Remove `OracleEnhancedAdapter.cache_columns` to use Rails `db:schema:cache:dump`
-
-Refer https://github.com/rsim/oracle-enhanced#schema-cache
-
-### Upgrade Rails 5.0 or older version to Rails 5.1
-
-If your application gets `ORA-01000: maximum open cursors exceeded`
-after upgrading to Rails 5.1,
-check these two values and configure `open_cursors` parameter value
-at Oracle database instance is larger than `:statement_limit` value at database.yml.
-
-* `open_cursors` value at Oracle database instance
-
-```sql
-SQL> select name,value from v$parameter where name = 'open_cursors';
-
-NAME
---------------------------------------------------------------------------------
-VALUE
---------------------------------------------------------------------------------
-open_cursors
-1200
-
-```
-
-* `:statement_limit` value at database.yml
-
-Since Oracle enhanced adapter 1.8.0 this default value changed from 250 to 1000.
-
-### Upgrade Rails 4.2 or older version to Rails 5
-
-If your Oracle table columns have been created for Rails `:datetime` attributes in Rails 4.2 or earlier,
-they need to migrate to `:datetime` in Rails 5 using one of two following ways:
-
-* Rails migration code example:
-```ruby
-change_column :posts, :created_at, :datetime
-change_column :posts, :updated_at, :datetime
-```
-
-or
-
-* SQL statement example
-```sql
-ALTER TABLE "POSTS" MODIFY "CREATED_AT" TIMESTAMP
-ALTER TABLE "POSTS" MODIFY "UPDATED_AT" TIMESTAMP
-```
-
-In Rails 5 without running this migration or sql statement, 
-these attributes will be handled as Rails `:date` type.
-
 TROUBLESHOOTING
 ---------------
 
@@ -818,22 +482,14 @@ ActiveRecord::Base.establish_connection(:adapter => "oracle_enhanced", :database
 
 and see if it is successful (use your correct database, username and password)
 
-### What to do if Oracle enhanced adapter is not working with Phusion Passenger?
+### Required environment variables for Oracle Instant Client
 
-Oracle Instant Client and ruby-oci8 requires that several environment variables are set:
+Oracle Instant Client and ruby-oci8 require that several environment variables be set:
 
-  * `LD_LIBRARY_PATH` (on Linux) or `DYLD_LIBRARY_PATH` (on Mac) should point to Oracle Instant Client directory (where Oracle client shared libraries are located)
-  * `TNS_ADMIN` should point to directory where `tnsnames.ora` file is located
-  * `NLS_LANG` should specify which territory and language NLS settings to use and which character set to use (e.g. `"AMERICAN_AMERICA.UTF8"`)
-
-If this continues to throw "OCI Library Initialization Error (OCIError)", you might also need
-
-  * `ORACLE_HOME` set to full Oracle client installation directory
-
-When Apache with Phusion Passenger (mod_passenger or previously mod_rails) is used for Rails application deployment then by default Ruby is launched without environment variables that you have set in shell profile scripts (e.g. .profile). Therefore it is necessary to set environment variables in one of the following ways:
-
-  * Create wrapper script as described in [Phusion blog](http://blog.phusion.nl/2008/12/16/passing-environment-variables-to-ruby-from-phusion-passenger) or [RayApps::Blog](http://blog.rayapps.com/2008/05/21/using-mod_rails-with-rails-applications-on-oracle)
-  * Set environment variables in the file which is used by Apache before launching Apache worker processes - on Linux it typically is envvars file (look in apachectl or apache2ctl script where it is looking for envvars file) or /System/Library/LaunchDaemons/org.apache.httpd.plist on Mac OS X. See the following [discussion thread](http://groups.google.com/group/oracle-enhanced/browse_thread/thread/c5f64106569fadd0) for more hints.
+  * `LD_LIBRARY_PATH` (on Linux) or `DYLD_LIBRARY_PATH` (on Mac) should point to the Oracle Instant Client directory (where Oracle client shared libraries are located)
+  * `TNS_ADMIN` should point to the directory where `tnsnames.ora` is located
+  * `NLS_LANG` should specify territory, language, and character set (e.g. `"AMERICAN_AMERICA.UTF8"`)
+  * If you still see "OCI Library Initialization Error (OCIError)", also set `ORACLE_HOME` to the full Oracle client installation directory.
 
 ### What to do if my application is stuck?
 
@@ -915,10 +571,8 @@ See [RUNNING_TESTS.md](https://github.com/rsim/oracle-enhanced/blob/master/RUNNI
 LINKS
 -----
 
-* Source code: http://github.com/rsim/oracle-enhanced
-* Bug reports / Feature requests / Pull requests: http://github.com/rsim/oracle-enhanced/issues
-* Discuss at Oracle enhanced adapter group: http://groups.google.com/group/oracle-enhanced
-* Blog posts about Oracle enhanced adapter can be found at http://blog.rayapps.com/category/oracle_enhanced
+* Source code: https://github.com/rsim/oracle-enhanced
+* Issues / Pull requests: https://github.com/rsim/oracle-enhanced/issues
 
 LICENSE
 -------
