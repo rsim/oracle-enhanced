@@ -24,7 +24,13 @@ jobs:
           'jruby-10.0.5.0',
           'jruby-head',
         ]
+        include:
+          - ruby: 'jruby-10.0.5.0'
+            jruby_opts: '--dev'
+          - ruby: 'jruby-head'
+            jruby_opts: '--dev'
     env:
+      JRUBY_OPTS: ${{ matrix.jruby_opts }}
       ORACLE_HOME: /opt/oracle/instantclient_21_15
       LD_LIBRARY_PATH: /opt/oracle/instantclient_21_15
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
