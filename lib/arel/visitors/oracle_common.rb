@@ -9,6 +9,22 @@ module Arel # :nodoc: all
       def bind_block; BIND_BLOCK; end
 
       private
+        # Oracle db link tables use "table@link" syntax, but the "@link" part must only
+        # appear in the FROM clause. Column qualifiers use just the table name (which Oracle
+        # resolves as the implicit alias for the remote table). Override Arel's table visitor
+        # to emit the "@link" suffix when generating FROM-clause table references.
+        def visit_Arel_Table(o, collector)
+          name = o.name.to_s
+          table_part, link = name.split("@", 2)
+          quoted_name = link ? "#{@connection.quote_table_name(table_part)}@#{link}" : @connection.quote_table_name(name)
+
+          if o.table_alias
+            collector << quoted_name + " " + @connection.quote_table_name(o.table_alias)
+          else
+            collector << quoted_name
+          end
+        end
+
         # Oracle can't compare CLOB columns with standard SQL operators for comparison.
         # We need to replace standard equality for text/binary columns to use DBMS_LOB.COMPARE function.
         # Fixes ORA-00932: inconsistent datatypes: expected - got CLOB

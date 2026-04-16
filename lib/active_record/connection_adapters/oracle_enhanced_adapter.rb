@@ -590,6 +590,7 @@ module ActiveRecord
 
       def column_definitions(table_name)
         (owner, desc_table_name) = _connection.describe(table_name)
+        db_link_suffix = table_name.to_s.include?("@") ? "@#{table_name.to_s.split("@", 2).last}" : ""
 
         select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cols.column_name AS name, cols.data_type AS sql_type,
@@ -603,7 +604,7 @@ module ActiveRecord
                                     NULL) AS limit,
                  DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
                  comments.comments as column_comment
-            FROM all_tab_cols cols, all_col_comments comments
+            FROM all_tab_cols#{db_link_suffix} cols, all_col_comments#{db_link_suffix} comments
            WHERE cols.owner      = :owner
              AND cols.table_name = :table_name
              AND cols.hidden_column = 'NO'
@@ -622,10 +623,11 @@ module ActiveRecord
       # *Note*: Only primary key is implemented - sequence will be nil.
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
         (owner, desc_table_name) = _connection.describe(table_name)
+        db_link_suffix = table_name.to_s.include?("@") ? "@#{table_name.to_s.split("@", 2).last}" : ""
 
         seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
           select us.sequence_name
-          from all_sequences us
+          from all_sequences#{db_link_suffix} us
           where us.sequence_owner = :owner
           and us.sequence_name = upper(:sequence_name)
         SQL
@@ -633,7 +635,7 @@ module ActiveRecord
         # changed back from user_constraints to all_constraints for consistency
         pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
-            FROM all_constraints c, all_cons_columns cc
+            FROM all_constraints#{db_link_suffix} c, all_cons_columns#{db_link_suffix} cc
            WHERE c.owner = :owner
              AND c.table_name = :table_name
              AND c.constraint_type = 'P'

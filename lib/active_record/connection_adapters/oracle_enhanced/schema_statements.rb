@@ -31,8 +31,8 @@ module ActiveRecord
         def table_exists?(table_name)
           table_name = table_name.to_s
           if table_name.include?("@")
-            # db link is not table
-            false
+            # db link tables are not local tables
+            return false
           else
             default_owner = current_schema
           end

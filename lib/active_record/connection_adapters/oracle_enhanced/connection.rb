@@ -23,7 +23,18 @@ module ActiveRecord
           def describe(name)
             name = name.to_s
             if name.include?("@")
-              raise ArgumentError "db link is not supported"
+              table_part, db_link = name.split("@", 2)
+              real_name = OracleEnhanced::Quoting.valid_table_name?(table_part) ? table_part.upcase : table_part
+              sql = <<~SQL.squish
+                SELECT owner, table_name FROM all_tables@#{db_link} WHERE table_name = :table_name
+                UNION ALL
+                SELECT owner, view_name FROM all_views@#{db_link} WHERE view_name = :table_name
+              SQL
+              if result = _select_one(sql, "CONNECTION", [real_name, real_name])
+                return [result["owner"], result["table_name"]]
+              else
+                raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?}
+              end
             else
               default_owner = @owner
             end
