@@ -1,13 +1,15 @@
 FROM mcr.microsoft.com/devcontainers/base:trixie
 
 # Install libaio1t64 and provide a libaio.so.1 symlink for Oracle Instant Client
+# Install rlwrap for readline support in sqlplus
 RUN rm -f /etc/apt/sources.list.d/yarn.list \
     && apt-get update \
-    && apt-get install -y libaio1t64 \
+    && apt-get install -y libaio1t64 rlwrap \
     && rm -rf /var/lib/apt/lists/* \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -qDEB_HOST_MULTIARCH)" \
     && ln -sf /usr/lib/${DEB_HOST_MULTIARCH}/libaio.so.1t64 \
-              /usr/lib/${DEB_HOST_MULTIARCH}/libaio.so.1
+              /usr/lib/${DEB_HOST_MULTIARCH}/libaio.so.1 \
+    && echo "alias sqlplus='rlwrap sqlplus'" >> /etc/bash.bashrc
 
 # Create directory structure for Oracle
 RUN mkdir -p /opt/oracle
