@@ -10,9 +10,10 @@ module Arel # :nodoc: all
 
       private
         # Oracle db link tables use "table@link" syntax, but the "@link" part must only
-        # appear in the FROM clause. Column qualifiers use just the table name (which Oracle
-        # resolves as the implicit alias for the remote table). Override Arel's table visitor
-        # to emit the "@link" suffix when generating FROM-clause table references.
+        # appear on table references, not on column qualifiers like table@link.column.
+        # Column qualifiers use just the table name (which Oracle resolves as the implicit
+        # alias for the remote table). Override Arel's table visitor to emit the "@link"
+        # suffix when generating table references, not column qualifiers.
         def visit_Arel_Table(o, collector)
           name = o.name.to_s
           table_part, link = name.split("@", 2)
