@@ -398,9 +398,15 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   it "should raise error when new index name length is too long" do
-    skip if @oracle12cr2_or_higher
+    too_long =
+      if @conn.supports_longer_identifier?
+        "a" * 129   # Oracle 12.2+ rejects identifiers longer than 128 bytes
+      else
+        "a" * 31    # Oracle 12.1 and earlier (or use_legacy_identifier_length) reject identifiers longer than 30 bytes
+      end
+
     expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "a" * 31)
+      @conn.rename_index("test_employees", "i_test_employees_first_name", too_long)
     end.to raise_error(ArgumentError)
   end
 
@@ -411,9 +417,9 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   it "should rename index name with new one" do
-    skip if @oracle12cr2_or_higher
+    original_name = @conn.index_name("test_employees", column: "first_name")
     expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "new_index_name")
+      @conn.rename_index("test_employees", original_name, "new_index_name")
     end.not_to raise_error
   end
 end
