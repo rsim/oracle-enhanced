@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "active_support/deprecation"
-
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
@@ -12,18 +10,6 @@ module ActiveRecord
         def table_alias_length # :nodoc:
           IDENTIFIER_MAX_LENGTH
         end
-
-        # the maximum length of a table name
-        def table_name_length
-          IDENTIFIER_MAX_LENGTH
-        end
-        deprecate :table_name_length, deprecator: ActiveSupport::Deprecation.new
-
-        # the maximum length of a column name
-        def column_name_length
-          IDENTIFIER_MAX_LENGTH
-        end
-        deprecate :column_name_length, deprecator: ActiveSupport::Deprecation.new
 
         # the maximum length of an index name
         # supported by this database
