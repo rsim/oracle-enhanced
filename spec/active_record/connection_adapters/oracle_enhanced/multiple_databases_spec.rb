@@ -13,6 +13,7 @@ describe "OracleEnhancedAdapter multiple database support" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Base.connection.create_table :multi_db_primary_employees, force: true do |t|
       t.string :name, limit: 50
+      t.integer :multi_db_remote_employee_id
     end
 
     # Set up remote schema table
@@ -30,10 +31,12 @@ describe "OracleEnhancedAdapter multiple database support" do
 
     class ::MultiDbPrimaryEmployee < ActiveRecord::Base
       self.table_name = "multi_db_primary_employees"
+      belongs_to :multi_db_remote_employee
     end
 
     class ::MultiDbRemoteEmployee < MultiDbRemoteBase
       self.table_name = "multi_db_remote_employees"
+      has_many :multi_db_primary_employees, foreign_key: :multi_db_remote_employee_id
     end
 
     # A second model inheriting from the same abstract base to test connection sharing
@@ -41,8 +44,8 @@ describe "OracleEnhancedAdapter multiple database support" do
       self.table_name = "multi_db_remote_employees"
     end
 
-    MultiDbPrimaryEmployee.create!(id: 1, name: "Primary Alice")
-    MultiDbPrimaryEmployee.create!(id: 2, name: "Primary Bob")
+    MultiDbPrimaryEmployee.create!(id: 1, name: "Primary Alice", multi_db_remote_employee_id: 1)
+    MultiDbPrimaryEmployee.create!(id: 2, name: "Primary Bob", multi_db_remote_employee_id: 2)
     MultiDbRemoteEmployee.create!(id: 1, name: "Remote Alice")
     MultiDbRemoteEmployee.create!(id: 2, name: "Remote Bob")
   end
@@ -161,6 +164,24 @@ describe "OracleEnhancedAdapter multiple database support" do
     end
   end
 
+  # Adapted from test "an explain query does not raise if preventing writes"
+  it "an EXPLAIN query does not raise inside while_preventing_writes" do
+    ActiveRecord::Base.while_preventing_writes do
+      expect { MultiDbPrimaryEmployee.where(name: "Primary Alice").explain.inspect }.not_to raise_error
+    end
+  end
+
+  # Adapted from test "an empty transaction does not raise if preventing writes"
+  it "an empty transaction does not raise inside while_preventing_writes" do
+    expect {
+      ActiveRecord::Base.while_preventing_writes do
+        MultiDbPrimaryEmployee.transaction do
+          ActiveRecord::Base.lease_connection.materialize_transactions
+        end
+      end
+    }.not_to raise_error
+  end
+
   # Adapted from test "current_preventing_writes"
   it "current_preventing_writes returns true inside while_preventing_writes" do
     ActiveRecord::Base.while_preventing_writes do
@@ -196,5 +217,59 @@ describe "OracleEnhancedAdapter multiple database support" do
     end
     expect(error).not_to be_nil
     expect(error.connection_pool).to eq(MultiDbRemoteEmployee.lease_connection.pool)
+  end
+
+  # Adapted from test_exception_contains_correct_pool
+  it "StatementInvalid error from each connection references its own pool" do
+    primary_conn = MultiDbPrimaryEmployee.lease_connection
+    remote_conn = MultiDbRemoteEmployee.lease_connection
+    expect(primary_conn).not_to eq(remote_conn)
+
+    primary_error = nil
+    begin
+      primary_conn.execute("SELECT * FROM #{DATABASE_REMOTE_USER}.multi_db_remote_employees")
+    rescue ActiveRecord::StatementInvalid => e
+      primary_error = e
+    end
+    expect(primary_error).not_to be_nil
+    expect(primary_error.connection_pool).to eq(primary_conn.pool)
+
+    remote_error = nil
+    begin
+      remote_conn.execute("SELECT * FROM #{DATABASE_USER}.multi_db_primary_employees")
+    rescue ActiveRecord::StatementInvalid => e
+      remote_error = e
+    end
+    expect(remote_error).not_to be_nil
+    expect(remote_error.connection_pool).to eq(remote_conn.pool)
+  end
+
+  # Adapted from test_associations
+  it "associations work across connections" do
+    r1 = MultiDbRemoteEmployee.find(1)
+    expect(r1.multi_db_primary_employees.count).to eq(1)
+    p1 = MultiDbPrimaryEmployee.find(1)
+    expect(p1.multi_db_remote_employee.id).to eq(r1.id)
+
+    r2 = MultiDbRemoteEmployee.find(2)
+    expect(r2.multi_db_primary_employees.count).to eq(1)
+    p2 = MultiDbPrimaryEmployee.find(2)
+    expect(p2.multi_db_remote_employee.id).to eq(r2.id)
+  end
+
+  # Adapted from test_associations_should_work_when_model_has_no_connection
+  it "associations work when model has no explicit connection (inherits from abstract base)" do
+    expect { MultiDbRemoteEmployee.first.multi_db_primary_employees.first }.not_to raise_error
+  end
+
+  # Adapted from test_course_connection_should_survive_reloads
+  it "connection survives model reload" do
+    expect(MultiDbRemoteEmployee.lease_connection).not_to be_nil
+    Object.send(:remove_const, :MultiDbRemoteEmployee)
+    class ::MultiDbRemoteEmployee < MultiDbRemoteBase
+      self.table_name = "multi_db_remote_employees"
+      has_many :multi_db_primary_employees, foreign_key: :multi_db_remote_employee_id
+    end
+    expect(MultiDbRemoteEmployee.lease_connection).not_to be_nil
   end
 end
