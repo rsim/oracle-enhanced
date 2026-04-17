@@ -354,7 +354,14 @@ module ActiveRecord
           rescue NotImplementedError
           end
 
-          conn = OCI8.new username, password, connection_string, privilege
+          begin
+            conn = OCI8.new username, password, connection_string, privilege
+          rescue OCIError => e
+            if e.code == 1017
+              $stderr.puts "ORA-01017: Authentication failed. username=#{username.inspect} connection_string=#{connection_string.inspect} privilege=#{privilege.inspect}"
+            end
+            raise
+          end
           conn.autocommit = true
           conn.non_blocking = true if async
           conn.prefetch_rows = prefetch_rows

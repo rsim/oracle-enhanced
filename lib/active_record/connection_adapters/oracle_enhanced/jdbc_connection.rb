@@ -146,12 +146,19 @@ module ActiveRecord
             end
 
             begin
-              @raw_connection = java.sql.DriverManager.getConnection(url, properties)
-            rescue
-              # bypass DriverManager to work in cases where ojdbc*.jar
-              # is added to the load path at runtime and not on the
-              # system classpath
-              @raw_connection = ORACLE_DRIVER.connect(url, properties)
+              begin
+                @raw_connection = java.sql.DriverManager.getConnection(url, properties)
+              rescue
+                # bypass DriverManager to work in cases where ojdbc*.jar
+                # is added to the load path at runtime and not on the
+                # system classpath
+                @raw_connection = ORACLE_DRIVER.connect(url, properties)
+              end
+            rescue Java::JavaSql::SQLException => e
+              if e.get_error_code == 1017
+                $stderr.puts "ORA-01017: Authentication failed. username=#{username.inspect} url=#{url.inspect} privilege=#{privilege.inspect}"
+              end
+              raise
             end
 
             # Set session time zone to current time zone
