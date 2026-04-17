@@ -4,22 +4,25 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
       module DatabaseLimits
-        # maximum length of Oracle identifiers
-        IDENTIFIER_MAX_LENGTH = 30
-
-        def table_alias_length # :nodoc:
-          IDENTIFIER_MAX_LENGTH
-        end
-
-        # the maximum length of an index name
-        # supported by this database
-        def index_name_length
-          IDENTIFIER_MAX_LENGTH
+        # Keep the legacy constant available via direct access while steering
+        # callers toward the dynamic, connection-specific max_identifier_length.
+        # A deprecated constant proxy does not fit here because the replacement
+        # is a method, not another constant.
+        def self.const_missing(name)
+          if name == :IDENTIFIER_MAX_LENGTH
+            OracleEnhanced.deprecator.deprecation_warning(
+              "ActiveRecord::ConnectionAdapters::OracleEnhanced::DatabaseLimits::IDENTIFIER_MAX_LENGTH",
+              "use `max_identifier_length` instead"
+            )
+            30
+          else
+            super
+          end
         end
 
         # the maximum length of a sequence name
         def sequence_name_length
-          IDENTIFIER_MAX_LENGTH
+          max_identifier_length
         end
 
         # To avoid ORA-01795: maximum number of expressions in a list is 1000

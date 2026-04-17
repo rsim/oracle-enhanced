@@ -100,12 +100,17 @@ describe "OracleEnhancedAdapter quoting" do
       expect(@adapter.valid_table_name?("abC")).to be_falsey
     end
 
-    it "should not be valid for names > 30 characters" do
-      expect(@adapter.valid_table_name?("a" * 31)).to be_falsey
+    it "should be valid for names up to 128 characters" do
+      expect(@adapter.valid_table_name?("a" * 31)).to be_truthy
+      expect(@adapter.valid_table_name?("a" * 128)).to be_truthy
     end
 
-    it "should not be valid for schema names > 30 characters" do
-      expect(@adapter.valid_table_name?(("a" * 31) + ".validname")).to be_falsey
+    it "should not be valid for names > 128 characters" do
+      expect(@adapter.valid_table_name?("a" * 129)).to be_falsey
+    end
+
+    it "should not be valid for schema names > 128 characters" do
+      expect(@adapter.valid_table_name?(("a" * 129) + ".validname")).to be_falsey
     end
 
     it "should not be valid for names that do not begin with alphabetic characters" do
