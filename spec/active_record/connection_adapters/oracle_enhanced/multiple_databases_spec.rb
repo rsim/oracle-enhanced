@@ -21,6 +21,7 @@ describe "OracleEnhancedAdapter multiple database support" do
 
     ActiveRecord::Base.connection.create_table :multi_db_primary_employees, force: true do |t|
       t.string :name, limit: 50
+      t.integer :multi_db_remote_employee_id
     end
 
     MultiDbRemoteBase.connection.create_table :multi_db_remote_employees, force: true do |t|
@@ -29,10 +30,12 @@ describe "OracleEnhancedAdapter multiple database support" do
 
     class ::MultiDbPrimaryEmployee < ActiveRecord::Base
       self.table_name = "multi_db_primary_employees"
+      belongs_to :multi_db_remote_employee
     end
 
     class ::MultiDbRemoteEmployee < MultiDbRemoteBase
       self.table_name = "multi_db_remote_employees"
+      has_many :multi_db_primary_employees, foreign_key: :multi_db_remote_employee_id
     end
 
     # A second model inheriting from the same abstract base to test connection sharing
@@ -40,8 +43,8 @@ describe "OracleEnhancedAdapter multiple database support" do
       self.table_name = "multi_db_remote_employees"
     end
 
-    MultiDbPrimaryEmployee.create!(id: 1, name: "Primary Alice")
-    MultiDbPrimaryEmployee.create!(id: 2, name: "Primary Bob")
+    MultiDbPrimaryEmployee.create!(id: 1, name: "Primary Alice", multi_db_remote_employee_id: 1)
+    MultiDbPrimaryEmployee.create!(id: 2, name: "Primary Bob", multi_db_remote_employee_id: 2)
     MultiDbRemoteEmployee.create!(id: 1, name: "Remote Alice")
     MultiDbRemoteEmployee.create!(id: 2, name: "Remote Bob")
   end
@@ -55,6 +58,7 @@ describe "OracleEnhancedAdapter multiple database support" do
     %w[MultiDbPrimaryEmployee MultiDbRemoteEmployee MultiDbRemoteEmployee2 MultiDbRemoteBase].each do |name|
       Object.send(:remove_const, name) if Object.const_defined?(name)
     end
+    ActiveRecord::Base.clear_cache!
   end
 
   # Adapted from test_connected
@@ -96,10 +100,13 @@ describe "OracleEnhancedAdapter multiple database support" do
     expect(MultiDbPrimaryEmployee.count).to eq(2)
   end
 
-  # Adapted from test_transactions_across_databases
-  # The raised RuntimeError propagates out of both transaction blocks, so each
-  # connection rolls back its own transaction on its own — demonstrating that
-  # there is no shared coordinator between the two connections' transactions.
+  # Adapted from test_transactions_across_databases.
+  # Note: because the RuntimeError propagates out of both transaction blocks,
+  # both connections roll back here. This matches the Rails original, but on
+  # its own it cannot distinguish "each connection rolled back independently"
+  # from "one rollback cascaded through a shared coordinator". The
+  # "only the inner remote transaction is rolled back" spec below verifies the
+  # independence property more directly.
   it "transactions are independent per connection" do
     p1 = MultiDbPrimaryEmployee.find(1)
     r1 = MultiDbRemoteEmployee.find(1)
@@ -121,6 +128,29 @@ describe "OracleEnhancedAdapter multiple database support" do
     # Each model's transaction rolled back independently
     expect(MultiDbPrimaryEmployee.find(1).name).to eq("Primary Alice")
     expect(MultiDbRemoteEmployee.find(1).name).to eq("Remote Alice")
+  end
+
+  # Directly verifies transaction independence: rolling back the inner remote
+  # transaction (via ActiveRecord::Rollback) must not roll back the outer
+  # primary transaction, since the two connections are separate. If a shared
+  # coordinator were linking them, the primary commit would also be lost and
+  # this spec would fail.
+  it "only the inner remote transaction is rolled back when the primary transaction commits" do
+    p1 = MultiDbPrimaryEmployee.find(1)
+    r1 = MultiDbRemoteEmployee.find(1)
+
+    MultiDbPrimaryEmployee.transaction do
+      p1.update!(name: "Primary Changed")
+      MultiDbRemoteEmployee.transaction do
+        r1.update!(name: "Remote Changed")
+        raise ActiveRecord::Rollback
+      end
+    end
+
+    expect(MultiDbPrimaryEmployee.find(1).name).to eq("Primary Changed")
+    expect(MultiDbRemoteEmployee.find(1).name).to eq("Remote Alice")
+  ensure
+    MultiDbPrimaryEmployee.where(id: 1).update_all(name: "Primary Alice")
   end
 
   # Adapted from base_prevent_writes_test.rb — read/write split via while_preventing_writes
@@ -161,6 +191,24 @@ describe "OracleEnhancedAdapter multiple database support" do
     end
   end
 
+  # Adapted from test "an explain query does not raise if preventing writes"
+  it "an EXPLAIN query does not raise inside while_preventing_writes" do
+    ActiveRecord::Base.while_preventing_writes do
+      expect { MultiDbPrimaryEmployee.where(name: "Primary Alice").explain.inspect }.not_to raise_error
+    end
+  end
+
+  # Adapted from test "an empty transaction does not raise if preventing writes"
+  it "an empty transaction does not raise inside while_preventing_writes" do
+    expect {
+      ActiveRecord::Base.while_preventing_writes do
+        MultiDbPrimaryEmployee.transaction do
+          ActiveRecord::Base.lease_connection.materialize_transactions
+        end
+      end
+    }.not_to raise_error
+  end
+
   # Adapted from test "current_preventing_writes"
   it "current_preventing_writes returns true inside while_preventing_writes" do
     ActiveRecord::Base.while_preventing_writes do
@@ -186,7 +234,10 @@ describe "OracleEnhancedAdapter multiple database support" do
     MultiDbRemoteEmployee.connection_specification_name = original
   end
 
-  # Adapted from test_exception_contains_connection_pool
+  # Adapted from test_exception_contains_connection_pool.
+  # ORA-00904 ("invalid identifier") is the specific error we expect here —
+  # pinning the code ensures the test fails loudly if a different error
+  # (connection failure, pool exhaustion, etc.) masquerades as success.
   it "StatementInvalid error references the correct connection pool" do
     error = nil
     begin
@@ -195,6 +246,70 @@ describe "OracleEnhancedAdapter multiple database support" do
       error = e
     end
     expect(error).not_to be_nil
+    expect(error.message).to match(/ORA-00904/)
     expect(error.connection_pool).to eq(MultiDbRemoteEmployee.lease_connection.pool)
+  end
+
+  # Adapted from test_exception_contains_correct_pool.
+  # ORA-00942 ("table or view does not exist") is the expected error for a
+  # cross-schema SELECT without grants — pinning the code guards against
+  # unrelated failures being accepted by the broader StatementInvalid rescue.
+  it "StatementInvalid error from each connection references its own pool" do
+    primary_conn = MultiDbPrimaryEmployee.lease_connection
+    remote_conn = MultiDbRemoteEmployee.lease_connection
+    expect(primary_conn).not_to eq(remote_conn)
+
+    primary_error = nil
+    begin
+      primary_conn.execute("SELECT * FROM #{DATABASE_REMOTE_USER}.multi_db_remote_employees")
+    rescue ActiveRecord::StatementInvalid => e
+      primary_error = e
+    end
+    expect(primary_error).not_to be_nil
+    expect(primary_error.message).to match(/ORA-00942/)
+    expect(primary_error.connection_pool).to eq(primary_conn.pool)
+
+    remote_error = nil
+    begin
+      remote_conn.execute("SELECT * FROM #{DATABASE_USER}.multi_db_primary_employees")
+    rescue ActiveRecord::StatementInvalid => e
+      remote_error = e
+    end
+    expect(remote_error).not_to be_nil
+    expect(remote_error.message).to match(/ORA-00942/)
+    expect(remote_error.connection_pool).to eq(remote_conn.pool)
+  end
+
+  # Adapted from test_associations
+  it "associations work across connections" do
+    r1 = MultiDbRemoteEmployee.find(1)
+    expect(r1.multi_db_primary_employees.count).to eq(1)
+    p1 = MultiDbPrimaryEmployee.find(1)
+    expect(p1.multi_db_remote_employee.id).to eq(r1.id)
+
+    r2 = MultiDbRemoteEmployee.find(2)
+    expect(r2.multi_db_primary_employees.count).to eq(1)
+    p2 = MultiDbPrimaryEmployee.find(2)
+    expect(p2.multi_db_remote_employee.id).to eq(r2.id)
+  end
+
+  # Adapted from test_associations_should_work_when_model_has_no_connection
+  it "associations work on a model whose connection is inherited from an abstract base" do
+    expect { MultiDbRemoteEmployee.first.multi_db_primary_employees.first }.not_to raise_error
+  end
+
+  # Adapted from test_course_connection_should_survive_reloads
+  it "connection survives model reload" do
+    original = MultiDbRemoteEmployee
+    expect(original.lease_connection).not_to be_nil
+    Object.send(:remove_const, :MultiDbRemoteEmployee)
+    class ::MultiDbRemoteEmployee < MultiDbRemoteBase
+      self.table_name = "multi_db_remote_employees"
+      has_many :multi_db_primary_employees, foreign_key: :multi_db_remote_employee_id
+    end
+    expect(MultiDbRemoteEmployee.lease_connection).not_to be_nil
+  ensure
+    Object.send(:remove_const, :MultiDbRemoteEmployee) if Object.const_defined?(:MultiDbRemoteEmployee)
+    Object.const_set(:MultiDbRemoteEmployee, original) if original
   end
 end
