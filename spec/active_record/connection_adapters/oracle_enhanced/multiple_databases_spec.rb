@@ -123,6 +123,60 @@ describe "OracleEnhancedAdapter multiple database support" do
     expect(MultiDbRemoteEmployee.find(1).name).to eq("Remote Alice")
   end
 
+  # Adapted from base_prevent_writes_test.rb — read/write split via while_preventing_writes
+
+  # Adapted from test "creating a record raises if preventing writes"
+  it "raises ReadOnlyError on INSERT inside while_preventing_writes" do
+    expect {
+      ActiveRecord::Base.while_preventing_writes do
+        MultiDbPrimaryEmployee.create!(name: "Tempbird")
+      end
+    }.to raise_error(ActiveRecord::ReadOnlyError, /Write query attempted while in readonly mode: INSERT/)
+  end
+
+  # Adapted from test "updating a record raises if preventing writes"
+  it "raises ReadOnlyError on UPDATE inside while_preventing_writes" do
+    p1 = MultiDbPrimaryEmployee.find(1)
+    expect {
+      ActiveRecord::Base.while_preventing_writes do
+        p1.update!(name: "Changed")
+      end
+    }.to raise_error(ActiveRecord::ReadOnlyError, /Write query attempted while in readonly mode: UPDATE/)
+  end
+
+  # Adapted from test "deleting a record raises if preventing writes"
+  it "raises ReadOnlyError on DELETE inside while_preventing_writes" do
+    p1 = MultiDbPrimaryEmployee.find(1)
+    expect {
+      ActiveRecord::Base.while_preventing_writes do
+        p1.destroy!
+      end
+    }.to raise_error(ActiveRecord::ReadOnlyError, /Write query attempted while in readonly mode: DELETE/)
+  end
+
+  # Adapted from test "selecting a record does not raise if preventing writes"
+  it "does not raise on SELECT inside while_preventing_writes" do
+    ActiveRecord::Base.while_preventing_writes do
+      expect(MultiDbPrimaryEmployee.where(name: "Primary Alice").first).not_to be_nil
+    end
+  end
+
+  # Adapted from test "current_preventing_writes"
+  it "current_preventing_writes returns true inside while_preventing_writes" do
+    ActiveRecord::Base.while_preventing_writes do
+      expect(ActiveRecord::Base.current_preventing_writes).to be true
+    end
+  end
+
+  # Adapted from test "preventing writes applies to all connections in block"
+  it "while_preventing_writes raises on the remote connection too" do
+    expect {
+      ActiveRecord::Base.while_preventing_writes do
+        MultiDbRemoteEmployee.create!(name: "Tempbird")
+      end
+    }.to raise_error(ActiveRecord::ReadOnlyError, /Write query attempted while in readonly mode: INSERT/)
+  end
+
   # Adapted from test_swapping_the_connection
   it "connection_specification_name can be swapped to point to a different pool" do
     original = MultiDbRemoteEmployee.connection_specification_name
