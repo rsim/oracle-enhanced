@@ -253,8 +253,8 @@ module ActiveRecord
         end
 
         def rename_table(table_name, new_name, **options) # :nodoc:
-          if new_name.to_s.length > DatabaseLimits::IDENTIFIER_MAX_LENGTH
-            raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{DatabaseLimits::IDENTIFIER_MAX_LENGTH} characters"
+          if new_name.to_s.bytesize > max_identifier_length
+            raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{max_identifier_length} bytes"
           end
           schema_cache.clear_data_source_cache!(table_name.to_s)
           schema_cache.clear_data_source_cache!(new_name.to_s)

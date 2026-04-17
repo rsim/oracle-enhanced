@@ -76,20 +76,27 @@ module ActiveRecord
           end
         end
 
-        # Names must be from 1 to 30 bytes long with these exceptions:
+        # Grammar check for nonquoted Oracle identifiers. This regex decides
+        # whether a name looks like a bare (unquoted) Oracle identifier so
+        # `valid_table_name?` / `Connection#describe` can upcase it; it does
+        # not enforce the actual byte limit.
+        #
+        # The real limit is enforced by Oracle itself:
+        # 30 bytes on 12.1 and lower, 128 bytes on 12.2 and higher. The upper
+        # bound in the regex is set to the larger of the two (128) so the
+        # same constant works for both; on pre-12.2 databases a 31..128 byte
+        # name matches this regex but Oracle will reject it at execution
+        # (ORA-00972). Keeping one regex avoids threading a
+        # `supports_longer_identifier?` flag through every call site.
+        #
         # * Names of databases are limited to 8 bytes.
         # * Names of database links can be as long as 128 bytes.
         #
-        # Nonquoted identifiers cannot be Oracle Database reserved words
-        #
-        # Nonquoted identifiers must begin with an alphabetic character from
-        # your database character set
-        #
-        # Nonquoted identifiers can contain only alphanumeric characters from
-        # your database character set and the underscore (_), dollar sign ($),
-        # and pound sign (#).
-        # Oracle strongly discourages you from using $ and # in nonquoted identifiers.
-        NONQUOTED_OBJECT_NAME = /[[:alpha:]][\w$#]{0,29}/
+        # Nonquoted identifiers cannot be Oracle Database reserved words.
+        # They must begin with an alphabetic character from your database
+        # character set, and contain only alphanumeric characters plus _ ,
+        # $ , and #. Oracle strongly discourages $ and # in nonquoted names.
+        NONQUOTED_OBJECT_NAME = /[[:alpha:]][\w$#]{0,127}/
         VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}?\Z/
 
         # unescaped table name should start with letter and

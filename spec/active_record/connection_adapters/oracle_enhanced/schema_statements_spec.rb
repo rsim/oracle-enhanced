@@ -296,6 +296,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     after(:each) do
+      long_name = ("a" * (@conn.max_identifier_length - 3)).to_sym
       schema_define do
         drop_table :test_employees_no_primary_key, if_exists: true
         drop_table :test_employees, if_exists: true
@@ -303,6 +304,7 @@ describe "OracleEnhancedAdapter schema definition" do
         drop_table :test_employees_no_pkey, if_exists: true
         drop_table :new_test_employees_no_pkey, if_exists: true
         drop_table :aaaaaaaaaaaaaaaaaaaaaaaaaaa, if_exists: true
+        drop_table long_name, if_exists: true
       end
     end
 
@@ -314,13 +316,13 @@ describe "OracleEnhancedAdapter schema definition" do
 
     it "should raise error when new table name length is too long" do
       expect do
-        @conn.rename_table("test_employees", "a" * 31)
+        @conn.rename_table("test_employees", "a" * (@conn.max_identifier_length + 1))
       end.to raise_error(ArgumentError)
     end
 
     it "should not raise error when new sequence name length is too long" do
       expect do
-        @conn.rename_table("test_employees", "a" * 27)
+        @conn.rename_table("test_employees", "a" * (@conn.max_identifier_length - 3))
       end.not_to raise_error
     end
 

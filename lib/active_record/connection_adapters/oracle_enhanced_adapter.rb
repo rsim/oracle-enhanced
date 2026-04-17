@@ -199,14 +199,48 @@ module ActiveRecord
 
       ##
       # :singleton-method:
-      # By default, OracleEnhanced adapter will use longer 128 bytes identifier
-      # if database version is Oracle 12.2 or higher.
-      # If you wish to use shorter 30 byte identifier with Oracle Database supporting longer identifier
-      # you can add the following line to your initializer file:
+      # Controls the identifier length used by the adapter.
       #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_shorter_identifier = true
-      cattr_accessor :use_shorter_identifier
-      self.use_shorter_identifier = false
+      # * +false+ (default) — use 128 byte identifiers on Oracle 12.2+, and
+      #   silently fall back to 30 bytes on older databases.
+      # * +true+ — force the legacy 30 byte limit, even on 12.2+.
+      #
+      # Can be set globally in an initializer:
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_legacy_identifier_length = true
+      #
+      # or per connection via database.yml:
+      #
+      #   production:
+      #     adapter: oracle_enhanced
+      #     use_legacy_identifier_length: true
+      cattr_accessor :use_legacy_identifier_length
+      self.use_legacy_identifier_length = false
+
+      # Deprecated alias for +use_legacy_identifier_length+.
+      def self.use_shorter_identifier
+        OracleEnhanced.deprecator.deprecation_warning(
+          "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_shorter_identifier",
+          "use `use_legacy_identifier_length` instead"
+        )
+        use_legacy_identifier_length
+      end
+
+      def self.use_shorter_identifier=(value)
+        OracleEnhanced.deprecator.deprecation_warning(
+          "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_shorter_identifier=",
+          "use `use_legacy_identifier_length=` instead"
+        )
+        self.use_legacy_identifier_length = value
+      end
+
+      def use_shorter_identifier
+        self.class.use_shorter_identifier
+      end
+
+      def use_shorter_identifier=(value)
+        self.class.use_shorter_identifier = value
+      end
 
       ##
       # :singleton-method:
@@ -370,12 +404,13 @@ module ActiveRecord
         false
       end
 
-      def supports_longer_identifier?
-        if !use_shorter_identifier && database_version.to_s >= [12, 2].to_s
-          true
+      def supports_longer_identifier? # :nodoc:
+        use_legacy = if @config.key?(:use_legacy_identifier_length)
+          ActiveModel::Type::Boolean.new.cast(@config[:use_legacy_identifier_length])
         else
-          false
+          self.class.use_legacy_identifier_length
         end
+        !use_legacy && Gem::Version.new(database_version.join(".")) >= Gem::Version.new("12.2")
       end
 
       # :stopdoc:
