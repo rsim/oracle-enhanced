@@ -874,17 +874,17 @@ module ActiveRecord
 
           case _connection.error_code(exception)
           when 1
-            RecordNotUnique.new(message, sql: sql, binds: binds)
+            RecordNotUnique.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 60
-            Deadlocked.new(message)
+            Deadlocked.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 900, 904, 942, 955, 1418, 2289, 2449, 17008
-            ActiveRecord::StatementInvalid.new(message, sql: sql, binds: binds)
+            ActiveRecord::StatementInvalid.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 1400
-            ActiveRecord::NotNullViolation.new(message, sql: sql, binds: binds)
+            ActiveRecord::NotNullViolation.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 2291, 2292
-            InvalidForeignKey.new(message, sql: sql, binds: binds)
+            InvalidForeignKey.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 12899
-            ValueTooLong.new(message, sql: sql, binds: binds)
+            ValueTooLong.new(message, sql: sql, binds: binds, connection_pool: @pool)
           else
             super
           end
