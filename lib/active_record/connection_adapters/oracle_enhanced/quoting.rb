@@ -170,6 +170,12 @@ module ActiveRecord
             return nil if column_name.nil?
             /[a-z]/.match?(column_name) ? column_name : column_name.downcase
           end
+
+          # Also expose `oracle_downcase` as `Quoting.oracle_downcase(...)` so the raw-driver
+          # `select` paths in OCIConnection / JDBCConnection can reuse it without mixing in
+          # the whole Quoting module. It stays a private instance method when Quoting is
+          # included into the adapter.
+          module_function :oracle_downcase
       end
     end
   end
