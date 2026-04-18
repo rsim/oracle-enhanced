@@ -66,24 +66,6 @@ module ActiveRecord
             end
           end
 
-          # Oracle column names by default are case-insensitive, but treated as upcase;
-          # for neatness, we'll downcase within Rails. EXCEPT that folks CAN quote
-          # their column names when creating Oracle tables, which makes then case-sensitive.
-          # I don't know anybody who does this, but we'll handle the theoretical case of a
-          # camelCase column name. I imagine other dbs handle this different, since there's a
-          # unit test that's currently failing test_oci.
-          #
-          # `_oracle_downcase` is expected to be called only from
-          # `ActiveRecord::ConnectionAdapters::OracleEnhanced::OCIConnection`
-          # or `ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection`.
-          # Other method should call `ActiveRecord:: ConnectionAdapters::OracleEnhanced::Quoting#oracle_downcase`
-          # since this is kind of quoting, not connection.
-          # To avoid it is called from anywhere else, added _ at the beginning of the method name.
-          def _oracle_downcase(column_name)
-            return nil if column_name.nil?
-            /[a-z]/.match?(column_name) ? column_name : column_name.downcase
-          end
-
           # _select_one and _select_value methods are expected to be called
           # only from `ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection#describe`
           # Other methods should call `ActiveRecord::ConnectionAdapters::DatabaseStatements#select_one`
@@ -98,7 +80,7 @@ module ActiveRecord
             cursor.bind_params(binds)
             cursor.exec
             columns = cursor.get_col_names.map do |col_name|
-              _oracle_downcase(col_name)
+              OracleEnhanced::Quoting.oracle_downcase(col_name)
             end
             row = cursor.fetch
             columns.each_with_index.to_h { |x, i| [x, row[i]] } if row
