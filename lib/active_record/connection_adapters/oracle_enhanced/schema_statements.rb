@@ -606,6 +606,10 @@ module ActiveRecord
           OracleEnhanced::SchemaDumper.create(self, options)
         end
 
+        def schema_creation # :nodoc:
+          OracleEnhanced::SchemaCreation.new self
+        end
+
         private
           def insert_versions_sql(versions)
             sm_table = quote_table_name(ActiveRecord::Tasks::DatabaseTasks.migration_connection_pool.schema_migration.table_name)
@@ -636,10 +640,6 @@ module ActiveRecord
 
           def create_alter_table(name)
             OracleEnhanced::AlterTable.new create_table_definition(name)
-          end
-
-          def schema_creation
-            OracleEnhanced::SchemaCreation.new self
           end
 
           def create_table_definition(name, **options)
