@@ -696,11 +696,11 @@ module ActiveRecord
         128
       end
 
-      def get_database_version
+      def get_database_version # :nodoc:
         _connection.database_version
       end
 
-      def check_version
+      def check_version # :nodoc:
         version = get_database_version.join(".").to_f
 
         if version < 10

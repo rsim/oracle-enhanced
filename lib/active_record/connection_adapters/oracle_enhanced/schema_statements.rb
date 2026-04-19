@@ -598,11 +598,11 @@ module ActiveRecord
           end
         end
 
-        def update_table_definition(table_name, base)
+        def update_table_definition(table_name, base) # :nodoc:
           OracleEnhanced::Table.new(table_name, base)
         end
 
-        def create_schema_dumper(options)
+        def create_schema_dumper(options) # :nodoc:
           OracleEnhanced::SchemaDumper.create(self, options)
         end
 
