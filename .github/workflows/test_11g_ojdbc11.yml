@@ -19,7 +19,6 @@ jobs:
       matrix:
         ruby: [
           'jruby-10.0.5.0',
-          'jruby-head',
         ]
     env:
       ORACLE_HOME: /opt/oracle/instantclient_21_15
