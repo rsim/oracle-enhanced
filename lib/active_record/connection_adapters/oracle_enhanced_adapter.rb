@@ -255,14 +255,6 @@ module ActiveRecord
         raise NotImplementedError
       end
 
-      def arel_visitor # :nodoc:
-        if supports_fetch_first_n_rows_and_offset?
-          Arel::Visitors::Oracle12.new(self)
-        else
-          Arel::Visitors::Oracle.new(self)
-        end
-      end
-
       def return_value_after_insert?(column) # :nodoc:
         # TODO: Return true if there this column will be populated (e.g by a sequence)
         super
@@ -284,10 +276,6 @@ module ActiveRecord
         end
 
         find_cmd_and_exec(ActiveRecord.database_cli[:oracle] || "sqlplus", logon)
-      end
-
-      def build_statement_pool
-        StatementPool.new(self.class.type_cast_config_to_integer(@config[:statement_limit]))
       end
 
       def supports_savepoints? # :nodoc:
@@ -462,12 +450,6 @@ module ActiveRecord
         _connection.ping
       rescue OracleEnhanced::ConnectionException
         false
-      end
-
-      def reconnect
-        _connection.reset # tentative
-      rescue OracleEnhanced::ConnectionException
-        connect
       end
 
       # Reconnects to the database.
@@ -777,10 +759,6 @@ module ActiveRecord
           end
       end
 
-      def type_map
-        self.class.type_map
-      end
-
       def extract_value_from_default(default)
         case default
         when String
@@ -796,27 +774,6 @@ module ActiveRecord
           19
         when /\((.*)\)/
           $1.to_i
-        end
-      end
-
-      def translate_exception(exception, message:, sql:, binds:) # :nodoc:
-        return ActiveRecord::ConnectionFailed.new(message, sql: sql, binds: binds, connection_pool: @pool) if _connection.lost_connection?(exception)
-
-        case _connection.error_code(exception)
-        when 1
-          RecordNotUnique.new(message, sql: sql, binds: binds)
-        when 60
-          Deadlocked.new(message)
-        when 900, 904, 942, 955, 1418, 2289, 2449, 17008
-          ActiveRecord::StatementInvalid.new(message, sql: sql, binds: binds)
-        when 1400
-          ActiveRecord::NotNullViolation.new(message, sql: sql, binds: binds)
-        when 2291, 2292
-          InvalidForeignKey.new(message, sql: sql, binds: binds)
-        when 12899
-          ValueTooLong.new(message, sql: sql, binds: binds)
-        else
-          super
         end
       end
 
@@ -843,6 +800,50 @@ module ActiveRecord
 
       ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracle_enhanced)
       ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
+
+      private
+        def arel_visitor
+          if supports_fetch_first_n_rows_and_offset?
+            Arel::Visitors::Oracle12.new(self)
+          else
+            Arel::Visitors::Oracle.new(self)
+          end
+        end
+
+        def build_statement_pool
+          StatementPool.new(self.class.type_cast_config_to_integer(@config[:statement_limit]))
+        end
+
+        def reconnect
+          _connection.reset # tentative
+        rescue OracleEnhanced::ConnectionException
+          connect
+        end
+
+        def type_map
+          self.class.type_map
+        end
+
+        def translate_exception(exception, message:, sql:, binds:)
+          return ActiveRecord::ConnectionFailed.new(message, sql: sql, binds: binds, connection_pool: @pool) if _connection.lost_connection?(exception)
+
+          case _connection.error_code(exception)
+          when 1
+            RecordNotUnique.new(message, sql: sql, binds: binds)
+          when 60
+            Deadlocked.new(message)
+          when 900, 904, 942, 955, 1418, 2289, 2449, 17008
+            ActiveRecord::StatementInvalid.new(message, sql: sql, binds: binds)
+          when 1400
+            ActiveRecord::NotNullViolation.new(message, sql: sql, binds: binds)
+          when 2291, 2292
+            InvalidForeignKey.new(message, sql: sql, binds: binds)
+          when 12899
+            ValueTooLong.new(message, sql: sql, binds: binds)
+          else
+            super
+          end
+        end
     end
   end
 end

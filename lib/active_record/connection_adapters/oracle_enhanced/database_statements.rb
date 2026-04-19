@@ -24,18 +24,6 @@ module ActiveRecord
           super
         end
 
-        def cast_result(result)
-          if result.nil?
-            ActiveRecord::Result.empty
-          else
-            ActiveRecord::Result.new(result[:columns], result[:rows])
-          end
-        end
-
-        def affected_rows(result)
-          result[:affected_rows_count]
-        end
-
         def supports_explain?
           true
         end
@@ -54,16 +42,6 @@ module ActiveRecord
         def build_explain_clause(options = [])
           # Oracle does not have anything similar to "EXPLAIN ANALYZE"
           # https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/EXPLAIN-PLAN.html#GUID-FD540872-4ED3-4936-96A2-362539931BA0
-        end
-
-        # New method in ActiveRecord 3.1
-        # Will add RETURNING clause in case of trigger generated primary keys
-        def sql_for_insert(sql, pk, binds, _returning)
-          unless pk == false || pk.nil? || pk.is_a?(Array) || pk.is_a?(String)
-            sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
-            (binds = binds.dup) << ActiveRecord::Relation::QueryAttribute.new("returning_id", nil, Type::OracleEnhanced::Integer.new)
-          end
-          super
         end
 
         def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [], returning: nil)
@@ -114,10 +92,6 @@ module ActiveRecord
             cursor.close unless cached
             build_result(columns: returning_id_col || [], rows: rows)
           end
-        end
-
-        def returning_column_values(result)
-          result.rows.first
         end
 
         def begin_db_transaction # :nodoc:
@@ -228,6 +202,32 @@ module ActiveRecord
         end
 
         private
+          def cast_result(result)
+            if result.nil?
+              ActiveRecord::Result.empty
+            else
+              ActiveRecord::Result.new(result[:columns], result[:rows])
+            end
+          end
+
+          def affected_rows(result)
+            result[:affected_rows_count]
+          end
+
+          # New method in ActiveRecord 3.1
+          # Will add RETURNING clause in case of trigger generated primary keys
+          def sql_for_insert(sql, pk, binds, _returning) # :nodoc:
+            unless pk == false || pk.nil? || pk.is_a?(Array) || pk.is_a?(String)
+              sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
+              (binds = binds.dup) << ActiveRecord::Relation::QueryAttribute.new("returning_id", nil, Type::OracleEnhanced::Integer.new)
+            end
+            super
+          end
+
+          def returning_column_values(result)
+            result.rows.first
+          end
+
           def perform_query(raw_connection, intent)
             sql = intent.processed_sql
             binds = intent.binds
