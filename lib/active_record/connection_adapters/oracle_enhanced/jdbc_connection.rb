@@ -465,10 +465,14 @@ module ActiveRecord
             # has reset the connection). Re-raise anything else so genuine
             # driver/resource bugs surface.
             #
-            #   ORA-17002 "Io exception"        - network/socket failure
-            #   ORA-17008 "Closed Connection"   - connection already closed
-            #   ORA-17009 "Closed Statement"    - statement already closed
-            raise unless [17_002, 17_008, 17_009].include?(e.getErrorCode)
+            #   ORA-17002 / ORA-17008 — connection already gone
+            #     (see JDBC_LOST_CONNECTION_ERROR_CODES).
+            #   ORA-17009 "Closed Statement" — the Statement handle is
+            #     gone but the connection may still be alive. It is a
+            #     cursor-local concern, not a lost-connection signal,
+            #     which is why it is allowed here but excluded from
+            #     JDBC_LOST_CONNECTION_ERROR_CODES / lost_connection?.
+            raise unless JDBC_LOST_CONNECTION_ERROR_CODES.include?(e.getErrorCode) || e.getErrorCode == 17009
             nil
           end
         end
@@ -537,14 +541,34 @@ module ActiveRecord
           end
         end
 
-        # JDBC SQLException messages that signal a dropped connection
-        # without a meaningful Oracle error code attached. ORA-17008
-        # (Closed Connection) surfaces as the "Closed Connection" message.
+        # Oracle JDBC driver (ojdbc) client-side error codes that indicate
+        # the underlying connection is gone. Distinct from the shared
+        # LOST_CONNECTION_ERROR_CODES, which lists Oracle Database server-
+        # side ORA-NNNN codes — those can arrive via OCI as well, these
+        # cannot: the 17NNN range is reserved for the JDBC driver itself
+        # (the server never sends ORA-17NNN back).
+        #   ORA-17002 Io exception       — network / socket failure
+        #   ORA-17008 Closed Connection  — connection already closed
+        #
+        # ORA-17009 "Closed Statement" is deliberately NOT listed here:
+        # it signals that only a stale Statement handle is gone while the
+        # connection itself may still be alive, so lost_connection? must
+        # not return true for it (doing so would discard a live session).
+        # Cursor#close tolerates 17009 separately as a cursor-local
+        # concern.
+        JDBC_LOST_CONNECTION_ERROR_CODES = [17002, 17008]
+
+        # Fallback for older ojdbc that surfaces disconnects with
+        # SQLException#getErrorCode == 0 and no ORA-NNNNN prefix in the
+        # message. ojdbc17+ produces proper error codes handled via the
+        # *_ERROR_CODES lists above.
         LOST_CONNECTION_MESSAGE = /\A(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
 
         def lost_connection?(exception)
           return false unless exception.is_a?(Java::JavaSql::SQLException)
-          LOST_CONNECTION_ERROR_CODES.include?(exception.getErrorCode) ||
+          code = exception.getErrorCode
+          LOST_CONNECTION_ERROR_CODES.include?(code) ||
+            JDBC_LOST_CONNECTION_ERROR_CODES.include?(code) ||
             LOST_CONNECTION_MESSAGE.match?(exception.message)
         end
 

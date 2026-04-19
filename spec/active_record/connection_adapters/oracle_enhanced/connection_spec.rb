@@ -551,6 +551,37 @@ describe "OracleEnhancedConnection" do
       kill_current_session
       expect { Post.take }.to raise_error(ActiveRecord::StatementInvalid)
     end
+
+    if RUBY_ENGINE == "jruby"
+      # ojdbc17 surfaces dropped-connection errors with both a proper
+      # SQLException#getErrorCode and an "ORA-17NNN:" prefix in the message.
+      # Regression test for the case where the prefixed message no longer
+      # matches LOST_CONNECTION_MESSAGE and the code must be recognised via
+      # JDBC_LOST_CONNECTION_ERROR_CODES instead.
+      it "recognises ORA-17008 via the JDBC driver error code" do
+        exception = Java::JavaSql::SQLException.new("ORA-17008: Closed connection", nil, 17008)
+        expect(@conn.lost_connection?(exception)).to be true
+      end
+
+      it "recognises ORA-17002 via the JDBC driver error code" do
+        exception = Java::JavaSql::SQLException.new("ORA-17002: Io exception", nil, 17002)
+        expect(@conn.lost_connection?(exception)).to be true
+      end
+
+      it "recognises older ojdbc 'Closed Connection' messages with no error code attached" do
+        exception = Java::JavaSql::SQLException.new("Closed Connection", nil, 0)
+        expect(@conn.lost_connection?(exception)).to be true
+      end
+
+      # ORA-17009 "Closed Statement" means only the Statement handle is
+      # gone; the connection may still be alive. Treating it as a lost
+      # connection would discard a live session, so lost_connection?
+      # must return false. Cursor#close tolerates 17009 separately.
+      it "does not treat ORA-17009 (Closed Statement) as a lost connection" do
+        exception = Java::JavaSql::SQLException.new("ORA-17009: Closed Statement", nil, 17009)
+        expect(@conn.lost_connection?(exception)).to be false
+      end
+    end
   end
 
   describe "describe table" do
