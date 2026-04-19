@@ -637,59 +637,106 @@ describe "OracleEnhancedConnection" do
     end
   end
 
-  describe "describe table" do
+  describe "resolve_data_source_name" do
     before(:all) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      @conn = ActiveRecord::Base.connection
       @owner = CONNECTION_PARAMS[:username].upcase
     end
 
-    it "should describe existing table" do
-      @conn.exec "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
-      expect(@conn.describe("test_employees")).to eq([@owner, "TEST_EMPLOYEES"])
-      @conn.exec "DROP TABLE test_employees" rescue nil
+    def resolve(name)
+      @conn.send(:resolve_data_source_name, name)
     end
 
-    it "should not describe non-existing table" do
-      expect { @conn.describe("test_xxx") }.to raise_error(ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException)
+    it "should resolve existing table" do
+      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
+      expect(resolve("test_employees")).to eq([@owner, "TEST_EMPLOYEES"])
+      @conn.execute "DROP TABLE test_employees" rescue nil
     end
 
-    it "should describe table in other schema" do
-      expect(@conn.describe("sys.dual")).to eq(["SYS", "DUAL"])
+    it "should not resolve non-existing table" do
+      expect { resolve("test_xxx") }.to raise_error(ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException)
     end
 
-    it "should describe table in other schema if the schema and table are in different cases" do
-      expect(@conn.describe("SYS.dual")).to eq(["SYS", "DUAL"])
+    it "should resolve table in other schema" do
+      expect(resolve("sys.dual")).to eq(["SYS", "DUAL"])
     end
 
-    it "should describe existing view" do
-      @conn.exec "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
-      @conn.exec "CREATE VIEW test_employees_v AS SELECT * FROM test_employees" rescue nil
-      expect(@conn.describe("test_employees_v")).to eq([@owner, "TEST_EMPLOYEES_V"])
-      @conn.exec "DROP VIEW test_employees_v" rescue nil
-      @conn.exec "DROP TABLE test_employees" rescue nil
+    it "should resolve table in other schema if the schema and table are in different cases" do
+      expect(resolve("SYS.dual")).to eq(["SYS", "DUAL"])
     end
 
-    it "should describe view in other schema" do
-      expect(@conn.describe("sys.v_$version")).to eq(["SYS", "V_$VERSION"])
+    it "should resolve existing view" do
+      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
+      @conn.execute "CREATE VIEW test_employees_v AS SELECT * FROM test_employees" rescue nil
+      expect(resolve("test_employees_v")).to eq([@owner, "TEST_EMPLOYEES_V"])
+      @conn.execute "DROP VIEW test_employees_v" rescue nil
+      @conn.execute "DROP TABLE test_employees" rescue nil
     end
 
-    it "should describe existing private synonym" do
-      @conn.exec "CREATE SYNONYM test_dual FOR sys.dual" rescue nil
-      expect(@conn.describe("test_dual")).to eq(["SYS", "DUAL"])
-      @conn.exec "DROP SYNONYM test_dual" rescue nil
+    it "should resolve view in other schema" do
+      expect(resolve("sys.v_$version")).to eq(["SYS", "V_$VERSION"])
     end
 
-    it "should describe existing public synonym" do
-      expect(@conn.describe("all_tables")).to eq(["SYS", "ALL_TABLES"])
+    it "should resolve existing materialized view" do
+      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
+      @conn.execute "CREATE MATERIALIZED VIEW test_employees_mv AS SELECT * FROM test_employees" rescue nil
+      expect(resolve("test_employees_mv")).to eq([@owner, "TEST_EMPLOYEES_MV"])
+      @conn.execute "DROP MATERIALIZED VIEW test_employees_mv" rescue nil
+      @conn.execute "DROP TABLE test_employees" rescue nil
     end
 
-    if defined?(OCI8)
-      context "OCI8 adapter" do
-        it "should not fallback to SELECT-based logic when querying non-existent table information" do
-          expect(@conn).not_to receive(:select_one)
-          @conn.describe("non_existent") rescue ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException
-        end
-      end
+    it "should resolve existing private synonym" do
+      @conn.execute "CREATE SYNONYM test_dual FOR sys.dual" rescue nil
+      expect(resolve("test_dual")).to eq(["SYS", "DUAL"])
+      @conn.execute "DROP SYNONYM test_dual" rescue nil
+    end
+
+    it "should resolve existing public synonym" do
+      expect(resolve("all_tables")).to eq(["SYS", "ALL_TABLES"])
+    end
+
+    it "raises ArgumentError when the name contains a db link" do
+      expect { resolve("test@db_link") }.to raise_error(ArgumentError, /db link is not supported/)
+    end
+  end
+
+  describe "extract_schema_qualified_name" do
+    before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      @conn = ActiveRecord::Base.connection
+    end
+
+    def extract(string)
+      @conn.send(:extract_schema_qualified_name, string)
+    end
+
+    it "returns [nil, identifier] for an unqualified name and upcases it" do
+      expect(extract("table_name")).to eq([nil, "TABLE_NAME"])
+    end
+
+    it "leaves an already upcased unqualified name as-is" do
+      expect(extract("TABLE_NAME")).to eq([nil, "TABLE_NAME"])
+    end
+
+    it "splits a schema-qualified name and upcases it" do
+      expect(extract("hr.dept")).to eq(["HR", "DEPT"])
+    end
+
+    it "upcases a qualified name whose parts are in different cases" do
+      expect(extract("SYS.dual")).to eq(["SYS", "DUAL"])
+    end
+
+    it "accepts a Symbol and coerces it to a string" do
+      expect(extract(:dept)).to eq([nil, "DEPT"])
+    end
+
+    it "raises ArgumentError when the name contains a db link" do
+      expect { extract("test@db_link") }.to raise_error(ArgumentError, /db link is not supported/)
+    end
+
+    it "does not upcase a name that is not a valid identifier" do
+      expect(extract('"Weird Name"')).to eq([nil, '"Weird Name"'])
     end
   end
 end

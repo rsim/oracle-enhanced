@@ -53,7 +53,7 @@ module ActiveRecord
         end
 
         def data_source_exists?(table_name)
-          (_owner, _table_name) = _connection.describe(table_name)
+          (_owner, _table_name) = resolve_data_source_name(table_name)
           true
         rescue
           false
@@ -87,7 +87,7 @@ module ActiveRecord
         end
 
         def indexes(table_name) # :nodoc:
-          (_owner, table_name) = _connection.describe(table_name)
+          (_owner, table_name) = resolve_data_source_name(table_name)
           default_tablespace_name = default_tablespace
 
           result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
@@ -348,7 +348,7 @@ module ActiveRecord
         #
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
-          (_owner, table_name) = _connection.describe(table_name)
+          (_owner, table_name) = resolve_data_source_name(table_name)
           result = select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("index_name", index_name.to_s.upcase)])
             SELECT 1 FROM all_indexes i
             WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -491,7 +491,7 @@ module ActiveRecord
 
         def table_comment(table_name) # :nodoc:
           # TODO
-          (_owner, table_name) = _connection.describe(table_name)
+          (_owner, table_name) = resolve_data_source_name(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
             SELECT comments FROM all_tab_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -507,7 +507,7 @@ module ActiveRecord
 
         def column_comment(table_name, column_name) # :nodoc:
           # TODO: it  does not exist in Abstract adapter
-          (_owner, table_name) = _connection.describe(table_name)
+          (_owner, table_name) = resolve_data_source_name(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
             SELECT comments FROM all_col_comments
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -535,7 +535,7 @@ module ActiveRecord
 
         # get table foreign keys for schema dump
         def foreign_keys(table_name) # :nodoc:
-          (_owner, desc_table_name) = _connection.describe(table_name)
+          (_owner, desc_table_name) = resolve_data_source_name(table_name)
 
           fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
             SELECT r.table_name to_table
@@ -732,6 +732,64 @@ module ActiveRecord
             return unless index_name
 
             execute("ALTER INDEX #{quote_column_name(index_name)} REBUILD TABLESPACE #{tablespace}")
+          end
+
+          # Resolves an Oracle data-source name to its underlying [owner, table_name]
+          # by following synonyms through the catalog. Defaults the schema to
+          # `_connection.owner` (the adapter's configured default schema, taken
+          # from `config[:schema]` or `config[:username]`) when the name is not
+          # schema-qualified. This is distinct from
+          # `SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')`, which can differ after
+          # `ALTER SESSION SET CURRENT_SCHEMA`.
+          # Raises OracleEnhanced::ConnectionException if the object does not exist.
+          def resolve_data_source_name(name)
+            schema, identifier = extract_schema_qualified_name(name)
+            real_name = schema ? "#{schema}.#{identifier}" : identifier
+            owner = schema || _connection.owner
+
+            binds = [
+              bind_string("table_owner", owner),
+              bind_string("table_name", identifier),
+              bind_string("table_owner", owner),
+              bind_string("table_name", identifier),
+              bind_string("table_owner", owner),
+              bind_string("table_name", identifier),
+              bind_string("real_name", real_name),
+            ]
+            result = select_one(<<~SQL.squish, "SCHEMA", binds)
+              SELECT owner, table_name, 'TABLE' name_type
+              FROM all_tables WHERE owner = :table_owner AND table_name = :table_name
+              UNION ALL
+              SELECT owner, view_name table_name, 'VIEW' name_type
+              FROM all_views WHERE owner = :table_owner AND view_name = :table_name
+              UNION ALL
+              SELECT table_owner, table_name, 'SYNONYM' name_type
+              FROM all_synonyms WHERE owner = :table_owner AND synonym_name = :table_name
+              UNION ALL
+              SELECT table_owner, table_name, 'SYNONYM' name_type
+              FROM all_synonyms WHERE owner = 'PUBLIC' AND synonym_name = :real_name
+            SQL
+
+            raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?} unless result
+
+            if result["name_type"] == "SYNONYM"
+              resolve_data_source_name("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}")
+            else
+              [result["owner"], result["table_name"]]
+            end
+          end
+
+          # Splits "schema.identifier" into its parts, returning [schema, identifier].
+          # Mirrors Rails' PostgreSQL/MySQL adapters: a non-qualified name yields
+          # schema = nil. Oracle-specific bits: rejects db links and upcases valid
+          # identifiers so catalog lookups match the stored upper-case names.
+          def extract_schema_qualified_name(string)
+            string = string.to_s
+            raise ArgumentError, "db link is not supported" if string.include?("@")
+
+            string = string.upcase if OracleEnhanced::Quoting.valid_table_name?(string)
+            schema, identifier = string.split(".") if string.include?(".")
+            [schema, identifier || string]
           end
       end
     end
