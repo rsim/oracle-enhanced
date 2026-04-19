@@ -154,14 +154,14 @@ describe "OracleEnhancedConnection" do
 
     it "should use NLS_TERRITORY environment variable" do
       ENV["NLS_TERRITORY"] = "JAPAN"
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
-      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') as value from dual")).to eq([{ "value" => "JAPAN" }])
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("JAPAN")
     end
 
     it "should use configuration value and ignore NLS_TERRITORY environment variable" do
       ENV["NLS_TERRITORY"] = "AMERICA"
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS.merge(nls_territory: "INDONESIA"))
-      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') as value from dual")).to eq([{ "value" => "INDONESIA" }])
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(nls_territory: "INDONESIA"))
+      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("INDONESIA")
     end
   end
 
@@ -172,20 +172,20 @@ describe "OracleEnhancedConnection" do
 
     it "should ignore NLS_DATE_FORMAT environment variable" do
       ENV["NLS_DATE_FORMAT"] = "YYYY-MM-DD"
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
-      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{ "value" => "YYYY-MM-DD HH24:MI:SS" }])
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq("YYYY-MM-DD HH24:MI:SS")
     end
 
     it "should ignore NLS_DATE_FORMAT configuration value" do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS.merge(nls_date_format: "YYYY-MM-DD HH24:MI"))
-      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{ "value" => "YYYY-MM-DD HH24:MI:SS" }])
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(nls_date_format: "YYYY-MM-DD HH24:MI"))
+      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq("YYYY-MM-DD HH24:MI:SS")
     end
 
     it "should use default value when NLS_DATE_FORMAT environment variable is not set" do
       ENV["NLS_DATE_FORMAT"] = nil
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       default = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::FIXED_NLS_PARAMETERS[:nls_date_format]
-      expect(@conn.select("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') as value from dual")).to eq([{ "value" => default }])
+      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq(default)
     end
   end
 
