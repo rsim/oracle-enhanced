@@ -1292,7 +1292,7 @@ end
         skip "Not supported in this database version" unless ActiveRecord::Base.connection.supports_multi_insert?
 
         expect {
-          @conn.execute @conn.insert_versions_sql(versions)
+          @conn.execute @conn.send(:insert_versions_sql, versions)
         }.not_to raise_error
 
         expect(@conn.select_value("SELECT COUNT(version) FROM schema_migrations")).to eq versions.count
@@ -1304,7 +1304,7 @@ end
         skip "Not supported in this database version" if ActiveRecord::Base.connection.supports_multi_insert?
 
         expect {
-          versions.each { |version| @conn.execute @conn.insert_versions_sql(version) }
+          versions.each { |version| @conn.execute @conn.send(:insert_versions_sql, version) }
         }.not_to raise_error
 
         expect(@conn.select_value("SELECT COUNT(version) FROM schema_migrations")).to eq versions.count

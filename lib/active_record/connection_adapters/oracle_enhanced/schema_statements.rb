@@ -275,26 +275,6 @@ module ActiveRecord
           clear_table_columns_cache(table_name)
         end
 
-        def insert_versions_sql(versions) # :nodoc:
-          sm_table = quote_table_name(ActiveRecord::Tasks::DatabaseTasks.migration_connection_pool.schema_migration.table_name)
-
-          if supports_multi_insert?
-            versions.inject(+"INSERT ALL\n") { |sql, version|
-              sql << "INTO #{sm_table} (version) VALUES (#{quote(version)})\n"
-            } << "SELECT * FROM DUAL\n"
-          else
-            if versions.is_a?(Array)
-              # called from ActiveRecord::Base.connection#dump_schema_versions
-              versions.map { |version|
-                "INSERT INTO #{sm_table} (version) VALUES (#{quote(version)})"
-              }.join("\n\n/\n\n")
-            else
-              # called from ActiveRecord::Base.connection#assume_migrated_upto_version
-              "INSERT INTO #{sm_table} (version) VALUES (#{quote(versions)})"
-            end
-          end
-        end
-
         def add_index(table_name, column_name, **options) # :nodoc:
           index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, **options)
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
@@ -589,13 +569,6 @@ module ActiveRecord
           end
         end
 
-        def extract_foreign_key_action(specifier) # :nodoc:
-          case specifier
-          when "CASCADE"; :cascade
-          when "SET NULL"; :nullify
-          end
-        end
-
         # REFERENTIAL INTEGRITY ====================================
 
         def disable_referential_integrity(&block) # :nodoc:
@@ -618,10 +591,6 @@ module ActiveRecord
           end
         end
 
-        def create_alter_table(name)
-          OracleEnhanced::AlterTable.new create_table_definition(name)
-        end
-
         def add_timestamps(table_name, **options)
           fragments = add_timestamps_for_alter(table_name, **options)
           fragments.each do |fragment|
@@ -629,17 +598,48 @@ module ActiveRecord
           end
         end
 
-        def update_table_definition(table_name, base)
+        def update_table_definition(table_name, base) # :nodoc:
           OracleEnhanced::Table.new(table_name, base)
         end
 
-        def create_schema_dumper(options)
+        def create_schema_dumper(options) # :nodoc:
           OracleEnhanced::SchemaDumper.create(self, options)
         end
 
+        def schema_creation # :nodoc:
+          OracleEnhanced::SchemaCreation.new self
+        end
+
         private
-          def schema_creation
-            OracleEnhanced::SchemaCreation.new self
+          def insert_versions_sql(versions)
+            sm_table = quote_table_name(ActiveRecord::Tasks::DatabaseTasks.migration_connection_pool.schema_migration.table_name)
+
+            if supports_multi_insert?
+              versions.inject(+"INSERT ALL\n") { |sql, version|
+                sql << "INTO #{sm_table} (version) VALUES (#{quote(version)})\n"
+              } << "SELECT * FROM DUAL\n"
+            else
+              if versions.is_a?(Array)
+                # called from ActiveRecord::Base.connection#dump_schema_versions
+                versions.map { |version|
+                  "INSERT INTO #{sm_table} (version) VALUES (#{quote(version)})"
+                }.join("\n\n/\n\n")
+              else
+                # called from ActiveRecord::Base.connection#assume_migrated_upto_version
+                "INSERT INTO #{sm_table} (version) VALUES (#{quote(versions)})"
+              end
+            end
+          end
+
+          def extract_foreign_key_action(specifier)
+            case specifier
+            when "CASCADE"; :cascade
+            when "SET NULL"; :nullify
+            end
+          end
+
+          def create_alter_table(name)
+            OracleEnhanced::AlterTable.new create_table_definition(name)
           end
 
           def create_table_definition(name, **options)
