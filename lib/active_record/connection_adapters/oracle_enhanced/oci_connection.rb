@@ -101,6 +101,31 @@ module ActiveRecord
           with_retry(allow_retry: allow_retry) { @raw_connection.exec(sql, *bindvars, &block) }
         end
 
+        # POC: call DBMS_UTILITY.NAME_RESOLVE via anonymous PL/SQL block with
+        # OUT binds. Returns [schema, object_name]; synonyms are followed by
+        # the package itself.
+        def _resolve_name(name)
+          plsql = <<~SQL
+            DECLARE
+              l_part2   VARCHAR2(128);
+              l_dblink  VARCHAR2(128);
+              l_type    NUMBER;
+              l_obj_num NUMBER;
+            BEGIN
+              DBMS_UTILITY.NAME_RESOLVE(:name, 0, :out_schema, :out_name,
+                                        l_part2, l_dblink, l_type, l_obj_num);
+            END;
+          SQL
+          cursor = @raw_connection.parse(plsql)
+          cursor.bind_param(":name", name)
+          cursor.bind_param(":out_schema", nil, String, 128)
+          cursor.bind_param(":out_name", nil, String, 128)
+          cursor.exec
+          [cursor[":out_schema"], cursor[":out_name"]]
+        ensure
+          cursor.close rescue nil
+        end
+
         def with_retry(allow_retry: false, &block)
           @raw_connection.with_retry(allow_retry: allow_retry, &block)
         end

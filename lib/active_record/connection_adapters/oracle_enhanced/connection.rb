@@ -19,51 +19,31 @@ module ActiveRecord
         attr_reader :raw_connection
 
         private
-          # Used always by JDBC connection as well by OCI connection when describing tables over database link
+          # POC: resolve object name via DBMS_UTILITY.NAME_RESOLVE instead of
+          # querying all_tables / all_views / all_synonyms. NAME_RESOLVE follows
+          # private and public synonyms for us, so no manual recursion is needed.
+          # See https://github.com/rsim/oracle-enhanced/pull/2521#issuecomment-4242585736
           def describe(name)
             name = name.to_s
             if name.include?("@")
-              raise ArgumentError "db link is not supported"
-            else
-              default_owner = @owner
+              raise ArgumentError, "db link is not supported"
             end
-            real_name = OracleEnhanced::Quoting.valid_table_name?(name) ? name.upcase : name
-            if real_name.include?(".")
-              table_owner, table_name = real_name.split(".")
+            if OracleEnhanced::Quoting.valid_table_name?(name)
+              _resolve_name(name.upcase)
             else
-              table_owner, table_name = default_owner, real_name
-            end
-            sql = <<~SQL.squish
-              SELECT owner, table_name, 'TABLE' name_type
-              FROM all_tables
-              WHERE owner = :table_owner
-                AND table_name = :table_name
-              UNION ALL
-              SELECT owner, view_name table_name, 'VIEW' name_type
-              FROM all_views
-              WHERE owner = :table_owner
-                AND view_name = :table_name
-              UNION ALL
-              SELECT table_owner, table_name, 'SYNONYM' name_type
-              FROM all_synonyms
-              WHERE owner = :table_owner
-                AND synonym_name = :table_name
-              UNION ALL
-              SELECT table_owner, table_name, 'SYNONYM' name_type
-              FROM all_synonyms
-              WHERE owner = 'PUBLIC'
-                AND synonym_name = :real_name
-            SQL
-            if result = _select_one(sql, "CONNECTION", [table_owner, table_name, table_owner, table_name, table_owner, table_name, real_name])
-              case result["name_type"]
-              when "SYNONYM"
-                describe("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}")
-              else
-                [result["owner"], result["table_name"]]
+              # Per-part normalization so that e.g. "sys.test_Mixed" becomes
+              # SYS."test_Mixed" — quoting a schema that's actually upcase
+              # internally would make Oracle search for a lowercase schema
+              # and miss it.
+              parts = name.split(".").map do |p|
+                OracleEnhanced::Quoting.valid_table_name?(p) ? p.upcase : %("#{p}")
               end
-            else
-              raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?}
+              _resolve_name(parts.join("."))
             end
+          rescue OracleEnhanced::ConnectionException, ArgumentError
+            raise
+          rescue => e
+            raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist? (#{e.message})}
           end
 
           # Oracle column names by default are case-insensitive, but treated as upcase;
