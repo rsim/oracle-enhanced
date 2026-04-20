@@ -47,7 +47,7 @@ module ActiveRecord
           establish_connection(@config)
           File.open(filename, "w:utf-8") { |f| f << connection.structure_dump }
           if @config[:structure_dump] == "db_stored_code"
-            File.open(filename, "a") { |f| f << connection.structure_dump_db_stored_code }
+            File.open(filename, "a:utf-8") { |f| f << connection.structure_dump_db_stored_code }
           end
         end
 
