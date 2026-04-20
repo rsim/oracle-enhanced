@@ -544,26 +544,45 @@ module ActiveRecord
         def foreign_keys(table_name) # :nodoc:
           (_owner, desc_table_name) = resolve_data_source_name(table_name)
 
-          fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
-            SELECT r.table_name to_table
-                  ,rc.column_name references_column
-                  ,cc.column_name
-                  ,c.constraint_name name
-                  ,c.delete_rule
-              FROM all_constraints c, all_cons_columns cc,
-                   all_constraints r, all_cons_columns rc
-             WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND c.table_name = :desc_table_name
-               AND c.constraint_type = 'R'
-               AND cc.owner = c.owner
-               AND cc.constraint_name = c.constraint_name
-               AND r.constraint_name = c.r_constraint_name
-               AND r.owner = c.owner
-               AND rc.owner = r.owner
-               AND rc.constraint_name = r.constraint_name
-               AND rc.position = cc.position
-            ORDER BY name, to_table, column_name, references_column
-          SQL
+          fk_info = if same_schema_as_user?
+            select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+              SELECT r.table_name to_table
+                    ,rc.column_name references_column
+                    ,cc.column_name
+                    ,c.constraint_name name
+                    ,c.delete_rule
+                FROM user_constraints c, user_cons_columns cc,
+                     user_constraints r, user_cons_columns rc
+               WHERE c.table_name = :desc_table_name
+                 AND c.constraint_type = 'R'
+                 AND cc.constraint_name = c.constraint_name
+                 AND r.constraint_name = c.r_constraint_name
+                 AND rc.constraint_name = r.constraint_name
+                 AND rc.position = cc.position
+              ORDER BY name, to_table, column_name, references_column
+            SQL
+          else
+            select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+              SELECT r.table_name to_table
+                    ,rc.column_name references_column
+                    ,cc.column_name
+                    ,c.constraint_name name
+                    ,c.delete_rule
+                FROM all_constraints c, all_cons_columns cc,
+                     all_constraints r, all_cons_columns rc
+               WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
+                 AND c.table_name = :desc_table_name
+                 AND c.constraint_type = 'R'
+                 AND cc.owner = c.owner
+                 AND cc.constraint_name = c.constraint_name
+                 AND r.constraint_name = c.r_constraint_name
+                 AND r.owner = c.owner
+                 AND rc.owner = r.owner
+                 AND rc.constraint_name = r.constraint_name
+                 AND rc.position = cc.position
+              ORDER BY name, to_table, column_name, references_column
+            SQL
+          end
 
           fk_info.map do |row|
             options = {
