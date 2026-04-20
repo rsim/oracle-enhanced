@@ -173,21 +173,6 @@ module ActiveRecord
             # @raw_connection.setDefaultRowPrefetch(prefetch_rows) if prefetch_rows
           end
 
-          cursor_sharing = config[:cursor_sharing] || "force"
-          exec "alter session set cursor_sharing = #{cursor_sharing}" if cursor_sharing
-
-          # Initialize NLS parameters
-          OracleEnhancedAdapter::DEFAULT_NLS_PARAMETERS.each do |key, default_value|
-            value = config[key] || ENV[key.to_s.upcase] || default_value
-            if value
-              exec "alter session set #{key} = '#{value}'"
-            end
-          end
-
-          OracleEnhancedAdapter::FIXED_NLS_PARAMETERS.each do |key, value|
-            exec "alter session set #{key} = '#{value}'"
-          end
-
           self.autocommit = true
 
           schema = config[:schema] && config[:schema].to_s
@@ -195,7 +180,6 @@ module ActiveRecord
             # default schema owner
             @owner = username.upcase unless username.nil?
           else
-            exec "alter session set current_schema = #{schema}"
             @owner = schema.upcase
           end
 

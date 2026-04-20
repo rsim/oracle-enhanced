@@ -234,11 +234,13 @@ module ActiveRecord
       def initialize(config_or_deprecated_connection, deprecated_logger = nil, deprecated_connection_options = nil, deprecated_config = nil) # :nodoc:
         super(config_or_deprecated_connection, deprecated_logger, deprecated_connection_options, deprecated_config)
 
-        @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
+        connect
         @enable_dbms_output = false
         @do_not_prefetch_primary_key = {}
         @columns_cache = {}
         @notice_receiver_sql_warnings = []
+
+        configure_connection
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -455,7 +457,6 @@ module ActiveRecord
       # Reconnects to the database.
       def reconnect!(restore_transactions: false) # :nodoc:
         super
-        _connection.reset!
       rescue OracleEnhanced::ConnectionException => e
         @logger.warn "#{adapter_name} automatic reconnection failed: #{e.message}" if @logger
       end
@@ -712,6 +713,45 @@ module ActiveRecord
         @unconfigured_connection || @raw_connection
       end
 
+      private def connect
+        @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
+      end
+
+      private def reconnect
+        _connection.reset
+      rescue OracleEnhanced::ConnectionException
+        connect
+      end
+
+      private def configure_connection
+        super
+
+        cursor_sharing = @config[:cursor_sharing] || "force"
+        execute("alter session set cursor_sharing = #{cursor_sharing}", "SCHEMA") if cursor_sharing
+
+        if ORACLE_ENHANCED_CONNECTION == :oci
+          time_zone = @config[:time_zone] || ENV["TZ"]
+          case ActiveRecord.default_timezone
+          when :local
+            execute("alter session set time_zone = '#{time_zone}'", "SCHEMA") unless time_zone.blank?
+          when :utc
+            execute("alter session set time_zone = '+00:00'", "SCHEMA")
+          end
+        end
+
+        schema = @config[:schema].to_s
+        execute("alter session set current_schema = #{schema}", "SCHEMA") unless schema.blank?
+
+        DEFAULT_NLS_PARAMETERS.each do |key, default_value|
+          value = @config[key] || ENV[key.to_s.upcase] || default_value
+          execute("alter session set #{key} = '#{value}'", "SCHEMA") if value
+        end
+
+        FIXED_NLS_PARAMETERS.each do |key, value|
+          execute("alter session set #{key} = '#{value}'", "SCHEMA")
+        end
+      end
+
       class << self
         def native_database_types
           emulate_booleans_from_strings ? NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS : NATIVE_DATABASE_TYPES
@@ -812,12 +852,6 @@ module ActiveRecord
 
         def build_statement_pool
           StatementPool.new(self.class.type_cast_config_to_integer(@config[:statement_limit]))
-        end
-
-        def reconnect
-          _connection.reset # tentative
-        rescue OracleEnhanced::ConnectionException
-          connect
         end
 
         def type_map
