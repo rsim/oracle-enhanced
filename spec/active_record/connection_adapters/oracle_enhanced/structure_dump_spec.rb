@@ -482,4 +482,23 @@ describe "OracleEnhancedAdapter structure dump" do
       expect(drop).not_to match(/DROP TABLE "?FULL_DROP_TEST"? CASCADE CONSTRAINTS/i)
     end
   end
+
+  describe "structure_dump_synonyms" do
+    before do
+      @conn.create_table :test_synonym_target, force: true
+      @conn.execute "CREATE OR REPLACE SYNONYM test_synonym FOR test_synonym_target"
+    end
+
+    after do
+      @conn.execute("DROP SYNONYM test_synonym") rescue nil
+      @conn.drop_table :test_synonym_target, if_exists: true
+    end
+
+    it "emits a non-PUBLIC CREATE OR REPLACE SYNONYM with a single space before SYNONYM" do
+      output = @conn.send(:structure_dump_synonyms)
+      expect(output).to include("CREATE OR REPLACE SYNONYM TEST_SYNONYM FOR ")
+      expect(output).not_to match(/PUBLIC/)
+      expect(output).not_to match(/REPLACE\s{2,}SYNONYM/)
+    end
+  end
 end

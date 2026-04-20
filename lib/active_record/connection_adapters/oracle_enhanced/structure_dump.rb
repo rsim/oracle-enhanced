@@ -282,13 +282,12 @@ module ActiveRecord # :nodoc:
         def structure_dump_synonyms # :nodoc:
           structure = []
           synonyms = select_all(<<~SQL.squish, "SCHEMA")
-            SELECT owner, synonym_name, table_name, table_owner
+            SELECT synonym_name, table_name, table_owner
             FROM all_synonyms
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           synonyms.each do |synonym|
-            structure << "CREATE OR REPLACE #{synonym['owner'] == 'PUBLIC' ? 'PUBLIC' : '' } SYNONYM #{synonym['synonym_name']}
-            FOR #{synonym['table_owner']}.#{synonym['table_name']}"
+            structure << "CREATE OR REPLACE SYNONYM #{synonym['synonym_name']} FOR #{synonym['table_owner']}.#{synonym['table_name']}"
           end
           join_with_statement_token(structure)
         end
