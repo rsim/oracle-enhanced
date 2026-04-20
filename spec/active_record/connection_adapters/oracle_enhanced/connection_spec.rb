@@ -47,6 +47,11 @@ describe "OracleEnhancedAdapter establish connection" do
     expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
   end
 
+  it "should raise ArgumentError for an unsupported cursor_sharing value" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(cursor_sharing: "not_a_valid_mode"))
+    expect { ActiveRecord::Base.connection }.to raise_error(ArgumentError, /Invalid :cursor_sharing value/)
+  end
+
   it "should not use JDBC statement caching" do
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS)
@@ -144,6 +149,11 @@ describe "OracleEnhancedConnection" do
     it "should switch to specified schema after reset" do
       ActiveRecord::Base.connection.reset!
       expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
+    end
+
+    it "should raise ArgumentError for a :schema value that is not an Oracle unquoted identifier" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(schema: "oracle_enhanced;DROP TABLE x;--"))
+      expect { ActiveRecord::Base.connection }.to raise_error(ArgumentError, /Invalid :schema value/)
     end
   end
 
