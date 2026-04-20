@@ -196,7 +196,7 @@ module ActiveRecord
             @owner = username.upcase unless username.nil?
           else
             exec "alter session set current_schema = #{schema}"
-            @owner = schema
+            @owner = schema.upcase
           end
 
           @raw_connection

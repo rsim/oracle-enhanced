@@ -147,6 +147,59 @@ describe "OracleEnhancedConnection" do
     end
   end
 
+  describe "resolving unqualified names with :schema set to a different user" do
+    # Pins down the end-to-end contract of the `:schema` connection option:
+    #
+    # When `:schema` is present in the connection config, two independent
+    # mechanisms must line up so that unqualified references to tables owned
+    # by the `:schema` user resolve correctly end-to-end:
+    #
+    #   1. At connect time, the adapter runs
+    #      `ALTER SESSION SET CURRENT_SCHEMA = <schema>`, so Oracle's own name
+    #      resolution treats unqualified identifiers in SQL as belonging to
+    #      the `:schema` user.
+    #   2. The connection wrapper sets `@owner = config[:schema]` (falling
+    #      back to `config[:username]`), so the adapter's catalog-lookup path
+    #      (`data_source_exists?`, `column_definitions`, `indexes`, etc.)
+    #      defaults its owner filter to the `:schema` user.
+    #
+    # If either mechanism drifts — e.g. someone changes `@owner` to track the
+    # login user instead of `:schema`, or drops the ALTER SESSION at connect
+    # time — the matching assertion below will fail, forcing the change to be
+    # a conscious decision rather than a silent behavior drift.
+    schema_owner_params = CONNECTION_PARAMS.merge(username: DATABASE_SCHEMA, password: DATABASE_SCHEMA)
+
+    before(:all) do
+      ActiveRecord::Base.establish_connection(schema_owner_params)
+      schema_conn = ActiveRecord::Base.connection
+      schema_conn.drop_table :schema_probe_table, if_exists: true
+      schema_conn.create_table :schema_probe_table, id: :integer
+      schema_conn.execute "GRANT SELECT ON schema_probe_table TO #{DATABASE_USER}"
+      ActiveRecord::Base.remove_connection
+
+      ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
+    end
+
+    after(:all) do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(schema_owner_params)
+      ActiveRecord::Base.connection.drop_table :schema_probe_table, if_exists: true
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    end
+
+    it "sets CURRENT_SCHEMA so unqualified raw SQL resolves in the :schema user" do
+      expect(ActiveRecord::Base.connection.current_schema).to eq(DATABASE_SCHEMA.upcase)
+      expect {
+        ActiveRecord::Base.connection.execute("SELECT COUNT(*) FROM schema_probe_table")
+      }.not_to raise_error
+    end
+
+    it "data_source_exists? resolves an unqualified name in the :schema user" do
+      expect(ActiveRecord::Base.connection.data_source_exists?("schema_probe_table")).to be true
+    end
+  end
+
   describe "create connection with NLS parameters" do
     after do
       ENV["NLS_TERRITORY"] = nil
