@@ -912,64 +912,50 @@ module ActiveRecord
           end
 
           # Resolves an Oracle data-source name to its underlying [owner, table_name]
-          # by following synonyms through the catalog. Defaults the schema to
-          # `_connection.owner` (the adapter's configured default schema, taken
-          # from `config[:schema]` or `config[:username]`) when the name is not
-          # schema-qualified. This is distinct from
-          # `SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')`, which can differ after
-          # `ALTER SESSION SET CURRENT_SCHEMA`.
-          # Raises OracleEnhanced::ConnectionException if the object does not
-          # exist or if synonym resolution produces a looping chain.
+          # via DBMS_UTILITY.NAME_RESOLVE, which chases private and public
+          # synonyms server-side in a single round trip. NAME_RESOLVE raises
+          # ORA-01775 ("looping chain of synonyms") natively on a cycle, which
+          # we let propagate as OracleEnhanced::ConnectionException.
+          #
+          # The PL/SQL call bypasses the adapter's select_one path, so we wrap
+          # it in a sql.active_record SCHEMA notification to keep describe
+          # visible to logging and instrumentation subscribers.
           def resolve_data_source_name(name)
-            visited = Set.new
-            loop do
-              schema, identifier = extract_schema_qualified_name(name)
-              real_name = schema ? "#{schema}.#{identifier}" : identifier
-              owner = schema || _connection.owner
-
-              unless visited.add?([owner, identifier])
-                raise OracleEnhanced::ConnectionException,
-                      %Q{"DESC #{name}" failed; looping chain of synonyms}
-              end
-
-              binds = [
-                bind_string("table_owner", owner),
-                bind_string("table_name", identifier),
-                bind_string("real_name", real_name),
-              ]
-              # Single-pass lookup against all_objects, ordered so the first row
-              # is the one the legacy 4-way UNION ALL (all_tables, all_views,
-              # owner synonym, public synonym) would have returned: prefer a
-              # match in the caller's schema over PUBLIC, and within a schema
-              # prefer TABLE over VIEW over SYNONYM.
-              result = select_one(<<~SQL.squish, "SCHEMA", binds)
-                SELECT owner, object_name table_name, object_type name_type
-                FROM all_objects
-                WHERE ((owner = :table_owner AND object_name = :table_name)
-                   OR (owner = 'PUBLIC' AND object_name = :real_name))
-                  AND object_type IN ('TABLE', 'VIEW', 'SYNONYM')
-                ORDER BY DECODE(owner, 'PUBLIC', 2, 1),
-                         DECODE(object_type, 'TABLE', 1, 'VIEW', 2, 'SYNONYM', 3)
-              SQL
-
-              raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?} unless result
-
-              if result["name_type"] == "SYNONYM"
-                synonym_binds = [
-                  bind_string("owner", result["owner"]),
-                  bind_string("synonym_name", result["table_name"]),
-                ]
-                syn = select_one(<<~SQL.squish, "SCHEMA", synonym_binds)
-                  SELECT table_owner, table_name
-                  FROM all_synonyms
-                  WHERE owner = :owner AND synonym_name = :synonym_name
-                SQL
-                raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?} unless syn
-                name = "#{syn['table_owner'] && "#{syn['table_owner']}."}#{syn['table_name']}"
-              else
-                return [result["owner"], result["table_name"]]
-              end
+            real_name = normalize_name_for_name_resolve(name)
+            instrumenter.instrument(
+              "sql.active_record",
+              sql: "DBMS_UTILITY.NAME_RESOLVE(#{real_name.inspect}, 0, ...)",
+              name: "SCHEMA",
+              connection: self,
+            ) do
+              _connection.name_resolve(real_name)
             end
+          rescue OracleEnhanced::ConnectionException, ArgumentError
+            raise
+          rescue => e
+            raise OracleEnhanced::ConnectionException,
+                  %Q{"DESC #{name}" failed; does it exist? (#{e.message})}
+          end
+
+          # Normalize a data-source name for DBMS_UTILITY.NAME_RESOLVE.
+          # NAME_RESOLVE uppercases unquoted identifiers, so mixed-case
+          # identifiers like `test_Mixed` must be wrapped in double quotes to
+          # preserve their case. Normalization is per-dotted-part: a valid
+          # unquoted identifier (all upper, no spaces, etc.) is upcased in
+          # place; any other part is wrapped in quotes. This lets
+          # `sys.test_Mixed` become `SYS."test_Mixed"` rather than the
+          # all-quoted `"sys"."test_Mixed"` (which would send Oracle hunting
+          # for a lowercase schema and miss SYS).
+          def normalize_name_for_name_resolve(name)
+            name = name.to_s
+            raise ArgumentError, "db link is not supported" if name.include?("@")
+
+            limit = max_identifier_length
+            return name.upcase if OracleEnhanced::Quoting.valid_table_name?(name, max_identifier_length: limit)
+
+            name.split(".").map do |part|
+              OracleEnhanced::Quoting.valid_table_name?(part, max_identifier_length: limit) ? part.upcase : %("#{part}")
+            end.join(".")
           end
 
           # Splits "schema.identifier" into its parts, returning [schema, identifier].
