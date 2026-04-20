@@ -723,32 +723,43 @@ module ActiveRecord
         connect
       end
 
+      CURSOR_SHARING_VALUES = %w[EXACT FORCE SIMILAR].freeze
+      SCHEMA_IDENTIFIER_PATTERN = /\A[[:alpha:]][\w$#]*\z/
+
       private def configure_connection
         super
 
-        cursor_sharing = @config[:cursor_sharing] || "force"
-        execute("alter session set cursor_sharing = #{cursor_sharing}", "SCHEMA") if cursor_sharing
+        cursor_sharing = (@config[:cursor_sharing] || "force").to_s.upcase
+        unless CURSOR_SHARING_VALUES.include?(cursor_sharing)
+          raise ArgumentError, "Invalid :cursor_sharing value #{@config[:cursor_sharing].inspect}; allowed: #{CURSOR_SHARING_VALUES.join(', ')}"
+        end
+        execute("alter session set cursor_sharing = #{cursor_sharing}", "SCHEMA")
 
         if ORACLE_ENHANCED_CONNECTION == :oci
           time_zone = @config[:time_zone] || ENV["TZ"]
           case ActiveRecord.default_timezone
           when :local
-            execute("alter session set time_zone = '#{time_zone}'", "SCHEMA") unless time_zone.blank?
+            execute("alter session set time_zone = #{quote(time_zone)}", "SCHEMA") unless time_zone.blank?
           when :utc
             execute("alter session set time_zone = '+00:00'", "SCHEMA")
           end
         end
 
         schema = @config[:schema].to_s
-        execute("alter session set current_schema = #{schema}", "SCHEMA") unless schema.blank?
+        unless schema.blank?
+          unless schema.match?(SCHEMA_IDENTIFIER_PATTERN)
+            raise ArgumentError, "Invalid :schema value #{schema.inspect}; must be an Oracle unquoted identifier"
+          end
+          execute("alter session set current_schema = #{schema}", "SCHEMA")
+        end
 
         DEFAULT_NLS_PARAMETERS.each do |key, default_value|
           value = @config[key] || ENV[key.to_s.upcase] || default_value
-          execute("alter session set #{key} = '#{value}'", "SCHEMA") if value
+          execute("alter session set #{key} = #{quote(value.to_s)}", "SCHEMA") if value
         end
 
         FIXED_NLS_PARAMETERS.each do |key, value|
-          execute("alter session set #{key} = '#{value}'", "SCHEMA")
+          execute("alter session set #{key} = #{quote(value)}", "SCHEMA")
         end
       end
 
