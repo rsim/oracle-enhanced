@@ -762,28 +762,54 @@ module ActiveRecord
                       %Q{"DESC #{name}" failed; looping chain of synonyms}
               end
 
-              binds = [
-                bind_string("table_owner", owner),
-                bind_string("table_name", identifier),
-                bind_string("table_owner", owner),
-                bind_string("table_name", identifier),
-                bind_string("table_owner", owner),
-                bind_string("table_name", identifier),
-                bind_string("real_name", real_name),
-              ]
-              result = select_one(<<~SQL.squish, "SCHEMA", binds)
-                SELECT owner, table_name, 'TABLE' name_type
-                FROM all_tables WHERE owner = :table_owner AND table_name = :table_name
-                UNION ALL
-                SELECT owner, view_name table_name, 'VIEW' name_type
-                FROM all_views WHERE owner = :table_owner AND view_name = :table_name
-                UNION ALL
-                SELECT table_owner, table_name, 'SYNONYM' name_type
-                FROM all_synonyms WHERE owner = :table_owner AND synonym_name = :table_name
-                UNION ALL
-                SELECT table_owner, table_name, 'SYNONYM' name_type
-                FROM all_synonyms WHERE owner = 'PUBLIC' AND synonym_name = :real_name
-              SQL
+              result =
+                if schema.nil? && same_schema_as_user?
+                  # Fast path: unqualified name in the connected user's own schema.
+                  # USER_* dictionary views are substantially cheaper than ALL_* on
+                  # Oracle 11g because they skip the cross-schema visibility logic.
+                  binds = [
+                    bind_string("table_name", identifier),
+                    bind_string("table_name", identifier),
+                    bind_string("table_name", identifier),
+                    bind_string("real_name", real_name),
+                  ]
+                  select_one(<<~SQL.squish, "SCHEMA", binds)
+                    SELECT USER owner, table_name, 'TABLE' name_type
+                    FROM user_tables WHERE table_name = :table_name
+                    UNION ALL
+                    SELECT USER owner, view_name table_name, 'VIEW' name_type
+                    FROM user_views WHERE view_name = :table_name
+                    UNION ALL
+                    SELECT table_owner owner, table_name, 'SYNONYM' name_type
+                    FROM user_synonyms WHERE synonym_name = :table_name
+                    UNION ALL
+                    SELECT table_owner owner, table_name, 'SYNONYM' name_type
+                    FROM all_synonyms WHERE owner = 'PUBLIC' AND synonym_name = :real_name
+                  SQL
+                else
+                  binds = [
+                    bind_string("table_owner", owner),
+                    bind_string("table_name", identifier),
+                    bind_string("table_owner", owner),
+                    bind_string("table_name", identifier),
+                    bind_string("table_owner", owner),
+                    bind_string("table_name", identifier),
+                    bind_string("real_name", real_name),
+                  ]
+                  select_one(<<~SQL.squish, "SCHEMA", binds)
+                    SELECT owner, table_name, 'TABLE' name_type
+                    FROM all_tables WHERE owner = :table_owner AND table_name = :table_name
+                    UNION ALL
+                    SELECT owner, view_name table_name, 'VIEW' name_type
+                    FROM all_views WHERE owner = :table_owner AND view_name = :table_name
+                    UNION ALL
+                    SELECT table_owner, table_name, 'SYNONYM' name_type
+                    FROM all_synonyms WHERE owner = :table_owner AND synonym_name = :table_name
+                    UNION ALL
+                    SELECT table_owner, table_name, 'SYNONYM' name_type
+                    FROM all_synonyms WHERE owner = 'PUBLIC' AND synonym_name = :real_name
+                  SQL
+                end
 
               raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?} unless result
 
