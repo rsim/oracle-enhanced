@@ -113,6 +113,24 @@ describe "Oracle Enhanced adapter database tasks" do
       end
     end
 
+    describe "structure_dump with db_stored_code" do
+      let(:temp_file) { Tempfile.create(["oracle_enhanced", ".sql"]).path }
+      let(:stored_code_config) { config.merge(structure_dump: "db_stored_code") }
+
+      after { File.unlink(temp_file) if File.exist?(temp_file) }
+
+      it "opens both writes with UTF-8 encoding" do
+        target = temp_file
+        opened = []
+        allow(File).to receive(:open).and_wrap_original do |original, path, mode, *args, &block|
+          opened << mode if path == target
+          original.call(path, mode, *args, &block)
+        end
+        ActiveRecord::Tasks::DatabaseTasks.structure_dump(stored_code_config, target)
+        expect(opened).to eq(["w:utf-8", "a:utf-8"])
+      end
+    end
+
     after do
       schema_define do
         drop_table :test_posts, if_exists: true
