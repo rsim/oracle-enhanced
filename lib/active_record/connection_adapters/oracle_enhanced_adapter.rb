@@ -564,6 +564,21 @@ module ActiveRecord
         SQL
       end
 
+      # True when CURRENT_SCHEMA equals the connected user (i.e. the `schema:`
+      # connection option was not set, or it points at the connected user).
+      # Callers can use this to pick between USER_* and ALL_* dictionary views;
+      # USER_* is substantially faster on Oracle 11g.
+      #
+      # `blank?` here mirrors the connection setup
+      # (oci_connection.rb / jdbc_connection.rb), which treats a blank `schema:`
+      # as "no override" and skips `ALTER SESSION SET CURRENT_SCHEMA`.
+      def same_schema_as_user?
+        return @_same_schema_as_user if defined?(@_same_schema_as_user)
+        schema = @config[:schema]
+        username = @config[:username]
+        @_same_schema_as_user = schema.blank? || schema.to_s.upcase == username.to_s.upcase
+      end
+
       # Default tablespace name of current user
       def default_tablespace
         select_value(<<~SQL.squish, "SCHEMA")

@@ -75,10 +75,17 @@ module ActiveRecord
 
         # get synonyms for schema dump
         def synonyms
-          result = select_all(<<~SQL.squish, "SCHEMA")
-            SELECT synonym_name, table_owner, table_name
-            FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
-          SQL
+          result = if same_schema_as_user?
+            select_all(<<~SQL.squish, "SCHEMA")
+              SELECT synonym_name, table_owner, table_name
+              FROM user_synonyms
+            SQL
+          else
+            select_all(<<~SQL.squish, "SCHEMA")
+              SELECT synonym_name, table_owner, table_name
+              FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
+            SQL
+          end
 
           result.collect do |row|
              OracleEnhanced::SynonymDefinition.new(oracle_downcase(row["synonym_name"]),
