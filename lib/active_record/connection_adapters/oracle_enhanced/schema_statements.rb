@@ -741,41 +741,50 @@ module ActiveRecord
           # schema-qualified. This is distinct from
           # `SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')`, which can differ after
           # `ALTER SESSION SET CURRENT_SCHEMA`.
-          # Raises OracleEnhanced::ConnectionException if the object does not exist.
+          # Raises OracleEnhanced::ConnectionException if the object does not
+          # exist or if synonym resolution produces a looping chain.
           def resolve_data_source_name(name)
-            schema, identifier = extract_schema_qualified_name(name)
-            real_name = schema ? "#{schema}.#{identifier}" : identifier
-            owner = schema || _connection.owner
+            visited = Set.new
+            loop do
+              schema, identifier = extract_schema_qualified_name(name)
+              real_name = schema ? "#{schema}.#{identifier}" : identifier
+              owner = schema || _connection.owner
 
-            binds = [
-              bind_string("table_owner", owner),
-              bind_string("table_name", identifier),
-              bind_string("table_owner", owner),
-              bind_string("table_name", identifier),
-              bind_string("table_owner", owner),
-              bind_string("table_name", identifier),
-              bind_string("real_name", real_name),
-            ]
-            result = select_one(<<~SQL.squish, "SCHEMA", binds)
-              SELECT owner, table_name, 'TABLE' name_type
-              FROM all_tables WHERE owner = :table_owner AND table_name = :table_name
-              UNION ALL
-              SELECT owner, view_name table_name, 'VIEW' name_type
-              FROM all_views WHERE owner = :table_owner AND view_name = :table_name
-              UNION ALL
-              SELECT table_owner, table_name, 'SYNONYM' name_type
-              FROM all_synonyms WHERE owner = :table_owner AND synonym_name = :table_name
-              UNION ALL
-              SELECT table_owner, table_name, 'SYNONYM' name_type
-              FROM all_synonyms WHERE owner = 'PUBLIC' AND synonym_name = :real_name
-            SQL
+              unless visited.add?([owner, identifier])
+                raise OracleEnhanced::ConnectionException,
+                      %Q{"DESC #{name}" failed; looping chain of synonyms}
+              end
 
-            raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?} unless result
+              binds = [
+                bind_string("table_owner", owner),
+                bind_string("table_name", identifier),
+                bind_string("table_owner", owner),
+                bind_string("table_name", identifier),
+                bind_string("table_owner", owner),
+                bind_string("table_name", identifier),
+                bind_string("real_name", real_name),
+              ]
+              result = select_one(<<~SQL.squish, "SCHEMA", binds)
+                SELECT owner, table_name, 'TABLE' name_type
+                FROM all_tables WHERE owner = :table_owner AND table_name = :table_name
+                UNION ALL
+                SELECT owner, view_name table_name, 'VIEW' name_type
+                FROM all_views WHERE owner = :table_owner AND view_name = :table_name
+                UNION ALL
+                SELECT table_owner, table_name, 'SYNONYM' name_type
+                FROM all_synonyms WHERE owner = :table_owner AND synonym_name = :table_name
+                UNION ALL
+                SELECT table_owner, table_name, 'SYNONYM' name_type
+                FROM all_synonyms WHERE owner = 'PUBLIC' AND synonym_name = :real_name
+              SQL
 
-            if result["name_type"] == "SYNONYM"
-              resolve_data_source_name("#{result['owner'] && "#{result['owner']}."}#{result['table_name']}")
-            else
-              [result["owner"], result["table_name"]]
+              raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?} unless result
+
+              if result["name_type"] == "SYNONYM"
+                name = "#{result['owner'] && "#{result['owner']}."}#{result['table_name']}"
+              else
+                return [result["owner"], result["table_name"]]
+              end
             end
           end
 

@@ -696,6 +696,18 @@ describe "OracleEnhancedConnection" do
       expect(resolve("all_tables")).to eq(["SYS", "ALL_TABLES"])
     end
 
+    it "raises when synonym resolution produces a looping chain" do
+      @conn.execute "CREATE SYNONYM test_cycle_a FOR test_cycle_b" rescue nil
+      @conn.execute "CREATE SYNONYM test_cycle_b FOR test_cycle_a" rescue nil
+      expect { resolve("test_cycle_a") }.to raise_error(
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException,
+        /looping chain of synonyms/
+      )
+    ensure
+      @conn.execute "DROP SYNONYM test_cycle_a" rescue nil
+      @conn.execute "DROP SYNONYM test_cycle_b" rescue nil
+    end
+
     it "raises ArgumentError when the name contains a db link" do
       expect { resolve("test@db_link") }.to raise_error(ArgumentError, /db link is not supported/)
     end
