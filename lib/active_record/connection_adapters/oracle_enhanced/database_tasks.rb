@@ -7,24 +7,44 @@ module ActiveRecord
   module ConnectionAdapters
     class OracleEnhancedAdapter
       class DatabaseTasks < ActiveRecord::Tasks::AbstractTasks
+        ORACLE_IDENTIFIER = /\A[[:alpha:]][\w$#]*\z/
+        # GRANT operand: one or more space-separated tokens consisting of
+        # word chars only. Covers system privileges (e.g. "create session",
+        # "CREATE ANY TABLE") and simple role names. Rejects separators such
+        # as `;`, `--`, `'`, `"`, as well as newlines/tabs — anything that
+        # could turn a single GRANT into multiple statements or otherwise
+        # make the operand hard to reason about.
+        ORACLE_PRIVILEGE = /\A\w+( \w+)*\z/
+
         def create
+          username = configuration_hash[:username].to_s
+          unless username.match?(ORACLE_IDENTIFIER)
+            raise ArgumentError, "Invalid Oracle identifier for :username: #{username.inspect}"
+          end
+          OracleEnhancedAdapter.permissions.each do |permission|
+            unless permission.to_s.match?(ORACLE_PRIVILEGE)
+              raise ArgumentError, "Invalid Oracle privilege in OracleEnhancedAdapter.permissions: #{permission.inspect}"
+            end
+          end
+          quoted_password = %("#{configuration_hash[:password].to_s.gsub('"', '""')}")
+
           system_password = ENV.fetch("ORACLE_SYSTEM_PASSWORD") {
             print "Please provide the SYSTEM password for your Oracle installation (set ORACLE_SYSTEM_PASSWORD to avoid this prompt)\n>"
             $stdin.gets.strip
           }
           establish_connection(configuration_hash.merge(username: "SYSTEM", password: system_password))
           begin
-            connection.execute "CREATE USER #{configuration_hash[:username]} IDENTIFIED BY #{configuration_hash[:password]}"
+            connection.execute "CREATE USER #{username} IDENTIFIED BY #{quoted_password}"
           rescue => e
             if /ORA-01920/.match?(e.message) # user name conflicts with another user or role name
-              connection.execute "ALTER USER #{configuration_hash[:username]} IDENTIFIED BY #{configuration_hash[:password]}"
+              connection.execute "ALTER USER #{username} IDENTIFIED BY #{quoted_password}"
             else
               raise e
             end
           end
 
           OracleEnhancedAdapter.permissions.each do |permission|
-            connection.execute "GRANT #{permission} TO #{configuration_hash[:username]}"
+            connection.execute "GRANT #{permission} TO #{username}"
           end
         end
 
