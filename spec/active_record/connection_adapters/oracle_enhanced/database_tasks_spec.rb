@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "active_record/connection_adapters/oracle_enhanced/database_tasks"
+require "active_support/testing/stream"
 require "stringio"
 require "tempfile"
 
@@ -62,6 +63,75 @@ describe "Oracle Enhanced adapter database tasks" do
     ensure
       $stdin = STDIN
       $stdout = STDOUT
+    end
+  end
+
+  describe "create input validation" do
+    around do |example|
+      original_stderr, $stderr = $stderr, StringIO.new
+      example.run
+    ensure
+      $stderr = original_stderr
+    end
+
+    it "raises ArgumentError before touching the database when :username is not an Oracle identifier" do
+      invalid_config = config.merge(username: "oracle;DROP USER system;--")
+      expect(ActiveRecord::Base).not_to receive(:establish_connection)
+      expect {
+        ActiveRecord::Tasks::DatabaseTasks.create(invalid_config)
+      }.to raise_error(ArgumentError, /Invalid Oracle identifier for :username/)
+    end
+
+    it "raises ArgumentError before touching the database when OracleEnhancedAdapter.permissions contains a statement separator" do
+      original_permissions = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions =
+        ["create session; DROP USER system;--"]
+      expect(ActiveRecord::Base).not_to receive(:establish_connection)
+      expect {
+        ActiveRecord::Tasks::DatabaseTasks.create(config.merge(username: "oracle_enhanced_test_user"))
+      }.to raise_error(ArgumentError, /Invalid Oracle privilege in OracleEnhancedAdapter.permissions/)
+    ensure
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions = original_permissions
+    end
+
+    it "raises ArgumentError before touching the database when OracleEnhancedAdapter.permissions contains a newline" do
+      original_permissions = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions = ["create\nsession"]
+      expect(ActiveRecord::Base).not_to receive(:establish_connection)
+      expect {
+        ActiveRecord::Tasks::DatabaseTasks.create(config.merge(username: "oracle_enhanced_test_user"))
+      }.to raise_error(ArgumentError, /Invalid Oracle privilege in OracleEnhancedAdapter.permissions/)
+    ensure
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions = original_permissions
+    end
+  end
+
+  describe "create password quoting" do
+    include ActiveSupport::Testing::Stream
+
+    let(:captured_sqls) { [] }
+    let(:fake_connection) do
+      double("connection").tap do |c|
+        allow(c).to receive(:execute) { |sql| captured_sqls << sql }
+      end
+    end
+
+    before do
+      allow(ActiveRecord::Base).to receive(:establish_connection)
+      allow(ActiveRecord::Base).to receive(:lease_connection).and_return(fake_connection)
+      ENV["ORACLE_SYSTEM_PASSWORD"] = "dummy"
+    end
+
+    after { ENV.delete("ORACLE_SYSTEM_PASSWORD") }
+
+    it "wraps :password as a double-quoted literal with embedded double quotes doubled" do
+      quietly do
+        ActiveRecord::Tasks::DatabaseTasks.create(
+          config.merge(username: "oracle_enhanced_test_user", password: %{p"w})
+        )
+      end
+      create_sql = captured_sqls.first
+      expect(create_sql).to eq(%{CREATE USER oracle_enhanced_test_user IDENTIFIED BY "p""w"})
     end
   end
 
