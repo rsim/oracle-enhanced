@@ -109,6 +109,31 @@ module ActiveRecord
           Cursor.new(self, @raw_connection.parse(sql))
         end
 
+        # Resolve a schema object (table, view, synonym) to [owner, object_name]
+        # in a single round trip via DBMS_UTILITY.NAME_RESOLVE. Private and
+        # public synonyms are chased server-side, and Oracle raises ORA-01775
+        # natively on a looping chain.
+        def name_resolve(name)
+          cursor = @raw_connection.parse(<<~PLSQL)
+            DECLARE
+              l_part2   VARCHAR2(128);
+              l_dblink  VARCHAR2(128);
+              l_type    NUMBER;
+              l_obj_num NUMBER;
+            BEGIN
+              DBMS_UTILITY.NAME_RESOLVE(:name, 0, :out_schema, :out_name,
+                                        l_part2, l_dblink, l_type, l_obj_num);
+            END;
+          PLSQL
+          cursor.bind_param(":name", name)
+          cursor.bind_param(":out_schema", nil, String, 128)
+          cursor.bind_param(":out_name", nil, String, 128)
+          cursor.exec
+          [cursor[":out_schema"], cursor[":out_name"]]
+        ensure
+          cursor&.close
+        end
+
         class Cursor
           def initialize(connection, raw_cursor)
             @raw_connection = connection

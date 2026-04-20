@@ -734,12 +734,28 @@ describe "OracleEnhancedConnection" do
       expect(resolve("all_tables")).to eq(["SYS", "ALL_TABLES"])
     end
 
+    # Mixed-case quoted identifiers need per-dotted-part quoting before
+    # reaching DBMS_UTILITY.NAME_RESOLVE: the schema should be upcased and
+    # left unquoted, but the case-preserving table name must be wrapped in
+    # double quotes so Oracle doesn't uppercase it away.
+    it "should resolve a mixed-case quoted table qualified with its owner" do
+      @conn.execute %{CREATE TABLE "test_Mixed_Case_Desc" (id NUMBER)} rescue nil
+      expect(resolve(%{#{@owner}.test_Mixed_Case_Desc})).to eq([@owner, "test_Mixed_Case_Desc"])
+    ensure
+      @conn.execute %{DROP TABLE "test_Mixed_Case_Desc"} rescue nil
+    end
+
+    # DBMS_UTILITY.NAME_RESOLVE chases synonyms server-side, so a circular
+    # chain surfaces as ORA-00980 ("synonym translation is no longer valid")
+    # rather than SQL's ORA-01775 ("looping chain of synonyms"). The thing
+    # that matters either way: no Ruby-side stack overflow, a clean
+    # ConnectionException.
     it "raises when synonym resolution produces a looping chain" do
       @conn.execute "CREATE SYNONYM test_cycle_a FOR test_cycle_b" rescue nil
       @conn.execute "CREATE SYNONYM test_cycle_b FOR test_cycle_a" rescue nil
       expect { resolve("test_cycle_a") }.to raise_error(
         ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException,
-        /looping chain of synonyms/
+        /ORA-00980/
       )
     ensure
       @conn.execute "DROP SYNONYM test_cycle_a" rescue nil
@@ -752,7 +768,7 @@ describe "OracleEnhancedConnection" do
       @conn.execute "CREATE SYNONYM test_cycle_c FOR test_cycle_a" rescue nil
       expect { resolve("test_cycle_a") }.to raise_error(
         ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException,
-        /looping chain of synonyms/
+        /ORA-00980/
       )
     ensure
       @conn.execute "DROP SYNONYM test_cycle_a" rescue nil
