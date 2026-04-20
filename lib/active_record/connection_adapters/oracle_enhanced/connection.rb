@@ -17,18 +17,6 @@ module ActiveRecord
         end
 
         attr_reader :raw_connection, :owner
-
-        private
-          # Oracle column names by default are case-insensitive, but treated as upcase;
-          # for neatness, we'll downcase within Rails. EXCEPT that folks CAN quote
-          # their column names when creating Oracle tables, which makes then case-sensitive.
-          # I don't know anybody who does this, but we'll handle the theoretical case of a
-          # camelCase column name. I imagine other dbs handle this different, since there's a
-          # unit test that's currently failing test_oci.
-          def _oracle_downcase(column_name)
-            return nil if column_name.nil?
-            /[a-z]/.match?(column_name) ? column_name : column_name.downcase
-          end
       end
 
       # Returns array with major and minor version of database (e.g. [12, 1])
