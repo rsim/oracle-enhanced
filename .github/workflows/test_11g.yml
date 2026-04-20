@@ -19,8 +19,6 @@ jobs:
       matrix:
         ruby: [
           '4.0',
-          '3.4',
-          '3.3',
           'jruby-10.0.5.0',
         ]
     env:
@@ -89,6 +87,14 @@ jobs:
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
+      - name: Lower OPTIMIZER_FEATURES_ENABLE for timing experiment
+        run: |
+          sqlplus -s sys/${DATABASE_SYS_PASSWORD}@${DATABASE_NAME} as sysdba <<'SQL'
+          WHENEVER SQLERROR EXIT SQL.SQLCODE;
+          ALTER SYSTEM SET OPTIMIZER_FEATURES_ENABLE = '11.1.0.7' SCOPE=MEMORY;
+          SHOW PARAMETER OPTIMIZER_FEATURES_ENABLE;
+          EXIT;
+          SQL
       - name: Update RubyGems
         run: |
           gem update --system || gem update --system 3.4.22
