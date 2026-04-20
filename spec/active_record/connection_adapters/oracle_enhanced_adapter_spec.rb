@@ -811,4 +811,32 @@ describe "OracleEnhancedAdapter" do
       expect(TestComment.where(test_post_id: TestPost.select(:id)).size).to eq(1)
     end
   end
+
+  describe "#same_schema_as_user?" do
+    after do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    end
+
+    it "returns true when :schema is not set" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      expect(ActiveRecord::Base.connection.same_schema_as_user?).to be true
+    end
+
+    it "returns true when :schema is blank" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(schema: ""))
+      expect(ActiveRecord::Base.connection.same_schema_as_user?).to be true
+    end
+
+    it "returns true when :schema matches :username case-insensitively" do
+      ActiveRecord::Base.establish_connection(
+        CONNECTION_PARAMS.merge(schema: CONNECTION_PARAMS[:username].upcase)
+      )
+      expect(ActiveRecord::Base.connection.same_schema_as_user?).to be true
+    end
+
+    it "returns false when :schema points to a different user" do
+      ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
+      expect(ActiveRecord::Base.connection.same_schema_as_user?).to be false
+    end
+  end
 end
