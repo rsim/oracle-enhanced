@@ -237,10 +237,6 @@ module ActiveRecord
           lob.write value
         end
 
-        def describe(name)
-          super
-        end
-
         # Return OCIError error code
         def error_code(exception)
           case exception
