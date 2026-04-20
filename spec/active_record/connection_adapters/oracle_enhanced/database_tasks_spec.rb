@@ -9,6 +9,29 @@ describe "Oracle Enhanced adapter database tasks" do
 
   let(:config) { CONNECTION_PARAMS.with_indifferent_access }
 
+  describe "check_current_protected_environment!" do
+    before do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      ActiveRecord::Base.connection_pool.schema_migration.create_table
+    end
+
+    after do
+      ActiveRecord::Base.connection_pool.schema_migration.drop_table
+    end
+
+    it "is dispatched from ActiveRecord::Tasks::DatabaseTasks#check_protected_environments!" do
+      original_configurations = ActiveRecord::Base.configurations
+      ActiveRecord::Base.configurations = {
+        "test" => CONNECTION_PARAMS.transform_keys(&:to_s)
+      }
+      expect {
+        ActiveRecord::Tasks::DatabaseTasks.check_protected_environments!("test")
+      }.not_to raise_error
+    ensure
+      ActiveRecord::Base.configurations = original_configurations
+    end
+  end
+
   describe "create" do
     let(:new_user_config) { config.merge(username: "oracle_enhanced_test_user") }
     before do
