@@ -13,3 +13,9 @@ GRANT unlimited tablespace, create session, create table, create sequence,
 create procedure, create trigger, create view, create materialized view,
 create database link, create synonym, create type, ctxapp,
 create public synonym, drop public synonym TO oracle_enhanced_schema;
+
+-- User for Rails multiple database tests.
+CREATE USER oracle_enhanced_remote IDENTIFIED BY oracle_enhanced_remote;
+
+GRANT create session, create table, create sequence, create trigger,
+unlimited tablespace TO oracle_enhanced_remote;
