@@ -451,15 +451,18 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   it "should raise error when current index name and new index name are identical" do
+    original_name = @conn.index_name("test_employees", column: "first_name")
     expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "i_test_employees_first_name")
+      @conn.rename_index("test_employees", original_name, original_name)
     end.to raise_error(ActiveRecord::StatementInvalid)
   end
 
   it "should raise error when new index name length is too long" do
-    skip if @oracle12cr2_or_higher
+    original_name = @conn.index_name("test_employees", column: "first_name")
+    too_long = "a" * (@conn.max_identifier_length + 1)
+
     expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "a" * 31)
+      @conn.rename_index("test_employees", original_name, too_long)
     end.to raise_error(ArgumentError)
   end
 
@@ -470,9 +473,9 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   it "should rename index name with new one" do
-    skip if @oracle12cr2_or_higher
+    original_name = @conn.index_name("test_employees", column: "first_name")
     expect do
-      @conn.rename_index("test_employees", "i_test_employees_first_name", "new_index_name")
+      @conn.rename_index("test_employees", original_name, "new_index_name")
     end.not_to raise_error
   end
 end
