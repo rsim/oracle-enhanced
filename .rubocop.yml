@@ -292,6 +292,9 @@ Style/RedundantDoubleSplatHashBraces:
 Style/OpenStructUse:
   Enabled: true
 
+Style/ArrayIntersect:
+  Enabled: true
+
 Performance/BindCall:
   Enabled: true
 
