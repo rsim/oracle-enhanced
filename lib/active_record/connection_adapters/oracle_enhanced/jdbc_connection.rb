@@ -306,6 +306,25 @@ module ActiveRecord
           @database_version ||= (md = raw_connection.getMetaData) && [md.getDatabaseMajorVersion, md.getDatabaseMinorVersion]
         end
 
+        # Resolve a schema object (table, view, synonym) to [owner, object_name]
+        # in a single round trip via DBMS_UTILITY.NAME_RESOLVE. Private and
+        # public synonyms are chased server-side, and Oracle raises ORA-01775
+        # natively on a looping chain.
+        def name_resolve(name)
+          cs = @raw_connection.prepareCall("BEGIN DBMS_UTILITY.NAME_RESOLVE(?, 0, ?, ?, ?, ?, ?, ?); END;")
+          cs.setString(1, name)
+          cs.registerOutParameter(2, java.sql.Types::VARCHAR) # schema
+          cs.registerOutParameter(3, java.sql.Types::VARCHAR) # part1 (object name)
+          cs.registerOutParameter(4, java.sql.Types::VARCHAR) # part2
+          cs.registerOutParameter(5, java.sql.Types::VARCHAR) # dblink
+          cs.registerOutParameter(6, java.sql.Types::NUMERIC) # part1_type
+          cs.registerOutParameter(7, java.sql.Types::NUMERIC) # object_number
+          cs.execute
+          [cs.getString(2), cs.getString(3)]
+        ensure
+          cs&.close
+        end
+
         class Cursor
           def initialize(connection, raw_statement, exec_sql = nil)
             @raw_connection = connection
