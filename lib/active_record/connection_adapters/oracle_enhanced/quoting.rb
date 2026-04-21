@@ -90,7 +90,7 @@ module ActiveRecord
         # and pound sign (#).
         # Oracle strongly discourages you from using $ and # in nonquoted identifiers.
         NONQUOTED_OBJECT_NAME = /[[:alpha:]][\w$#]{0,29}/
-        VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}?\Z/
+        VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}\Z/
 
         # unescaped table name should start with letter and
         # contain letters, digits, _, $ or #

@@ -114,6 +114,13 @@ describe "OracleEnhancedAdapter quoting" do
       expect(@adapter.valid_table_name?("abc.1xyz")).to be_falsey
       expect(@adapter.valid_table_name?("abc._xyz")).to be_falsey
     end
+
+    it "should not be valid when the object name part is missing" do
+      expect(@adapter.valid_table_name?("")).to be_falsey
+      expect(@adapter.valid_table_name?("schema.")).to be_falsey
+      expect(@adapter.valid_table_name?(".table")).to be_falsey
+      expect(@adapter.valid_table_name?("   ")).to be_falsey
+    end
   end
 
   describe "table quoting" do
