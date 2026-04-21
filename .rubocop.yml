@@ -221,6 +221,9 @@ Lint/RequireParentheses:
 Lint/RedundantCopDisableDirective:
   Enabled: true
 
+Lint/RedundantCopEnableDirective:
+  Enabled: true
+
 Lint/RedundantStringCoercion:
   Enabled: true
 
