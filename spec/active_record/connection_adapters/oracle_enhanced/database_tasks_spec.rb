@@ -135,6 +135,94 @@ describe "Oracle Enhanced adapter database tasks" do
     end
   end
 
+  describe "create with ORACLE_SYSTEM_USER" do
+    include ActiveSupport::Testing::Stream
+
+    let(:captured_connect_config) { {} }
+    let(:fake_connection) do
+      double("connection").tap { |c| allow(c).to receive(:execute) }
+    end
+
+    before do
+      allow(ActiveRecord::Base).to receive(:establish_connection) do |cfg|
+        captured_connect_config.replace(cfg)
+      end
+      allow(ActiveRecord::Base).to receive(:lease_connection).and_return(fake_connection)
+      ENV["ORACLE_SYSTEM_PASSWORD"] = "dummy"
+    end
+
+    after do
+      ENV.delete("ORACLE_SYSTEM_PASSWORD")
+      ENV.delete("ORACLE_SYSTEM_USER")
+    end
+
+    it "defaults to SYSTEM when ORACLE_SYSTEM_USER is unset" do
+      quietly do
+        ActiveRecord::Tasks::DatabaseTasks.create(config.merge(username: "oracle_enhanced_test_user"))
+      end
+      expect(captured_connect_config[:username]).to eq("SYSTEM")
+    end
+
+    it "uses the value of ORACLE_SYSTEM_USER when set (e.g. ADMIN on Oracle Cloud Autonomous Database)" do
+      ENV["ORACLE_SYSTEM_USER"] = "ADMIN"
+      quietly do
+        ActiveRecord::Tasks::DatabaseTasks.create(config.merge(username: "oracle_enhanced_test_user"))
+      end
+      expect(captured_connect_config[:username]).to eq("ADMIN")
+    end
+
+    it "falls back to SYSTEM when ORACLE_SYSTEM_USER is set but empty" do
+      ENV["ORACLE_SYSTEM_USER"] = ""
+      quietly do
+        ActiveRecord::Tasks::DatabaseTasks.create(config.merge(username: "oracle_enhanced_test_user"))
+      end
+      expect(captured_connect_config[:username]).to eq("SYSTEM")
+    end
+
+    it "falls back to SYSTEM when ORACLE_SYSTEM_USER is whitespace-only" do
+      ENV["ORACLE_SYSTEM_USER"] = "   "
+      quietly do
+        ActiveRecord::Tasks::DatabaseTasks.create(config.merge(username: "oracle_enhanced_test_user"))
+      end
+      expect(captured_connect_config[:username]).to eq("SYSTEM")
+    end
+
+    it "raises ArgumentError before touching the database when ORACLE_SYSTEM_USER is not an Oracle identifier" do
+      ENV["ORACLE_SYSTEM_USER"] = "oracle;DROP USER system;--"
+      quietly do
+        expect {
+          ActiveRecord::Tasks::DatabaseTasks.create(config.merge(username: "oracle_enhanced_test_user"))
+        }.to raise_error(ArgumentError, /Invalid Oracle identifier for ORACLE_SYSTEM_USER/)
+      end
+      expect(captured_connect_config).to be_empty
+    end
+
+    it "keeps the original 'SYSTEM password' prompt wording when ORACLE_SYSTEM_USER is unset" do
+      ENV.delete("ORACLE_SYSTEM_PASSWORD")
+      original_stdin = $stdin
+      $stdin = StringIO.new("pwd\n")
+      output = capture(:stdout) do
+        ActiveRecord::Tasks::DatabaseTasks.create(config.merge(username: "oracle_enhanced_test_user"))
+      end
+      expect(output).to include("Please provide the SYSTEM password")
+    ensure
+      $stdin = original_stdin
+    end
+
+    it "names the override user in the prompt when ORACLE_SYSTEM_USER is set and ORACLE_SYSTEM_PASSWORD is unset" do
+      ENV.delete("ORACLE_SYSTEM_PASSWORD")
+      ENV["ORACLE_SYSTEM_USER"] = "ADMIN"
+      original_stdin = $stdin
+      $stdin = StringIO.new("pwd\n")
+      output = capture(:stdout) do
+        ActiveRecord::Tasks::DatabaseTasks.create(config.merge(username: "oracle_enhanced_test_user"))
+      end
+      expect(output).to include("Please provide the ADMIN password")
+    ensure
+      $stdin = original_stdin
+    end
+  end
+
   context "with test table" do
     before(:all) do
       $stdout, @original_stdout = StringIO.new, $stdout
