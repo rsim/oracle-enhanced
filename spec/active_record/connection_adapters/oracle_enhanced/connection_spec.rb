@@ -590,6 +590,33 @@ describe "OracleEnhancedConnection" do
       expect(resolve("all_tables")).to eq(["SYS", "ALL_TABLES"])
     end
 
+    # Exercises all five catalog paths (table, view, materialized view,
+    # private synonym, public synonym) for one underlying table in a single
+    # run. The individual cases above use disjoint fixtures; this one proves
+    # the DECODE-ordered all_objects lookup + synonym follow-through stays
+    # consistent when a private and a public synonym to the same table
+    # coexist, and that a materialized view created on the same base table
+    # resolves to the MV name (not the base table) as a sibling data source.
+    it "resolves table, view, materialized view, private synonym and public synonym for the same underlying table" do
+      @conn.execute "CREATE TABLE test_describe_all (id NUMBER)" rescue nil
+      @conn.execute "CREATE VIEW test_describe_all_v AS SELECT * FROM test_describe_all" rescue nil
+      @conn.execute "CREATE MATERIALIZED VIEW test_describe_all_mv AS SELECT * FROM test_describe_all" rescue nil
+      @conn.execute "CREATE SYNONYM test_describe_all_syn FOR test_describe_all" rescue nil
+      @conn.execute "CREATE PUBLIC SYNONYM test_describe_all_pub FOR #{@owner}.test_describe_all" rescue nil
+
+      expect(resolve("test_describe_all")).to eq([@owner, "TEST_DESCRIBE_ALL"])
+      expect(resolve("test_describe_all_v")).to eq([@owner, "TEST_DESCRIBE_ALL_V"])
+      expect(resolve("test_describe_all_mv")).to eq([@owner, "TEST_DESCRIBE_ALL_MV"])
+      expect(resolve("test_describe_all_syn")).to eq([@owner, "TEST_DESCRIBE_ALL"])
+      expect(resolve("test_describe_all_pub")).to eq([@owner, "TEST_DESCRIBE_ALL"])
+    ensure
+      @conn.execute "DROP PUBLIC SYNONYM test_describe_all_pub" rescue nil
+      @conn.execute "DROP SYNONYM test_describe_all_syn" rescue nil
+      @conn.execute "DROP MATERIALIZED VIEW test_describe_all_mv" rescue nil
+      @conn.execute "DROP VIEW test_describe_all_v" rescue nil
+      @conn.execute "DROP TABLE test_describe_all" rescue nil
+    end
+
     it "raises when synonym resolution produces a looping chain" do
       @conn.execute "CREATE SYNONYM test_cycle_a FOR test_cycle_b" rescue nil
       @conn.execute "CREATE SYNONYM test_cycle_b FOR test_cycle_a" rescue nil

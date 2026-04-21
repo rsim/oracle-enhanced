@@ -758,30 +758,37 @@ module ActiveRecord
               binds = [
                 bind_string("table_owner", owner),
                 bind_string("table_name", identifier),
-                bind_string("table_owner", owner),
-                bind_string("table_name", identifier),
-                bind_string("table_owner", owner),
-                bind_string("table_name", identifier),
                 bind_string("real_name", real_name),
               ]
+              # Single-pass lookup against all_objects, ordered so the first row
+              # is the one the legacy 4-way UNION ALL (all_tables, all_views,
+              # owner synonym, public synonym) would have returned: prefer a
+              # match in the caller's schema over PUBLIC, and within a schema
+              # prefer TABLE over VIEW over SYNONYM.
               result = select_one(<<~SQL.squish, "SCHEMA", binds)
-                SELECT owner, table_name, 'TABLE' name_type
-                FROM all_tables WHERE owner = :table_owner AND table_name = :table_name
-                UNION ALL
-                SELECT owner, view_name table_name, 'VIEW' name_type
-                FROM all_views WHERE owner = :table_owner AND view_name = :table_name
-                UNION ALL
-                SELECT table_owner, table_name, 'SYNONYM' name_type
-                FROM all_synonyms WHERE owner = :table_owner AND synonym_name = :table_name
-                UNION ALL
-                SELECT table_owner, table_name, 'SYNONYM' name_type
-                FROM all_synonyms WHERE owner = 'PUBLIC' AND synonym_name = :real_name
+                SELECT owner, object_name table_name, object_type name_type
+                FROM all_objects
+                WHERE ((owner = :table_owner AND object_name = :table_name)
+                   OR (owner = 'PUBLIC' AND object_name = :real_name))
+                  AND object_type IN ('TABLE', 'VIEW', 'SYNONYM')
+                ORDER BY DECODE(owner, 'PUBLIC', 2, 1),
+                         DECODE(object_type, 'TABLE', 1, 'VIEW', 2, 'SYNONYM', 3)
               SQL
 
               raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?} unless result
 
               if result["name_type"] == "SYNONYM"
-                name = "#{result['owner'] && "#{result['owner']}."}#{result['table_name']}"
+                synonym_binds = [
+                  bind_string("owner", result["owner"]),
+                  bind_string("synonym_name", result["table_name"]),
+                ]
+                syn = select_one(<<~SQL.squish, "SCHEMA", synonym_binds)
+                  SELECT table_owner, table_name
+                  FROM all_synonyms
+                  WHERE owner = :owner AND synonym_name = :synonym_name
+                SQL
+                raise OracleEnhanced::ConnectionException, %Q{"DESC #{name}" failed; does it exist?} unless syn
+                name = "#{syn['table_owner'] && "#{syn['table_owner']}."}#{syn['table_name']}"
               else
                 return [result["owner"], result["table_name"]]
               end
