@@ -30,7 +30,7 @@ module ActiveRecord
 
         def explain(arel, binds = [], options = []) # :nodoc:
           sql = "EXPLAIN PLAN FOR #{to_sql(arel, binds)}"
-          return if /FROM all_/.match?(sql)
+          return if sql.include?("FROM all_")
           if ORACLE_ENHANCED_CONNECTION == :jdbc
             exec_query(sql, "EXPLAIN", binds)
           else
@@ -72,7 +72,7 @@ module ActiveRecord
 
                 cursor.bind_params(type_casted_binds)
 
-                if /:returning_id/.match?(sql)
+                if sql.include?(":returning_id")
                   # it currently expects that returning_id comes last part of binds
                   returning_id_index = binds.size
                   cursor.bind_returning_param(returning_id_index, Integer)

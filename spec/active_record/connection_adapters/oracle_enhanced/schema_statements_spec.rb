@@ -1221,7 +1221,7 @@ end
         @conn.create_table :tablespace_tests do |t|
           t.string :foo
         end
-        expect(@would_execute_sql).to match(/CREATE +TABLE .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/)
+        expect(@would_execute_sql).to match(/CREATE +TABLE .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/o)
       end
     end
 
@@ -1259,7 +1259,7 @@ end
         add_index :keyboards, :name
       end
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces.delete(:index)
-      expect(@would_execute_sql).to match(/CREATE +INDEX .* ON .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/)
+      expect(@would_execute_sql).to match(/CREATE +INDEX .* ON .* \(.*\) TABLESPACE #{DATABASE_NON_DEFAULT_TABLESPACE}/o)
     end
 
     it "should create unique function index but not create unique constraints" do
