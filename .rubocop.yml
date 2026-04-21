@@ -79,6 +79,7 @@ Lint/SafeNavigationChain:
 # Use Ruby >= 1.9 syntax for hashes. Prefer { a: :b } over { :a => :b }.
 Style/HashSyntax:
   Enabled: true
+  EnforcedShorthandSyntax: either
 
 # Method definitions after `private` or `protected` isolated calls need one
 # extra level of indentation.
@@ -151,6 +152,7 @@ Layout/SpaceBeforeBlockBraces:
 # Use `foo { bar }` not `foo {bar}`.
 Layout/SpaceInsideBlockBraces:
   Enabled: true
+  EnforcedStyleForEmptyBraces: space
 
 # Use `{ a: 1 }` not `{a:1}`.
 Layout/SpaceInsideHashLiteralBraces:
@@ -180,6 +182,9 @@ Layout/TrailingWhitespace:
 Style/RedundantPercentQ:
   Enabled: true
 
+Lint/NestedMethodDefinition:
+  Enabled: true
+
 Lint/AmbiguousOperator:
   Enabled: true
 
@@ -194,6 +199,9 @@ Lint/Debugger:
 Lint/DuplicateRequire:
   Enabled: true
 
+Lint/DuplicateMagicComment:
+  Enabled: true
+
 Lint/DuplicateMethods:
   Enabled: true
 
@@ -203,11 +211,26 @@ Lint/ErbNewArguments:
 Lint/EnsureReturn:
   Enabled: true
 
+Lint/MissingCopEnableDirective:
+  Enabled: true
+
 # Use my_method(my_arg) not my_method( my_arg ) or my_method my_arg.
 Lint/RequireParentheses:
   Enabled: true
 
+Lint/RedundantCopDisableDirective:
+  Enabled: true
+
+Lint/RedundantCopEnableDirective:
+  Enabled: true
+
+Lint/RedundantRequireStatement:
+  Enabled: true
+
 Lint/RedundantStringCoercion:
+  Enabled: true
+
+Lint/RedundantSafeNavigation:
   Enabled: true
 
 Lint/UriEscapeUnescape:
@@ -218,6 +241,16 @@ Lint/UselessAssignment:
 
 Lint/DeprecatedClassMethods:
   Enabled: true
+
+Lint/InterpolationCheck:
+  Enabled: true
+  Exclude:
+    - '**/spec/**/*'
+
+Style/EvalWithLocation:
+  Enabled: true
+  Exclude:
+    - '**/spec/**/*'
 
 Style/ParenthesesAroundCondition:
   Enabled: true
@@ -251,6 +284,18 @@ Style/TrivialAccessors:
 
 # Prefer a = b || c over a = b ? b : c
 Style/RedundantCondition:
+  Enabled: true
+
+Style/RedundantDoubleSplatHashBraces:
+  Enabled: true
+
+Style/OpenStructUse:
+  Enabled: true
+
+Style/ArrayIntersect:
+  Enabled: true
+
+Style/KeywordArgumentsMerging:
   Enabled: true
 
 Performance/BindCall:
@@ -293,7 +338,16 @@ Performance/DeletePrefix:
 Performance/DeleteSuffix:
   Enabled: true
 
-Performance/OpenStruct:
+Performance/InefficientHashSearch:
+  Enabled: true
+
+Performance/ConstantRegexp:
+  Enabled: true
+
+Performance/RedundantStringChars:
+  Enabled: true
+
+Performance/StringInclude:
   Enabled: true
 
 # RuboCop RSpec cops

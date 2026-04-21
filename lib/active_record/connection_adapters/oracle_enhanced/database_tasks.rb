@@ -36,7 +36,7 @@ module ActiveRecord
           begin
             connection.execute "CREATE USER #{username} IDENTIFIED BY #{quoted_password}"
           rescue => e
-            if /ORA-01920/.match?(e.message) # user name conflicts with another user or role name
+            if e.message.include?("ORA-01920") # user name conflicts with another user or role name
               connection.execute "ALTER USER #{username} IDENTIFIED BY #{quoted_password}"
             else
               raise e

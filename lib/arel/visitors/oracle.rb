@@ -13,7 +13,7 @@ module Arel # :nodoc: all
 
           # if need to select first records without ORDER BY and GROUP BY and without DISTINCT
           # then can use simple ROWNUM in WHERE clause
-          if o.limit && o.orders.empty? && o.cores.first.groups.empty? && !o.offset && !o.cores.first.set_quantifier.class.to_s.match?(/Distinct/)
+          if o.limit && o.orders.empty? && o.cores.first.groups.empty? && !o.offset && !o.cores.first.set_quantifier.class.to_s.include?("Distinct")
             o.cores.last.wheres.push Nodes::LessThanOrEqual.new(
               Nodes::SqlLiteral.new("ROWNUM"), o.limit.expr
             )
@@ -155,7 +155,7 @@ module Arel # :nodoc: all
           return o if o.orders.empty?
           return o unless o.cores.any? do |core|
             core.projections.any? do |projection|
-              /FIRST_VALUE/ === projection
+              projection.to_s.include?("FIRST_VALUE")
             end
           end
           # Previous version with join and split broke ORDER BY clause
