@@ -247,6 +247,11 @@ Lint/InterpolationCheck:
   Exclude:
     - '**/spec/**/*'
 
+Style/EvalWithLocation:
+  Enabled: true
+  Exclude:
+    - '**/spec/**/*'
+
 Style/ParenthesesAroundCondition:
   Enabled: true
 
