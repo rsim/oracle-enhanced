@@ -26,13 +26,21 @@ module ActiveRecord
               raise ArgumentError, "Invalid Oracle privilege in OracleEnhancedAdapter.permissions: #{permission.inspect}"
             end
           end
+          # Oracle Autonomous Database (OCI) ships with ADMIN -- not SYSTEM --
+          # as the predefined administrative user, so the caller needs a way
+          # to override the default. See
+          # https://docs.oracle.com/en-us/iaas/autonomous-database-serverless/doc/autonomous-admin-user-roles.html
+          system_username = ENV["ORACLE_SYSTEM_USER"].presence || "SYSTEM"
+          unless system_username.match?(ORACLE_IDENTIFIER)
+            raise ArgumentError, "Invalid Oracle identifier for ORACLE_SYSTEM_USER: #{system_username.inspect}"
+          end
           quoted_password = %("#{configuration_hash[:password].to_s.gsub('"', '""')}")
 
           system_password = ENV.fetch("ORACLE_SYSTEM_PASSWORD") {
-            print "Please provide the SYSTEM password for your Oracle installation (set ORACLE_SYSTEM_PASSWORD to avoid this prompt)\n>"
+            print "Please provide the #{system_username} password for your Oracle installation (set ORACLE_SYSTEM_PASSWORD to avoid this prompt)\n>"
             $stdin.gets.strip
           }
-          establish_connection(configuration_hash.merge(username: "SYSTEM", password: system_password))
+          establish_connection(configuration_hash.merge(username: system_username, password: system_password))
           begin
             connection.execute "CREATE USER #{username} IDENTIFIED BY #{quoted_password}"
           rescue => e
