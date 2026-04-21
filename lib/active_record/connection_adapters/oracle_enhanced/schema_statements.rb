@@ -324,17 +324,17 @@ module ActiveRecord
           # sometimes options can be String or Array with column names
           options = {} unless options.is_a?(Hash)
           identifier_max_length = options[:identifier_max_length] || index_name_length
-          return default_name if default_name.length <= identifier_max_length
+          return default_name if default_name.bytesize <= identifier_max_length
 
           # remove 'index', 'on' and 'and' keywords
           shortened_name = "i_#{table_name}_#{Array(options[:column]) * '_'}"
 
           # leave just first three letters from each word
-          if shortened_name.length > identifier_max_length
+          if shortened_name.bytesize > identifier_max_length
             shortened_name = shortened_name.split("_").map { |w| w[0, 3] }.join("_")
           end
           # generate unique name using hash function
-          if shortened_name.length > identifier_max_length
+          if shortened_name.bytesize > identifier_max_length
             shortened_name = "i" + OpenSSL::Digest::SHA1.hexdigest(default_name)[0, identifier_max_length - 1]
           end
           @logger.warn "#{adapter_name} shortened default index name #{default_name} to #{shortened_name}" if @logger
