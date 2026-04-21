@@ -96,9 +96,25 @@ module ActiveRecord
         # contain letters, digits, _, $ or #
         # can be prefixed with schema name
         # CamelCase table names should be quoted
-        def self.valid_table_name?(name) # :nodoc:
+        # The +max_identifier_length+ argument is the byte limit Oracle
+        # enforces for the connection (30 on pre-12.2, 128 on 12.2+). The
+        # grammar regex itself no longer encodes a length bound; bytesize
+        # is checked separately per component because Oracle applies the
+        # limit to each identifier, not to the full +schema.table+ string.
+        # Omitting the argument is deprecated and falls back to the legacy
+        # 30 byte bound with a warning.
+        def self.valid_table_name?(name, max_identifier_length: nil) # :nodoc:
+          if max_identifier_length.nil?
+            OracleEnhanced.deprecator.deprecation_warning(
+              "ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name? called without `max_identifier_length:`",
+              "pass `max_identifier_length:` explicitly; the implicit 30 byte default will be removed"
+            )
+            max_identifier_length = 30
+          end
           object_name = name.to_s
-          !!(object_name =~ VALID_TABLE_NAME && !mixed_case?(object_name))
+          return false unless /\A(?:[[:alpha:]][\w$#]*\.)?[[:alpha:]][\w$#]*\Z/.match?(object_name)
+          return false unless object_name.split(".").all? { |part| part.bytesize <= max_identifier_length }
+          !mixed_case?(object_name)
         end
 
         def self.mixed_case?(name)

@@ -330,13 +330,14 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     after(:each) do
+      long_name = ("a" * (@conn.max_identifier_length - 3)).to_sym
       schema_define do
         drop_table :test_employees_no_primary_key, if_exists: true
         drop_table :test_employees, if_exists: true
         drop_table :new_test_employees, if_exists: true
         drop_table :test_employees_no_pkey, if_exists: true
         drop_table :new_test_employees_no_pkey, if_exists: true
-        drop_table :aaaaaaaaaaaaaaaaaaaaaaaaaaa, if_exists: true
+        drop_table long_name, if_exists: true
       end
     end
 
@@ -348,14 +349,25 @@ describe "OracleEnhancedAdapter schema definition" do
 
     it "should raise error when new table name length is too long" do
       expect do
-        @conn.rename_table("test_employees", "a" * 31)
+        @conn.rename_table("test_employees", "a" * (@conn.max_identifier_length + 1))
       end.to raise_error(ArgumentError)
     end
 
     it "should not raise error when new sequence name length is too long" do
       expect do
-        @conn.rename_table("test_employees", "a" * 27)
+        @conn.rename_table("test_employees", "a" * (@conn.max_identifier_length - 3))
       end.not_to raise_error
+    end
+
+    it "measures new table name length in bytes, not characters" do
+      # "é" is 2 bytes in UTF-8, so half the max in chars is the full max
+      # in bytes. The check fires on bytesize before any SQL is issued.
+      multibyte_name = "é" * ((@conn.max_identifier_length / 2) + 1)
+      expect(multibyte_name.bytesize).to be > @conn.max_identifier_length
+      expect(multibyte_name.length).to be <= @conn.max_identifier_length
+      expect do
+        @conn.rename_table("test_employees", multibyte_name)
+      end.to raise_error(ArgumentError)
     end
 
     it "should rename table when table has no primary key and sequence" do

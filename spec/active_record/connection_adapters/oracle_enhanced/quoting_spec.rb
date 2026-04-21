@@ -66,60 +66,83 @@ describe "OracleEnhancedAdapter quoting" do
       @adapter = ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting
     end
 
+    def valid?(name, max_identifier_length: 128)
+      @adapter.valid_table_name?(name, max_identifier_length: max_identifier_length)
+    end
+
     it "should be valid with letters and digits" do
-      expect(@adapter.valid_table_name?("abc_123")).to be_truthy
+      expect(valid?("abc_123")).to be_truthy
     end
 
     it "should be valid with schema name" do
-      expect(@adapter.valid_table_name?("abc_123.def_456")).to be_truthy
+      expect(valid?("abc_123.def_456")).to be_truthy
     end
 
     it "should be valid with schema name and object name in different case" do
-      expect(@adapter.valid_table_name?("TEST_DBA.def_456")).to be_truthy
+      expect(valid?("TEST_DBA.def_456")).to be_truthy
     end
 
     it "should be valid with $ in name" do
-      expect(@adapter.valid_table_name?("sys.v$session")).to be_truthy
+      expect(valid?("sys.v$session")).to be_truthy
     end
 
     it "should be valid with upcase schema name" do
-      expect(@adapter.valid_table_name?("ABC_123.DEF_456")).to be_truthy
+      expect(valid?("ABC_123.DEF_456")).to be_truthy
     end
 
     it "should not be valid with two dots in name" do
-      expect(@adapter.valid_table_name?("abc_123.def_456.ghi_789")).to be_falsey
+      expect(valid?("abc_123.def_456.ghi_789")).to be_falsey
     end
 
     it "should not be valid with invalid characters" do
-      expect(@adapter.valid_table_name?("warehouse-things")).to be_falsey
+      expect(valid?("warehouse-things")).to be_falsey
     end
 
     it "should not be valid with for camel-case" do
-      expect(@adapter.valid_table_name?("Abc")).to be_falsey
-      expect(@adapter.valid_table_name?("aBc")).to be_falsey
-      expect(@adapter.valid_table_name?("abC")).to be_falsey
+      expect(valid?("Abc")).to be_falsey
+      expect(valid?("aBc")).to be_falsey
+      expect(valid?("abC")).to be_falsey
     end
 
-    it "should not be valid for names > 30 characters" do
-      expect(@adapter.valid_table_name?("a" * 31)).to be_falsey
+    it "honors the per-call max_identifier_length bound" do
+      expect(valid?("a" * 30, max_identifier_length: 30)).to be_truthy
+      expect(valid?("a" * 31, max_identifier_length: 30)).to be_falsey
+      expect(valid?("a" * 128, max_identifier_length: 128)).to be_truthy
+      expect(valid?("a" * 129, max_identifier_length: 128)).to be_falsey
     end
 
-    it "should not be valid for schema names > 30 characters" do
-      expect(@adapter.valid_table_name?(("a" * 31) + ".validname")).to be_falsey
+    it "applies max_identifier_length per identifier component, not to the full schema.table string" do
+      expect(valid?(("a" * 100) + "." + ("a" * 100))).to be_truthy
+      expect(valid?(("a" * 129) + "." + ("a" * 100))).to be_falsey
+      expect(valid?(("a" * 100) + "." + ("a" * 129))).to be_falsey
+    end
+
+    it "should not be valid for schema names > max_identifier_length" do
+      expect(valid?(("a" * 129) + ".validname")).to be_falsey
     end
 
     it "should not be valid for names that do not begin with alphabetic characters" do
-      expect(@adapter.valid_table_name?("1abc")).to be_falsey
-      expect(@adapter.valid_table_name?("_abc")).to be_falsey
-      expect(@adapter.valid_table_name?("abc.1xyz")).to be_falsey
-      expect(@adapter.valid_table_name?("abc._xyz")).to be_falsey
+      expect(valid?("1abc")).to be_falsey
+      expect(valid?("_abc")).to be_falsey
+      expect(valid?("abc.1xyz")).to be_falsey
+      expect(valid?("abc._xyz")).to be_falsey
     end
 
     it "should not be valid when the object name part is missing" do
-      expect(@adapter.valid_table_name?("")).to be_falsey
-      expect(@adapter.valid_table_name?("schema.")).to be_falsey
-      expect(@adapter.valid_table_name?(".table")).to be_falsey
-      expect(@adapter.valid_table_name?("   ")).to be_falsey
+      expect(valid?("")).to be_falsey
+      expect(valid?("schema.")).to be_falsey
+      expect(valid?(".table")).to be_falsey
+      expect(valid?("   ")).to be_falsey
+    end
+
+    it "warns and falls back to the legacy 30-byte bound when max_identifier_length: is omitted" do
+      expect { @adapter.valid_table_name?("a" * 30) }
+        .to output(/valid_table_name\? called without.*max_identifier_length.*activerecord-oracle_enhanced-adapter/m)
+        .to_stderr
+      ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
+        expect(@adapter.valid_table_name?("a" * 30)).to be_truthy
+        expect(@adapter.valid_table_name?("a" * 31)).to be_falsey
+      end
     end
   end
 

@@ -36,7 +36,7 @@ module ActiveRecord
           else
             default_owner = current_schema
           end
-          real_name = OracleEnhanced::Quoting.valid_table_name?(table_name) ?
+          real_name = OracleEnhanced::Quoting.valid_table_name?(table_name, max_identifier_length: max_identifier_length) ?
             table_name.upcase : table_name
           if real_name.include?(".")
             table_owner, table_name = real_name.split(".")
@@ -253,8 +253,8 @@ module ActiveRecord
         end
 
         def rename_table(table_name, new_name, **options) # :nodoc:
-          if new_name.to_s.length > DatabaseLimits::IDENTIFIER_MAX_LENGTH
-            raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{DatabaseLimits::IDENTIFIER_MAX_LENGTH} characters"
+          if new_name.to_s.bytesize > max_identifier_length
+            raise ArgumentError, "New table name '#{new_name}' is too long; the limit is #{max_identifier_length} bytes"
           end
           schema_cache.clear_data_source_cache!(table_name.to_s)
           schema_cache.clear_data_source_cache!(new_name.to_s)
@@ -803,7 +803,7 @@ module ActiveRecord
             string = string.to_s
             raise ArgumentError, "db link is not supported" if string.include?("@")
 
-            string = string.upcase if OracleEnhanced::Quoting.valid_table_name?(string)
+            string = string.upcase if OracleEnhanced::Quoting.valid_table_name?(string, max_identifier_length: max_identifier_length)
             schema, identifier = string.split(".") if string.include?(".")
             [schema, identifier || string]
           end
