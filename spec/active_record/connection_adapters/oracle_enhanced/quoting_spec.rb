@@ -146,6 +146,26 @@ describe "OracleEnhancedAdapter quoting" do
     end
   end
 
+  describe "deprecated Quoting constants" do
+    let(:quoting) { ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting }
+
+    it "emits a deprecation warning and returns the legacy 30-byte grammar for NONQUOTED_OBJECT_NAME" do
+      nonquoted = nil
+      expect { nonquoted = quoting::NONQUOTED_OBJECT_NAME }
+        .to output(/NONQUOTED_OBJECT_NAME is deprecated.*activerecord-oracle_enhanced-adapter.*a future version/m)
+        .to_stderr
+      expect(nonquoted).to eq(/[[:alpha:]][\w$#]{0,29}/)
+    end
+
+    it "emits a deprecation warning and returns the legacy 30-byte grammar for VALID_TABLE_NAME" do
+      valid_table_name = nil
+      expect { valid_table_name = quoting::VALID_TABLE_NAME }
+        .to output(/VALID_TABLE_NAME is deprecated.*activerecord-oracle_enhanced-adapter.*a future version/m)
+        .to_stderr
+      expect(valid_table_name).to eq(/\A(?:[[:alpha:]][\w$#]{0,29}\.)?[[:alpha:]][\w$#]{0,29}\Z/)
+    end
+  end
+
   describe "table quoting" do
     def create_warehouse_things_table
       ActiveRecord::Schema.define do
