@@ -104,6 +104,40 @@ describe "OracleEnhancedAdapter schema definition" do
       tname = "#{DATABASE_USER}" + "." + "a" * (seq_name_length - DATABASE_USER.length) + "z" * (DATABASE_USER).length
       expect(ActiveRecord::Base.connection.default_sequence_name(tname)).to match (/z_seq$/)
     end
+
+    it "truncates the trailing identifier by bytes for multibyte names" do
+      conn = ActiveRecord::Base.connection
+      max = conn.sequence_name_length
+      # "é" is 2 bytes in UTF-8. Build a name that exceeds the byte budget.
+      name = "é" * max # 2 * max bytes, definitely over
+      seq = conn.default_sequence_name(name)
+      expect(seq).to end_with("_seq")
+      expect(seq.bytesize).to be <= max
+    end
+
+    it "preserves a schema prefix when truncating multibyte names" do
+      conn = ActiveRecord::Base.connection
+      max = conn.sequence_name_length
+      name = "schema." + ("é" * max)
+      seq = conn.default_sequence_name(name)
+      expect(seq).to start_with("schema.")
+      expect(seq).to end_with("_seq")
+      table_part = seq.delete_prefix("schema.")
+      expect(table_part.bytesize).to be <= max
+    end
+
+    it "backs off a byte when the naive byte slice would land mid-character" do
+      conn = ActiveRecord::Base.connection
+      # Craft a name whose `max - 4` byte boundary lands in the middle of
+      # a 2-byte character.
+      max = conn.sequence_name_length
+      ascii_prefix = "a" * (max - 4 - 1) # ends 1 byte short of budget
+      name = ascii_prefix + "é" * 4      # é straddles the budget boundary
+      seq = conn.default_sequence_name(name)
+      expect(seq).to end_with("_seq")
+      expect(seq.bytesize).to be <= max
+      expect(seq).to be_valid_encoding
+    end
   end
 
   describe "sequence creation parameters" do
@@ -365,6 +399,21 @@ describe "OracleEnhancedAdapter schema definition" do
           "i" + OpenSSL::Digest::SHA1.hexdigest("index_test_employees_on_first_name_and_middle_name_and_last_name")[0, 29]
         )
       end
+    end
+
+    it "measures default index name length in bytes, not characters" do
+      max = @conn.index_name_length
+      # "index_t_on_<col>" fits in `max` characters but overflows in bytes
+      # when <col> is multibyte. Without bytesize-awareness this would be
+      # returned unchanged and Oracle would reject it.
+      col = "é" * (max - "index_t_on_".length)
+      default = "index_t_on_#{col}"
+      expect(default.length).to eq(max)
+      expect(default.bytesize).to be > max
+
+      name = @conn.index_name("t", column: col)
+      expect(name.bytesize).to be <= max
+      expect(name).not_to eq(default)
     end
   end
 

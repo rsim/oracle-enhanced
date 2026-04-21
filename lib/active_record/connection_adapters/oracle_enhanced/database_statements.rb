@@ -138,9 +138,26 @@ module ActiveRecord
         end
 
         # Returns default sequence name for table.
-        # Will take all or first 26 characters of table name and append _seq suffix
+        # Truncates the trailing identifier component (after the last +.+) by
+        # bytes so the result fits within +sequence_name_length+, leaving room
+        # for the +_seq+ suffix. Byte-based to match Oracle's enforcement.
+        # Character class is +[[:word:]$#-]+: +[[:word:]]+ (Unicode-aware,
+        # vs ASCII-only +\w+) plus +$+ and +#+ to match Oracle's unquoted
+        # identifier rules (see +Quoting::NONQUOTED_OBJECT_NAME+), with +-+
+        # kept for backward compatibility with quoted-identifier callers.
         def default_sequence_name(table_name, primary_key = nil)
-          table_name.to_s.gsub((/(^|\.)([\w$-]{1,#{sequence_name_length - 4}})([\w$-]*)$/), '\1\2_seq')
+          table_name.to_s.gsub(/(\A|\.)([[:word:]$#-]+)\z/) do
+            prefix = Regexp.last_match(1)
+            name = Regexp.last_match(2)
+            max_bytes = sequence_name_length - 4
+            if name.bytesize > max_bytes
+              name = name.byteslice(0, max_bytes)
+              # Back off a byte at a time if the slice fell in the middle of a
+              # multibyte character.
+              name = name.byteslice(0, name.bytesize - 1) until name.bytesize.zero? || name.valid_encoding?
+            end
+            "#{prefix}#{name}_seq"
+          end
         end
 
         # Inserts the given fixture into the table. Overridden to properly handle lobs.
