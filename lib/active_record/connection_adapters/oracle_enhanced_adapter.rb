@@ -180,14 +180,45 @@ module ActiveRecord
 
       ##
       # :singleton-method:
-      # By default, OracleEnhanced adapter will use Oracle12 visitor
-      # if database version is Oracle 12.1.
-      # If you wish to use Oracle visitor which is intended to work with Oracle 11.2 or lower
-      # for Oracle 12.1 database you can add the following line to your initializer file:
+      # Selects the Arel visitor used to compile SQL for the connection.
       #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor = true
-      cattr_accessor :use_old_oracle_visitor
-      self.use_old_oracle_visitor = false
+      # * +:auto+ (default) — pick based on the connected database version:
+      #   +Arel::Visitors::Oracle12+ on Oracle 12.1+, +Arel::Visitors::Oracle+
+      #   (ROWNUM-based LIMIT/OFFSET) on earlier releases.
+      # * +:rownum+ — force +Arel::Visitors::Oracle+ regardless of version.
+      # * +:fetch_first+ — force +Arel::Visitors::Oracle12+ regardless of
+      #   version.
+      #
+      # Set per connection via database.yml:
+      #
+      #   production:
+      #     adapter: oracle_enhanced
+      #     arel_visitor: rownum
+      #
+      # The class-level +use_old_oracle_visitor+ getter is retained as a
+      # fallback default when no per-connection +arel_visitor+ key is given
+      # (+true+ maps to +:rownum+). Its setter is deprecated.
+      @@use_old_oracle_visitor = false
+
+      def self.use_old_oracle_visitor
+        @@use_old_oracle_visitor
+      end
+
+      def self.use_old_oracle_visitor=(value)
+        OracleEnhanced.deprecator.deprecation_warning(
+          "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor=",
+          "set `arel_visitor: rownum` per connection in database.yml instead"
+        )
+        @@use_old_oracle_visitor = value
+      end
+
+      def use_old_oracle_visitor
+        self.class.use_old_oracle_visitor
+      end
+
+      def use_old_oracle_visitor=(value)
+        self.class.use_old_oracle_visitor = value
+      end
 
       ##
       # :singleton-method:
@@ -275,6 +306,11 @@ module ActiveRecord
         @notice_receiver_sql_warnings = []
 
         configure_connection
+
+        # AbstractAdapter#initialize memoized @visitor before `connect` ran,
+        # when `database_version` was not yet callable. Recompute now that the
+        # connection is live so :auto can see the real server version.
+        @visitor = arel_visitor
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -339,12 +375,7 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        false
-
-        # TODO: At this point the connection is not initialized yet,
-        # so `database_version` raises an error
-        #
-        # !use_old_oracle_visitor && database_version.first >= 12
+        resolved_arel_visitor_mode == :fetch_first
       end
 
       def supports_datetime_with_precision?
@@ -889,11 +920,44 @@ module ActiveRecord
       ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
 
       private
+        AREL_VISITOR_MODES = %i[auto rownum fetch_first].freeze
+        private_constant :AREL_VISITOR_MODES
+
         def arel_visitor
-          if supports_fetch_first_n_rows_and_offset?
+          case resolved_arel_visitor_mode
+          when :fetch_first
             Arel::Visitors::Oracle12.new(self)
-          else
+          when :rownum
             Arel::Visitors::Oracle.new(self)
+          end
+        end
+
+        def resolved_arel_visitor_mode
+          # Safe default during AbstractAdapter#initialize, before `connect`
+          # has set @raw_connection. The resulting visitor is overwritten at
+          # the end of our own #initialize once database_version is callable.
+          return :rownum unless @raw_connection
+
+          mode = configured_arel_visitor_mode
+          return mode unless mode == :auto
+
+          database_version.first >= 12 ? :fetch_first : :rownum
+        end
+
+        def configured_arel_visitor_mode
+          per_connection = @config[:arel_visitor] if @config.key?(:arel_visitor)
+
+          if per_connection.nil?
+            self.class.use_old_oracle_visitor ? :rownum : :auto
+          else
+            unless per_connection.is_a?(String) || per_connection.is_a?(Symbol)
+              raise ArgumentError, "arel_visitor must be a String or Symbol (got #{per_connection.inspect}). Expected one of #{AREL_VISITOR_MODES.inspect}."
+            end
+            mode = per_connection.to_sym
+            unless AREL_VISITOR_MODES.include?(mode)
+              raise ArgumentError, "Unknown arel_visitor #{mode.inspect}. Expected one of #{AREL_VISITOR_MODES.inspect}."
+            end
+            mode
           end
         end
 

@@ -330,15 +330,28 @@ ActiveSupport.on_load(:active_record) do
     # start primary key sequences from 1 (and not 10000) and take just one next value in each session
     self.default_sequence_start_value = "1 NOCACHE INCREMENT BY 1"
 
-    # Use old visitor for Oracle 12c database
-    self.use_old_oracle_visitor = true
-
     # other settings ...
   end
 end
 ```
 
 In case of Rails 2 application you do not need to use `ActiveSupport.on_load(:active_record) do ... end` around settings code block.
+
+To pick the Arel visitor used for a given connection, set `arel_visitor` in `database.yml`:
+
+```yaml
+production:
+  adapter: oracle_enhanced
+  arel_visitor: rownum
+```
+
+Accepted values:
+
+* `auto` (default) — use `Arel::Visitors::Oracle12` on Oracle 12.1+, fall back to `Arel::Visitors::Oracle` (ROWNUM-based `LIMIT`/`OFFSET`) on earlier releases.
+* `rownum` — force `Arel::Visitors::Oracle`.
+* `fetch_first` — force `Arel::Visitors::Oracle12`.
+
+The older `ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor = true` setter still works as a global fallback (equivalent to `arel_visitor: rownum`) but is deprecated and will be removed in a future release.
 
 See other adapter settings in [oracle_enhanced_adapter.rb](http://github.com/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb).
 
