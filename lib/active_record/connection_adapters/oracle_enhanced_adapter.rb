@@ -202,11 +202,12 @@ module ActiveRecord
       # Controls the identifier length used by the adapter.
       #
       # Accepts:
-      # * +:auto+ (default) — use 128 byte identifiers on Oracle 12.2+, fall back
-      #   to 30 bytes on older databases.
+      # * +:auto+ (default) — use 128 byte identifiers on Oracle 12.2+, silently
+      #   fall back to 30 bytes on older databases.
       # * +:short+ — force the 30 byte limit on every database version.
-      # * +:long+ — request 128 byte identifiers; silently falls back to 30 bytes
-      #   on pre-12.2 databases (same effective behavior as +:auto+ there).
+      # * +:long+ — request 128 byte identifiers. On pre-12.2 databases the
+      #   adapter emits a warning and falls back to 30 bytes (use +:auto+ if you
+      #   want the fallback without the warning).
       #
       # Can be set globally in an initializer:
       #
@@ -406,11 +407,24 @@ module ActiveRecord
                else
                  raise ArgumentError, "identifier_max_length must be :auto, :short, or :long; got #{raw.inspect}"
         end
+        twelve_two = Gem::Version.new(database_version.join(".")) >= Gem::Version.new("12.2")
         case mode
         when :short
           false
-        when :auto, :long
-          Gem::Version.new(database_version.join(".")) >= Gem::Version.new("12.2")
+        when :auto
+          twelve_two
+        when :long
+          if twelve_two
+            true
+          else
+            # Warn once per connection so a misconfigured :long against a pre-12.2 database is visible,
+            # without spamming every max_identifier_length lookup.
+            unless @identifier_max_length_long_warned
+              warn "[oracle_enhanced] identifier_max_length = :long was requested but Oracle #{database_version.join('.')} does not support 128 byte identifiers; falling back to 30 bytes."
+              @identifier_max_length_long_warned = true
+            end
+            false
+          end
         else
           raise ArgumentError, "identifier_max_length must be :auto, :short, or :long; got #{mode.inspect}"
         end

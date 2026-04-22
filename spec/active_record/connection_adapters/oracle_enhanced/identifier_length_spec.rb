@@ -122,12 +122,27 @@ describe "OracleEnhancedAdapter identifier length configuration" do
       expect(conn.max_identifier_length).to eq(30)
     end
 
-    it "silently falls back to 30-byte identifiers on a pre-12.2 database with :long" do
+    it "warns and falls back to 30-byte identifiers on a pre-12.2 database with :long" do
       adapter_class.identifier_max_length = :long
       conn = ActiveRecord::Base.connection
       allow(conn).to receive(:database_version).and_return([11, 2])
-      expect(conn.supports_longer_identifier?).to be(false)
+      expect {
+        expect(conn.supports_longer_identifier?).to be(false)
+      }.to output(/identifier_max_length = :long was requested but Oracle 11\.2 does not support 128 byte identifiers; falling back to 30 bytes/).to_stderr
       expect(conn.max_identifier_length).to eq(30)
+    end
+
+    it "emits the :long pre-12.2 fallback warning at most once per connection" do
+      adapter_class.identifier_max_length = :long
+      conn = ActiveRecord::Base.connection
+      allow(conn).to receive(:database_version).and_return([11, 2])
+
+      # First lookup emits the warning; subsequent lookups stay silent.
+      expect { conn.supports_longer_identifier? }.to output(/falling back to 30 bytes/).to_stderr
+      expect {
+        conn.supports_longer_identifier?
+        conn.max_identifier_length
+      }.not_to output.to_stderr
     end
 
     it "falls back to the global setting when the per-connection value is nil" do
