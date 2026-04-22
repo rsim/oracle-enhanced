@@ -110,7 +110,9 @@ module ActiveRecord
             max_identifier_length = 30
           end
           object_name = name.to_s
+          # Grammar only: no length bound here; `\w` is ASCII-only so non-ASCII letters after the first character are rejected (stricter than Oracle on AL32UTF8).
           return false unless /\A(?:[[:alpha:]][\w$#]*\.)?[[:alpha:]][\w$#]*\Z/.match?(object_name)
+          # Byte limit is enforced per component — Oracle applies the limit to each identifier, not to the full `schema.table` string.
           return false unless object_name.split(".").all? { |part| part.bytesize <= max_identifier_length }
           !mixed_case?(object_name)
         end

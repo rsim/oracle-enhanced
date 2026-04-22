@@ -396,12 +396,12 @@ module ActiveRecord
 
       def supports_longer_identifier? # :nodoc:
         per_connection = @config[:use_legacy_identifier_length] if @config.key?(:use_legacy_identifier_length)
-        use_legacy = if per_connection.nil?
+        use_legacy_length = if per_connection.nil?
           self.class.use_legacy_identifier_length
         else
           ActiveModel::Type::Boolean.new.cast(per_connection)
         end
-        !use_legacy && Gem::Version.new(database_version.join(".")) >= Gem::Version.new("12.2")
+        !use_legacy_length && Gem::Version.new(database_version.join(".")) >= Gem::Version.new("12.2")
       end
 
       # :stopdoc:
