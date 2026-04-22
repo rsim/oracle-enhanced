@@ -706,8 +706,9 @@ module ActiveRecord
         # It does not construct DISTINCT clause. Just return column names for distinct.
         order_columns = orders.reject(&:blank?).map { |s|
             s = visitor.compile(s) unless s.is_a?(String)
-            # remove any ASC/DESC modifiers
-            s.gsub(/\s+(ASC|DESC)\s*?/i, "")
+            # remove any ASC/DESC and NULLS FIRST/LAST modifiers
+            s.gsub(/\s+(?:ASC|DESC)\b/i, "")
+             .gsub(/\s+NULLS\s+(?:FIRST|LAST)\b/i, "")
           }.reject(&:blank?).map.with_index { |column, i|
             "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns.join(', ')} ORDER BY #{column}) AS alias_#{i}__"
           }
