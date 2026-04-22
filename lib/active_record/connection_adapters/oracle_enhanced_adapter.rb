@@ -201,37 +201,40 @@ module ActiveRecord
       # :singleton-method:
       # Controls the identifier length used by the adapter.
       #
-      # * +false+ (default) — use 128 byte identifiers on Oracle 12.2+, and
-      #   silently fall back to 30 bytes on older databases.
-      # * +true+ — force the legacy 30 byte limit, even on 12.2+.
+      # Accepts:
+      # * +:auto+ (default) — use 128 byte identifiers on Oracle 12.2+, fall back
+      #   to 30 bytes on older databases.
+      # * +:short+ — force the 30 byte limit on every database version.
+      # * +:long+ — request 128 byte identifiers; silently falls back to 30 bytes
+      #   on pre-12.2 databases (same effective behavior as +:auto+ there).
       #
       # Can be set globally in an initializer:
       #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_legacy_identifier_length = true
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.identifier_max_length = :short
       #
       # or per connection via database.yml:
       #
       #   production:
       #     adapter: oracle_enhanced
-      #     use_legacy_identifier_length: true
-      cattr_accessor :use_legacy_identifier_length
-      self.use_legacy_identifier_length = false
+      #     identifier_max_length: short
+      cattr_accessor :identifier_max_length
+      self.identifier_max_length = :auto
 
-      # Deprecated alias for +use_legacy_identifier_length+.
+      # Deprecated alias for +identifier_max_length+.
       def self.use_shorter_identifier
         OracleEnhanced.deprecator.deprecation_warning(
           "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_shorter_identifier",
-          "use `use_legacy_identifier_length` instead"
+          "use `identifier_max_length` instead"
         )
-        use_legacy_identifier_length
+        identifier_max_length == :short
       end
 
       def self.use_shorter_identifier=(value)
         OracleEnhanced.deprecator.deprecation_warning(
           "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_shorter_identifier=",
-          "use `use_legacy_identifier_length=` instead"
+          "use `identifier_max_length=` instead"
         )
-        self.use_legacy_identifier_length = value
+        self.identifier_max_length = value ? :short : :auto
       end
 
       def use_shorter_identifier
@@ -395,13 +398,22 @@ module ActiveRecord
       end
 
       def supports_longer_identifier? # :nodoc:
-        per_connection = @config[:use_legacy_identifier_length] if @config.key?(:use_legacy_identifier_length)
-        use_legacy_length = if per_connection.nil?
-          self.class.use_legacy_identifier_length
-        else
-          ActiveModel::Type::Boolean.new.cast(per_connection)
+        per_connection = @config[:identifier_max_length] if @config.key?(:identifier_max_length)
+        raw = per_connection.nil? ? self.class.identifier_max_length : per_connection
+        mode = case raw
+               when Symbol then raw
+               when String then raw.to_sym
+               else
+                 raise ArgumentError, "identifier_max_length must be :auto, :short, or :long; got #{raw.inspect}"
         end
-        !use_legacy_length && Gem::Version.new(database_version.join(".")) >= Gem::Version.new("12.2")
+        case mode
+        when :short
+          false
+        when :auto, :long
+          Gem::Version.new(database_version.join(".")) >= Gem::Version.new("12.2")
+        else
+          raise ArgumentError, "identifier_max_length must be :auto, :short, or :long; got #{mode.inspect}"
+        end
       end
 
       # :stopdoc:
