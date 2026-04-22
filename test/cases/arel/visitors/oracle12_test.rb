@@ -32,13 +32,14 @@ module Arel
       end
 
       describe "locking" do
-        it "generates ArgumentError if limit and lock are used" do
+        it "falls back to Arel::Visitors::Oracle (ROWNUM) when limit and lock are combined" do
           stmt = Nodes::SelectStatement.new
           stmt.limit = Nodes::Limit.new(10)
           stmt.lock = Nodes::Lock.new(Arel.sql("FOR UPDATE"))
-          assert_raises ArgumentError do
-            compile(stmt)
-          end
+          sql = compile(stmt)
+          _(sql).must_match(/ROWNUM/)
+          _(sql).must_match(/FOR UPDATE/)
+          _(sql).wont_match(/FETCH FIRST/)
         end
 
         it "defaults to FOR UPDATE when locking" do

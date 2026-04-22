@@ -9,32 +9,21 @@ module Arel # :nodoc: all
 
       private
         # Oracle raises ORA-02014 when `FETCH FIRST n ROWS ONLY` is combined
-        # with `FOR UPDATE`. For the common `.lock!` pattern (simple limit with
-        # no ORDER BY / GROUP BY / OFFSET / DISTINCT) fall back to the
-        # ROWNUM-in-WHERE form, which Oracle accepts alongside FOR UPDATE. The
-        # compound cases would require wrapping the query in a ROWNUM subquery
-        # and would still trip ORA-02014, so raise up front.
+        # with `FOR UPDATE`. When a limit is present alongside a lock, delegate
+        # the whole SELECT to Arel::Visitors::Oracle, whose ROWNUM-based output
+        # is compatible with FOR UPDATE for the simple case and surfaces any
+        # remaining ORA-02014 as a regular StatementInvalid for compound cases
+        # (ORDER BY / GROUP BY / HAVING / OFFSET / DISTINCT) instead of raising
+        # an ArgumentError from an internal visitor that callers cannot avoid.
         def visit_Arel_Nodes_SelectStatement(o, collector)
           if o.limit && o.lock
-            core = o.cores.first
-            if o.orders.empty? &&
-               core.groups.empty? &&
-               core.havings.empty? &&
-               !o.offset &&
-               !core.set_quantifier.class.to_s.include?("Distinct")
-              o = o.dup
-              o.cores.last.wheres.push Nodes::LessThanOrEqual.new(
-                Nodes::SqlLiteral.new("ROWNUM"), o.limit.expr
-              )
-              o.limit = nil
-            else
-              raise ArgumentError, <<~MSG
-                Combination of limit and lock is not supported. Because generated SQL statements
-                `SELECT FOR UPDATE and FETCH FIRST n ROWS` generates ORA-02014.
-              MSG
-            end
+            return oracle_visitor_for_lock.send(:visit_Arel_Nodes_SelectStatement, o, collector)
           end
           super
+        end
+
+        def oracle_visitor_for_lock
+          @oracle_visitor_for_lock ||= Arel::Visitors::Oracle.new(@connection)
         end
 
         def visit_Arel_Nodes_SelectOptions(o, collector)
