@@ -165,11 +165,37 @@ class Employee < ActiveRecord::Base
 end
 ```
 
-You can also access remote tables over database link using
+### Accessing remote tables over a database link
+
+Setting `self.table_name = "hr_employees@db_link"` directly is **not
+supported**. The adapter strips the `@db_link` suffix during identifier
+quoting, so the generated SQL silently queries a local table of the same
+name; some code paths additionally raise `ArgumentError: db link is not
+supported`.
+
+When the Rails application can connect to the remote database directly,
+the recommended approach is [Rails multiple-database
+support](https://guides.rubyonrails.org/active_record_multiple_databases.html):
+configure a separate connection for the remote database and inherit the
+model from a dedicated abstract class connected to it.
+
+When a direct connection is not possible and a database link is the only
+available path, create a local synonym (private in the Rails connection's
+schema, or a public synonym) that points at the remote table through the
+database link, and use the synonym as `table_name`:
+
+```sql
+CREATE SYNONYM hr_employees_syn FOR hr_employees@db_link;
+```
 
 ```ruby
-self.table_name = "hr_employees@db_link"
+class Employee < ActiveRecord::Base
+  self.table_name = "hr_employees_syn"
+end
 ```
+
+Oracle resolves the synonym through the database link transparently, so
+the adapter never sees an `@` in the identifier.
 
 ### Custom create, update and delete methods
 
