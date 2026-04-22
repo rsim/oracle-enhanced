@@ -76,34 +76,77 @@ module ActiveRecord
           end
         end
 
-        # Names must be from 1 to 30 bytes long with these exceptions:
-        # * Names of databases are limited to 8 bytes.
-        # * Names of database links can be as long as 128 bytes.
-        #
-        # Nonquoted identifiers cannot be Oracle Database reserved words
-        #
-        # Nonquoted identifiers must begin with an alphabetic character from
-        # your database character set
-        #
-        # Nonquoted identifiers can contain only alphanumeric characters from
-        # your database character set and the underscore (_), dollar sign ($),
-        # and pound sign (#).
-        # Oracle strongly discourages you from using $ and # in nonquoted identifiers.
-        NONQUOTED_OBJECT_NAME = /[[:alpha:]][\w$#]{0,29}/
-        VALID_TABLE_NAME = /\A(?:#{NONQUOTED_OBJECT_NAME}\.)?#{NONQUOTED_OBJECT_NAME}\Z/
+        # Nonquoted Oracle identifiers must begin with an alphabetic
+        # character from the database character set and may contain only
+        # alphanumerics plus +_+, +$+, and +#+. Oracle strongly discourages
+        # +$+ and +#+ in nonquoted names. Byte limits depend on the
+        # identifier class: 30 bytes on pre-12.2 databases, 128 bytes on
+        # 12.2+ for schema objects; Oracle enforces the limit per
+        # identifier (per component of a +schema.name+ pair), not on the
+        # full qualified string. Mixed-case names are rejected here so
+        # callers quote them explicitly.
 
-        # unescaped table name should start with letter and
-        # contain letters, digits, _, $ or #
-        # can be prefixed with schema name
-        # CamelCase table names should be quoted
-        def self.valid_table_name?(name) # :nodoc:
+        # Returns true when +name+ is a valid unquoted Oracle schema-object
+        # name (optionally schema-qualified as +schema.name+). The
+        # +max_identifier_length+ bound is applied per component because
+        # Oracle enforces the byte limit on each identifier, not on the
+        # full +schema.table+ string. Omitting the argument is deprecated
+        # and falls back to the legacy 30 byte bound with a warning.
+        #
+        # The grammar regex has mixed Unicode semantics: +[[:alpha:]]+
+        # accepts Unicode letters as the first character but +\w+ stays
+        # ASCII-only, so any non-ASCII character beyond the first position
+        # is rejected. Oracle itself accepts database-character-set letters
+        # throughout unquoted identifiers on AL32UTF8, so this is stricter
+        # than Oracle. A future change could add the +/u+ flag or use
+        # +[[:word:]]+; for now the bytesize check is preserved as the
+        # intended byte boundary for when the grammar is relaxed.
+        def self.valid_table_name?(name, max_identifier_length: nil) # :nodoc:
+          if max_identifier_length.nil?
+            OracleEnhanced.deprecator.deprecation_warning(
+              "ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.valid_table_name? called without `max_identifier_length:`",
+              "pass `max_identifier_length:` explicitly; the implicit 30 byte default will be removed"
+            )
+            max_identifier_length = 30
+          end
           object_name = name.to_s
-          !!(object_name =~ VALID_TABLE_NAME && !mixed_case?(object_name))
+          # Grammar only: no length bound here; `\w` is ASCII-only so non-ASCII letters after the first character are rejected (stricter than Oracle on AL32UTF8).
+          return false unless /\A(?:[[:alpha:]][\w$#]*\.)?[[:alpha:]][\w$#]*\Z/.match?(object_name)
+          # Byte limit is enforced per component — Oracle applies the limit to each identifier, not to the full `schema.table` string.
+          return false unless object_name.split(".").all? { |part| part.bytesize <= max_identifier_length }
+          !mixed_case?(object_name)
         end
 
         def self.mixed_case?(name)
           object_name = name.include?(".") ? name.split(".").second : name
           !!(object_name =~ /[A-Z]/ && object_name =~ /[a-z]/)
+        end
+
+        # Deprecated. +NONQUOTED_OBJECT_NAME+ and +VALID_TABLE_NAME+ are
+        # resolved here so external references keep their pre-deprecation
+        # values (30 byte grammar) with a warning routed through the shared
+        # deprecator. New code should use +valid_table_name?+.
+        #
+        # Note: direct reads (+Quoting::VALID_TABLE_NAME+) still work; reflection
+        # APIs (+const_defined?+, +defined?+, +.constants+) do not see these
+        # names because nothing is actually declared.
+        def self.const_missing(name)
+          case name
+          when :NONQUOTED_OBJECT_NAME
+            OracleEnhanced.deprecator.deprecation_warning(
+              "ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting::NONQUOTED_OBJECT_NAME",
+              "use `valid_table_name?` instead"
+            )
+            /[[:alpha:]][\w$#]{0,29}/
+          when :VALID_TABLE_NAME
+            OracleEnhanced.deprecator.deprecation_warning(
+              "ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting::VALID_TABLE_NAME",
+              "use `valid_table_name?` instead"
+            )
+            /\A(?:[[:alpha:]][\w$#]{0,29}\.)?[[:alpha:]][\w$#]{0,29}\Z/
+          else
+            super
+          end
         end
 
         def quote_string(s) # :nodoc:
