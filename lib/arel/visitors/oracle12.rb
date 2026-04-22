@@ -8,13 +8,31 @@ module Arel # :nodoc: all
       include OracleCommon
 
       private
+        # Oracle raises ORA-02014 when `FETCH FIRST n ROWS ONLY` is combined
+        # with `FOR UPDATE`. For the common `.lock!` pattern (simple limit with
+        # no ORDER BY / GROUP BY / OFFSET / DISTINCT) fall back to the
+        # ROWNUM-in-WHERE form, which Oracle accepts alongside FOR UPDATE. The
+        # compound cases would require wrapping the query in a ROWNUM subquery
+        # and would still trip ORA-02014, so raise up front.
         def visit_Arel_Nodes_SelectStatement(o, collector)
-          # Oracle does not allow LIMIT clause with select for update
           if o.limit && o.lock
-            raise ArgumentError, <<~MSG
-              Combination of limit and lock is not supported. Because generated SQL statements
-              `SELECT FOR UPDATE and FETCH FIRST n ROWS` generates ORA-02014.
-            MSG
+            core = o.cores.first
+            if o.orders.empty? &&
+               core.groups.empty? &&
+               core.havings.empty? &&
+               !o.offset &&
+               !core.set_quantifier.class.to_s.include?("Distinct")
+              o = o.dup
+              o.cores.last.wheres.push Nodes::LessThanOrEqual.new(
+                Nodes::SqlLiteral.new("ROWNUM"), o.limit.expr
+              )
+              o.limit = nil
+            else
+              raise ArgumentError, <<~MSG
+                Combination of limit and lock is not supported. Because generated SQL statements
+                `SELECT FOR UPDATE and FETCH FIRST n ROWS` generates ORA-02014.
+              MSG
+            end
           end
           super
         end
