@@ -197,45 +197,44 @@ module ActiveRecord
       cattr_accessor :default_sequence_start_value
       self.default_sequence_start_value = 1
 
-      ##
-      # :singleton-method:
-      # Controls the identifier length used by the adapter.
+      # Per-connection identifier-length policy. Set via database.yml:
       #
-      # Accepts:
-      # * +:auto+ (default) — use 128 byte identifiers on Oracle 12.2+, silently
-      #   fall back to 30 bytes on older databases.
+      #   production:
+      #     adapter: oracle_enhanced
+      #     identifier_max_length: short  # :auto (default), :short, or :long
+      #
+      # Accepted values:
+      # * +:auto+ (default when the key is absent) — use 128 byte identifiers on
+      #   Oracle 12.2+, silently fall back to 30 bytes on older databases.
       # * +:short+ — force the 30 byte limit on every database version.
       # * +:long+ — request 128 byte identifiers. On pre-12.2 databases the
       #   adapter emits a warning and falls back to 30 bytes (use +:auto+ if you
       #   want the fallback without the warning).
       #
-      # Can be set globally in an initializer:
-      #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.identifier_max_length = :short
-      #
-      # or per connection via database.yml:
-      #
-      #   production:
-      #     adapter: oracle_enhanced
-      #     identifier_max_length: short
-      cattr_accessor :identifier_max_length
-      self.identifier_max_length = :auto
+      # +use_shorter_identifier+ (below) is a deprecated global fallback for
+      # connections that do not set +identifier_max_length+ themselves.
 
-      # Deprecated alias for +identifier_max_length+.
+      @@use_shorter_identifier = false
+
+      ##
+      # :singleton-method:
+      # Deprecated. Prefer the per-connection +identifier_max_length+ key in
+      # database.yml. When truthy, behaves as +identifier_max_length: short+ for
+      # connections that do not set +identifier_max_length+ themselves.
       def self.use_shorter_identifier
         OracleEnhanced.deprecator.deprecation_warning(
           "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_shorter_identifier",
-          "use `identifier_max_length` instead"
+          "set `identifier_max_length: short` per connection in database.yml instead"
         )
-        identifier_max_length == :short
+        @@use_shorter_identifier
       end
 
       def self.use_shorter_identifier=(value)
         OracleEnhanced.deprecator.deprecation_warning(
           "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_shorter_identifier=",
-          "use `identifier_max_length=` instead"
+          "set `identifier_max_length: short` per connection in database.yml instead"
         )
-        self.identifier_max_length = value ? :short : :auto
+        @@use_shorter_identifier = value
       end
 
       def use_shorter_identifier
@@ -399,14 +398,7 @@ module ActiveRecord
       end
 
       def supports_longer_identifier? # :nodoc:
-        per_connection = @config[:identifier_max_length] if @config.key?(:identifier_max_length)
-        raw = per_connection.nil? ? self.class.identifier_max_length : per_connection
-        mode = case raw
-               when Symbol then raw
-               when String then raw.to_sym
-               else
-                 raise ArgumentError, "identifier_max_length must be :auto, :short, or :long; got #{raw.inspect}"
-        end
+        mode = resolve_identifier_max_length
         twelve_two = Gem::Version.new(database_version.join(".")) >= Gem::Version.new("12.2")
         case mode
         when :short
@@ -427,6 +419,26 @@ module ActiveRecord
           end
         else
           raise ArgumentError, "identifier_max_length must be :auto, :short, or :long; got #{mode.inspect}"
+        end
+      end
+
+      # Per-connection +identifier_max_length+ is the canonical source. The
+      # deprecated global +use_shorter_identifier+ (read via @@class var to
+      # skip its deprecation warning on every lookup) is honored only when the
+      # connection config does not set +identifier_max_length+ itself.
+      private def resolve_identifier_max_length
+        if @config.key?(:identifier_max_length) && !@config[:identifier_max_length].nil?
+          raw = @config[:identifier_max_length]
+          case raw
+          when Symbol then raw
+          when String then raw.to_sym
+          else
+            raise ArgumentError, "identifier_max_length must be :auto, :short, or :long; got #{raw.inspect}"
+          end
+        elsif @@use_shorter_identifier
+          :short
+        else
+          :auto
         end
       end
 
