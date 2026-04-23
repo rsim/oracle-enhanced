@@ -557,7 +557,7 @@ module ActiveRecord
           begin
             sequence_name = table_name.classify.constantize.sequence_name
           rescue
-            sequence_name = default_sequence_name(table_name)
+            sequence_name = default_sequence_name(table_name, primary_key)
           end
         end
 
@@ -643,7 +643,7 @@ module ActiveRecord
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
         (owner, desc_table_name) = resolve_data_source_name(table_name)
 
-        seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name))])
+        seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name, nil))])
           select us.sequence_name
           from all_sequences us
           where us.sequence_owner = :owner

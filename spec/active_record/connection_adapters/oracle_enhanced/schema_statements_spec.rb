@@ -102,7 +102,7 @@ describe "OracleEnhancedAdapter schema definition" do
     it "should return sequence name without truncating too much" do
       seq_name_length = ActiveRecord::Base.connection.sequence_name_length
       tname = "#{DATABASE_USER}" + "." + "a" * (seq_name_length - DATABASE_USER.length) + "z" * (DATABASE_USER).length
-      expect(ActiveRecord::Base.connection.default_sequence_name(tname)).to match (/z_seq$/)
+      expect(ActiveRecord::Base.connection.default_sequence_name(tname, nil)).to match (/z_seq$/)
     end
 
     it "truncates the trailing identifier by bytes for multibyte names" do
@@ -110,7 +110,7 @@ describe "OracleEnhancedAdapter schema definition" do
       max = conn.sequence_name_length
       # "é" is 2 bytes in UTF-8. Build a name that exceeds the byte budget.
       name = "é" * max # 2 * max bytes, definitely over
-      seq = conn.default_sequence_name(name)
+      seq = conn.default_sequence_name(name, nil)
       expect(seq).to end_with("_seq")
       expect(seq.bytesize).to be <= max
     end
@@ -119,7 +119,7 @@ describe "OracleEnhancedAdapter schema definition" do
       conn = ActiveRecord::Base.connection
       max = conn.sequence_name_length
       name = "schema." + ("é" * max)
-      seq = conn.default_sequence_name(name)
+      seq = conn.default_sequence_name(name, nil)
       expect(seq).to start_with("schema.")
       expect(seq).to end_with("_seq")
       table_part = seq.delete_prefix("schema.")
@@ -133,7 +133,7 @@ describe "OracleEnhancedAdapter schema definition" do
       max = conn.sequence_name_length
       ascii_prefix = "a" * (max - 4 - 1) # ends 1 byte short of budget
       name = ascii_prefix + "é" * 4      # é straddles the budget boundary
-      seq = conn.default_sequence_name(name)
+      seq = conn.default_sequence_name(name, nil)
       expect(seq).to end_with("_seq")
       expect(seq.bytesize).to be <= max
       expect(seq).to be_valid_encoding
