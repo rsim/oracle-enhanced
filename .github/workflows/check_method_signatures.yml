@@ -1,0 +1,44 @@
+name: check_method_signatures
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  schedule:
+    - cron: "0 0 * * 1" # Mondays at 00:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: "Compare Ruby method signatures against Rails"
+    runs-on: ubuntu-latest
+    env:
+      ORACLE_HOME: /opt/oracle/instantclient_23_26
+      LD_LIBRARY_PATH: /opt/oracle/instantclient_23_26
+      NLS_LANG: American_America.AL32UTF8
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          rubygems: latest
+      - name: Create symbolic link for libaio library compatibility
+        run: |
+          sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
+      - name: Download Oracle instant client
+        run: |
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2326100/instantclient-basic-linux.x64-23.26.1.0.0.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2326100/instantclient-sdk-linux.x64-23.26.1.0.0.zip
+      - name: Install Oracle instant client
+        run: |
+          sudo unzip instantclient-basic-linux.x64-23.26.1.0.0.zip -d /opt/oracle/
+          sudo unzip -o instantclient-sdk-linux.x64-23.26.1.0.0.zip -d /opt/oracle/
+          echo "/opt/oracle/instantclient_23_26" >> $GITHUB_PATH
+      - name: Bundle install
+        run: |
+          bundle install --jobs 4 --retry 3
+      - name: Check method signatures against Rails
+        run: |
+          bundle exec ruby -Ilib ci/check_method_signatures.rb
