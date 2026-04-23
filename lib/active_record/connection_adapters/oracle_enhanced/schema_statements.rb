@@ -276,7 +276,9 @@ module ActiveRecord
         end
 
         def add_index(table_name, column_name, **options) # :nodoc:
-          index_name, index_type, quoted_column_names, tablespace, index_options = add_index_options(table_name, column_name, **options)
+          result = add_index_options(table_name, column_name, **options)
+          return if result.nil?
+          index_name, index_type, quoted_column_names, tablespace, index_options = result
           execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})#{tablespace} #{index_options}"
           if index_type == "UNIQUE"
             unless /\(.*\)/.match?(quoted_column_names)
@@ -285,21 +287,22 @@ module ActiveRecord
           end
         end
 
-        def add_index_options(table_name, column_name, comment: nil, **options) # :nodoc:
+        def add_index_options(table_name, column_name, name: nil, if_not_exists: false, internal: false, **options) # :nodoc:
           column_names = Array(column_name)
           index_name   = index_name(table_name, column: column_names)
 
-          options.assert_valid_keys(:unique, :order, :name, :where, :length, :internal, :tablespace, :options, :using)
+          options.assert_valid_keys(:unique, :order, :where, :length, :tablespace, :options, :using, :comment)
 
           index_type = options[:unique] ? "UNIQUE" : ""
-          index_name = options[:name].to_s if options.key?(:name)
+          index_name = name.to_s if name
           tablespace = tablespace_for(:index, options[:tablespace])
           # TODO: This option is used for NOLOGGING, needs better argument name
           index_options = options[:options]
 
-          validate_index_length!(table_name, index_name, options.fetch(:internal, false))
+          validate_index_length!(table_name, index_name, internal)
 
           if table_exists?(table_name) && index_name_exists?(table_name, index_name)
+            return nil if if_not_exists
             raise ArgumentError, "Index name '#{index_name}' on table '#{table_name}' already exists"
           end
 
