@@ -172,8 +172,12 @@ module Arel # :nodoc: all
           end.flatten
           o.orders = []
           orders.each_with_index do |order, i|
-            o.orders <<
-              Nodes::SqlLiteral.new("alias_#{i}__#{' DESC' if /\bdesc$/i.match?(order)}")
+            parts = ["alias_#{i}__"]
+            parts << "DESC" if /\bdesc\b/i.match?(order)
+            if (nulls_match = order.match(/\bNULLS\s+(FIRST|LAST)\b/i))
+              parts << "NULLS #{nulls_match[1].upcase}"
+            end
+            o.orders << Nodes::SqlLiteral.new(parts.join(" "))
           end
           o
         end
