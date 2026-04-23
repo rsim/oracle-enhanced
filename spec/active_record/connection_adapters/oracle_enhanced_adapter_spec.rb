@@ -701,6 +701,25 @@ describe "OracleEnhancedAdapter" do
       }.to raise_error(ActiveRecord::Deadlocked)
     end
 
+    # See rails/rails#44526: when the adapter advertises
+    # supports_restart_db_transaction?, an immediately nested transaction
+    # that rolls back restarts the parent via ROLLBACK instead of issuing
+    # a SAVEPOINT / ROLLBACK TO dance.
+    it "advertises supports_restart_db_transaction?" do
+      expect(ActiveRecord::Base.connection.supports_restart_db_transaction?).to be true
+    end
+
+    it "restarts the parent transaction on nested rollback without issuing a SAVEPOINT" do
+      TestPost.transaction do
+        TestPost.transaction(requires_new: true) do
+          TestPost.create!(title: "inner")
+          raise ActiveRecord::Rollback
+        end
+      end
+      expect(TestPost.where(title: "inner").count).to eq 0
+      expect(@logger.logged(:debug).grep(/SAVEPOINT/i)).to be_empty
+    end
+
     after(:all) do
       schema_define do
         drop_table :test_posts

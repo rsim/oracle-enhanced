@@ -322,6 +322,13 @@ module ActiveRecord
         true
       end
 
+      # Oracle implicitly begins a new transaction on the next DML after a
+      # ROLLBACK, so a nested transaction can be restarted with a single
+      # ROLLBACK round-trip instead of a SAVEPOINT / ROLLBACK TO dance.
+      def supports_restart_db_transaction? # :nodoc:
+        true
+      end
+
       def supports_foreign_keys?
         true
       end

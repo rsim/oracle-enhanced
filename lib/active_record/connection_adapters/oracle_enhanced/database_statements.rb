@@ -125,6 +125,15 @@ module ActiveRecord
           _connection.autocommit = true
         end
 
+        # Rolls back the current transaction and leaves the session ready for
+        # a new one. Unlike exec_rollback_db_transaction, autocommit is left
+        # off: the logical transaction is still active from Rails' point of
+        # view (see RestartParentTransaction), and Oracle implicitly starts a
+        # new transaction on the next DML.
+        def exec_restart_db_transaction # :nodoc:
+          _connection.rollback
+        end
+
         def create_savepoint(name = current_savepoint_name) # :nodoc:
           execute("SAVEPOINT #{name}", "TRANSACTION")
         end
