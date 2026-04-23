@@ -8,15 +8,22 @@ module Arel # :nodoc: all
       include OracleCommon
 
       private
+        # Oracle raises ORA-02014 when `FETCH FIRST n ROWS ONLY` is combined
+        # with `FOR UPDATE`. When a limit is present alongside a lock, delegate
+        # the whole SELECT to Arel::Visitors::Oracle, whose ROWNUM-based output
+        # is compatible with FOR UPDATE for the simple case and surfaces any
+        # remaining ORA-02014 as a regular StatementInvalid for compound cases
+        # (ORDER BY / GROUP BY / HAVING / OFFSET / DISTINCT) instead of raising
+        # an ArgumentError from an internal visitor that callers cannot avoid.
         def visit_Arel_Nodes_SelectStatement(o, collector)
-          # Oracle does not allow LIMIT clause with select for update
           if o.limit && o.lock
-            raise ArgumentError, <<~MSG
-              Combination of limit and lock is not supported. Because generated SQL statements
-              `SELECT FOR UPDATE and FETCH FIRST n ROWS` generates ORA-02014.
-            MSG
+            return oracle_visitor_for_lock.send(:visit_Arel_Nodes_SelectStatement, o, collector)
           end
           super
+        end
+
+        def oracle_visitor_for_lock
+          @oracle_visitor_for_lock ||= Arel::Visitors::Oracle.new(@connection)
         end
 
         def visit_Arel_Nodes_SelectOptions(o, collector)

@@ -637,6 +637,11 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should not reconnect and execute query if connection is lost and auto retry is disabled" do
+      # On Oracle 23ai, `SELECT ... FETCH FIRST n ROWS ONLY` (emitted by
+      # Arel::Visitors::Oracle12) is transparently recovered by the server
+      # after `ALTER SYSTEM KILL SESSION`, so the adapter never sees an
+      # OCIError and the expected StatementInvalid is never raised.
+      skip "Oracle 23ai transparently recovers FETCH FIRST queries after session kill" if ActiveRecord::Base.connection.database_version.first >= 23
       Post.create!
       ActiveRecord::Base.connection.auto_retry = false
       kill_current_session
