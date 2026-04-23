@@ -17,7 +17,7 @@ jobs:
           '4.0',
           '3.4',
           '3.3',
-          'jruby-10.0.5.0',
+          'jruby-10.1.0.0',
         ]
     env:
       ORACLE_HOME: /opt/oracle/instantclient_23_26
