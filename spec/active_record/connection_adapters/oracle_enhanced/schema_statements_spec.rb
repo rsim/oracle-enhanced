@@ -1066,7 +1066,7 @@ end
 
     it "should ignore type and options parameter and remove column" do
       schema_define do
-        remove_column :test_posts, :title, :string, {}
+        remove_column :test_posts, :title, :string, if_exists: true
       end
       TestPost.reset_column_information
       expect(TestPost.columns_hash["title"]).to be_nil
