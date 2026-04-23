@@ -38,6 +38,7 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
       last_name: "Last",
       binary_data: @binary_data
     )
+    expect(@employee.binary_data).to eq(@binary_data)
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data)
   end
@@ -51,6 +52,7 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
     expect(@employee.binary_data).to be_nil
     @employee.binary_data = @binary_data
     @employee.save!
+    expect(@employee.binary_data).to eq(@binary_data)
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data)
   end
@@ -77,6 +79,7 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
     @employee.reload
     @employee.binary_data = @binary_data2
     @employee.save!
+    expect(@employee.binary_data).to eq(@binary_data2)
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data2)
   end
@@ -116,13 +119,14 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
     @employee.reload
     @employee.binary_data = @binary_data
     @employee.save!
+    expect(@employee.binary_data).to eq(@binary_data)
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data)
   end
 
   it "should allow equality on select" do
     TestEmployee.delete_all
-    TestEmployee.create!(
+    employee = TestEmployee.create!(
       first_name: "First",
       last_name: "Last",
       binary_data: @binary_data,
@@ -132,6 +136,36 @@ describe "OracleEnhancedAdapter handling of RAW columns" do
       last_name: "Last1",
       binary_data: @binary_data2,
     )
-    expect(TestEmployee.where(binary_data: @binary_data)).to have_attributes(count: 1)
+    expect(TestEmployee.where(binary_data: @binary_data).to_a).to eq([employee])
+  end
+
+  it "should allow equality on select with NULL value" do
+    TestEmployee.delete_all
+    employee = TestEmployee.create!(
+      first_name: "First",
+      last_name: "Last",
+    )
+    TestEmployee.create!(
+      first_name: "First1",
+      last_name: "Last1",
+      binary_data: @binary_data2,
+    )
+    expect(TestEmployee.where(binary_data: nil).to_a).to eq([employee])
+  end
+
+  it "should report changed when changed in place" do
+    employee = TestEmployee.create!(
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data,
+    )
+    expect(employee.changed?).to be_falsey
+
+    employee.binary_data << "a"
+    expect(employee.changed?).to be(true)
+    expect(employee.changes).to eq({ "binary_data" => [@binary_data, @binary_data + "a"] })
+
+    employee.reload.binary_data << "b"
+    expect(employee.changes).to eq({ "binary_data" => [@binary_data, @binary_data + "b"] })
   end
 end
