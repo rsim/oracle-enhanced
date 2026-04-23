@@ -259,7 +259,7 @@ module ActiveRecord
           schema_cache.clear_data_source_cache!(table_name.to_s)
           schema_cache.clear_data_source_cache!(new_name.to_s)
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
-          execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{default_sequence_name(new_name)}" rescue nil
+          execute "RENAME #{quote_table_name("#{table_name}_seq")} TO #{default_sequence_name(new_name, nil)}" rescue nil
 
           rename_table_indexes(table_name, new_name, **options)
         end
@@ -271,7 +271,7 @@ module ActiveRecord
           table_names.each do |table_name|
             schema_cache.clear_data_source_cache!(table_name.to_s)
             execute "DROP TABLE #{quote_table_name(table_name)}#{' CASCADE CONSTRAINTS' if options[:force] == :cascade}"
-            seq_name = custom_sequence_name || default_sequence_name(table_name)
+            seq_name = custom_sequence_name || default_sequence_name(table_name, nil)
             execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
           rescue ActiveRecord::StatementInvalid => e
             raise e unless options[:if_exists]
@@ -716,7 +716,7 @@ module ActiveRecord
           def create_sequence_and_trigger(table_name, options)
             # TODO: Needs rename since no triggers created
             # This method will be removed since sequence will not be created separately
-            seq_name = options[:sequence_name] || default_sequence_name(table_name)
+            seq_name = options[:sequence_name] || default_sequence_name(table_name, nil)
             seq_start_value = options[:sequence_start_value] || default_sequence_start_value
             execute "CREATE SEQUENCE #{quote_table_name(seq_name)} START WITH #{seq_start_value}"
           end

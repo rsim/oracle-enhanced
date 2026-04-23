@@ -145,7 +145,7 @@ module ActiveRecord
         # vs ASCII-only +\w+) plus +$+ and +#+ to match Oracle's unquoted
         # identifier rules (see +Quoting::NONQUOTED_OBJECT_NAME+), with +-+
         # kept for backward compatibility with quoted-identifier callers.
-        def default_sequence_name(table_name, primary_key = nil)
+        def default_sequence_name(table_name, _column)
           table_name.to_s.gsub(/(\A|\.)([[:word:]$#-]+)\z/) do
             prefix = Regexp.last_match(1)
             name = Regexp.last_match(2)
