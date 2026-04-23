@@ -501,6 +501,36 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 end
 
+  describe "add_index with if_not_exists" do
+    before(:each) do
+      @conn = ActiveRecord::Base.connection
+      schema_define do
+        create_table :test_posts, force: true do |t|
+          t.string :title
+        end
+        add_index :test_posts, :title
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_posts, if_exists: true
+      end
+    end
+
+    it "is a no-op when the index already exists" do
+      expect do
+        @conn.add_index :test_posts, :title, if_not_exists: true
+      end.not_to raise_error
+    end
+
+    it "raises ArgumentError when the index already exists and if_not_exists is unset" do
+      expect do
+        @conn.add_index :test_posts, :title
+      end.to raise_error(ArgumentError, /already exists/)
+    end
+  end
+
   describe "add timestamps" do
     before(:each) do
       @conn = ActiveRecord::Base.connection
