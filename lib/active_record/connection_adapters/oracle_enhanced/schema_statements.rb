@@ -264,15 +264,20 @@ module ActiveRecord
           rename_table_indexes(table_name, new_name, **options)
         end
 
-        def drop_table(table_name, **options) # :nodoc:
-          schema_cache.clear_data_source_cache!(table_name.to_s)
-          execute "DROP TABLE #{quote_table_name(table_name)}#{' CASCADE CONSTRAINTS' if options[:force] == :cascade}"
-          seq_name = options[:sequence_name] || default_sequence_name(table_name)
-          execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
-        rescue ActiveRecord::StatementInvalid => e
-          raise e unless options[:if_exists]
-        ensure
-          clear_table_columns_cache(table_name)
+        def drop_table(*table_names, **options) # :nodoc:
+          # :sequence_name names a single sequence, so it cannot unambiguously
+          # apply across multiple tables; honor it only for single-table drops.
+          custom_sequence_name = table_names.size == 1 ? options[:sequence_name] : nil
+          table_names.each do |table_name|
+            schema_cache.clear_data_source_cache!(table_name.to_s)
+            execute "DROP TABLE #{quote_table_name(table_name)}#{' CASCADE CONSTRAINTS' if options[:force] == :cascade}"
+            seq_name = custom_sequence_name || default_sequence_name(table_name)
+            execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
+          rescue ActiveRecord::StatementInvalid => e
+            raise e unless options[:if_exists]
+          ensure
+            clear_table_columns_cache(table_name)
+          end
         end
 
         def add_index(table_name, column_name, **options) # :nodoc:

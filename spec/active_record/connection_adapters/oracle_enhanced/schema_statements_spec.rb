@@ -306,10 +306,31 @@ describe "OracleEnhancedAdapter schema definition" do
       @conn = ActiveRecord::Base.connection
     end
 
+    after(:each) do
+      schema_define do
+        drop_table :multi_drop_posts, if_exists: true
+        drop_table :multi_drop_comments, if_exists: true
+      end
+    end
+
     it "should drop table with :if_exists option no raise error" do
       expect do
         @conn.drop_table("nonexistent_table", if_exists: true)
       end.not_to raise_error
+    end
+
+    it "drops multiple tables in a single call" do
+      schema_define do
+        create_table :multi_drop_posts, force: true
+        create_table :multi_drop_comments, force: true
+      end
+
+      expect do
+        @conn.drop_table :multi_drop_posts, :multi_drop_comments
+      end.not_to raise_error
+
+      expect(@conn.table_exists?(:multi_drop_posts)).to be_falsey
+      expect(@conn.table_exists?(:multi_drop_comments)).to be_falsey
     end
   end
 
