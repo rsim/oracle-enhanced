@@ -73,6 +73,12 @@ module ActiveRecord
             end
           end
 
+          def visit_ForeignKeyDefinition(o)
+            super.dup.tap do |sql|
+              sql << " DEFERRABLE INITIALLY #{o.deferrable.to_s.upcase}" if o.deferrable
+            end
+          end
+
           def action_sql(action, dependency)
             if action == "UPDATE"
               raise ArgumentError, <<~MSG

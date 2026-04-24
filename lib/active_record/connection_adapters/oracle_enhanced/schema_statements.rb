@@ -541,6 +541,12 @@ module ActiveRecord
           SQL
         end
 
+        def add_foreign_key(from_table, to_table, **options)
+          assert_valid_deferrable(options[:deferrable])
+
+          super
+        end
+
         # get table foreign keys for schema dump
         def foreign_keys(table_name) # :nodoc:
           (_owner, desc_table_name) = resolve_data_source_name(table_name)
@@ -551,6 +557,8 @@ module ActiveRecord
                   ,cc.column_name
                   ,c.constraint_name name
                   ,c.delete_rule
+                  ,c.deferrable
+                  ,c.deferred
               FROM all_constraints c, all_cons_columns cc,
                    all_constraints r, all_cons_columns rc
              WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -573,6 +581,7 @@ module ActiveRecord
               primary_key: oracle_downcase(row["references_column"])
             }
             options[:on_delete] = extract_foreign_key_action(row["delete_rule"])
+            options[:deferrable] = extract_foreign_key_deferrable(row["deferrable"], row["deferred"])
             ActiveRecord::ConnectionAdapters::ForeignKeyDefinition.new(oracle_downcase(table_name), oracle_downcase(row["to_table"]), options)
           end
         end
@@ -644,6 +653,17 @@ module ActiveRecord
             when "CASCADE"; :cascade
             when "SET NULL"; :nullify
             end
+          end
+
+          def extract_foreign_key_deferrable(deferrable, deferred)
+            return false unless deferrable == "DEFERRABLE"
+            deferred == "DEFERRED" ? :deferred : :immediate
+          end
+
+          def assert_valid_deferrable(deferrable)
+            return if !deferrable || %i(immediate deferred).include?(deferrable)
+
+            raise ArgumentError, "deferrable must be `:immediate` or `:deferred`, got: `#{deferrable.inspect}`"
           end
 
           def create_alter_table(name)

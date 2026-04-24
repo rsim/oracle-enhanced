@@ -231,6 +231,7 @@ module ActiveRecord # :nodoc:
           when :delete
             sql << " ON DELETE CASCADE"
           end
+          sql << " DEFERRABLE INITIALLY #{options[:deferrable].to_s.upcase}" if options[:deferrable]
           sql
         end
 

@@ -326,6 +326,12 @@ module ActiveRecord
         true
       end
 
+      # Oracle has supported DEFERRABLE constraints since 8i:
+      # https://docs.oracle.com/cd/A87860_01/doc/appdev.817/a76939/adg05itg.htm
+      def supports_deferrable_constraints?
+        true
+      end
+
       def supports_optimizer_hints?
         true
       end
