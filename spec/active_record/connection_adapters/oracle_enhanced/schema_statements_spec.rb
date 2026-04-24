@@ -396,6 +396,26 @@ describe "OracleEnhancedAdapter schema definition" do
         @conn.rename_table("test_employees_no_pkey", "new_test_employees_no_pkey")
       end.not_to raise_error
     end
+
+    it "renames the auto-generated sequence when the source table name is long enough to truncate it" do
+      long_source = "a" * (@conn.max_identifier_length - 3)
+      schema_define do
+        create_table long_source.to_sym, force: true do |t|
+          t.string :first_name
+        end
+      end
+
+      expected_old_seq = @conn.default_sequence_name(long_source, nil).upcase
+      expected_new_seq = @conn.default_sequence_name("new_test_employees", nil).upcase
+
+      @conn.rename_table(long_source, "new_test_employees")
+
+      sequences = @conn.select_values(
+        "SELECT sequence_name FROM user_sequences WHERE sequence_name IN ('#{expected_old_seq}', '#{expected_new_seq}')"
+      )
+      expect(sequences).to include(expected_new_seq)
+      expect(sequences).not_to include(expected_old_seq)
+    end
   end
 
   describe "add index" do
