@@ -19,6 +19,7 @@ jobs:
       DATABASE_SYS_PASSWORD: Oracle18
       DATABASE_HOST: localhost
       DATABASE_PORT: 1521
+      JRUBY_OPTS: "--dev"
 
     services:
       oracle:
