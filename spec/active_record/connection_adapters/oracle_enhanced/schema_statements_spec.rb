@@ -735,6 +735,38 @@ end
       expect(@logger.logged(:debug).last).to match(/:desc_table_name/)
       expect(@logger.logged(:debug).last).to match(/\["desc_table_name", "TEST_COMMENTS"\]\]/)
     end
+
+    it "should add deferrable initially deferred foreign key" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, deferrable: :deferred
+      end
+      fk = ActiveRecord::Base.connection.foreign_keys(:test_comments).first
+      expect(fk.options[:deferrable]).to eq(:deferred)
+    end
+
+    it "should add deferrable initially immediate foreign key" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, deferrable: :immediate
+      end
+      fk = ActiveRecord::Base.connection.foreign_keys(:test_comments).first
+      expect(fk.options[:deferrable]).to eq(:immediate)
+    end
+
+    it "should add non-deferrable foreign key when deferrable option is omitted" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      fk = ActiveRecord::Base.connection.foreign_keys(:test_comments).first
+      expect(fk.options[:deferrable]).to be(false)
+    end
+
+    it "should raise ArgumentError when deferrable option is invalid" do
+      expect {
+        schema_define do
+          add_foreign_key :test_comments, :test_posts, deferrable: true
+        end
+      }.to raise_error(ArgumentError, /deferrable must be `:immediate` or `:deferred`/)
+    end
   end
 
   describe "lob in table definition" do

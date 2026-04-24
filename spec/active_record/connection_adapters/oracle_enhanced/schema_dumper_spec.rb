@@ -159,6 +159,30 @@ describe "OracleEnhancedAdapter schema dump" do
       expect(output).to match(/add_foreign_key "test_comments", "test_posts", on_delete: :nullify/)
     end
 
+    it "should include deferrable initially deferred foreign key in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, deferrable: :deferred
+      end
+      output = dump_table_schema "test_comments"
+      expect(output).to match(/add_foreign_key "test_comments", "test_posts", deferrable: :deferred/)
+    end
+
+    it "should include deferrable initially immediate foreign key in schema dump" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, deferrable: :immediate
+      end
+      output = dump_table_schema "test_comments"
+      expect(output).to match(/add_foreign_key "test_comments", "test_posts", deferrable: :immediate/)
+    end
+
+    it "should not emit deferrable option when foreign key is not deferrable" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      output = dump_table_schema "test_comments"
+      expect(output).to match(/add_foreign_key "test_comments", "test_posts"$/)
+    end
+
     it "should not include foreign keys on ignored table names in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
