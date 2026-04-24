@@ -661,21 +661,18 @@ module ActiveRecord
              AND cc.constraint_name = c.constraint_name
         SQL
 
-        warn <<~WARNING if pks.count > 1
-          WARNING: Active Record does not support composite primary key.
-
-          #{table_name} has composite primary key. Composite primary key is ignored.
-        WARNING
-
-        # only support single column keys
-        pks.size == 1 ? [oracle_downcase(pks.first),
-                         oracle_downcase(seqs.first)] : nil
+        case pks.size
+        when 0 then nil
+        when 1 then [oracle_downcase(pks.first), oracle_downcase(seqs.first)]
+        else nil
+        end
       end
 
       # Returns just a table's primary key
       def primary_key(table_name)
-        pk_and_sequence = pk_and_sequence_for(table_name)
-        pk_and_sequence && pk_and_sequence.first
+        pk = primary_keys(table_name)
+        pk = pk.first unless pk.size > 1
+        pk
       end
 
       def has_primary_key?(table_name, owner = nil, desc_table_name = nil) # :nodoc:
