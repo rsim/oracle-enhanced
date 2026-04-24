@@ -502,11 +502,6 @@ module ActiveRecord
         self.class.clear_type_map!
       end
 
-      def reset!
-        clear_cache!
-        super
-      end
-
       # Disconnects from the database.
       def disconnect! # :nodoc:
         super
