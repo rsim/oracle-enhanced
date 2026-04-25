@@ -122,6 +122,7 @@ module ActiveRecord # :nodoc:
                   end
                   tbl.print ", #{format_colspec(pkcolspec)}"
                 end
+                tbl.print ", identity: true" if pkcol.auto_incremented_by_db?
               when Array
                 tbl.print ", primary_key: #{pk.inspect}"
               else

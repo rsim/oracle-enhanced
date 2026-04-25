@@ -13,6 +13,10 @@ module ActiveRecord
               end
             end
             o.cast_type = lookup_cast_type(sql_type)
+            if o.type == :primary_key && o.options[:identity]
+              o.sql_type = type_to_sql(:identity_primary_key)
+              return "#{quote_column_name(o.name)} #{o.sql_type}"
+            end
             super
           end
 

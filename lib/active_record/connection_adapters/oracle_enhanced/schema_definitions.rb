@@ -84,7 +84,7 @@ module ActiveRecord
 
         private
           def valid_column_definition_options
-            super + [ :as, :sequence_name, :sequence_start_value, :type ]
+            super + [ :as, :sequence_name, :sequence_start_value, :type, :identity ]
           end
       end
 
