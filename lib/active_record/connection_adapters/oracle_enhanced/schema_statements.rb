@@ -199,11 +199,27 @@ module ActiveRecord
         #     t.string      :last_name, :comment => “Surname”
         #   end
 
-        def create_table(table_name, id: :primary_key, primary_key: nil, force: nil, **options)
+        def create_table(table_name, id: :primary_key, primary_key: nil, force: nil, identity: nil, **options)
           create_sequence = id != false
           td = create_table_definition(
             table_name, **options.extract!(:temporary, :options, :as, :comment, :tablespace, :organization)
           )
+
+          if identity
+            unless supports_identity_columns?
+              raise ArgumentError,
+                "`identity: true` requires Oracle Database 12.1 or higher (current: #{database_version.join('.')}). Remove `identity: true` or upgrade the database."
+            end
+            unless id == :primary_key
+              raise ArgumentError,
+                "`identity: true` requires `id: :primary_key` (the default); got id: #{id.inspect}."
+            end
+            if primary_key.is_a?(Array)
+              raise ArgumentError,
+                "`identity: true` cannot be combined with a composite primary key."
+            end
+            td.identity_primary_key = true
+          end
 
           if id && !td.as
             pk = primary_key || Base.get_primary_key(table_name.to_s.singularize)
@@ -237,7 +253,7 @@ module ActiveRecord
 
           execute schema_creation.accept td
 
-          create_sequence_and_trigger(table_name, options) if create_sequence
+          create_sequence_and_trigger(table_name, options) if create_sequence && !td.identity_primary_key
 
           if supports_comments? && !supports_comments_in_create?
             if table_comment = td.comment.presence
@@ -277,6 +293,7 @@ module ActiveRecord
             raise e unless options[:if_exists]
           ensure
             clear_table_columns_cache(table_name)
+            @do_not_prefetch_primary_key[table_name.to_s] = nil if defined?(@do_not_prefetch_primary_key) && @do_not_prefetch_primary_key
           end
         end
 
@@ -685,6 +702,7 @@ module ActiveRecord
             end
 
             is_virtual = field["virtual_column"] == "YES"
+            is_identity = field["identity_column"] == "YES"
 
             # clean up odd default spacing from Oracle
             if field["data_default"] && !is_virtual
@@ -700,13 +718,14 @@ module ActiveRecord
 
             type_metadata = OracleEnhanced::TypeMetadata.new(fetch_type_metadata(field["sql_type"]), virtual: is_virtual)
             default_value = extract_value_from_default(field["data_default"])
-            default_value = nil if is_virtual
+            default_value = nil if is_virtual || is_identity
             OracleEnhanced::Column.new(oracle_downcase(field["name"]),
                              lookup_cast_type(field["sql_type"]),
                              default_value,
                              type_metadata,
                              field["nullable"] == "Y",
-                             comment: field["column_comment"]
+                             comment: field["column_comment"],
+                             identity: is_identity
             )
           end
 

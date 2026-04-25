@@ -13,10 +13,14 @@ module ActiveRecord
               end
             end
             o.cast_type = lookup_cast_type(sql_type)
+            if o.type == :primary_key && @current_table_definition&.identity_primary_key
+              o.sql_type = @conn.native_database_types[:identity_primary_key]
+            end
             super
           end
 
           def visit_TableDefinition(o)
+            previous_td, @current_table_definition = @current_table_definition, o
             create_sql = +"CREATE#{' GLOBAL TEMPORARY' if o.temporary} TABLE #{quote_table_name(o.name)} "
             statements = o.columns.map { |c| accept c }
             statements << accept(o.primary_keys) if o.primary_keys
@@ -39,6 +43,8 @@ module ActiveRecord
             add_table_options!(create_sql, o)
             create_sql << " AS #{to_sql(o.as)}" if o.as
             create_sql
+          ensure
+            @current_table_definition = previous_td
           end
 
           def default_tablespace_for(type)

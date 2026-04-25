@@ -52,7 +52,7 @@ module ActiveRecord
       class TableDefinition < ActiveRecord::ConnectionAdapters::TableDefinition
         include OracleEnhanced::ColumnMethods
 
-        attr_accessor :tablespace, :organization
+        attr_accessor :tablespace, :organization, :identity_primary_key
         def initialize(
           conn,
           name,
