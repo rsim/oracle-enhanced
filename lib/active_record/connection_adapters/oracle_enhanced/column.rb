@@ -6,8 +6,9 @@ module ActiveRecord
       class Column < ActiveRecord::ConnectionAdapters::Column
         delegate :virtual, to: :sql_type_metadata, allow_nil: true
 
-        def initialize(name, cast_type, default, sql_type_metadata = nil, null = true, comment: nil) # :nodoc:
-          super(name, cast_type, default, sql_type_metadata, null, comment: comment)
+        def initialize(*, identity: false, **) # :nodoc:
+          super
+          @identity = identity
         end
 
         def virtual?
@@ -15,8 +16,18 @@ module ActiveRecord
         end
 
         def auto_incremented_by_db?
-          # TODO: Identify if a column is the primary key and is auto-incremented (e.g. by a sequence)
-          super
+          @identity
+        end
+
+        def ==(other)
+          other.is_a?(Column) &&
+            super &&
+            auto_incremented_by_db? == other.auto_incremented_by_db?
+        end
+        alias :eql? :==
+
+        def hash
+          [super, @identity].hash
         end
       end
     end
