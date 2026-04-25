@@ -186,6 +186,27 @@ describe "identity primary keys" do
       end
       expect(@conn.prefetch_primary_key?(:test_identity_pks)).to be false
     end
+
+    it "is invalidated when an identity table is renamed and a sequence-backed table reuses the old name" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+      expect(@conn.prefetch_primary_key?(:test_identity_pks)).to be false
+
+      schema_define do
+        rename_table :test_identity_pks, :test_identity_pks_renamed
+        create_table :test_identity_pks do |t|
+          t.string :name
+        end
+      end
+      expect(@conn.prefetch_primary_key?(:test_identity_pks)).to be true
+    ensure
+      schema_define do
+        drop_table :test_identity_pks_renamed, if_exists: true
+      end
+    end
   end
 
   describe "with a non-primary-key identity column" do

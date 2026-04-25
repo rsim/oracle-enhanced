@@ -284,6 +284,7 @@ module ActiveRecord
           schema_cache.clear_data_source_cache!(new_name.to_s)
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
           execute "RENAME #{default_sequence_name(table_name, nil)} TO #{default_sequence_name(new_name, nil)}" rescue nil
+          @prefetch_primary_key_cache.delete(table_name.to_s)
 
           rename_table_indexes(table_name, new_name, **options)
         end
