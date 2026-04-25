@@ -29,13 +29,21 @@ module ActiveRecord # :nodoc:
                             WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
             ORDER BY 1
           SQL
+          identity_generation_select = if supports_identity_columns?
+            "(SELECT generation_type FROM all_tab_identity_cols itc " \
+              "WHERE itc.owner = atc.owner " \
+              "AND itc.table_name = atc.table_name " \
+              "AND itc.column_name = atc.column_name) identity_generation"
+          else
+            "NULL identity_generation"
+          end
           tables.each do |table_name|
             virtual_columns = virtual_columns_for(table_name) if supports_virtual_columns?
             ddl = +"CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
             columns = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
               SELECT column_name, data_type, data_length, char_used, char_length,
-              data_precision, data_scale, data_default, nullable
-              FROM all_tab_columns
+              data_precision, data_scale, data_default, nullable, #{identity_generation_select}
+              FROM all_tab_columns atc
               WHERE table_name = :table_name
               AND owner = SYS_CONTEXT('userenv', 'current_schema')
               ORDER BY column_id
@@ -73,7 +81,15 @@ module ActiveRecord # :nodoc:
             length = column["char_used"] == "C" ? column["char_length"].to_i : column["data_length"].to_i
             col << "(#{length})"
           end
-          col << " DEFAULT #{column['data_default']}" if !column["data_default"].nil?
+          if column["identity_generation"]
+            # data_default for identity columns is the auto-generated
+            # ISEQ$$_<id>.NEXTVAL reference; emit the GENERATION_TYPE
+            # from all_tab_identity_cols instead so ALWAYS / BY DEFAULT
+            # round-trip faithfully.
+            col << " GENERATED #{column['identity_generation']} AS IDENTITY"
+          elsif !column["data_default"].nil?
+            col << " DEFAULT #{column['data_default']}"
+          end
           col << " NOT NULL" if column["nullable"] == "N"
           col
         end
