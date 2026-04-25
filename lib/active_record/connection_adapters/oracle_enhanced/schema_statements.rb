@@ -200,10 +200,26 @@ module ActiveRecord
         #   end
 
         def create_table(table_name, id: :primary_key, primary_key: nil, force: nil, **options)
+          identity = options[:identity]
           create_sequence = id != false
           td = create_table_definition(
             table_name, **options.extract!(:temporary, :options, :as, :comment, :tablespace, :organization)
           )
+
+          if identity
+            unless supports_identity_columns?
+              raise ArgumentError,
+                "`identity: true` requires Oracle Database 12.1 or higher (current: #{database_version.join('.')}). Remove `identity: true` or upgrade the database."
+            end
+            unless id == :primary_key
+              raise ArgumentError,
+                "`identity: true` requires `id: :primary_key` (the default); got id: #{id.inspect}."
+            end
+            if primary_key.is_a?(Array)
+              raise ArgumentError,
+                "`identity: true` cannot be combined with a composite primary key."
+            end
+          end
 
           if id && !td.as
             pk = primary_key || Base.get_primary_key(table_name.to_s.singularize)
@@ -245,7 +261,7 @@ module ActiveRecord
 
           execute schema_creation.accept td
 
-          create_sequence_and_trigger(table_name, options) if create_sequence
+          create_sequence_and_trigger(table_name, options) if create_sequence && !identity
 
           if supports_comments? && !supports_comments_in_create?
             if table_comment = td.comment.presence
@@ -268,6 +284,7 @@ module ActiveRecord
           schema_cache.clear_data_source_cache!(new_name.to_s)
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
           execute "RENAME #{default_sequence_name(table_name, nil)} TO #{default_sequence_name(new_name, nil)}" rescue nil
+          @prefetch_primary_key_cache.delete(table_name.to_s)
 
           rename_table_indexes(table_name, new_name, **options)
         end
@@ -285,6 +302,7 @@ module ActiveRecord
             raise e unless options[:if_exists]
           ensure
             clear_table_columns_cache(table_name)
+            @prefetch_primary_key_cache.delete(table_name.to_s)
           end
         end
 
@@ -411,6 +429,20 @@ module ActiveRecord
         end
 
         def add_column(table_name, column_name, type, **options) # :nodoc:
+          # Adding a `GENERATED ... AS IDENTITY` column with `ALTER TABLE` is
+          # rejected by Oracle when the table already has rows or an existing
+          # primary key, because identity columns are implicitly NOT NULL and a
+          # table can only have one primary key:
+          #   ORA-01758: table must be empty to add mandatory (NOT NULL) column
+          #     https://docs.oracle.com/error-help/db/ora-01758/
+          #   ORA-02260: table can have only one primary key
+          #     https://docs.oracle.com/error-help/db/ora-02260/
+          # See ALTER TABLE / identity_clause in the Oracle SQL Language Reference:
+          #   https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/ALTER-TABLE.html
+          if options[:identity]
+            raise ArgumentError,
+              "`identity: true` is not supported on `add_column`. Recreate the table with `create_table ..., identity: true` instead."
+          end
           type = aliased_types(type.to_s, type)
           at = create_alter_table table_name
           at.add_column(column_name, type, **options)
@@ -635,6 +667,10 @@ module ActiveRecord
           OracleEnhanced::SchemaCreation.new self
         end
 
+        def valid_primary_key_options # :nodoc:
+          super + [:identity]
+        end
+
         private
           def insert_versions_sql(versions)
             sm_table = quote_table_name(ActiveRecord::Tasks::DatabaseTasks.migration_connection_pool.schema_migration.table_name)
@@ -693,6 +729,7 @@ module ActiveRecord
             end
 
             is_virtual = field["virtual_column"] == "YES"
+            is_identity = field["identity_column"] == "YES"
 
             # clean up odd default spacing from Oracle
             if field["data_default"] && !is_virtual
@@ -708,13 +745,14 @@ module ActiveRecord
 
             type_metadata = OracleEnhanced::TypeMetadata.new(fetch_type_metadata(field["sql_type"]), virtual: is_virtual)
             default_value = extract_value_from_default(field["data_default"])
-            default_value = nil if is_virtual
+            default_value = nil if is_virtual || is_identity
             OracleEnhanced::Column.new(oracle_downcase(field["name"]),
                              lookup_cast_type(field["sql_type"]),
                              default_value,
                              type_metadata,
                              field["nullable"] == "Y",
-                             comment: field["column_comment"]
+                             comment: field["column_comment"],
+                             identity: is_identity
             )
           end
 
