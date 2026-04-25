@@ -552,18 +552,32 @@ module ActiveRecord
         table_name = table_name.to_s
         if @prefetch_primary_key_cache[table_name].nil?
           owner, desc_table_name = resolve_data_source_name(table_name)
-          has_pk       = has_primary_key?(table_name, owner, desc_table_name)
-          has_identity = supports_identity_columns? && has_identity_column?(owner, desc_table_name)
-          @prefetch_primary_key_cache[table_name] = has_pk && !has_identity
+          has_pk          = has_primary_key?(table_name, owner, desc_table_name)
+          has_identity_pk = supports_identity_columns? && identity_primary_key?(owner, desc_table_name)
+          @prefetch_primary_key_cache[table_name] = has_pk && !has_identity_pk
         end
         @prefetch_primary_key_cache[table_name]
       end
 
-      def has_identity_column?(owner, desc_table_name) # :nodoc:
+      # Returns true when the primary key column of +desc_table_name+ is an
+      # identity column. Oracle allows identity columns to exist on non-PK
+      # columns (one identity column per table maximum), so the join with
+      # +all_constraints+ is required to avoid disabling PK prefetch on tables
+      # that combine a sequence-backed PK with a non-PK identity column.
+      def identity_primary_key?(owner, desc_table_name) # :nodoc:
         select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)]).any?
-          SELECT 1 FROM all_tab_identity_cols
-          WHERE owner = :owner
-            AND table_name = :table_name
+          SELECT 1
+          FROM all_tab_identity_cols itc
+          JOIN all_cons_columns cc
+            ON cc.owner = itc.owner
+           AND cc.table_name = itc.table_name
+           AND cc.column_name = itc.column_name
+          JOIN all_constraints c
+            ON c.owner = cc.owner
+           AND c.constraint_name = cc.constraint_name
+          WHERE itc.owner = :owner
+            AND itc.table_name = :table_name
+            AND c.constraint_type = 'P'
         SQL
       end
 
