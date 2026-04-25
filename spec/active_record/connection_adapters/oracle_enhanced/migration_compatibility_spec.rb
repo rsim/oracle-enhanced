@@ -13,6 +13,9 @@ describe "migration compatibility for identity primary keys" do
     ActiveRecord::Migration.suppress_messages do
       schema_define do
         drop_table :test_identity_pks, if_exists: true
+        drop_table :test_identity_pks_uuid, if_exists: true
+        drop_table :test_identity_pks_composite, if_exists: true
+        drop_table :test_identity_pks_no_id, if_exists: true
       end
     end
     @conn.schema_cache.clear!
@@ -65,6 +68,39 @@ describe "migration compatibility for identity primary keys" do
         run_migration(8.2) { create_table :test_identity_pks }
 
         expect(@conn.prefetch_primary_key?(:test_identity_pks)).to be false
+      end
+
+      it "skips auto-injection when id: false is passed" do
+        run_migration(8.2) do
+          create_table :test_identity_pks_no_id, id: false do |t|
+            t.string :name
+          end
+        end
+
+        expect(identity_column_exists?(:test_identity_pks_no_id, :id)).to be false
+      end
+
+      it "skips auto-injection when id: :integer is passed" do
+        run_migration(8.2) do
+          create_table :test_identity_pks, id: :integer do |t|
+            t.string :name
+          end
+        end
+
+        expect(identity_column_exists?(:test_identity_pks, :id)).to be false
+        expect(sequence_exists?(:test_identity_pks_seq)).to be true
+      end
+
+      it "skips auto-injection when a composite primary key is passed" do
+        run_migration(8.2) do
+          create_table :test_identity_pks_composite, primary_key: [:a, :b] do |t|
+            t.integer :a
+            t.integer :b
+          end
+        end
+
+        expect(identity_column_exists?(:test_identity_pks_composite, :a)).to be false
+        expect(identity_column_exists?(:test_identity_pks_composite, :b)).to be false
       end
     end
 

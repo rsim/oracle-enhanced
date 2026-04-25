@@ -5,8 +5,11 @@ module ActiveRecord
     module OracleEnhanced
       module MigrationCompatibility # :nodoc: all
         module IdentityPrimaryKey
-          def create_table(table_name, **options, &block)
-            if !options.key?(:identity) && connection.supports_identity_columns?
+          def create_table(table_name, id: :primary_key, primary_key: nil, **options, &block)
+            if !options.key?(:identity) &&
+               connection.supports_identity_columns? &&
+               id == :primary_key &&
+               !primary_key.is_a?(Array)
               options[:identity] = true
             end
             super
