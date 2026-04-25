@@ -504,6 +504,12 @@ describe "OracleEnhancedAdapter structure dump" do
       dump = @conn.structure_dump
       expect(dump).not_to match(/ISEQ\$\$_/)
     end
+
+    it "preserves GENERATED ALWAYS for tables created outside Rails" do
+      @conn.execute "ALTER TABLE test_identity_dump ADD always_id NUMBER GENERATED ALWAYS AS IDENTITY"
+      dump = @conn.structure_dump
+      expect(dump).to match(/"ALWAYS_ID"[^,]*GENERATED ALWAYS AS IDENTITY/)
+    end
   end
 
   describe "structure_dump_synonyms" do
