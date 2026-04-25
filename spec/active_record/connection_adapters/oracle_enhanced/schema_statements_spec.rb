@@ -96,6 +96,36 @@ describe "OracleEnhancedAdapter schema definition" do
       expect(pk.sql_type).to match(/VARCHAR2\(1\)/i)
       expect(pk.null).to be(false)
     end
+
+    it "does not create a sequence for a non-numeric primary key" do
+      schema_define do
+        create_table :test_lookups, force: true, id: false do |t|
+          t.primary_key :code, :string, limit: 10, null: false
+          t.string :name
+        end
+      end
+
+      seq = @conn.select_value(<<~SQL.squish, "SCHEMA")
+        SELECT 1 FROM user_sequences WHERE sequence_name = 'TEST_LOOKUPS_SEQ'
+      SQL
+      expect(seq).to be_nil
+    end
+
+    it "inserts via the Rails insert path on a String primary key" do
+      schema_define do
+        create_table :test_lookups, force: true, id: false do |t|
+          t.primary_key :code, :string, limit: 10, null: false
+          t.string :name
+        end
+      end
+      klass = Class.new(ActiveRecord::Base) do
+        self.table_name = "test_lookups"
+        self.primary_key = "code"
+      end
+
+      expect { klass.create!(code: "ABC", name: "alpha") }.not_to raise_error
+      expect(klass.find("ABC").name).to eq("alpha")
+    end
   end
 
   describe "default sequence name" do
