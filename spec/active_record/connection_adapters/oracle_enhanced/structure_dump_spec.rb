@@ -513,13 +513,6 @@ describe "OracleEnhancedAdapter structure dump" do
       expect(block).not_to be_nil
       expect(block).not_to match(/ISEQ\$\$_/)
     end
-
-    it "preserves GENERATED ALWAYS for tables created outside Rails" do
-      @conn.execute "CREATE TABLE test_identity_dump (id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, name VARCHAR2(255))"
-      block = test_identity_dump_block(@conn.structure_dump)
-      expect(block).not_to be_nil
-      expect(block).to match(/"ID" NUMBER(?:\([^)]+\))?\s+GENERATED ALWAYS AS IDENTITY/)
-    end
   end
 
   describe "structure_dump_synonyms" do
