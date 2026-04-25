@@ -12,7 +12,9 @@ module ActiveRecord # :nodoc:
             SELECT
             sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
             FROM all_sequences
-            where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
+            where sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND sequence_name NOT LIKE 'ISEQ$$_%'
+            ORDER BY 1
           SQL
 
           structure = sequences.map do |result|
@@ -295,8 +297,10 @@ module ActiveRecord # :nodoc:
 
         def structure_drop # :nodoc:
           sequences = select_values(<<~SQL.squish, "SCHEMA")
-            SELECT
-            sequence_name FROM all_sequences where sequence_owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
+            SELECT sequence_name FROM all_sequences
+            WHERE sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND sequence_name NOT LIKE 'ISEQ$$_%'
+            ORDER BY 1
           SQL
           statements = sequences.map do |seq|
             "DROP SEQUENCE \"#{seq}\""
