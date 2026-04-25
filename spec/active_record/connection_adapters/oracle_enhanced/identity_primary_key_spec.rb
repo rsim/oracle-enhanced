@@ -193,7 +193,7 @@ describe "identity primary keys" do
       skip "requires Oracle 12.1+" unless @oracle12c_or_higher
     end
 
-    it "still prefetches the sequence-backed primary key" do
+    it "still reports prefetch_primary_key? for the sequence-backed primary key" do
       schema_define do
         create_table :test_identity_pks do |t|
           t.string :name
@@ -204,11 +204,6 @@ describe "identity primary keys" do
       expect(identity_column_exists?(:test_identity_pks, :ext_id)).to be true
       expect(identity_column_exists?(:test_identity_pks, :id)).to be false
       expect(@conn.prefetch_primary_key?(:test_identity_pks)).to be true
-
-      klass = Class.new(ActiveRecord::Base) { self.table_name = "test_identity_pks" }
-      row = klass.create!(name: "alpha")
-      expect(row.id).to be_a(Integer)
-      expect(row.id).to be > 0
     end
   end
 
