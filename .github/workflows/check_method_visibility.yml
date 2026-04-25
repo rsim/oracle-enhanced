@@ -16,6 +16,7 @@ jobs:
     env:
       ORACLE_HOME: /opt/oracle/instantclient_23_26
       LD_LIBRARY_PATH: /opt/oracle/instantclient_23_26
+      NLS_LANG: American_America.AL32UTF8
     steps:
       - uses: actions/checkout@v6
       - name: Set up Ruby
