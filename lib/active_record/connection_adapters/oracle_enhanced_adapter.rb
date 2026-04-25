@@ -270,7 +270,7 @@ module ActiveRecord
 
         connect
         @enable_dbms_output = false
-        @do_not_prefetch_primary_key = {}
+        @prefetch_primary_key_cache = {}
         @columns_cache = {}
         @notice_receiver_sql_warnings = []
 
@@ -544,12 +544,11 @@ module ActiveRecord
       def prefetch_primary_key?(table_name = nil)
         return true if table_name.nil?
         table_name = table_name.to_s
-        do_not_prefetch = @do_not_prefetch_primary_key[table_name]
-        if do_not_prefetch.nil?
+        if @prefetch_primary_key_cache[table_name].nil?
           owner, desc_table_name = resolve_data_source_name(table_name)
-          @do_not_prefetch_primary_key[table_name] = do_not_prefetch = !has_primary_key?(table_name, owner, desc_table_name)
+          @prefetch_primary_key_cache[table_name] = has_primary_key?(table_name, owner, desc_table_name)
         end
-        !do_not_prefetch
+        @prefetch_primary_key_cache[table_name]
       end
 
       def reset_pk_sequence!(table_name, primary_key = nil, sequence_name = nil) # :nodoc:
