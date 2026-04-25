@@ -219,8 +219,16 @@ module ActiveRecord
           unless create_sequence
             class << td
               attr_accessor :create_sequence
+              # Only request a sequence when the primary key column is a
+              # numeric type that a +NUMBER+ sequence can populate. For
+              # example, +t.primary_key :code, :string+ inside +id: false+
+              # creates a VARCHAR2 PK; building a numeric sequence for it
+              # is meaningless and pollutes the schema with an unused
+              # +<table>_seq+.
               def primary_key(name, type = :primary_key, **options)
-                self.create_sequence = true
+                if [:primary_key, :integer, :bigint, :decimal].include?(type)
+                  self.create_sequence = true
+                end
                 super(name, type, **options)
               end
             end
