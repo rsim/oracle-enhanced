@@ -336,6 +336,7 @@ RSpec.describe "identity primary keys" do
       ActiveRecord::SchemaDumper.ignore_tables = []
 
       expect(stream.string).to include('create_table "test_identity_pks"')
+      expect(stream.string).to include("identity: false")
       expect(stream.string).not_to include("identity: true")
     end
   end
@@ -350,6 +351,113 @@ RSpec.describe "identity primary keys" do
       expect {
         @conn.empty_insert_statement_value(nil)
       }.to raise_error(NotImplementedError)
+    end
+  end
+
+  describe "identity counterparts to sequence-prerequisite behavior" do
+    before do
+      skip "requires Oracle 12.1+" unless @oracle12c_or_higher
+    end
+
+    it "renames a long-named identity table without touching a non-existent sequence" do
+      long_source = "a" * (@conn.max_identifier_length - 3)
+      schema_define do
+        create_table long_source.to_sym, force: true, identity: true do |t|
+          t.string :name
+        end
+      end
+
+      expected_old_seq = @conn.default_sequence_name(long_source, nil).upcase
+      expected_new_seq = @conn.default_sequence_name("renamed_identity_long", nil).upcase
+
+      expect {
+        @conn.rename_table(long_source, "renamed_identity_long")
+      }.not_to raise_error
+
+      sequences = @conn.select_values(
+        "SELECT sequence_name FROM user_sequences WHERE sequence_name IN ('#{expected_old_seq}', '#{expected_new_seq}')"
+      )
+      expect(sequences).to be_empty
+    ensure
+      schema_define do
+        drop_table :renamed_identity_long, if_exists: true
+        drop_table long_source.to_sym, if_exists: true
+      end
+    end
+
+    it "returns a nil sequence_name from pk_and_sequence_for for identity tables" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+
+      expect(@conn.pk_and_sequence_for(:test_identity_pks)).to eq(["id", nil])
+    end
+
+    it "does not query NEXTVAL when inserting into an identity table" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+      klass = Class.new(ActiveRecord::Base) { self.table_name = "test_identity_pks" }
+
+      set_logger
+      begin
+        klass.create!(name: "alpha")
+        klass.create!(name: "bravo")
+        expect(@logger.output(:debug)).not_to match(/NEXTVAL/i)
+      ensure
+        clear_logger
+      end
+    end
+
+    it "omits DROP SEQUENCE from full_drop output for identity-backed tables" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+
+      drop = @conn.full_drop
+
+      expect(drop).to match(/DROP TABLE "TEST_IDENTITY_PKS" CASCADE CONSTRAINTS/)
+      expect(drop).not_to match(/DROP SEQUENCE "TEST_IDENTITY_PKS_SEQ"/)
+    end
+
+    it "rename_table leaves an unrelated <table>_seq sequence alone for identity tables" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+      @conn.execute "CREATE SEQUENCE test_identity_pks_seq"
+
+      @conn.rename_table(:test_identity_pks, :test_identity_pks_renamed)
+
+      expect(sequence_exists?(:test_identity_pks_seq)).to be true
+      expect(sequence_exists?(:test_identity_pks_renamed_seq)).to be false
+    ensure
+      @conn.execute("DROP SEQUENCE test_identity_pks_seq") rescue nil
+      schema_define do
+        drop_table :test_identity_pks_renamed, if_exists: true
+      end
+    end
+
+    it "drop_table leaves an unrelated <table>_seq sequence alone for identity tables" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+      @conn.execute "CREATE SEQUENCE test_identity_pks_seq"
+
+      @conn.drop_table(:test_identity_pks)
+
+      expect(sequence_exists?(:test_identity_pks_seq)).to be true
+    ensure
+      @conn.execute("DROP SEQUENCE test_identity_pks_seq") rescue nil
     end
   end
 end
