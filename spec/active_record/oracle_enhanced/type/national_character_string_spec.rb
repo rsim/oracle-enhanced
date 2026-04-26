@@ -3,7 +3,7 @@
 describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     @conn.execute <<~SQL
       CREATE TABLE test_items (
         id                  NUMBER(6,0) PRIMARY KEY,

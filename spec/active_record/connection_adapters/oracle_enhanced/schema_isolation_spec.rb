@@ -21,11 +21,11 @@ describe "Oracle schema isolation between primary and remote connections" do
       establish_connection REMOTE_CONNECTION_PARAMS
     end
 
-    ActiveRecord::Base.connection.create_table :schema_isolation_primary, force: true do |t|
+    ActiveRecord::Base.lease_connection.create_table :schema_isolation_primary, force: true do |t|
       t.string :name, limit: 50
     end
 
-    SchemaIsolationRemoteBase.connection.create_table :schema_isolation_remote, force: true do |t|
+    SchemaIsolationRemoteBase.lease_connection.create_table :schema_isolation_remote, force: true do |t|
       t.string :name, limit: 50
     end
   end
@@ -33,7 +33,7 @@ describe "Oracle schema isolation between primary and remote connections" do
   after(:all) do
     if Object.const_defined?(:SchemaIsolationRemoteBase)
       begin
-        SchemaIsolationRemoteBase.connection.drop_table :schema_isolation_remote, if_exists: true
+        SchemaIsolationRemoteBase.lease_connection.drop_table :schema_isolation_remote, if_exists: true
       ensure
         begin
           SchemaIsolationRemoteBase.remove_connection
@@ -44,7 +44,7 @@ describe "Oracle schema isolation between primary and remote connections" do
     end
   ensure
     begin
-      ActiveRecord::Base.connection.drop_table :schema_isolation_primary, if_exists: true
+      ActiveRecord::Base.lease_connection.drop_table :schema_isolation_primary, if_exists: true
     ensure
       ActiveRecord::Base.clear_cache!
     end
@@ -55,13 +55,13 @@ describe "Oracle schema isolation between primary and remote connections" do
   # intentionally not distinguishing between the two.
   it "primary schema cannot directly access a table owned by the remote schema" do
     expect {
-      ActiveRecord::Base.connection.execute("SELECT * FROM #{DATABASE_REMOTE_USER}.schema_isolation_remote")
+      ActiveRecord::Base.lease_connection.execute("SELECT * FROM #{DATABASE_REMOTE_USER}.schema_isolation_remote")
     }.to raise_error(ActiveRecord::StatementInvalid, /ORA-00942/)
   end
 
   it "remote schema cannot directly access a table owned by the primary schema" do
     expect {
-      SchemaIsolationRemoteBase.connection.execute("SELECT * FROM #{DATABASE_USER}.schema_isolation_primary")
+      SchemaIsolationRemoteBase.lease_connection.execute("SELECT * FROM #{DATABASE_USER}.schema_isolation_primary")
     }.to raise_error(ActiveRecord::StatementInvalid, /ORA-00942/)
   end
 end

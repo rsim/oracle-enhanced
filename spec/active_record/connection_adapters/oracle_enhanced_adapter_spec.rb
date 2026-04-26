@@ -10,12 +10,12 @@ describe "OracleEnhancedAdapter" do
 
   describe "cache table columns" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :test_employees, force: true do |t|
           t.string  :first_name, limit: 20
           t.string  :last_name, limit: 25
-          if ActiveRecord::Base.connection.supports_virtual_columns?
+          if ActiveRecord::Base.lease_connection.supports_virtual_columns?
             t.virtual :full_name, as: "(first_name || ' ' || last_name)"
           else
             t.string  :full_name, limit: 46
@@ -41,7 +41,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     after(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       Object.send(:remove_const, "TestEmployee")
       Object.send(:remove_const, "TestEmployee2")
       @conn.drop_table :test_employees, if_exists: true
@@ -51,7 +51,7 @@ describe "OracleEnhancedAdapter" do
 
     before(:each) do
       set_logger
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     after(:each) do
@@ -61,32 +61,32 @@ describe "OracleEnhancedAdapter" do
     describe "without column caching" do
       it "should identify virtual columns as such" do
         skip "Not supported in this database version" unless @conn.supports_virtual_columns?
-        te = TestEmployee.connection.columns("test_employees").detect(&:virtual?)
+        te = TestEmployee.lease_connection.columns("test_employees").detect(&:virtual?)
         expect(te.name).to eq("full_name")
       end
 
       it "should get columns from database at first time" do
         @conn.clear_table_columns_cache(:test_employees)
-        expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
+        expect(TestEmployee.lease_connection.columns("test_employees").map(&:name)).to eq(@column_names)
         expect(@logger.logged(:debug).last).to match(/select .* from all_tab_cols/im)
       end
 
       it "should not get columns from database at second time" do
-        TestEmployee.connection.columns("test_employees")
+        TestEmployee.lease_connection.columns("test_employees")
         @logger.clear(:debug)
-        expect(TestEmployee.connection.columns("test_employees").map(&:name)).to eq(@column_names)
+        expect(TestEmployee.lease_connection.columns("test_employees").map(&:name)).to eq(@column_names)
         expect(@logger.logged(:debug).last).not_to match(/select .* from all_tab_cols/im)
       end
 
       it "should get primary key from database at first time" do
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
+        expect(TestEmployee.lease_connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
       it "should get primary key from database at second time without query" do
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
+        expect(TestEmployee.lease_connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         @logger.clear(:debug)
-        expect(TestEmployee.connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
+        expect(TestEmployee.lease_connection.pk_and_sequence_for("test_employees")).to eq(["id", "test_employees_seq"])
         expect(@logger.logged(:debug).last).to match(/select .* from all_constraints/im)
       end
 
@@ -109,7 +109,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "session information" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     it "should get current database name" do
@@ -127,7 +127,7 @@ describe "OracleEnhancedAdapter" do
     before(:all) do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:table] = "UNUSED"
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_tablespaces[:clob] = "UNUSED"
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     after(:all) do
@@ -277,7 +277,7 @@ describe "OracleEnhancedAdapter" do
   describe "with statement pool" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(statement_limit: 3))
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         drop_table :test_posts, if_exists: true
         create_table :test_posts
@@ -334,7 +334,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "explain" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         drop_table :test_posts, if_exists: true
         create_table :test_posts
@@ -367,7 +367,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "using offset and limit" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :test_employees, force: true do |t|
           t.integer   :sort_order
@@ -412,7 +412,7 @@ describe "OracleEnhancedAdapter" do
 
   describe "valid_type?" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :test_employees, force: true do |t|
           t.string :first_name, limit: 20
@@ -565,7 +565,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "includes synonyms in data_source" do
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
       expect(conn).to be_data_source_exist("synonym_comments")
       expect(conn.data_sources).to include("synonym_comments")
     end
@@ -574,7 +574,7 @@ describe "OracleEnhancedAdapter" do
   describe "dictionary selects with bind variables" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         drop_table :test_posts, if_exists: true
         create_table :test_posts
@@ -674,7 +674,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "Raises Deadlocked when a deadlock is encountered" do
-      skip "Skip temporary due to #1599" if ActiveRecord::Base.connection.supports_fetch_first_n_rows_and_offset?
+      skip "Skip temporary due to #1599" if ActiveRecord::Base.lease_connection.supports_fetch_first_n_rows_and_offset?
       expect {
         barrier = Concurrent::CyclicBarrier.new(2)
 
@@ -714,7 +714,7 @@ describe "OracleEnhancedAdapter" do
   describe "Sequence" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :table_with_name_thats_just_ok,
           sequence_name: "suitably_short_seq", force: true do |t|
@@ -738,7 +738,7 @@ describe "OracleEnhancedAdapter" do
   describe "Hints" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         drop_table :test_posts, if_exists: true
         create_table :test_posts
@@ -780,7 +780,7 @@ describe "OracleEnhancedAdapter" do
   describe "homogeneous in" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :test_posts, force: true
         create_table :test_comments, force: true do |t|

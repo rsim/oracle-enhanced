@@ -5,7 +5,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     @oracle11g_or_higher = !! @conn.select_value(
       "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
   end
@@ -45,7 +45,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump single primary key" do
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \(ID\)\n/)
     end
 
@@ -60,7 +60,7 @@ describe "OracleEnhancedAdapter structure dump" do
         ALTER TABLE TEST_POSTS
         add CONSTRAINT pk_id_title PRIMARY KEY (id, title)
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \(ID,TITLE\)\n/)
     end
 
@@ -69,7 +69,7 @@ describe "OracleEnhancedAdapter structure dump" do
         ALTER TABLE TEST_POSTS
         ADD CONSTRAINT fk_test_post_foo FOREIGN KEY (foo_id) REFERENCES foos(id)
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump.split('\n').length).to eq(1)
       expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_FOO"? FOREIGN KEY \("?FOO_ID"?\) REFERENCES "?FOOS"?\("?ID"?\)/i)
     end
@@ -89,13 +89,13 @@ describe "OracleEnhancedAdapter structure dump" do
         ADD CONSTRAINT fk_test_post_baz FOREIGN KEY (baz_id) REFERENCES foos(baz_id)
       SQL
 
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump.split('\n').length).to eq(1)
       expect(dump).to match(/ALTER TABLE "?TEST_POSTS"? ADD CONSTRAINT "?FK_TEST_POST_BAZ"? FOREIGN KEY \("?BAZ_ID"?\) REFERENCES "?FOOS"?\("?BAZ_ID"?\)/i)
     end
 
     it "should not error when no foreign keys are present" do
-      dump = ActiveRecord::Base.connection.structure_dump_fk_constraints
+      dump = ActiveRecord::Base.lease_connection.structure_dump_fk_constraints
       expect(dump.split('\n').length).to eq(0)
       expect(dump).to eq("")
     end
@@ -110,7 +110,7 @@ describe "OracleEnhancedAdapter structure dump" do
           SELECT 'bar' INTO :new.FOO FROM DUAL;
         END;
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
+      dump = ActiveRecord::Base.lease_connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
       expect(dump).to match(/CREATE OR REPLACE TRIGGER TEST_POST_TRIGGER/)
     end
 
@@ -118,14 +118,14 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute <<~SQL
         create or replace TYPE TEST_TYPE AS TABLE OF VARCHAR2(10);
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
+      dump = ActiveRecord::Base.lease_connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
       expect(dump).to match(/CREATE OR REPLACE TYPE TEST_TYPE/)
     end
 
     it "should dump views" do
       @conn.execute "create or replace VIEW test_posts_view_z as select * from test_posts"
       @conn.execute "create or replace VIEW test_posts_view_a as select * from test_posts_view_z"
-      dump = ActiveRecord::Base.connection.structure_dump.gsub(/\n|\s+/, " ")
+      dump = ActiveRecord::Base.lease_connection.structure_dump.gsub(/\n|\s+/, " ")
       expect(dump).to match(/CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_A.*CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_Z/)
     end
 
@@ -138,7 +138,7 @@ describe "OracleEnhancedAdapter structure dump" do
           PRIMARY KEY (ID)
         )
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/"?ID_PLUS"? NUMBER GENERATED ALWAYS AS \(ID\+2\) VIRTUAL/)
     end
 
@@ -151,7 +151,7 @@ describe "OracleEnhancedAdapter structure dump" do
           PRIMARY KEY (ID)
         )
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "SUPER" RAW\(255\) GENERATED ALWAYS AS \(HEXTORAW\(TO_CHAR\(ID\)\)\) VIRTUAL/)
     end
 
@@ -163,7 +163,7 @@ describe "OracleEnhancedAdapter structure dump" do
           PRIMARY KEY (ID)
         )
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "NCLOB_TEXT" NCLOB/)
     end
 
@@ -172,36 +172,36 @@ describe "OracleEnhancedAdapter structure dump" do
         ALTER TABLE test_posts
           add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump_unique_keys("test_posts")
+      dump = ActiveRecord::Base.lease_connection.structure_dump_unique_keys("test_posts")
       expect(dump).to eq(["ALTER TABLE TEST_POSTS ADD CONSTRAINT UK_FOO_FOO_ID UNIQUE (FOO,FOO_ID)"])
 
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CONSTRAINT UK_FOO_FOO_ID UNIQUE \(FOO,FOO_ID\)/)
     end
 
     it "should dump indexes" do
-      ActiveRecord::Base.connection.add_index(:test_posts, :foo, name: :ix_test_posts_foo)
-      ActiveRecord::Base.connection.add_index(:test_posts, :foo_id, name: :ix_test_posts_foo_id, unique: true)
+      ActiveRecord::Base.lease_connection.add_index(:test_posts, :foo, name: :ix_test_posts_foo)
+      ActiveRecord::Base.lease_connection.add_index(:test_posts, :foo_id, name: :ix_test_posts_foo_id, unique: true)
 
       @conn.execute <<~SQL
         ALTER TABLE test_posts
           add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
 
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CREATE UNIQUE INDEX "?IX_TEST_POSTS_FOO_ID"? ON "?TEST_POSTS"? \("?FOO_ID"?\)/i)
       expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO"? ON "?TEST_POSTS"? \("?FOO"?\)/i)
       expect(dump).not_to match(/CREATE UNIQUE INDEX "?UK_TEST_POSTS_/i)
     end
 
     it "should dump multi-value and function value indexes" do
-      ActiveRecord::Base.connection.add_index(:test_posts, [:foo, :foo_id], name: :ix_test_posts_foo_foo_id)
+      ActiveRecord::Base.lease_connection.add_index(:test_posts, [:foo, :foo_id], name: :ix_test_posts_foo_foo_id)
 
       @conn.execute <<~SQL
         CREATE INDEX "IX_TEST_POSTS_FUNCTION" ON "TEST_POSTS" (TO_CHAR(LENGTH("FOO"))||"FOO")
       SQL
 
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i)
       expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FUNCTION"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i)
     end
@@ -214,7 +214,7 @@ describe "OracleEnhancedAdapter structure dump" do
           PRIMARY KEY (ID)
         )
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CREATE TABLE "BARS" \(\n "ID" NUMBER\(38,0\) NOT NULL,\n "SUPER" RAW\(255\)/)
     end
 
@@ -222,24 +222,24 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute <<~SQL
         ALTER TABLE test_posts ADD CONSTRAINT test_posts_title_check CHECK (LENGTH(title) > 0)
       SQL
-      dump = ActiveRecord::Base.connection.structure_dump_check_constraints("test_posts")
+      dump = ActiveRecord::Base.lease_connection.structure_dump_check_constraints("test_posts")
       expect(dump.first).to match(/ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "TEST_POSTS_TITLE_CHECK" CHECK/)
 
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "TEST_POSTS_TITLE_CHECK" CHECK/)
     end
 
     it "should dump table comments" do
       comment_sql = %Q(COMMENT ON TABLE "TEST_POSTS" IS 'Test posts with ''some'' "quotes"')
       @conn.execute comment_sql
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/#{comment_sql}/)
     end
 
     it "should dump column comments" do
       comment_sql = %Q(COMMENT ON COLUMN "TEST_POSTS"."TITLE" IS 'The title of the post with ''some'' "quotes"')
       @conn.execute comment_sql
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/#{comment_sql}/)
     end
   end
@@ -253,7 +253,7 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.create_table :test_comments, temporary: true, id: false do |t|
         t.integer :post_id
       end
-      dump = ActiveRecord::Base.connection.structure_dump
+      dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CREATE GLOBAL TEMPORARY TABLE "?TEST_COMMENTS"?/i)
     end
   end
@@ -272,7 +272,7 @@ describe "OracleEnhancedAdapter structure dump" do
     # sequence so assertions are not affected by other sequences left in
     # the schema by sibling specs (e.g. POSTS_SEQ from create_table :posts).
     subject do
-      ActiveRecord::Base.connection.structure_dump
+      ActiveRecord::Base.lease_connection.structure_dump
         .split(/^\/$/)
         .find { |stmt| stmt.include?(%(CREATE SEQUENCE "#{sequence_name.upcase}")) } || ""
     end
@@ -349,7 +349,7 @@ describe "OracleEnhancedAdapter structure dump" do
       end
     end
 
-    let(:dump) { ActiveRecord::Base.connection.dump_schema_versions }
+    let(:dump) { ActiveRecord::Base.lease_connection.dump_schema_versions }
 
     before do
       ActiveRecord::Base.connection_pool.schema_migration.create_table
@@ -360,7 +360,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
     context "multi insert is supported" do
       it "should dump schema migrations using multi inserts" do
-        skip "Not supported in this database version" unless ActiveRecord::Base.connection.supports_multi_insert?
+        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.supports_multi_insert?
 
         expect(dump).to eq <<~SQL
           INSERT ALL
@@ -387,7 +387,7 @@ describe "OracleEnhancedAdapter structure dump" do
       }
 
       it "should dump schema migrations one version per insert" do
-        skip "Not supported in this database version" if ActiveRecord::Base.connection.supports_multi_insert?
+        skip "Not supported in this database version" if ActiveRecord::Base.lease_connection.supports_multi_insert?
 
         expect(dump).to eq insert_statement_per_migration
       end

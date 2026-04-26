@@ -3,68 +3,68 @@
 describe "OracleEnhancedAdapter establish connection" do
   it "should connect to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.connection).not_to be_nil
-    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+    expect(ActiveRecord::Base.lease_connection).not_to be_nil
+    expect(ActiveRecord::Base.lease_connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
   end
 
   it "should connect to database as SYSDBA" do
     ActiveRecord::Base.establish_connection(SYS_CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.connection).not_to be_nil
-    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+    expect(ActiveRecord::Base.lease_connection).not_to be_nil
+    expect(ActiveRecord::Base.lease_connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
   end
 
   it "should be active after connection to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.connection).to be_active
+    expect(ActiveRecord::Base.lease_connection).to be_active
   end
 
   it "should not be active after disconnection to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    ActiveRecord::Base.connection.disconnect!
-    expect(ActiveRecord::Base.connection).not_to be_active
+    ActiveRecord::Base.lease_connection.disconnect!
+    expect(ActiveRecord::Base.lease_connection).not_to be_active
   end
 
   it "should be active after reconnection to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    ActiveRecord::Base.connection.reconnect!
-    expect(ActiveRecord::Base.connection).to be_active
+    ActiveRecord::Base.lease_connection.reconnect!
+    expect(ActiveRecord::Base.lease_connection).to be_active
   end
 
   it "should be active after reconnection to database with restore_transactions: true" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    ActiveRecord::Base.connection.reconnect!(restore_transactions: true)
-    expect(ActiveRecord::Base.connection).to be_active
+    ActiveRecord::Base.lease_connection.reconnect!(restore_transactions: true)
+    expect(ActiveRecord::Base.lease_connection).to be_active
   end
 
   it "should use database default cursor_sharing parameter value force by default" do
     # Use `SYSTEM_CONNECTION_PARAMS` to query v$parameter
     ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("FORCE")
+    expect(ActiveRecord::Base.lease_connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("FORCE")
   end
 
   it "should use modified cursor_sharing value exact" do
     ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(cursor_sharing: :exact))
-    expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
+    expect(ActiveRecord::Base.lease_connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
   end
 
   it "should raise ArgumentError for an unsupported cursor_sharing value" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(cursor_sharing: "not_a_valid_mode"))
-    expect { ActiveRecord::Base.connection }.to raise_error(ArgumentError, /Invalid :cursor_sharing value/)
+    expect { ActiveRecord::Base.lease_connection }.to raise_error(ArgumentError, /Invalid :cursor_sharing value/)
   end
 
   it "should not use JDBC statement caching" do
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS)
-      expect(ActiveRecord::Base.connection.raw_connection.getImplicitCachingEnabled).to be(false)
-      expect(ActiveRecord::Base.connection.raw_connection.getStatementCacheSize).to eq(-1)
+      expect(ActiveRecord::Base.lease_connection.raw_connection.getImplicitCachingEnabled).to be(false)
+      expect(ActiveRecord::Base.lease_connection.raw_connection.getStatementCacheSize).to eq(-1)
     end
   end
 
   it "should use JDBC statement caching" do
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_statement_cache_size: 100))
-      expect(ActiveRecord::Base.connection.raw_connection.getImplicitCachingEnabled).to be(true)
-      expect(ActiveRecord::Base.connection.raw_connection.getStatementCacheSize).to eq(100)
+      expect(ActiveRecord::Base.lease_connection.raw_connection.getImplicitCachingEnabled).to be(true)
+      expect(ActiveRecord::Base.lease_connection.raw_connection.getStatementCacheSize).to eq(100)
       # else: don't raise error if OCI connection has parameter "jdbc_statement_cache_size", still ignore it
     end
   end
@@ -73,7 +73,7 @@ describe "OracleEnhancedAdapter establish connection" do
     skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_VERSION"] == "11.2.0.2"
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REJECTED" }))
-      conn = ActiveRecord::Base.connection.send(:_connection)
+      conn = ActiveRecord::Base.lease_connection.send(:_connection)
       expect(conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 0 }])
     end
   end
@@ -82,15 +82,15 @@ describe "OracleEnhancedAdapter establish connection" do
     skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_VERSION"] == "11.2.0.2"
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REQUESTED" }))
-      conn = ActiveRecord::Base.connection.send(:_connection)
+      conn = ActiveRecord::Base.lease_connection.send(:_connection)
       expect(conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 1 }])
     end
   end
 
   it "should connect to database using service_name" do
     ActiveRecord::Base.establish_connection(SERVICE_NAME_CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.connection).not_to be_nil
-    expect(ActiveRecord::Base.connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+    expect(ActiveRecord::Base.lease_connection).not_to be_nil
+    expect(ActiveRecord::Base.lease_connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
   end
 end
 
@@ -144,22 +144,22 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should create new connection" do
-      expect(ActiveRecord::Base.connection).to be_active
+      expect(ActiveRecord::Base.lease_connection).to be_active
     end
 
     it "should switch to specified schema" do
-      expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
-      expect(ActiveRecord::Base.connection.current_user).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:username].upcase)
+      expect(ActiveRecord::Base.lease_connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
+      expect(ActiveRecord::Base.lease_connection.current_user).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:username].upcase)
     end
 
     it "should switch to specified schema after reset" do
-      ActiveRecord::Base.connection.reset!
-      expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
+      ActiveRecord::Base.lease_connection.reset!
+      expect(ActiveRecord::Base.lease_connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
     end
 
     it "should raise ArgumentError for a :schema value that is not an Oracle unquoted identifier" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(schema: "oracle_enhanced;DROP TABLE x;--"))
-      expect { ActiveRecord::Base.connection }.to raise_error(ArgumentError, /Invalid :schema value/)
+      expect { ActiveRecord::Base.lease_connection }.to raise_error(ArgumentError, /Invalid :schema value/)
     end
   end
 
@@ -187,7 +187,7 @@ describe "OracleEnhancedConnection" do
 
     before(:all) do
       ActiveRecord::Base.establish_connection(schema_owner_params)
-      schema_conn = ActiveRecord::Base.connection
+      schema_conn = ActiveRecord::Base.lease_connection
       schema_conn.drop_table :schema_probe_table, if_exists: true
       schema_conn.create_table :schema_probe_table, id: :integer
       schema_conn.execute "GRANT SELECT ON schema_probe_table TO #{DATABASE_USER}"
@@ -199,20 +199,20 @@ describe "OracleEnhancedConnection" do
     after(:all) do
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(schema_owner_params)
-      ActiveRecord::Base.connection.drop_table :schema_probe_table, if_exists: true
+      ActiveRecord::Base.lease_connection.drop_table :schema_probe_table, if_exists: true
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     end
 
     it "sets CURRENT_SCHEMA so unqualified raw SQL resolves in the :schema user" do
-      expect(ActiveRecord::Base.connection.current_schema).to eq(DATABASE_SCHEMA.upcase)
+      expect(ActiveRecord::Base.lease_connection.current_schema).to eq(DATABASE_SCHEMA.upcase)
       expect {
-        ActiveRecord::Base.connection.execute("SELECT COUNT(*) FROM schema_probe_table")
+        ActiveRecord::Base.lease_connection.execute("SELECT COUNT(*) FROM schema_probe_table")
       }.not_to raise_error
     end
 
     it "data_source_exists? resolves an unqualified name in the :schema user" do
-      expect(ActiveRecord::Base.connection.data_source_exists?("schema_probe_table")).to be true
+      expect(ActiveRecord::Base.lease_connection.data_source_exists?("schema_probe_table")).to be true
     end
   end
 
@@ -224,13 +224,13 @@ describe "OracleEnhancedConnection" do
     it "should use NLS_TERRITORY environment variable" do
       ENV["NLS_TERRITORY"] = "JAPAN"
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("JAPAN")
+      expect(ActiveRecord::Base.lease_connection.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("JAPAN")
     end
 
     it "should use configuration value and ignore NLS_TERRITORY environment variable" do
       ENV["NLS_TERRITORY"] = "AMERICA"
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(nls_territory: "INDONESIA"))
-      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("INDONESIA")
+      expect(ActiveRecord::Base.lease_connection.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("INDONESIA")
     end
   end
 
@@ -242,19 +242,19 @@ describe "OracleEnhancedConnection" do
     it "should ignore NLS_DATE_FORMAT environment variable" do
       ENV["NLS_DATE_FORMAT"] = "YYYY-MM-DD"
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq("YYYY-MM-DD HH24:MI:SS")
+      expect(ActiveRecord::Base.lease_connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq("YYYY-MM-DD HH24:MI:SS")
     end
 
     it "should ignore NLS_DATE_FORMAT configuration value" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(nls_date_format: "YYYY-MM-DD HH24:MI"))
-      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq("YYYY-MM-DD HH24:MI:SS")
+      expect(ActiveRecord::Base.lease_connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq("YYYY-MM-DD HH24:MI:SS")
     end
 
     it "should use default value when NLS_DATE_FORMAT environment variable is not set" do
       ENV["NLS_DATE_FORMAT"] = nil
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       default = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::FIXED_NLS_PARAMETERS[:nls_date_format]
-      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq(default)
+      expect(ActiveRecord::Base.lease_connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq(default)
     end
   end
 
@@ -265,24 +265,24 @@ describe "OracleEnhancedConnection" do
       # Taint NLS_DATE_FORMAT on the current session so the post-reconnect
       # assertion can only pass if configure_connection actively re-applies
       # FIXED_NLS_PARAMETERS on the fresh physical session.
-      ActiveRecord::Base.connection.execute("ALTER SESSION SET NLS_DATE_FORMAT = 'DD-MON-RRRR'")
-      ActiveRecord::Base.connection.reconnect!
-      expect(ActiveRecord::Base.connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq(expected)
+      ActiveRecord::Base.lease_connection.execute("ALTER SESSION SET NLS_DATE_FORMAT = 'DD-MON-RRRR'")
+      ActiveRecord::Base.lease_connection.reconnect!
+      expect(ActiveRecord::Base.lease_connection.select_value("select SYS_CONTEXT('userenv', 'NLS_DATE_FORMAT') from dual")).to eq(expected)
     end
 
     it "re-applies current_schema after reconnect!" do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
       expected = CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase
-      expect(ActiveRecord::Base.connection.current_schema).to eq(expected)
-      ActiveRecord::Base.connection.reconnect!
-      expect(ActiveRecord::Base.connection.current_schema).to eq(expected)
+      expect(ActiveRecord::Base.lease_connection.current_schema).to eq(expected)
+      ActiveRecord::Base.lease_connection.reconnect!
+      expect(ActiveRecord::Base.lease_connection.current_schema).to eq(expected)
     end
 
     it "re-applies cursor_sharing after reconnect!" do
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(cursor_sharing: :exact))
-      expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
-      ActiveRecord::Base.connection.reconnect!
-      expect(ActiveRecord::Base.connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
+      expect(ActiveRecord::Base.lease_connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
+      ActiveRecord::Base.lease_connection.reconnect!
+      expect(ActiveRecord::Base.lease_connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
     end
   end
 
@@ -512,7 +512,7 @@ describe "OracleEnhancedConnection" do
     before(:all) do
       ENV["NLS_NUMERIC_CHARACTERS"] = ", "
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn_base = ActiveRecord::Base.connection
+      @conn_base = ActiveRecord::Base.lease_connection
       @conn = @conn_base.send(:_connection)
       @conn.exec "CREATE TABLE test_employees (age NUMBER(10,2))"
     end
@@ -546,7 +546,7 @@ describe "OracleEnhancedConnection" do
 
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.connection.send(:_connection)
+      @conn = ActiveRecord::Base.lease_connection.send(:_connection)
       @sys_conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(SYS_CONNECTION_PARAMS)
       schema_define do
         create_table :posts, force: true
@@ -567,7 +567,7 @@ describe "OracleEnhancedConnection" do
       # `@conn.active?` only reconnects the raw OCI handle; the
       # AR-level prepared statement cache can still hold a closed
       # cursor that the next `Post.create!` will try to bind_param on.
-      ActiveRecord::Base.connection.reconnect!
+      ActiveRecord::Base.lease_connection.reconnect!
     end
 
     def kill_current_session
@@ -587,7 +587,7 @@ describe "OracleEnhancedConnection" do
 
     it "should reconnect and execute SQL statement if connection is lost and auto retry is enabled" do
       # @conn.auto_retry = true
-      ActiveRecord::Base.connection.auto_retry = true
+      ActiveRecord::Base.lease_connection.auto_retry = true
       kill_current_session
       expect(@conn.exec("SELECT * FROM dual")).not_to be_nil
     end
@@ -600,21 +600,21 @@ describe "OracleEnhancedConnection" do
     # Regression test ported from rails/rails#46273, which only covers
     # Mysql2 and PostgreSQL in the Rails repository.
     it "adapter #execute is retryable when allow_retry: true is passed" do
-      previous_auto_retry = ActiveRecord::Base.connection.auto_retry
-      ActiveRecord::Base.connection.auto_retry = false
+      previous_auto_retry = ActiveRecord::Base.lease_connection.auto_retry
+      ActiveRecord::Base.lease_connection.auto_retry = false
       begin
         initial_connection_id = connection_id_from_server(@conn)
         kill_current_session
-        expect { ActiveRecord::Base.connection.execute("SELECT 1 FROM dual", allow_retry: true) }.not_to raise_error
+        expect { ActiveRecord::Base.lease_connection.execute("SELECT 1 FROM dual", allow_retry: true) }.not_to raise_error
         expect(connection_id_from_server(@conn)).not_to eq(initial_connection_id)
       ensure
-        ActiveRecord::Base.connection.auto_retry = previous_auto_retry
+        ActiveRecord::Base.lease_connection.auto_retry = previous_auto_retry
       end
     end
 
     it "should not reconnect and execute SQL statement if connection is lost and auto retry is disabled" do
       # @conn.auto_retry = false
-      ActiveRecord::Base.connection.auto_retry = false
+      ActiveRecord::Base.lease_connection.auto_retry = false
       kill_current_session
       if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
         expect { @conn.exec("SELECT * FROM dual") }.to raise_error(Java::JavaSql::SQLRecoverableException)
@@ -625,14 +625,14 @@ describe "OracleEnhancedConnection" do
 
     it "should reconnect and execute SQL select if connection is lost and auto retry is enabled" do
       # @conn.auto_retry = true
-      ActiveRecord::Base.connection.auto_retry = true
+      ActiveRecord::Base.lease_connection.auto_retry = true
       kill_current_session
       expect(@conn.select("SELECT * FROM dual")).to eq([{ "dummy" => "X" }])
     end
 
     it "should not reconnect and execute SQL select if connection is lost and auto retry is disabled" do
       # @conn.auto_retry = false
-      ActiveRecord::Base.connection.auto_retry = false
+      ActiveRecord::Base.lease_connection.auto_retry = false
       kill_current_session
       if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
         expect { @conn.select("SELECT * FROM dual") }.to raise_error(Java::JavaSql::SQLRecoverableException)
@@ -643,14 +643,14 @@ describe "OracleEnhancedConnection" do
 
     it "should reconnect and execute query if connection is lost and auto retry is enabled" do
       Post.create!
-      ActiveRecord::Base.connection.auto_retry = true
+      ActiveRecord::Base.lease_connection.auto_retry = true
       kill_current_session
       expect(Post.take).not_to be_nil
     end
 
     it "should not reconnect and execute query if connection is lost and auto retry is disabled" do
       Post.create!
-      ActiveRecord::Base.connection.auto_retry = false
+      ActiveRecord::Base.lease_connection.auto_retry = false
       kill_current_session
       expect { Post.take }.to raise_error(ActiveRecord::StatementInvalid)
     end
@@ -690,7 +690,7 @@ describe "OracleEnhancedConnection" do
   describe "resolve_data_source_name" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       @owner = CONNECTION_PARAMS[:username].upcase
     end
 
@@ -825,7 +825,7 @@ describe "OracleEnhancedConnection" do
   describe "extract_schema_qualified_name" do
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     def extract(string)

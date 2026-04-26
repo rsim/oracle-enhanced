@@ -5,7 +5,7 @@ describe "OracleEnhancedAdapter handling of DECIMAL columns" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     schema_define do
       create_table :test2_employees, force: true do |t|
         t.string  :first_name, limit: 20

@@ -5,7 +5,7 @@ describe "identity primary keys" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     @oracle12c_or_higher = @conn.database_version.first >= 12
   end
 

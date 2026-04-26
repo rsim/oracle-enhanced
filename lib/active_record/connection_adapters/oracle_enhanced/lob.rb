@@ -28,11 +28,11 @@ module ActiveRecord # :nodoc:
         private
           def enhanced_write_lobs
             # Skip if using prepared statements - LOB data is already written via temp LOB binding
-            return if self.class.connection.prepared_statements
+            return if self.class.lease_connection.prepared_statements
 
-            if self.class.connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
+            if self.class.lease_connection.is_a?(ConnectionAdapters::OracleEnhancedAdapter) &&
                 !(self.class.custom_create_method || self.class.custom_update_method)
-              self.class.connection.write_lobs(self.class.table_name, self.class, attributes, @changed_lob_columns)
+              self.class.lease_connection.write_lobs(self.class.table_name, self.class, attributes, @changed_lob_columns)
             end
           end
 

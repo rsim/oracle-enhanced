@@ -3,7 +3,7 @@
 describe "OracleEnhancedAdapter boolean type detection based on string column types and names" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     @conn.execute <<~SQL
       CREATE TABLE test3_employees (
         id            NUMBER PRIMARY KEY,
@@ -89,7 +89,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
   it "should translate boolean type to NUMBER(1) if emulate_booleans_from_strings is false" do
     ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
-    sql_type = ActiveRecord::Base.connection.type_to_sql(:boolean)
+    sql_type = ActiveRecord::Base.lease_connection.type_to_sql(:boolean)
     expect(sql_type).to eq("NUMBER(1)")
   end
 

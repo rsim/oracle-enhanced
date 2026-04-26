@@ -6,15 +6,15 @@ describe "OracleEnhancedAdapter schema definition" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @oracle11g_or_higher = !! !! ActiveRecord::Base.connection.select_value(
+    @oracle11g_or_higher = !! !! ActiveRecord::Base.lease_connection.select_value(
       "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
-    @oracle12cr2_or_higher = !! !! ActiveRecord::Base.connection.select_value(
+    @oracle12cr2_or_higher = !! !! ActiveRecord::Base.lease_connection.select_value(
       "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,4)) >= 12.2")
   end
 
   describe "option to create sequence when adding a column" do
     before do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :keyboards, force: true, id: false do |t|
           t.string      :name
@@ -25,7 +25,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "creates a sequence when adding a column with create_sequence = true" do
-      _, sequence_name = ActiveRecord::Base.connection.pk_and_sequence_for(:keyboards)
+      _, sequence_name = ActiveRecord::Base.lease_connection.pk_and_sequence_for(:keyboards)
 
       expect(sequence_name).to eq(Keyboard.sequence_name)
     end
@@ -33,7 +33,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "table and sequence creation with non-default primary key" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :keyboards, force: true, id: false do |t|
           t.primary_key :key_number
@@ -61,17 +61,17 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should create sequence for non-default primary key" do
-      expect(ActiveRecord::Base.connection.next_sequence_value(Keyboard.sequence_name)).not_to be_nil
+      expect(ActiveRecord::Base.lease_connection.next_sequence_value(Keyboard.sequence_name)).not_to be_nil
     end
 
     it "should create sequence for default primary key" do
-      expect(ActiveRecord::Base.connection.next_sequence_value(IdKeyboard.sequence_name)).not_to be_nil
+      expect(ActiveRecord::Base.lease_connection.next_sequence_value(IdKeyboard.sequence_name)).not_to be_nil
     end
   end
 
   describe "primary_key inside create_table block with type and keyword options" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     after(:each) do
@@ -130,13 +130,13 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "default sequence name" do
     it "should return sequence name without truncating too much" do
-      seq_name_length = ActiveRecord::Base.connection.sequence_name_length
+      seq_name_length = ActiveRecord::Base.lease_connection.sequence_name_length
       tname = "#{DATABASE_USER}" + "." + "a" * (seq_name_length - DATABASE_USER.length) + "z" * (DATABASE_USER).length
-      expect(ActiveRecord::Base.connection.default_sequence_name(tname, nil)).to match (/z_seq$/)
+      expect(ActiveRecord::Base.lease_connection.default_sequence_name(tname, nil)).to match (/z_seq$/)
     end
 
     it "truncates the trailing identifier by bytes for multibyte names" do
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
       max = conn.sequence_name_length
       # "é" is 2 bytes in UTF-8. Build a name that exceeds the byte budget.
       name = "é" * max # 2 * max bytes, definitely over
@@ -146,7 +146,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "preserves a schema prefix when truncating multibyte names" do
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
       max = conn.sequence_name_length
       name = "schema." + ("é" * max)
       seq = conn.default_sequence_name(name, nil)
@@ -157,7 +157,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "backs off a byte when the naive byte slice would land mid-character" do
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
       # Craft a name whose `max - 4` byte boundary lands in the middle of
       # a 2-byte character.
       max = conn.sequence_name_length
@@ -190,7 +190,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     before(:each) do
@@ -256,7 +256,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     before(:each) do
@@ -333,7 +333,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "drop tables" do
     before(:each) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     after(:each) do
@@ -366,7 +366,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "rename tables and sequences" do
     before(:each) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table  :test_employees, force: true do |t|
           t.string    :first_name
@@ -450,7 +450,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "add index" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     it "should return default index name if it is not larger than 30 characters" do
@@ -502,7 +502,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "rename index" do
   before(:each) do
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     schema_define do
       create_table  :test_employees do |t|
         t.string    :first_name
@@ -553,7 +553,7 @@ end
 
   describe "add_index with if_not_exists" do
     before(:each) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :test_posts, force: true do |t|
           t.string :title
@@ -583,7 +583,7 @@ end
 
   describe "add timestamps" do
     before(:each) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :test_employees, force: true
       end
@@ -761,7 +761,7 @@ end
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      ActiveRecord::Base.connection.foreign_keys(:test_comments)
+      ActiveRecord::Base.lease_connection.foreign_keys(:test_comments)
       expect(@logger.logged(:debug).last).to match(/:desc_table_name/)
       expect(@logger.logged(:debug).last).to match(/\["desc_table_name", "TEST_COMMENTS"\]\]/)
     end
@@ -770,7 +770,7 @@ end
       schema_define do
         add_foreign_key :test_comments, :test_posts, deferrable: :deferred
       end
-      fk = ActiveRecord::Base.connection.foreign_keys(:test_comments).first
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
       expect(fk.options[:deferrable]).to eq(:deferred)
     end
 
@@ -778,7 +778,7 @@ end
       schema_define do
         add_foreign_key :test_comments, :test_posts, deferrable: :immediate
       end
-      fk = ActiveRecord::Base.connection.foreign_keys(:test_comments).first
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
       expect(fk.options[:deferrable]).to eq(:immediate)
     end
 
@@ -786,7 +786,7 @@ end
       schema_define do
         add_foreign_key :test_comments, :test_posts
       end
-      fk = ActiveRecord::Base.connection.foreign_keys(:test_comments).first
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
       expect(fk.options[:deferrable]).to be(false)
     end
 
@@ -816,9 +816,9 @@ end
           t.binary :test_blob
         end
       end
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_NCLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_NCLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
     it "should use default tablespace for nclobs" do
@@ -832,9 +832,9 @@ end
           t.binary :test_blob
         end
       end
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_NCLOB'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_NCLOB'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
     it "should use default tablespace for blobs" do
@@ -848,9 +848,9 @@ end
           t.binary :test_blob
         end
       end
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_NCLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_BLOB'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_CLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'TEST_NCLOB'")).not_to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
     after do
@@ -863,7 +863,7 @@ end
 
   describe "primary key in table definition" do
     before do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
 
       class ::TestPost < ActiveRecord::Base
       end
@@ -881,7 +881,7 @@ end
             AND constraint_type = 'P'
             AND owner = SYS_CONTEXT('userenv', 'current_schema')")
 
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'")).to eq("USERS")
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'")).to eq("USERS")
     end
 
     it "should use non default tablespace for primary key" do
@@ -896,7 +896,7 @@ end
             AND constraint_type = 'P'
             AND owner = SYS_CONTEXT('userenv', 'current_schema')")
 
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_indexes WHERE index_name = '#{index_name}'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
     after do
@@ -990,7 +990,7 @@ end
 
   describe "disable referential integrity" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     before(:each) do
@@ -1036,7 +1036,7 @@ end
 
   describe "synonyms" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       @username = CONNECTION_PARAMS[:username]
       schema_define do
         create_table :test_posts, force: true do |t|
@@ -1140,7 +1140,7 @@ end
       schema_define do
         add_column :test_posts, :body, :text
       end
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'BODY'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'BODY'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
     it "should add ntext type lob column with non_default tablespace" do
@@ -1148,7 +1148,7 @@ end
       schema_define do
         add_column :test_posts, :body, :ntext
       end
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'BODY'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'BODY'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
     it "should add blob column with non_default tablespace" do
@@ -1156,7 +1156,7 @@ end
       schema_define do
         add_column :test_posts, :attachment, :binary
       end
-      expect(TestPost.connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'ATTACHMENT'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
+      expect(TestPost.lease_connection.select_value("SELECT tablespace_name FROM user_lobs WHERE table_name='TEST_POSTS' and column_name = 'ATTACHMENT'")).to eq(DATABASE_NON_DEFAULT_TABLESPACE)
     end
 
     it "should rename column" do
@@ -1342,7 +1342,7 @@ end
 
   describe "materialized views" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table  :test_employees, force: true do |t|
           t.string    :first_name
@@ -1372,7 +1372,7 @@ end
 
   describe "miscellaneous options" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     before(:each) do
@@ -1487,13 +1487,13 @@ end
     }
 
     before do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       ActiveRecord::Base.connection_pool.schema_migration.create_table
     end
 
     context "multi insert is supported" do
       it "should loads the migration schema table from insert versions sql" do
-        skip "Not supported in this database version" unless ActiveRecord::Base.connection.supports_multi_insert?
+        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.supports_multi_insert?
 
         expect {
           @conn.execute @conn.send(:insert_versions_sql, versions)
@@ -1505,7 +1505,7 @@ end
 
     context "multi insert is NOT supported" do
       it "should loads the migration schema table from insert versions sql" do
-        skip "Not supported in this database version" if ActiveRecord::Base.connection.supports_multi_insert?
+        skip "Not supported in this database version" if ActiveRecord::Base.lease_connection.supports_multi_insert?
 
         expect {
           versions.each { |version| @conn.execute @conn.send(:insert_versions_sql, version) }

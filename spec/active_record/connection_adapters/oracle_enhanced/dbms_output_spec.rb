@@ -5,7 +5,7 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    ActiveRecord::Base.connection.execute <<~SQL
+    ActiveRecord::Base.lease_connection.execute <<~SQL
       CREATE or REPLACE
       FUNCTION MORE_THAN_FIVE_CHARACTERS_LONG (some_text VARCHAR2) RETURN INTEGER
       AS
@@ -26,13 +26,13 @@ describe "OracleEnhancedAdapter logging dbms_output from plsql" do
   end
 
   after(:all) do
-    ActiveRecord::Base.connection.execute "DROP FUNCTION MORE_THAN_FIVE_CHARACTERS_LONG"
+    ActiveRecord::Base.lease_connection.execute "DROP FUNCTION MORE_THAN_FIVE_CHARACTERS_LONG"
   end
 
   before(:each) do
     set_logger
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
   end
 
   after(:each) do
