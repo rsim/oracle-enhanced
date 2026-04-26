@@ -269,15 +269,23 @@ describe "OracleEnhancedAdapter context index" do
 
   describe "with specified tablespace" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
       create_table_posts
       class ::Post < ActiveRecord::Base
         has_context_index
       end
       @post = Post.create(title: "aaa", body: "bbb")
-      @tablespace = @conn.default_tablespace
-      set_logger
+      @tablespace = ActiveRecord::Base.connection.default_tablespace
+    end
+
+    before(:each) do
+      # Re-fetch the connection per example: another spec
+      # (boolean/integer) may have called `establish_connection` between
+      # examples, which replaces the underlying ConnectionPool. A
+      # stale `@conn` cached in before(:all) would silently log to a
+      # disconnected adapter and `verify_logged_statements` would see
+      # an empty MockLogger.
       @conn = ActiveRecord::Base.connection
+      set_logger
     end
 
     after(:all) do
