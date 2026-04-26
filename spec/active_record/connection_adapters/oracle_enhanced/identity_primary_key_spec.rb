@@ -2,6 +2,7 @@
 
 describe "identity primary keys" do
   include SchemaSpecHelper
+  include LoggerSpecHelper
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -113,6 +114,26 @@ describe "identity primary keys" do
 
       row = klass.create!(id: 42, name: "bravo")
       expect(row.id).to eq(42)
+    end
+
+    it "issues INSERT ... VALUES (DEFAULT) when create! is called with no attributes" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+      klass = Class.new(ActiveRecord::Base) { self.table_name = "test_identity_pks" }
+
+      set_logger
+      begin
+        row = klass.create!
+        expect(row.id).to be_a(Integer)
+        expect(row.id).to be > 0
+        expect(klass.find(row.id)).to eq(row)
+        expect(@logger.output(:debug)).to match(/INSERT INTO "TEST_IDENTITY_PKS" \("ID"\) VALUES \(DEFAULT\)/i)
+      ensure
+        clear_logger
+      end
     end
   end
 
@@ -302,6 +323,14 @@ describe "identity primary keys" do
 
       expect(stream.string).to include('create_table "test_identity_pks"')
       expect(stream.string).not_to include("identity: true")
+    end
+  end
+
+  describe "empty_insert_statement_value composite primary key" do
+    it "raises NotImplementedError when called with an Array primary key" do
+      expect {
+        @conn.empty_insert_statement_value([:a, :b])
+      }.to raise_error(NotImplementedError)
     end
   end
 end
