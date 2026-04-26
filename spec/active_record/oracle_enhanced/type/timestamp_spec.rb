@@ -6,7 +6,7 @@ describe "OracleEnhancedAdapter timestamp with timezone support" do
   before(:all) do
     ActiveRecord.default_timezone = :local
     ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     schema_define do
       create_table :test_employees, force: true do |t|
         t.string        :first_name,  limit: 20

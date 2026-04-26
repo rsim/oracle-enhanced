@@ -35,7 +35,7 @@ describe "OracleEnhancedAdapter identifier length configuration" do
       adapter_class.use_legacy_identifier_length = true
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
 
       expect(conn.supports_longer_identifier?).to be(false)
       expect(conn.max_identifier_length).to eq(30)
@@ -44,7 +44,7 @@ describe "OracleEnhancedAdapter identifier length configuration" do
     it "honors per-connection use_legacy_identifier_length" do
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(use_legacy_identifier_length: true))
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
 
       expect(conn.supports_longer_identifier?).to be(false)
       expect(conn.max_identifier_length).to eq(30)
@@ -54,7 +54,7 @@ describe "OracleEnhancedAdapter identifier length configuration" do
       adapter_class.use_legacy_identifier_length = false
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(use_legacy_identifier_length: true))
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
 
       expect(conn.supports_longer_identifier?).to be(false)
     end
@@ -63,7 +63,7 @@ describe "OracleEnhancedAdapter identifier length configuration" do
       adapter_class.use_legacy_identifier_length = true
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(use_legacy_identifier_length: false))
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
 
       if Gem::Version.new(conn.database_version.join(".")) >= Gem::Version.new("12.2")
         expect(conn.supports_longer_identifier?).to be(true)
@@ -75,7 +75,7 @@ describe "OracleEnhancedAdapter identifier length configuration" do
     end
 
     it "silently falls back to 30-byte identifiers on a pre-12.2 database" do
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
       allow(conn).to receive(:database_version).and_return([11, 2])
       expect(conn.supports_longer_identifier?).to be(false)
       expect(conn.max_identifier_length).to eq(30)
@@ -85,7 +85,7 @@ describe "OracleEnhancedAdapter identifier length configuration" do
       adapter_class.use_legacy_identifier_length = true
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(use_legacy_identifier_length: nil))
-      conn = ActiveRecord::Base.connection
+      conn = ActiveRecord::Base.lease_connection
 
       expect(conn.supports_longer_identifier?).to be(false)
       expect(conn.max_identifier_length).to eq(30)

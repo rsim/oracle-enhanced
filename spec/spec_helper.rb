@@ -122,7 +122,7 @@ module SchemaSpecHelper
 end
 
 module SchemaDumpingHelper
-  def dump_table_schema(table, connection = ActiveRecord::Base.connection)
+  def dump_table_schema(table, connection = ActiveRecord::Base.lease_connection)
     old_ignore_tables = ActiveRecord::SchemaDumper.ignore_tables
     ActiveRecord::SchemaDumper.ignore_tables = connection.data_sources - [table]
     stream = StringIO.new

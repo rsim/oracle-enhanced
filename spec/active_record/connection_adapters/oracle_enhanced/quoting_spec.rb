@@ -57,7 +57,7 @@ describe "OracleEnhancedAdapter quoting" do
     end
 
     it "should remove double quotes in column quoting" do
-      expect(ActiveRecord::Base.connection.quote_column_name('aaa "bbb" ccc')).to eq('"aaa bbb ccc"')
+      expect(ActiveRecord::Base.lease_connection.quote_column_name('aaa "bbb" ccc')).to eq('"aaa bbb ccc"')
     end
   end
 
@@ -190,7 +190,7 @@ describe "OracleEnhancedAdapter quoting" do
     end
 
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
     end
 
     after(:each) do

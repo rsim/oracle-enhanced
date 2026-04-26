@@ -19,12 +19,12 @@ describe "OracleEnhancedAdapter multiple database support" do
       establish_connection REMOTE_CONNECTION_PARAMS
     end
 
-    ActiveRecord::Base.connection.create_table :multi_db_primary_employees, force: true do |t|
+    ActiveRecord::Base.lease_connection.create_table :multi_db_primary_employees, force: true do |t|
       t.string :name, limit: 50
       t.integer :multi_db_remote_employee_id
     end
 
-    MultiDbRemoteBase.connection.create_table :multi_db_remote_employees, force: true do |t|
+    MultiDbRemoteBase.lease_connection.create_table :multi_db_remote_employees, force: true do |t|
       t.string :name, limit: 50
     end
 
@@ -52,14 +52,14 @@ describe "OracleEnhancedAdapter multiple database support" do
   after(:all) do
     if Object.const_defined?(:MultiDbRemoteBase)
       begin
-        MultiDbRemoteBase.connection.drop_table :multi_db_remote_employees, if_exists: true
+        MultiDbRemoteBase.lease_connection.drop_table :multi_db_remote_employees, if_exists: true
       ensure
         MultiDbRemoteBase.remove_connection
       end
     end
   ensure
     begin
-      ActiveRecord::Base.connection.drop_table :multi_db_primary_employees, if_exists: true
+      ActiveRecord::Base.lease_connection.drop_table :multi_db_primary_employees, if_exists: true
     ensure
       %w[MultiDbPrimaryEmployee MultiDbRemoteEmployee MultiDbRemoteEmployee2 MultiDbRemoteBase].each do |name|
         Object.send(:remove_const, name) if Object.const_defined?(name)

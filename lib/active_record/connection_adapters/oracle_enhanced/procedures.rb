@@ -186,7 +186,7 @@ module ActiveRecord # :nodoc:
       end
 
       def log_custom_method(sql, name, &block)
-        connection = self.class.connection
+        connection = self.class.lease_connection
         intent = ActiveRecord::ConnectionAdapters::QueryIntent.new(
           adapter: connection, raw_sql: sql, name: name, binds: []
         )

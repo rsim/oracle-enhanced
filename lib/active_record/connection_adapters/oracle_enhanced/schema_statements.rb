@@ -681,12 +681,12 @@ module ActiveRecord
               } << "SELECT * FROM DUAL\n"
             else
               if versions.is_a?(Array)
-                # called from ActiveRecord::Base.connection#dump_schema_versions
+                # called from ActiveRecord::Base.lease_connection#dump_schema_versions
                 versions.map { |version|
                   "INSERT INTO #{sm_table} (version) VALUES (#{quote(version)})"
                 }.join("\n\n/\n\n")
               else
-                # called from ActiveRecord::Base.connection#assume_migrated_upto_version
+                # called from ActiveRecord::Base.lease_connection#assume_migrated_upto_version
                 "INSERT INTO #{sm_table} (version) VALUES (#{quote(versions)})"
               end
             end

@@ -61,7 +61,7 @@ describe "OracleEnhancedAdapter context index" do
 
   describe "on single table" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       @title_words = %w{aaa bbb ccc}
       @body_words = %w{foo bar baz}
       create_table_posts
@@ -185,7 +185,7 @@ describe "OracleEnhancedAdapter context index" do
 
   describe "on multiple tables" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       create_tables
       class ::Post < ActiveRecord::Base
         has_many :comments, dependent: :destroy
@@ -274,7 +274,7 @@ describe "OracleEnhancedAdapter context index" do
         has_context_index
       end
       @post = Post.create(title: "aaa", body: "bbb")
-      @tablespace = ActiveRecord::Base.connection.default_tablespace
+      @tablespace = ActiveRecord::Base.lease_connection.default_tablespace
     end
 
     before(:each) do
@@ -284,7 +284,7 @@ describe "OracleEnhancedAdapter context index" do
       # stale `@conn` cached in before(:all) would silently log to a
       # disconnected adapter and `verify_logged_statements` would see
       # an empty MockLogger.
-      @conn = ActiveRecord::Base.connection
+      @conn = ActiveRecord::Base.lease_connection
       set_logger
     end
 
@@ -326,7 +326,7 @@ describe "OracleEnhancedAdapter context index" do
   describe "schema dump" do
     describe "without table prefixe and suffix" do
       before(:all) do
-        @conn = ActiveRecord::Base.connection
+        @conn = ActiveRecord::Base.lease_connection
         create_tables
       end
 

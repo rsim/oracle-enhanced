@@ -3,7 +3,7 @@
 describe "OracleEnhancedAdapter#columns_for_distinct" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
   end
 
   it "strips ASC modifier" do

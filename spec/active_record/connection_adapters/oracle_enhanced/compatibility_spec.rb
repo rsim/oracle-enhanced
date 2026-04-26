@@ -5,7 +5,7 @@ describe "compatibility migrations" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     schema_define do
       create_table :test_employees, force: true
     end

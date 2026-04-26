@@ -3,7 +3,7 @@
 describe "OracleEnhancedAdapter date and datetime type detection based on attribute settings" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     @conn.execute "DROP TABLE test_employees" rescue nil
     @conn.execute "DROP SEQUENCE test_employees_seq" rescue nil
     @conn.execute <<~SQL
@@ -89,7 +89,7 @@ describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @conn = ActiveRecord::Base.connection
+    @conn = ActiveRecord::Base.lease_connection
     schema_define do
       create_table :test_employees, force: true do |t|
         t.string    :first_name,  limit: 20

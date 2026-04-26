@@ -43,15 +43,15 @@ describe "Oracle Enhanced adapter database tasks" do
 
     it "creates user" do
       query = "SELECT COUNT(*) FROM dba_users WHERE UPPER(username) = '#{new_user_config[:username].upcase}'"
-      expect(ActiveRecord::Base.connection.select_value(query)).to eq(1)
+      expect(ActiveRecord::Base.lease_connection.select_value(query)).to eq(1)
     end
     it "grants permissions defined by OracleEnhancedAdapter.persmissions" do
       query = "SELECT COUNT(*) FROM DBA_SYS_PRIVS WHERE GRANTEE = '#{new_user_config[:username].upcase}'"
       permissions_count = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.permissions.size
-      expect(ActiveRecord::Base.connection.select_value(query)).to eq(permissions_count)
+      expect(ActiveRecord::Base.lease_connection.select_value(query)).to eq(permissions_count)
     end
     after do
-      ActiveRecord::Base.connection.execute("DROP USER #{new_user_config[:username]}")
+      ActiveRecord::Base.lease_connection.execute("DROP USER #{new_user_config[:username]}")
     end
 
     def fake_terminal(input)
@@ -246,7 +246,7 @@ describe "Oracle Enhanced adapter database tasks" do
       before { ActiveRecord::Tasks::DatabaseTasks.drop(config) }
 
       it "drops all tables" do
-        expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_falsey
+        expect(ActiveRecord::Base.lease_connection.table_exists?(:test_posts)).to be_falsey
       end
     end
 
@@ -254,8 +254,8 @@ describe "Oracle Enhanced adapter database tasks" do
       before { ActiveRecord::Tasks::DatabaseTasks.purge(config) }
 
       it "drops all tables" do
-        expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_falsey
-        expect(ActiveRecord::Base.connection.select_value("SELECT COUNT(*) FROM RECYCLEBIN")).to eq(0)
+        expect(ActiveRecord::Base.lease_connection.table_exists?(:test_posts)).to be_falsey
+        expect(ActiveRecord::Base.lease_connection.select_value("SELECT COUNT(*) FROM RECYCLEBIN")).to eq(0)
       end
     end
 
@@ -263,7 +263,7 @@ describe "Oracle Enhanced adapter database tasks" do
       let(:temp_file) { Tempfile.create(["oracle_enhanced", ".sql"]).path }
       before do
         ActiveRecord::Base.connection_pool.schema_migration.create_table
-        ActiveRecord::Base.connection.execute "INSERT INTO schema_migrations (version) VALUES ('20150101010000')"
+        ActiveRecord::Base.lease_connection.execute "INSERT INTO schema_migrations (version) VALUES ('20150101010000')"
       end
 
       describe "structure_dump" do
@@ -284,7 +284,7 @@ describe "Oracle Enhanced adapter database tasks" do
         end
 
         it "loads the database structure from a file" do
-          expect(ActiveRecord::Base.connection.table_exists?(:test_posts)).to be_truthy
+          expect(ActiveRecord::Base.lease_connection.table_exists?(:test_posts)).to be_truthy
         end
       end
 
