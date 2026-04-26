@@ -51,6 +51,13 @@ describe "OracleEnhancedAdapter schema dump" do
       create_test_posts_table
       expect(standard_dump(ignore_tables: [ /test_posts/i ])).not_to match(/create_table "test_posts"/)
     end
+
+    it "should dump non-primary key columns in alphabetical order" do
+      create_test_posts_table
+      output = dump_table_schema "test_posts"
+      column_names = output.scan(/^\s+t\.\w+\s+"(\w+)"/).flatten
+      expect(column_names).to eq(column_names.sort)
+    end
   end
 
   describe "dumping default values" do
