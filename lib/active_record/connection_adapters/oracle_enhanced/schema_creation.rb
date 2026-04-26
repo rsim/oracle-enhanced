@@ -66,7 +66,7 @@ module ActiveRecord
             if options[:null] == false
               sql << " NOT NULL"
             elsif options[:null] == true
-              sql << " NULL" unless type == :primary_key
+              sql << " NULL"
             end
             # add AS expression for virtual columns
             if options[:as].present?
