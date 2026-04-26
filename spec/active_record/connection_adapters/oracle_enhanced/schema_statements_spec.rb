@@ -128,6 +128,41 @@ describe "OracleEnhancedAdapter schema definition" do
     end
   end
 
+  describe "primary key with null: true" do
+    # Regression coverage for the contract introduced in
+    # rails/rails#57204: `add_column` must reject `null: true` on a
+    # primary key. The actual ArgumentError is raised by the abstract
+    # `new_column_definition` upstream; this spec guards against
+    # oracle-enhanced's `new_column_definition` override (in
+    # schema_definitions.rb) ever short-circuiting before the upstream
+    # `super` call and silently letting the invalid combination
+    # through.
+    before(:all) do
+      @conn = ActiveRecord::Base.lease_connection
+      schema_define do
+        create_table :test_pk_null_check, force: true do |t|
+          t.string :name
+        end
+      end
+    end
+
+    after(:all) do
+      schema_define { drop_table :test_pk_null_check, if_exists: true }
+    end
+
+    it "raises ArgumentError when adding a :primary_key column with null: true" do
+      expect {
+        @conn.add_column :test_pk_null_check, :other_id, :primary_key, null: true
+      }.to raise_error(ArgumentError, /primary keys cannot be NULL/)
+    end
+
+    it "raises ArgumentError when adding a column with primary_key: true and null: true" do
+      expect {
+        @conn.add_column :test_pk_null_check, :another_id, :integer, primary_key: true, null: true
+      }.to raise_error(ArgumentError, /primary keys cannot be NULL/)
+    end
+  end
+
   describe "default sequence name" do
     it "should return sequence name without truncating too much" do
       seq_name_length = ActiveRecord::Base.lease_connection.sequence_name_length
