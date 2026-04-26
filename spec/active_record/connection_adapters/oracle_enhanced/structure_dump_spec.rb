@@ -40,6 +40,8 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute "ALTER TABLE test_posts drop column baz_id" rescue nil
       @conn.execute "DROP VIEW test_posts_view_z" rescue nil
       @conn.execute "DROP VIEW test_posts_view_a" rescue nil
+      Object.send(:remove_const, "TestPost") if defined?(TestPost)
+      ActiveRecord::Base.clear_cache!
     end
 
     it "should dump single primary key" do
