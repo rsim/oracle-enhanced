@@ -269,15 +269,23 @@ describe "OracleEnhancedAdapter context index" do
 
   describe "with specified tablespace" do
     before(:all) do
-      @conn = ActiveRecord::Base.connection
       create_table_posts
       class ::Post < ActiveRecord::Base
         has_context_index
       end
       @post = Post.create(title: "aaa", body: "bbb")
-      @tablespace = @conn.default_tablespace
-      set_logger
+      @tablespace = ActiveRecord::Base.connection.default_tablespace
+    end
+
+    before(:each) do
+      # Re-fetch the connection per example: another spec
+      # (boolean/integer) may have called `establish_connection` between
+      # examples, which replaces the underlying ConnectionPool. A
+      # stale `@conn` cached in before(:all) would silently log to a
+      # disconnected adapter and `verify_logged_statements` would see
+      # an empty MockLogger.
       @conn = ActiveRecord::Base.connection
+      set_logger
     end
 
     after(:all) do
@@ -290,23 +298,26 @@ describe "OracleEnhancedAdapter context index" do
       clear_logger
     end
 
-    def verify_logged_statements
+    def verify_logged_statements(index_name)
+      storage_name = "#{index_name}_sto"
       ["K_TABLE_CLAUSE", "R_TABLE_CLAUSE", "N_TABLE_CLAUSE", "I_INDEX_CLAUSE", "P_TABLE_CLAUSE"].each do |clause|
-        expect(@logger.output(:debug)).to match(/CTX_DDL\.SET_ATTRIBUTE\('index_posts_on_title_sto', '#{clause}', '.*TABLESPACE #{@tablespace}'\)/)
+        expect(@logger.output(:debug)).to match(/CTX_DDL\.SET_ATTRIBUTE\('#{storage_name}', '#{clause}', '.*TABLESPACE #{@tablespace}'\)/)
       end
-      expect(@logger.output(:debug)).to match(/CREATE INDEX .* PARAMETERS \('STORAGE index_posts_on_title_sto'\)/)
+      # Multi-column context indexes prefix STORAGE with DATASTORE / SECTION
+      # GROUP clauses; allow either form by accepting any content before STORAGE.
+      expect(@logger.output(:debug)).to match(/CREATE INDEX .* PARAMETERS \('.*STORAGE #{storage_name}'\)/)
     end
 
     it "should create index on single column" do
       @conn.add_context_index :posts, :title, tablespace: @tablespace
-      verify_logged_statements
+      verify_logged_statements("index_posts_on_title")
       expect(Post.contains(:title, "aaa").to_a).to eq([@post])
       @conn.remove_context_index :posts, :title
     end
 
     it "should create index on multiple columns" do
       @conn.add_context_index :posts, [:title, :body], name: "index_posts_text", tablespace: @conn.default_tablespace
-      verify_logged_statements
+      verify_logged_statements("index_posts_text")
       expect(Post.contains(:title, "aaa AND bbb").to_a).to eq([@post])
       @conn.remove_context_index :posts, name: "index_posts_text"
     end

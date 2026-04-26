@@ -135,13 +135,19 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "create connection with schema option" do
-    it "should create new connection" do
+    before(:each) do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
+    end
+
+    after(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    end
+
+    it "should create new connection" do
       expect(ActiveRecord::Base.connection).to be_active
     end
 
     it "should switch to specified schema" do
-      ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
       expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
       expect(ActiveRecord::Base.connection.current_user).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:username].upcase)
     end
@@ -555,7 +561,13 @@ describe "OracleEnhancedConnection" do
     end
 
     before(:each) do
-      ActiveRecord::Base.connection.reconnect! unless @conn.active?
+      # Always reconnect so that prepared statement / cursor caches do
+      # not carry stale OCI8::Cursor objects from a previous example
+      # whose `kill_current_session` invalidated them. Checking
+      # `@conn.active?` only reconnects the raw OCI handle; the
+      # AR-level prepared statement cache can still hold a closed
+      # cursor that the next `Post.create!` will try to bind_param on.
+      ActiveRecord::Base.connection.reconnect!
     end
 
     def kill_current_session

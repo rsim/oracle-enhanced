@@ -109,8 +109,17 @@ describe "OracleEnhancedAdapter schema dump" do
   end
 
   describe "foreign key constraints" do
-    before(:all) do
+    # Recreate the canonical tables before each example. One example
+    # (`should include primary_key when reference column name is not 'id'`)
+    # mutates the schema by replacing test_posts/test_comments with
+    # tables that lack `test_post_id`; under :random order any FK
+    # example that runs after it then fails with
+    # `ORA-00904: "TEST_POST_ID": invalid identifier`. Resetting the
+    # tables per-example keeps every example independent of order.
+    before(:each) do
       schema_define do
+        drop_table :test_comments, if_exists: true
+        drop_table :test_posts, if_exists: true
         create_table :test_posts, force: true do |t|
           t.string :title
         end
