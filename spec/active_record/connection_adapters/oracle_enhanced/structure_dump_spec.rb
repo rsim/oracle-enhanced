@@ -266,8 +266,13 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute "drop SEQUENCE \"#{sequence_name}\""
     end
 
+    # Scope the dump to only the CREATE SEQUENCE statement for our test
+    # sequence so assertions are not affected by other sequences left in
+    # the schema by sibling specs (e.g. POSTS_SEQ from create_table :posts).
     subject do
       ActiveRecord::Base.connection.structure_dump
+        .split(/^\/$/)
+        .find { |stmt| stmt.include?(%(CREATE SEQUENCE "#{sequence_name.upcase}")) } || ""
     end
 
     context "default sequence" do
