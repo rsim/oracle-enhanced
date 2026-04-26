@@ -2,6 +2,7 @@
 
 describe "identity primary keys" do
   include SchemaSpecHelper
+  include LoggerSpecHelper
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -39,20 +40,8 @@ describe "identity primary keys" do
     end
   end
 
-  describe "without identity: option (sequence-backed primary key)" do
+  describe "with identity: false (sequence-backed primary key)" do
     it "creates a sequence-backed primary key" do
-      schema_define do
-        create_table :test_identity_pks do |t|
-          t.string :name
-        end
-      end
-
-      expect(identity_column_exists?(:test_identity_pks, :id)).to be false
-      expect(sequence_exists?(:test_identity_pks_seq)).to be true
-      expect(@conn.prefetch_primary_key?(:test_identity_pks)).to be true
-    end
-
-    it "treats identity: false the same as the default" do
       schema_define do
         create_table :test_identity_pks, identity: false do |t|
           t.string :name
@@ -61,6 +50,7 @@ describe "identity primary keys" do
 
       expect(identity_column_exists?(:test_identity_pks, :id)).to be false
       expect(sequence_exists?(:test_identity_pks_seq)).to be true
+      expect(@conn.prefetch_primary_key?(:test_identity_pks)).to be true
     end
   end
 
@@ -163,7 +153,7 @@ describe "identity primary keys" do
 
       schema_define do
         drop_table :test_identity_pks
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -172,7 +162,7 @@ describe "identity primary keys" do
 
     it "is invalidated when a sequence-backed table is dropped and recreated as identity" do
       schema_define do
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -197,7 +187,7 @@ describe "identity primary keys" do
 
       schema_define do
         rename_table :test_identity_pks, :test_identity_pks_renamed
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -216,7 +206,7 @@ describe "identity primary keys" do
 
     it "still reports prefetch_primary_key? for the sequence-backed primary key" do
       schema_define do
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -288,9 +278,9 @@ describe "identity primary keys" do
       expect(stream.string).to include("identity: true")
     end
 
-    it "does not emit identity: true for sequence-backed tables" do
+    it "emits identity: false for sequence-backed tables (roundtrip safety)" do
       schema_define do
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -301,7 +291,100 @@ describe "identity primary keys" do
       ActiveRecord::SchemaDumper.ignore_tables = []
 
       expect(stream.string).to include('create_table "test_identity_pks"')
+      expect(stream.string).to include("identity: false")
       expect(stream.string).not_to include("identity: true")
+    end
+  end
+
+  describe "identity counterparts to sequence-prerequisite behavior" do
+    before do
+      skip "requires Oracle 12.1+" unless @oracle12c_or_higher
+    end
+
+    it "renames a long-named identity table without touching a non-existent sequence" do
+      long_source = "a" * (@conn.max_identifier_length - 3)
+      schema_define do
+        create_table long_source.to_sym, force: true, identity: true do |t|
+          t.string :name
+        end
+      end
+
+      expected_old_seq = @conn.default_sequence_name(long_source, nil).upcase
+      expected_new_seq = @conn.default_sequence_name("renamed_identity_long", nil).upcase
+
+      expect {
+        @conn.rename_table(long_source, "renamed_identity_long")
+      }.not_to raise_error
+
+      sequences = @conn.select_values(
+        "SELECT sequence_name FROM user_sequences WHERE sequence_name IN ('#{expected_old_seq}', '#{expected_new_seq}')"
+      )
+      expect(sequences).to be_empty
+    ensure
+      schema_define do
+        drop_table :renamed_identity_long, if_exists: true
+        drop_table long_source.to_sym, if_exists: true
+      end
+    end
+
+    it "returns a nil sequence_name from pk_and_sequence_for for identity tables" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+
+      expect(@conn.pk_and_sequence_for(:test_identity_pks)).to eq(["id", nil])
+    end
+
+    it "does not query NEXTVAL when inserting into an identity table" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+      klass = Class.new(ActiveRecord::Base) { self.table_name = "test_identity_pks" }
+
+      set_logger
+      begin
+        klass.create!(name: "alpha")
+        klass.create!(name: "bravo")
+        expect(@logger.output(:debug)).not_to match(/NEXTVAL/i)
+      ensure
+        clear_logger
+      end
+    end
+
+    it "issues INSERT ... VALUES (DEFAULT) when create! is called with no attributes" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+      klass = Class.new(ActiveRecord::Base) { self.table_name = "test_identity_pks" }
+
+      set_logger
+      begin
+        row = klass.create!
+        expect(row.id).to be_a(Integer)
+        expect(row.id).to be > 0
+        expect(@logger.output(:debug)).to match(/INSERT INTO "TEST_IDENTITY_PKS" \("ID"\) VALUES \(DEFAULT\)/i)
+      ensure
+        clear_logger
+      end
+    end
+
+    it "omits DROP SEQUENCE from full_drop output for identity-backed tables" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+
+      drop = @conn.full_drop
+
+      expect(drop).to match(/DROP TABLE "TEST_IDENTITY_PKS" CASCADE CONSTRAINTS/)
+      expect(drop).not_to match(/DROP SEQUENCE "TEST_IDENTITY_PKS_SEQ"/)
     end
   end
 end

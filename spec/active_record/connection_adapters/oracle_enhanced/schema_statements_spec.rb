@@ -39,7 +39,7 @@ describe "OracleEnhancedAdapter schema definition" do
           t.primary_key :key_number
           t.string      :name
         end
-        create_table :id_keyboards, force: true do |t|
+        create_table :id_keyboards, force: true, identity: false do |t|
           t.string      :name
         end
       end
@@ -174,7 +174,7 @@ describe "OracleEnhancedAdapter schema definition" do
     def create_test_employees_table(sequence_start_value = nil)
       schema_define do
         options = sequence_start_value ? { sequence_start_value: sequence_start_value } : {}
-        create_table :test_employees, **options do |t|
+        create_table :test_employees, identity: false, **options do |t|
           t.string      :first_name
           t.string      :last_name
         end
@@ -430,7 +430,7 @@ describe "OracleEnhancedAdapter schema definition" do
     it "renames the auto-generated sequence when the source table name is long enough to truncate it" do
       long_source = "a" * (@conn.max_identifier_length - 3)
       schema_define do
-        create_table long_source.to_sym, force: true do |t|
+        create_table long_source.to_sym, force: true, identity: false do |t|
           t.string :first_name
         end
       end
