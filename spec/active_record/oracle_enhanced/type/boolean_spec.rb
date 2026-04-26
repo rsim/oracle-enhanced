@@ -37,10 +37,12 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   end
 
   before(:each) do
-    # Clear caches before defining the model so that
-    # `emulate_booleans_from_strings` set in this test's `before` is
-    # honored when columns are introspected, not the value that was in
-    # effect when a previous test happened to load the column metadata.
+    # Clear all caches AND reset the type map before defining the model
+    # so that `emulate_booleans_from_strings` set in this test's `before`
+    # is honored when columns are introspected, not the value that was
+    # in effect when a previous test happened to load the column or
+    # register the type adapter.
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.clear_type_map!
     ActiveRecord::Base.connection.schema_cache.clear!
     ActiveRecord::Base.clear_cache!
     class ::Test3Employee < ActiveRecord::Base
@@ -49,6 +51,8 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
 
   after(:each) do
     Object.send(:remove_const, "Test3Employee")
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans_from_strings = false
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.clear_type_map!
     ActiveRecord::Base.clear_cache!
   end
 
