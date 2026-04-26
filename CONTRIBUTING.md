@@ -75,6 +75,31 @@ bundle exec rspec spec/path/to/file_spec.rb         # single file
 bundle exec rspec spec/path/to/file_spec.rb:42      # single example
 ```
 
+### Reproducing a specific run
+
+Specs run in randomized order. The seed is printed at the start of the
+run, e.g.:
+
+```
+==> Randomized with seed 12345 (reproduce: bundle exec rspec --seed 12345)
+```
+
+To reproduce that exact run:
+
+```sh
+bundle exec rspec --seed 12345
+```
+
+If a failure looks order-dependent, narrow it down to the minimal
+failing pair with `--bisect`:
+
+```sh
+bundle exec rspec --seed 12345 --bisect
+```
+
+The seed line is also visible in CI job logs, including partial logs
+when a run hangs and is cancelled.
+
 ## Running RuboCop
 
 ```sh
