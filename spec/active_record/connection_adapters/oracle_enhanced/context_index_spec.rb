@@ -303,7 +303,9 @@ describe "OracleEnhancedAdapter context index" do
       ["K_TABLE_CLAUSE", "R_TABLE_CLAUSE", "N_TABLE_CLAUSE", "I_INDEX_CLAUSE", "P_TABLE_CLAUSE"].each do |clause|
         expect(@logger.output(:debug)).to match(/CTX_DDL\.SET_ATTRIBUTE\('#{storage_name}', '#{clause}', '.*TABLESPACE #{@tablespace}'\)/)
       end
-      expect(@logger.output(:debug)).to match(/CREATE INDEX .* PARAMETERS \('STORAGE #{storage_name}'\)/)
+      # Multi-column context indexes prefix STORAGE with DATASTORE / SECTION
+      # GROUP clauses; allow either form by accepting any content before STORAGE.
+      expect(@logger.output(:debug)).to match(/CREATE INDEX .* PARAMETERS \('.*STORAGE #{storage_name}'\)/)
     end
 
     it "should create index on single column" do
