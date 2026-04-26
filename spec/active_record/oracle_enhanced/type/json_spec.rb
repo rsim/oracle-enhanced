@@ -30,6 +30,8 @@ describe "OracleEnhancedAdapter attribute API support for JSON type" do
     schema_define do
       drop_table :test_posts, if_exists: true
     end
+    Object.send(:remove_const, "TestPost") if defined?(TestPost)
+    ActiveRecord::Base.clear_cache!
   end
 
   before(:each) do
