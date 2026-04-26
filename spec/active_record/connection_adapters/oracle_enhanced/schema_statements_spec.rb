@@ -1470,7 +1470,14 @@ end
       schema_define do
         add_index :keyboards, ["name"], unique: true, name: :this_index
       end
-      expect(@would_execute_sql.lines.last).to match(/ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\) USING INDEX "THIS_INDEX";/)
+      # Match anywhere in the captured SQL rather than asserting on
+      # `lines.last`. `schema_define` calls `ActiveRecord::Schema.define`,
+      # which finishes by ensuring `schema_migrations` and
+      # `internal_metadata` exist. Under :random order this describe can
+      # run before any prior `Schema.define`, so the trailing `CREATE
+      # TABLE "SCHEMA_MIGRATIONS"` (etc.) lands last in the captured SQL
+      # and the assertion is unrelated to what the test is checking.
+      expect(@would_execute_sql).to match(/ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\) USING INDEX "THIS_INDEX";/)
     end
   end
 
