@@ -1,24 +1,14 @@
 # frozen_string_literal: true
 
 describe "OracleEnhancedAdapter emulate OracleAdapter" do
-  before(:all) do
-    @old_oracle_adapter = nil
-    if defined?(ActiveRecord::ConnectionAdapters::OracleAdapter)
-      @old_oracle_adapter = ActiveRecord::ConnectionAdapters::OracleAdapter
-      ActiveRecord::ConnectionAdapters.send(:remove_const, :OracleAdapter)
-    end
+  after(:all) do
+    # Restore the default connection in case the example below replaced it.
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   it "should be an OracleAdapter" do
-    @conn = ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(adapter: "oracle"))
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(adapter: "oracle"))
     expect(ActiveRecord::Base.connection).not_to be_nil
-    expect(ActiveRecord::Base.connection.is_a?(ActiveRecord::ConnectionAdapters::OracleAdapter)).to be_truthy
-  end
-
-  after(:all) do
-    if @old_oracle_adapter
-      ActiveRecord::ConnectionAdapters.send(:remove_const, :OracleAdapter)
-      ActiveRecord::ConnectionAdapters::OracleAdapter = @old_oracle_adapter
-    end
+    expect(ActiveRecord::Base.connection).to be_a(ActiveRecord::ConnectionAdapters::OracleAdapter)
   end
 end
