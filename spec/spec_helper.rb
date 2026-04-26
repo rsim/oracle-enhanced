@@ -217,3 +217,26 @@ DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] |
 ENV["TZ"] ||= config["timezone"] || "Europe/Riga"
 
 ActiveRecord::Base.logger = ActiveSupport::Logger.new("debug.log", 0, 100 * 1024 * 1024)
+
+# Spec order is randomized per run so order-dependent issues actually
+# surface. The seed is printed at the start of the run (in addition to
+# RSpec's normal end-of-run line) so it is visible in partial CI logs
+# even when the run hangs or is killed before reaching the end.
+#
+# To reproduce a specific run locally:
+#
+#   bundle exec rspec --seed <value>
+#
+# To narrow down an order-dependent failure to the minimal failing pair:
+#
+#   bundle exec rspec --seed <value> --bisect
+#
+RSpec.configure do |config|
+  config.order = :random
+  Kernel.srand config.seed
+
+  config.before(:suite) do
+    seed = RSpec.configuration.seed
+    puts "==> Randomized with seed #{seed} (reproduce: bundle exec rspec --seed #{seed})"
+  end
+end
