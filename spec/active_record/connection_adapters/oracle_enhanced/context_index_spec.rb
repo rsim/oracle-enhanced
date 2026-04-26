@@ -298,23 +298,24 @@ describe "OracleEnhancedAdapter context index" do
       clear_logger
     end
 
-    def verify_logged_statements
+    def verify_logged_statements(index_name)
+      storage_name = "#{index_name}_sto"
       ["K_TABLE_CLAUSE", "R_TABLE_CLAUSE", "N_TABLE_CLAUSE", "I_INDEX_CLAUSE", "P_TABLE_CLAUSE"].each do |clause|
-        expect(@logger.output(:debug)).to match(/CTX_DDL\.SET_ATTRIBUTE\('index_posts_on_title_sto', '#{clause}', '.*TABLESPACE #{@tablespace}'\)/)
+        expect(@logger.output(:debug)).to match(/CTX_DDL\.SET_ATTRIBUTE\('#{storage_name}', '#{clause}', '.*TABLESPACE #{@tablespace}'\)/)
       end
-      expect(@logger.output(:debug)).to match(/CREATE INDEX .* PARAMETERS \('STORAGE index_posts_on_title_sto'\)/)
+      expect(@logger.output(:debug)).to match(/CREATE INDEX .* PARAMETERS \('STORAGE #{storage_name}'\)/)
     end
 
     it "should create index on single column" do
       @conn.add_context_index :posts, :title, tablespace: @tablespace
-      verify_logged_statements
+      verify_logged_statements("index_posts_on_title")
       expect(Post.contains(:title, "aaa").to_a).to eq([@post])
       @conn.remove_context_index :posts, :title
     end
 
     it "should create index on multiple columns" do
       @conn.add_context_index :posts, [:title, :body], name: "index_posts_text", tablespace: @conn.default_tablespace
-      verify_logged_statements
+      verify_logged_statements("index_posts_text")
       expect(Post.contains(:title, "aaa AND bbb").to_a).to eq([@post])
       @conn.remove_context_index :posts, name: "index_posts_text"
     end
