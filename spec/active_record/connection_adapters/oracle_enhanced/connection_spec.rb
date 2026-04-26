@@ -135,13 +135,19 @@ describe "OracleEnhancedConnection" do
   end
 
   describe "create connection with schema option" do
-    it "should create new connection" do
+    before(:each) do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
+    end
+
+    after(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    end
+
+    it "should create new connection" do
       expect(ActiveRecord::Base.connection).to be_active
     end
 
     it "should switch to specified schema" do
-      ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
       expect(ActiveRecord::Base.connection.current_schema).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:schema].upcase)
       expect(ActiveRecord::Base.connection.current_user).to eq(CONNECTION_WITH_SCHEMA_PARAMS[:username].upcase)
     end
