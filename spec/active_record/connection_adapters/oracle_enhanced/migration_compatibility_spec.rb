@@ -129,16 +129,16 @@ describe "migration compatibility for identity primary keys" do
       end
     end
 
-    describe "Schema.define / direct connection.create_table (no gating)" do
-      it "creates a sequence-backed primary key (no auto-injection)" do
+    describe "Schema.define / direct connection.create_table" do
+      it "creates an identity primary key by default" do
         schema_define do
           create_table :test_identity_pks do |t|
             t.string :name
           end
         end
 
-        expect(identity_column_exists?(:test_identity_pks, :id)).to be false
-        expect(sequence_exists?(:test_identity_pks_seq)).to be true
+        expect(identity_column_exists?(:test_identity_pks, :id)).to be true
+        expect(sequence_exists?(:test_identity_pks_seq)).to be false
       end
     end
   end

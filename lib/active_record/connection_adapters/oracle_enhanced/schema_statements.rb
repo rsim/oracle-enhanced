@@ -200,6 +200,12 @@ module ActiveRecord
         #   end
 
         def create_table(table_name, id: :primary_key, primary_key: nil, force: nil, **options)
+          if !options.key?(:identity) &&
+             supports_identity_columns? &&
+             id == :primary_key &&
+             !primary_key.is_a?(Array)
+            options[:identity] = true
+          end
           identity = options[:identity]
           create_sequence = id != false
           td = create_table_definition(

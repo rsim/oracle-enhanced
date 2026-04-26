@@ -463,7 +463,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     it "should dump table comments" do
       output = dump_table_schema "test_table_comments"
-      expect(output).to match(/create_table "test_table_comments", comment: "this is a \\"table comment\\"!", force: :cascade do \|t\|$/)
+      expect(output).to match(/create_table "test_table_comments", identity: (?:true|false), comment: "this is a \\"table comment\\"!", force: :cascade do \|t\|$/)
     end
   end
 

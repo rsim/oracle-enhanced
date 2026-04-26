@@ -11,7 +11,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
     @conn = ActiveRecord::Base.connection
     plsql.activerecord_class = ActiveRecord::Base
     schema_define do
-      create_table :test_employees, force: true do |t|
+      create_table :test_employees, force: true, identity: false do |t|
         t.string  :first_name, limit: 20
         t.string  :last_name, limit: 25
         t.date    :hire_date

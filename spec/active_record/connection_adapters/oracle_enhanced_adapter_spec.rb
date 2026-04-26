@@ -12,7 +12,7 @@ describe "OracleEnhancedAdapter" do
     before(:all) do
       @conn = ActiveRecord::Base.connection
       schema_define do
-        create_table :test_employees, force: true do |t|
+        create_table :test_employees, force: true, identity: false do |t|
           t.string  :first_name, limit: 20
           t.string  :last_name, limit: 25
           if ActiveRecord::Base.connection.supports_virtual_columns?
@@ -717,7 +717,7 @@ describe "OracleEnhancedAdapter" do
       @conn = ActiveRecord::Base.connection
       schema_define do
         create_table :table_with_name_thats_just_ok,
-          sequence_name: "suitably_short_seq", force: true do |t|
+          sequence_name: "suitably_short_seq", force: true, identity: false do |t|
           t.column :foo, :string, null: false
         end
       end
