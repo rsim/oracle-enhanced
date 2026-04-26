@@ -561,7 +561,13 @@ describe "OracleEnhancedConnection" do
     end
 
     before(:each) do
-      ActiveRecord::Base.connection.reconnect! unless @conn.active?
+      # Always reconnect so that prepared statement / cursor caches do
+      # not carry stale OCI8::Cursor objects from a previous example
+      # whose `kill_current_session` invalidated them. Checking
+      # `@conn.active?` only reconnects the raw OCI handle; the
+      # AR-level prepared statement cache can still hold a closed
+      # cursor that the next `Post.create!` will try to bind_param on.
+      ActiveRecord::Base.connection.reconnect!
     end
 
     def kill_current_session
