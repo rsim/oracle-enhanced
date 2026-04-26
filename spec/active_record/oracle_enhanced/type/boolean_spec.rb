@@ -37,6 +37,12 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   end
 
   before(:each) do
+    # Clear caches before defining the model so that
+    # `emulate_booleans_from_strings` set in this test's `before` is
+    # honored when columns are introspected, not the value that was in
+    # effect when a previous test happened to load the column metadata.
+    ActiveRecord::Base.connection.schema_cache.clear!
+    ActiveRecord::Base.clear_cache!
     class ::Test3Employee < ActiveRecord::Base
     end
   end
