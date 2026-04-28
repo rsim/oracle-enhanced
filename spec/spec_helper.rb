@@ -150,6 +150,11 @@ CONNECTION_PARAMS = {
   password: DATABASE_PASSWORD
 }
 
+if ENV["ORACLE_ENHANCED_PREPARED_STATEMENTS_FALSE"]
+  CONNECTION_PARAMS[:prepared_statements] = false
+  puts "==> Forcing prepared_statements: false via ORACLE_ENHANCED_PREPARED_STATEMENTS_FALSE"
+end
+
 CONNECTION_WITH_SCHEMA_PARAMS = {
   adapter: "oracle_enhanced",
   database: DATABASE_NAME,
