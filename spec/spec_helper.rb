@@ -150,14 +150,6 @@ CONNECTION_PARAMS = {
   password: DATABASE_PASSWORD
 }
 
-CONNECTION_PARAMS_WITH_PREPARED_STATEMENTS = CONNECTION_PARAMS.merge(prepared_statements: true)
-
-# Mirrors rails/rails MYSQL_PREPARED_STATEMENTS convention.
-if ENV["ORACLE_ENHANCED_PREPARED_STATEMENTS"]
-  CONNECTION_PARAMS[:prepared_statements] = true
-  puts "==> Forcing prepared_statements: true via ORACLE_ENHANCED_PREPARED_STATEMENTS"
-end
-
 CONNECTION_WITH_SCHEMA_PARAMS = {
   adapter: "oracle_enhanced",
   database: DATABASE_NAME,
