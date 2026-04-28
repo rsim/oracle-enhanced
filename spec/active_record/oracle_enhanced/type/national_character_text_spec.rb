@@ -227,4 +227,44 @@ describe "OracleEnhancedAdapter handling of NCLOB columns" do
     @employee.reload
     expect(@employee.comments).to eq(length: { is: 2 })
   end
+
+  describe "with prepared_statements disabled" do
+    around(:each) do |example|
+      old_prepared_statements = @conn.prepared_statements
+      @conn.instance_variable_set(:@prepared_statements, false)
+      example.run
+      @conn.instance_variable_set(:@prepared_statements, old_prepared_statements)
+    end
+
+    it "should create record with NCLOB data when prepared_statements is false" do
+      @employee = TestEmployee.create!(
+        first_name: "First",
+        last_name: "Last",
+        comments: @nclob_data
+      )
+      @employee.reload
+      expect(@employee.comments).to eq(@nclob_data)
+    end
+
+    it "should create record with empty NCLOB when prepared_statements is false" do
+      @employee = TestEmployee.create!(
+        first_name: "First",
+        last_name: "Last",
+        comments: ""
+      )
+      @employee.reload
+      expect(@employee.comments).to eq("")
+    end
+
+    it "should create record with serialized NCLOB data when prepared_statements is false" do
+      ruby_data = { "test" => ["ruby", :data, 123] }
+      @employee = Test2Employee.create!(
+        first_name: "First",
+        last_name: "Last",
+        comments: ruby_data
+      )
+      @employee.reload
+      expect(@employee.comments).to eq(ruby_data)
+    end
+  end
 end

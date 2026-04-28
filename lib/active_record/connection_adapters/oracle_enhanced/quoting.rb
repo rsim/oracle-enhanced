@@ -157,7 +157,7 @@ module ActiveRecord
           when Type::OracleEnhanced::Text::Data then
             "empty_clob()"
           when Type::OracleEnhanced::NationalCharacterText::Data then
-            "empty_nclob()"
+            "empty_clob()"
           else
             super
           end
