@@ -135,6 +135,21 @@ describe "identity primary keys" do
         clear_logger
       end
     end
+
+    it "appends RETURNING when prepared_statements is false" do
+      schema_define do
+        create_table :test_identity_pks, identity: true do |t|
+          t.string :name
+        end
+      end
+      klass = Class.new(ActiveRecord::Base) { self.table_name = "test_identity_pks" }
+
+      @conn.unprepared_statement do
+        row = klass.create!(name: "alpha")
+        expect(row.id).to be_a(Integer)
+        expect(row.id).to be > 0
+      end
+    end
   end
 
   describe "with identity: true on Oracle below 12.1" do

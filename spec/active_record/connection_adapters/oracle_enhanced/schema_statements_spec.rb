@@ -154,6 +154,24 @@ describe "OracleEnhancedAdapter schema definition" do
       expect { klass.create!(code: "ABC", name: "alpha") }.not_to raise_error
       expect(klass.find("ABC").name).to eq("alpha")
     end
+
+    it "inserts via the Rails insert path on a String primary key when prepared_statements is false" do
+      schema_define do
+        create_table :test_lookups, force: true, id: false do |t|
+          t.primary_key :code, :string, limit: 10, null: false
+          t.string :name
+        end
+      end
+      klass = Class.new(ActiveRecord::Base) do
+        self.table_name = "test_lookups"
+        self.primary_key = "code"
+      end
+
+      @conn.unprepared_statement do
+        expect { klass.create!(code: "ABC", name: "alpha") }.not_to raise_error
+        expect(klass.find("ABC").name).to eq("alpha")
+      end
+    end
   end
 
   describe "primary key with null: true" do
