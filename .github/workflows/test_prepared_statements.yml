@@ -1,6 +1,8 @@
 name: test_prepared_statements
 
 on:
+  schedule:
+    - cron: "0 0 * * *"  # daily at 00:00 UTC
   workflow_dispatch:
 
 jobs:
