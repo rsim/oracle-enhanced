@@ -540,10 +540,10 @@ module ActiveRecord
         end
 
         def tablespace(table_name)
-          select_value(<<~SQL.squish, "SCHEMA")
+          select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.to_s.upcase)])
             SELECT tablespace_name
             FROM all_tables
-            WHERE table_name='#{table_name.to_s.upcase}'
+            WHERE table_name = :table_name
             AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
