@@ -36,20 +36,58 @@ describe "OracleEnhancedAdapter establish connection" do
     expect(ActiveRecord::Base.lease_connection).to be_active
   end
 
-  it "should use database default cursor_sharing parameter value force by default" do
-    # Use `SYSTEM_CONNECTION_PARAMS` to query v$parameter
-    ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.lease_connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("FORCE")
-  end
+  describe "cursor_sharing" do
+    # The test session uses CONNECTION_PARAMS (regular oracle_enhanced user,
+    # no v$ access); SystemObserver is a separate AR connection on SYSTEM used
+    # only to read v$parameter / v$ses_optimizer_env for assertions.
+    class SystemObserver < ActiveRecord::Base
+      self.abstract_class = true
+    end
 
-  it "should use modified cursor_sharing value exact" do
-    ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(cursor_sharing: :exact))
-    expect(ActiveRecord::Base.lease_connection.select_value("select value from v$parameter where name = 'cursor_sharing'")).to eq("EXACT")
-  end
+    before(:each) { SystemObserver.establish_connection(SYSTEM_CONNECTION_PARAMS) }
+    after(:each)  { SystemObserver.remove_connection rescue nil }
 
-  it "should raise ArgumentError for an unsupported cursor_sharing value" do
-    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(cursor_sharing: "not_a_valid_mode"))
-    expect { ActiveRecord::Base.lease_connection }.to raise_error(ArgumentError, /Invalid :cursor_sharing value/)
+    let(:server_default_cursor_sharing) do
+      SystemObserver.connection.select_value(
+        "select upper(value) from v$parameter where name = 'cursor_sharing'"
+      )
+    end
+
+    # v$ses_optimizer_env returns the value lowercase; v$parameter returns it
+    # uppercase. Normalize to uppercase so comparisons are stable across views.
+    def session_cursor_sharing(connection)
+      sid = connection.select_value("select sys_context('userenv', 'sid') from dual").to_i
+      SystemObserver.connection.select_value(
+        "select upper(value) from v$ses_optimizer_env where sid = #{sid} and name = 'cursor_sharing'"
+      )
+    end
+
+    it "does not run ALTER SESSION when :cursor_sharing is unset" do
+      expected = server_default_cursor_sharing
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      expect(session_cursor_sharing(ActiveRecord::Base.lease_connection)).to eq(expected)
+    end
+
+    it "does not run ALTER SESSION when :cursor_sharing is :default" do
+      expected = server_default_cursor_sharing
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(cursor_sharing: :default))
+      expect(session_cursor_sharing(ActiveRecord::Base.lease_connection)).to eq(expected)
+    end
+
+    it "applies the explicit :cursor_sharing value when set to :force" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(cursor_sharing: :force))
+      expect(session_cursor_sharing(ActiveRecord::Base.lease_connection)).to eq("FORCE")
+    end
+
+    it "applies the explicit :cursor_sharing value when set to :exact" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(cursor_sharing: :exact))
+      expect(session_cursor_sharing(ActiveRecord::Base.lease_connection)).to eq("EXACT")
+    end
+
+    it "raises ArgumentError for an unsupported cursor_sharing value" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(cursor_sharing: "not_a_valid_mode"))
+      expect { ActiveRecord::Base.lease_connection }.to raise_error(ArgumentError, /Invalid :cursor_sharing value/)
+    end
   end
 
   it "should not use JDBC statement caching" do

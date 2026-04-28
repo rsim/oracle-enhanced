@@ -99,7 +99,16 @@ module ActiveRecord
     # * <tt>:privilege</tt> - set "SYSDBA" if you want to connect with this privilege
     # * <tt>:allow_concurrency</tt> - set to "true" if non-blocking mode should be enabled (just for OCI client)
     # * <tt>:prefetch_rows</tt> - how many rows should be fetched at one time to increase performance, defaults to 100
-    # * <tt>:cursor_sharing</tt> - cursor sharing mode to minimize amount of unique statements, no default value
+    # * <tt>:cursor_sharing</tt> - cursor sharing mode. Accepts "exact", "force", "similar", or
+    #   <tt>:default</tt> (the default). With <tt>:default</tt> (or unset) the adapter does not
+    #   run <tt>ALTER SESSION SET cursor_sharing</tt> and the server's instance-level setting
+    #   is kept. Pass an explicit value to issue the corresponding <tt>ALTER SESSION</tt>.
+    #
+    #   NOTE: AR's schema introspection (e.g. <tt>all_tab_columns</tt>) embeds owner/table/column
+    #   names as literals, not bind variables. Without <tt>cursor_sharing = force</tt>, each
+    #   unique combination produces a fresh shared cursor on the server. If this becomes a
+    #   measurable shared-pool problem for installs with very large schemas, set
+    #   <tt>:cursor_sharing => 'force'</tt> explicitly.
     # * <tt>:time_zone</tt> - database session time zone
     #   (it is recommended to set it using ENV['TZ'] which will be then also used for database session time zone)
     # * <tt>:schema</tt> - database schema which holds schema objects.
@@ -856,11 +865,14 @@ module ActiveRecord
       private def configure_connection
         super
 
-        cursor_sharing = (@config[:cursor_sharing] || "force").to_s.upcase
-        unless CURSOR_SHARING_VALUES.include?(cursor_sharing)
-          raise ArgumentError, "Invalid :cursor_sharing value #{@config[:cursor_sharing].inspect}; allowed: #{CURSOR_SHARING_VALUES.join(', ')}"
+        cursor_sharing = @config[:cursor_sharing]
+        unless cursor_sharing.nil? || cursor_sharing == :default
+          cursor_sharing = cursor_sharing.to_s.upcase
+          unless CURSOR_SHARING_VALUES.include?(cursor_sharing)
+            raise ArgumentError, "Invalid :cursor_sharing value #{@config[:cursor_sharing].inspect}; allowed: #{CURSOR_SHARING_VALUES.join(', ')} or :default"
+          end
+          execute("alter session set cursor_sharing = #{cursor_sharing}", "SCHEMA")
         end
-        execute("alter session set cursor_sharing = #{cursor_sharing}", "SCHEMA")
 
         if ORACLE_ENHANCED_CONNECTION == :oci
           time_zone = @config[:time_zone] || ENV["TZ"]
