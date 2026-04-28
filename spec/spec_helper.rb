@@ -147,7 +147,8 @@ CONNECTION_PARAMS = {
   host: DATABASE_HOST,
   port: DATABASE_PORT,
   username: DATABASE_USER,
-  password: DATABASE_PASSWORD
+  password: DATABASE_PASSWORD,
+  prepared_statements: false
 }
 
 CONNECTION_PARAMS_WITH_PREPARED_STATEMENTS = CONNECTION_PARAMS.merge(prepared_statements: true)
