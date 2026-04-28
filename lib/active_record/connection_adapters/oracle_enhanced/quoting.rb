@@ -155,9 +155,9 @@ module ActiveRecord
           when ActiveModel::Type::Binary::Data then
             "empty_blob()"
           when Type::OracleEnhanced::Text::Data then
-            "empty_clob()"
+            quote_lob_text_data(value, prefix: nil)
           when Type::OracleEnhanced::NationalCharacterText::Data then
-            "empty_clob()"
+            quote_lob_text_data(value, prefix: "N")
           else
             super
           end
@@ -202,6 +202,21 @@ module ActiveRecord
         end
 
         private
+          # Inline literal up to the VARCHAR2 limit so SELECT predicates against
+          # CLOB / NCLOB columns work on prepared_statements: false. Beyond that
+          # limit fall back to empty_clob(); large-value comparisons still
+          # require prepared_statements: true.
+          LOB_INLINE_LITERAL_BYTESIZE = 4000
+
+          def quote_lob_text_data(value, prefix:)
+            s = value.to_s
+            # Empty string would become NULL via the '' literal, so keep the
+            # placeholder for the empty case as well as for oversize values.
+            return "empty_clob()" if s.empty? || s.bytesize > LOB_INLINE_LITERAL_BYTESIZE
+            literal = +"'#{quote_string(s)}'"
+            prefix ? +prefix << literal : literal
+          end
+
           def oracle_downcase(column_name)
             return nil if column_name.nil?
             /[a-z]/.match?(column_name) ? column_name : column_name.downcase
