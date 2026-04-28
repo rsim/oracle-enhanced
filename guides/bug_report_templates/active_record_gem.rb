@@ -38,6 +38,12 @@ CONNECTION_PARAMS = {
   password: DATABASE_PASSWORD
 }
 
+# Mirrors rails/rails MYSQL_PREPARED_STATEMENTS convention.
+if ENV["ORACLE_ENHANCED_PREPARED_STATEMENTS"]
+  CONNECTION_PARAMS[:prepared_statements] = true
+  puts "==> Forcing prepared_statements: true via ORACLE_ENHANCED_PREPARED_STATEMENTS"
+end
+
 ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
 
 ActiveRecord::Base.logger = Logger.new(STDOUT)
