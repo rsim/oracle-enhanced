@@ -38,7 +38,7 @@ module ActiveRecord # :nodoc:
 
           def record_lobs_for_create
             @changed_lob_columns = self.class.lob_columns.select do |col|
-              !attributes[col.name].nil? && !self.class.readonly_attributes.to_a.include?(col.name)
+              !attributes[col.name].nil?
             end
           end
 

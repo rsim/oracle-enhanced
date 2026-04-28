@@ -291,5 +291,19 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       @employee.reload
       expect(@employee.comments).to eq(ruby_data)
     end
+
+    it "should respect attr_readonly setting for CLOB column when prepared_statements is false" do
+      @employee = TestEmployeeReadOnlyClob.create!(
+        first_name: "First",
+        comments: "initial"
+      )
+      expect(@employee).to be_valid
+      @employee.reload
+      expect(@employee.comments).to eq("initial")
+      @employee.comments = "changed"
+      expect(@employee.save).to be(true)
+      @employee.reload
+      expect(@employee.comments).to eq("initial")
+    end
   end
 end

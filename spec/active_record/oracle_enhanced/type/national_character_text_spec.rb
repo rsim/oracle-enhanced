@@ -266,5 +266,19 @@ describe "OracleEnhancedAdapter handling of NCLOB columns" do
       @employee.reload
       expect(@employee.comments).to eq(ruby_data)
     end
+
+    it "should respect attr_readonly setting for NCLOB column when prepared_statements is false" do
+      @employee = TestEmployeeReadOnlyNClob.create!(
+        first_name: "First",
+        comments: @nclob_data
+      )
+      expect(@employee).to be_valid
+      @employee.reload
+      expect(@employee.comments).to eq(@nclob_data)
+      @employee.comments = @nclob_data2
+      expect(@employee.save).to be(true)
+      @employee.reload
+      expect(@employee.comments).to eq(@nclob_data)
+    end
   end
 end
