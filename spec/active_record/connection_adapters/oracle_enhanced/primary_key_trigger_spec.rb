@@ -357,6 +357,10 @@ describe "primary_key_trigger" do
   end
 
   describe "with non-default :sequence_name" do
+    after(:each) do
+      @conn.execute("DROP SEQUENCE test_pk_triggers_s") rescue nil
+    end
+
     it "creates the trigger using the named sequence" do
       schema_define do
         create_table :test_pk_triggers, primary_key_trigger: true, sequence_name: :test_pk_triggers_s do |t|
