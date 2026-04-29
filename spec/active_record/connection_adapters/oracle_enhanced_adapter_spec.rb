@@ -272,6 +272,38 @@ describe "OracleEnhancedAdapter" do
       posts = TestPost.where(id: [*@ids, nil]).to_a
       expect(posts.size).to eq(@ids.size)
     end
+
+    # some frameworks like baby_squeel construct Arel objects directly
+    it "should allow more than 1000 items using Arel::Nodes::In" do
+      table = TestPost.arel_table
+      in_node = Arel::Nodes::In.new(table[:id], @ids)
+      query = table.where(in_node).project(Arel.star)
+
+      sql = query.to_sql
+      posts = TestPost.connection.select_all(sql).to_a
+      expect(posts.size).to eq(@ids.size)
+
+      # SQL contains multiple IN clauses (split due to 1000 limit)
+      expect(sql.scan(/IN \(/).size).to be > 1
+    end
+
+    it "should allow more than 1000 items using raw Arel::Nodes::NotIn" do
+      ids = @ids.dup
+      non_not_in = ids.pop
+
+      table = TestPost.arel_table
+      not_in_node = Arel::Nodes::NotIn.new(table[:id], ids)
+      query = table.where(not_in_node).project(Arel.star)
+
+      sql = query.to_sql
+      posts = TestPost.connection.select_all(sql).to_a
+
+      expect(posts.size).to eq(1)
+      expect(posts.first["id"]).to eq(non_not_in)
+
+      # SQL contains multiple NOT IN clauses (split due to 1000 limit)
+      expect(sql.scan(/NOT IN \(/).size).to be > 1
+    end
   end
 
   describe "with statement pool" do
