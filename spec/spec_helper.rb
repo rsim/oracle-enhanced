@@ -243,5 +243,14 @@ RSpec.configure do |config|
   config.before(:suite) do
     seed = RSpec.configuration.seed
     puts "==> Randomized with seed #{seed} (reproduce: bundle exec rspec --seed #{seed})"
+
+    # Oracle moves dropped tables to the recyclebin by default, where they
+    # remain (along with their associated identity sequences and PK indexes)
+    # under BIN$... names until the bin is purged. Across many test runs the
+    # bin accumulates and pollutes inventories like `dba_objects` /
+    # `user_objects` even though the tests themselves drop their fixtures.
+    # Start each suite from a clean bin so dropped fixtures actually go away.
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    ActiveRecord::Base.connection.execute("PURGE RECYCLEBIN")
   end
 end
