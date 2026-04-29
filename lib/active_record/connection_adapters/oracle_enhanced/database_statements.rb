@@ -66,22 +66,25 @@ module ActiveRecord
               if binds.nil? || binds.empty?
                 cursor = _connection.prepare(sql)
               else
-                unless @statements.key?(sql)
-                  @statements[sql] = _connection.prepare(sql)
+                if prepared_statements?
+                  @statements[sql] ||= _connection.prepare(sql)
+                  cursor = @statements[sql]
+                  cached = true
+                else
+                  cursor = _connection.prepare(sql)
                 end
-
-                cursor = @statements[sql]
 
                 cursor.bind_params(type_casted_binds)
 
                 bind_specs.each do |position, klass|
                   cursor.bind_returning_param(position, klass)
                 end
-
-                cached = true
               end
 
               cursor.exec_update
+            rescue
+              (cursor.close rescue nil) if cursor && !cached
+              raise
             end
 
             rows = []
@@ -306,16 +309,20 @@ module ActiveRecord
               if binds.nil? || binds.empty?
                 cursor = raw_connection.prepare(sql)
               else
-                unless @statements.key? sql
-                  @statements[sql] = raw_connection.prepare(sql)
+                if prepared_statements?
+                  @statements[sql] ||= raw_connection.prepare(sql)
+                  cursor = @statements[sql]
+                  cached = true
+                else
+                  cursor = raw_connection.prepare(sql)
                 end
 
-                cursor = @statements[sql]
                 cursor.bind_params(type_casted_binds)
-
-                cached = true
               end
               cursor.exec
+            rescue
+              (cursor.close rescue nil) if cursor && !cached
+              raise
             end
 
             columns = cursor.get_col_names.map do |col_name|
@@ -343,7 +350,7 @@ module ActiveRecord
             _connection.with_retry do
               yield
             rescue
-              @statements.clear
+              @statements.clear if prepared_statements?
               raise
             end
           end

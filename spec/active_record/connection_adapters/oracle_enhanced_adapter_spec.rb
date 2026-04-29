@@ -300,6 +300,7 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should clear older cursors when statement limit is reached" do
+      skip "applies only when prepared statements are enabled" unless @conn.prepared_statements?
       binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
       # free statement pool from dictionary selections  to ensure next selects will increase statement pool
       @statements.clear
@@ -311,10 +312,19 @@ describe "OracleEnhancedAdapter" do
     end
 
     it "should cache UPDATE statements with bind variables" do
+      skip "applies only when prepared statements are enabled" unless @conn.prepared_statements?
       expect {
         binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
         @conn.exec_query("UPDATE test_posts SET id = :id", "SQL", binds)
       }.to change(@statements, :length).by(+1)
+    end
+
+    it "should not cache UPDATE statements with bind variables when prepared_statements is false" do
+      skip "applies only when prepared statements are disabled" if @conn.prepared_statements?
+      expect {
+        binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
+        @conn.exec_query("UPDATE test_posts SET id = :id", "SQL", binds)
+      }.not_to change(@statements, :length)
     end
 
     it "should not cache UPDATE statements without bind variables" do
