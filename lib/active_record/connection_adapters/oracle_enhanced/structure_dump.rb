@@ -102,12 +102,12 @@ module ActiveRecord # :nodoc:
 
         def structure_dump_primary_key(table) # :nodoc:
           opts = { name: "", cols: [] }
-          pks = select_all(<<~SQL.squish, "SCHEMA")
+          pks = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])
             SELECT a.constraint_name, a.column_name, a.position
               FROM all_cons_columns a
               JOIN all_constraints c
                 ON a.constraint_name = c.constraint_name
-             WHERE c.table_name = '#{table.upcase}'
+             WHERE c.table_name = :table_name
                AND c.constraint_type = 'P'
                AND a.owner = c.owner
                AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -121,12 +121,12 @@ module ActiveRecord # :nodoc:
 
         def structure_dump_unique_keys(table) # :nodoc:
           keys = {}
-          uks = select_all(<<~SQL.squish, "SCHEMA")
+          uks = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])
             SELECT a.constraint_name, a.column_name, a.position
               FROM all_cons_columns a
               JOIN all_constraints c
                 ON a.constraint_name = c.constraint_name
-             WHERE c.table_name = '#{table.upcase}'
+             WHERE c.table_name = :table_name
                AND c.constraint_type = 'U'
                AND a.owner = c.owner
                AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -385,9 +385,9 @@ module ActiveRecord # :nodoc:
         end
 
         def drop_sql_for_object(type)
-          objects = select_values(<<~SQL.squish, "SCHEMA")
+          objects = select_values(<<~SQL.squish, "SCHEMA", [bind_string("object_type", type.upcase)])
             SELECT object_name FROM all_objects
-            WHERE object_type = '#{type.upcase}' and owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE object_type = :object_type and owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           statements = objects.map do |name|
             "DROP #{type.upcase} \"#{name}\""
