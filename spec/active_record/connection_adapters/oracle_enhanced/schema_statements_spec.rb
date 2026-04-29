@@ -1520,6 +1520,14 @@ end
   describe "miscellaneous options" do
     before(:all) do
       @conn = ActiveRecord::Base.lease_connection
+      # `before(:each)` below stubs `execute` to capture DDL into a string
+      # without running it. `Schema.define` (which `schema_define` wraps)
+      # writes to `AR_INTERNAL_METADATA`, and the table's CREATE goes through
+      # the stubbed `execute` — but the follow-up SELECT goes through
+      # `perform_query`, which is not stubbed and raises ORA-00942 unless the
+      # table already exists. Ensure it exists once here, before any test in
+      # this block runs.
+      ActiveRecord::Schema.define { }
     end
 
     before(:each) do
