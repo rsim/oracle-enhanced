@@ -99,7 +99,17 @@ module ActiveRecord
     # * <tt>:privilege</tt> - set "SYSDBA" if you want to connect with this privilege
     # * <tt>:allow_concurrency</tt> - set to "true" if non-blocking mode should be enabled (just for OCI client)
     # * <tt>:prefetch_rows</tt> - how many rows should be fetched at one time to increase performance, defaults to 100
-    # * <tt>:cursor_sharing</tt> - cursor sharing mode to minimize amount of unique statements, no default value
+    # * <tt>:cursor_sharing</tt> - cursor sharing mode. Accepts "exact" or "force"
+    #   (per Oracle's documented values), or <tt>:default</tt> (the new effective default).
+    #   With <tt>:default</tt> (or unset) the adapter does not run <tt>ALTER SESSION SET
+    #   cursor_sharing</tt> and the database's instance-level setting (Oracle's documented
+    #   software default is <tt>EXACT</tt>) is what the session sees. Pass an explicit
+    #   value to issue the corresponding <tt>ALTER SESSION</tt>.
+    #
+    #   NOTE: Connections still configured with <tt>prepared_statements: false</tt> have AR
+    #   interpolate application-SQL literals at the visitor level, so each unique value
+    #   produces a fresh shared cursor on the server. Such installs can keep the legacy
+    #   behavior by setting <tt>:cursor_sharing => 'force'</tt> explicitly here.
     # * <tt>:time_zone</tt> - database session time zone
     #   (it is recommended to set it using ENV['TZ'] which will be then also used for database session time zone)
     # * <tt>:schema</tt> - database schema which holds schema objects.
@@ -847,17 +857,25 @@ module ActiveRecord
         connect
       end
 
+      # Oracle's reference manual documents EXACT and FORCE only (SIMILAR was
+      # removed). The database still accepts SIMILAR at the parser level on
+      # current versions, so it is kept in the allow-list for backward
+      # compatibility while the doc comment for `:cursor_sharing` advertises
+      # only the documented values.
       CURSOR_SHARING_VALUES = %w[EXACT FORCE SIMILAR].freeze
       SCHEMA_IDENTIFIER_PATTERN = /\A[[:alpha:]][\w$#]*\z/
 
       private def configure_connection
         super
 
-        cursor_sharing = (@config[:cursor_sharing] || "force").to_s.upcase
-        unless CURSOR_SHARING_VALUES.include?(cursor_sharing)
-          raise ArgumentError, "Invalid :cursor_sharing value #{@config[:cursor_sharing].inspect}; allowed: #{CURSOR_SHARING_VALUES.join(', ')}"
+        cursor_sharing = @config[:cursor_sharing]
+        unless cursor_sharing.nil? || cursor_sharing == :default
+          cursor_sharing = cursor_sharing.to_s.upcase
+          unless CURSOR_SHARING_VALUES.include?(cursor_sharing)
+            raise ArgumentError, "Invalid :cursor_sharing value #{@config[:cursor_sharing].inspect}; allowed: #{CURSOR_SHARING_VALUES.join(', ')} or :default"
+          end
+          execute("alter session set cursor_sharing = #{cursor_sharing}", "SCHEMA")
         end
-        execute("alter session set cursor_sharing = #{cursor_sharing}", "SCHEMA")
 
         if ORACLE_ENHANCED_CONNECTION == :oci
           time_zone = @config[:time_zone] || ENV["TZ"]
