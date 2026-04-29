@@ -6,16 +6,17 @@ on:
   workflow_dispatch:
 jobs:
   build:
-    name: "ruby-${{ matrix.ruby }}-yjit-enabled: ${{ matrix.yjit-enabled }}"
+    name: "ruby-${{ matrix.ruby }}-${{ matrix.jit }}"
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.jit == 'zjit' }}
     strategy:
       fail-fast: false
       matrix:
         ruby: ['head', 'debug', 'asan']
-        yjit-enabled: [0, 1]
+        jit: ['none', 'yjit', 'zjit']
     env:
-      RUBY_YJIT_ENABLE: ${{ matrix.yjit-enabled }}
-      RUBYOPT: "-W2 --debug-frozen-string-literal"
+      RUBY_YJIT_ENABLE: ${{ matrix.jit == 'yjit' && '1' || '0' }}
+      RUBYOPT: "-W2 --debug-frozen-string-literal${{ matrix.jit == 'zjit' && ' --zjit' || '' }}"
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       TNS_ADMIN: ./ci/network/admin
       DATABASE_NAME: FREEPDB1
