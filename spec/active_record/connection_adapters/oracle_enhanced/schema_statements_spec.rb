@@ -172,6 +172,27 @@ describe "OracleEnhancedAdapter schema definition" do
         expect(klass.find("ABC").name).to eq("alpha")
       end
     end
+
+    it "skips RETURNING when the caller supplies the String primary key value" do
+      schema_define do
+        create_table :test_lookups, force: true, id: false do |t|
+          t.primary_key :code, :string, limit: 10, null: false
+          t.string :name
+        end
+      end
+      klass = Class.new(ActiveRecord::Base) do
+        self.table_name = "test_lookups"
+        self.primary_key = "code"
+      end
+
+      set_logger
+      begin
+        klass.create!(code: "ABC", name: "alpha")
+        expect(@logger.output(:debug)).not_to match(/RETURNING/i)
+      ensure
+        clear_logger
+      end
+    end
   end
 
   describe "primary key with null: true" do

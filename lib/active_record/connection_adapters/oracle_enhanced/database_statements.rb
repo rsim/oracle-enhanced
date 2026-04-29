@@ -50,16 +50,18 @@ module ActiveRecord
         end
 
         def _exec_insert(intent, pk = nil, sequence_name = nil, returning: nil) # :nodoc:
-          sql, binds = sql_for_insert(intent.raw_sql, pk, intent.binds, returning)
+          raw_sql = intent.raw_sql
+          original_binds_count = intent.binds.size
+          sql, binds = sql_for_insert(raw_sql, pk, intent.binds, returning)
           intent.raw_sql = sql
           intent.binds = binds
 
           type_casted_binds = intent.type_casted_binds
+          bind_specs = returning_bind_specs(binds, original_binds_count)
 
           log(intent) do
             cached = false
             cursor = nil
-            returning_id_col = returning_id_index = nil
             with_retry do
               if binds.nil? || binds.empty?
                 cursor = _connection.prepare(sql)
@@ -72,10 +74,8 @@ module ActiveRecord
 
                 cursor.bind_params(type_casted_binds)
 
-                if sql.include?(":returning_id")
-                  # it currently expects that returning_id comes last part of binds
-                  returning_id_index = binds.size
-                  cursor.bind_returning_param(returning_id_index, Integer)
+                bind_specs.each do |position, klass|
+                  cursor.bind_returning_param(position, klass)
                 end
 
                 cached = true
@@ -85,12 +85,15 @@ module ActiveRecord
             end
 
             rows = []
-            if returning_id_index
-              returning_id = cursor.get_returning_param(returning_id_index, Integer).to_i
-              rows << [returning_id]
+            unless bind_specs.empty?
+              values = bind_specs.map do |position, klass|
+                value = cursor.get_returning_param(position, klass)
+                klass == Integer ? value.to_i : value
+              end
+              rows << values
             end
             cursor.close unless cached
-            build_result(columns: returning_id_col || [], rows: rows)
+            build_result(columns: [], rows: rows)
           end
         end
 
@@ -246,22 +249,46 @@ module ActiveRecord
             result[:affected_rows_count]
           end
 
-          def sql_for_insert(sql, pk, binds, _returning) # :nodoc:
-            if single_column_pk?(pk) && !pk_value_explicit?(sql, binds, pk.to_s)
-              sql = "#{sql} RETURNING #{quote_column_name(pk)} INTO :returning_id"
-              (binds = binds.dup) << ActiveRecord::Relation::QueryAttribute.new("returning_id", nil, Type::OracleEnhanced::Integer.new)
+          def sql_for_insert(sql, pk, binds, returning) # :nodoc:
+            cols = columns_for_returning_clause(sql, pk, binds, returning)
+            unless cols.empty?
+              table_name = extract_table_ref_from_insert_sql(sql)
+              quoted_cols = cols.map { |c| quote_column_name(c) }.join(", ")
+              placeholders = cols.map { |c| ":returning_#{c}" }.join(", ")
+              sql = "#{sql} RETURNING #{quoted_cols} INTO #{placeholders}"
+              binds = binds.dup
+              cols.each do |col|
+                column = table_name ? columns(table_name).find { |c| c.name == col } : nil
+                type = column&.cast_type || Type::OracleEnhanced::Integer.new
+                binds << ActiveRecord::Relation::QueryAttribute.new("returning_#{col}", nil, type)
+              end
             end
-            super
+            super(sql, pk, binds, returning)
           end
 
-          def single_column_pk?(pk)
-            pk.is_a?(Symbol) || pk.is_a?(String)
+          def columns_for_returning_clause(sql, pk, binds, returning)
+            cols = if returning.is_a?(Array) && !returning.empty?
+              returning.map(&:to_s)
+            elsif pk.is_a?(Symbol) || pk.is_a?(String)
+              [pk.to_s]
+            else
+              []
+            end
+            cols.reject do |col|
+              next true if binds.any? { |bind| bind.name == col }
+              next false if sql.match?(/VALUES\s*\(\s*DEFAULT\s*\)/i)
+              sql.include?(quote_column_name(col))
+            end
           end
 
-          def pk_value_explicit?(sql, binds, pk_name)
-            return true if binds.any? { |bind| bind.name == pk_name }
-            return false if sql.match?(/VALUES\s*\(\s*DEFAULT\s*\)/i)
-            sql.include?(quote_column_name(pk_name))
+          # Identify the trailing binds appended by `sql_for_insert` by position, not by name,
+          # so a user column happening to share the placeholder name cannot collide.
+          def returning_bind_specs(binds, original_binds_count)
+            return [] if binds.size <= original_binds_count
+            (original_binds_count...binds.size).map do |i|
+              klass = binds[i].type.is_a?(ActiveModel::Type::String) ? String : Integer
+              [i + 1, klass]
+            end
           end
 
           def returning_column_values(result)
