@@ -272,6 +272,7 @@ module ActiveRecord
         @enable_dbms_output = false
         @prefetch_primary_key_cache = {}
         @columns_cache = {}
+        @trigger_assigned_pk_cache = {}
         @notice_receiver_sql_warnings = []
 
         configure_connection
@@ -289,11 +290,6 @@ module ActiveRecord
       # https://github.com/rsim/oracle-enhanced/pull/1900
       def self.database_exists?(config)
         raise NotImplementedError
-      end
-
-      def return_value_after_insert?(column) # :nodoc:
-        # TODO: Return true if there this column will be populated (e.g by a sequence)
-        super
       end
 
       # Opens a database console session via sqlplus.
@@ -726,6 +722,7 @@ module ActiveRecord
 
       def clear_table_columns_cache(table_name)
         @columns_cache[table_name.to_s] = nil
+        @trigger_assigned_pk_cache.delete(table_name.to_s)
       end
 
       # Find a table's primary key and sequence.

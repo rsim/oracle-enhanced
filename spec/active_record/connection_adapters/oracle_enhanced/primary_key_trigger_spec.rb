@@ -451,6 +451,61 @@ describe "primary_key_trigger" do
     end
   end
 
+  describe "auto_populated? on the primary key column" do
+    it "reports true for a trigger-backed primary key" do
+      schema_define do
+        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+          t.string :name
+        end
+      end
+
+      pk_column = @conn.columns(:test_pk_triggers).find { |c| c.name == "id" }
+      expect(pk_column.auto_populated?).to be true
+    end
+
+    it "reports false for a plain sequence-backed primary key" do
+      schema_define do
+        create_table :test_pk_triggers do |t|
+          t.string :name
+        end
+      end
+
+      pk_column = @conn.columns(:test_pk_triggers).find { |c| c.name == "id" }
+      expect(pk_column.auto_populated?).to be false
+    end
+
+    it "reports false when only an unrelated BEFORE INSERT trigger exists" do
+      schema_define do
+        create_table :test_pk_triggers do |t|
+          t.string :name
+          t.string :note
+        end
+      end
+
+      @conn.execute <<~SQL
+        CREATE OR REPLACE TRIGGER test_pk_triggers_audit
+          BEFORE INSERT ON test_pk_triggers FOR EACH ROW
+        BEGIN
+          :new.note := 'audited';
+        END;
+      SQL
+
+      pk_column = @conn.columns(:test_pk_triggers).find { |c| c.name == "id" }
+      expect(pk_column.auto_populated?).to be false
+    end
+
+    it "drives _returning_columns_for_insert for trigger-backed tables" do
+      schema_define do
+        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+          t.string :name
+        end
+      end
+      klass = Class.new(ActiveRecord::Base) { self.table_name = "test_pk_triggers" }
+
+      expect(klass._returning_columns_for_insert(@conn)).to eq(["id"])
+    end
+  end
+
   describe "trigger_backed_primary_key? false-positive guard" do
     it "ignores BEFORE INSERT row triggers that do not fill the PK from a sequence" do
       schema_define do
