@@ -330,7 +330,6 @@ describe "primary_key_trigger" do
     end
 
     it "does not raise NoMethodError for :returning_id Symbol when logging" do
-      skip "see #2619: ruby-oci8 + cursor_sharing=force x RETURNING INTO :returning_id half-duplex deadlock"
       set_logger
       @conn.reconnect! unless @conn.active?
       @conn.insert("INSERT INTO test_pk_triggers (name) VALUES ('alpha')", nil, "id")
