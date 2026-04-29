@@ -240,6 +240,8 @@ module ActiveRecord
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
           execute "RENAME #{default_sequence_name(table_name, nil)} TO #{default_sequence_name(new_name, nil)}" rescue nil
           @prefetch_primary_key_cache.delete(table_name.to_s)
+          clear_table_columns_cache(table_name)
+          clear_table_columns_cache(new_name)
 
           rename_table_indexes(table_name, new_name, **options)
         end
@@ -821,14 +823,29 @@ module ActiveRecord
             type_metadata = OracleEnhanced::TypeMetadata.new(fetch_type_metadata(field["sql_type"]), virtual: is_virtual)
             default_value = extract_value_from_default(field["data_default"])
             default_value = nil if is_virtual || is_identity
-            OracleEnhanced::Column.new(oracle_downcase(field["name"]),
+            column_name = oracle_downcase(field["name"])
+            trigger_assigned = trigger_assigned_pk_columns(table_name).include?(column_name)
+            OracleEnhanced::Column.new(column_name,
                              lookup_cast_type(field["sql_type"]),
                              default_value,
                              type_metadata,
                              field["nullable"] == "Y",
                              comment: field["column_comment"],
-                             identity: is_identity
+                             identity: is_identity,
+                             trigger_assigned: trigger_assigned
             )
+          end
+
+          def trigger_assigned_pk_columns(table_name)
+            @trigger_assigned_pk_cache[table_name.to_s] ||= begin
+              owner, desc_table_name = resolve_data_source_name(table_name.to_s)
+              if trigger_backed_primary_key?(owner, desc_table_name)
+                pks = primary_keys(table_name)
+                pks.size == 1 ? pks : []
+              else
+                []
+              end
+            end
           end
 
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)

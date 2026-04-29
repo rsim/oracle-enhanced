@@ -6,9 +6,10 @@ module ActiveRecord
       class Column < ActiveRecord::ConnectionAdapters::Column
         delegate :virtual, to: :sql_type_metadata, allow_nil: true
 
-        def initialize(*, identity: false, **) # :nodoc:
+        def initialize(*, identity: false, trigger_assigned: false, **) # :nodoc:
           super
           @identity = identity
+          @trigger_assigned = trigger_assigned
         end
 
         def virtual?
@@ -19,15 +20,20 @@ module ActiveRecord
           @identity
         end
 
+        def auto_populated?
+          super || @trigger_assigned
+        end
+
         def ==(other)
           other.is_a?(Column) &&
             super &&
-            auto_incremented_by_db? == other.auto_incremented_by_db?
+            auto_incremented_by_db? == other.auto_incremented_by_db? &&
+            @trigger_assigned == other.instance_variable_get(:@trigger_assigned)
         end
         alias :eql? :==
 
         def hash
-          [super, @identity].hash
+          [super, @identity, @trigger_assigned].hash
         end
       end
     end
