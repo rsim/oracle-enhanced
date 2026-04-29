@@ -572,7 +572,7 @@ module ActiveRecord
       # +all_constraints+ is required to avoid disabling PK prefetch on tables
       # that combine a sequence-backed PK with a non-PK identity column.
       def identity_primary_key?(owner, desc_table_name) # :nodoc:
-        select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)]).any?
+        select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)]).any?
           SELECT 1
           FROM all_tab_identity_cols itc
           JOIN all_cons_columns cc
@@ -595,7 +595,7 @@ module ActiveRecord
       # do not flip +prefetch_primary_key?+ to false on tables that still
       # rely on Rails-side sequence prefetch.
       def trigger_backed_primary_key?(owner, desc_table_name) # :nodoc:
-        select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)]).any?
+        select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)]).any?
           SELECT 1
           FROM all_triggers t
           WHERE t.owner = :owner
@@ -740,7 +740,7 @@ module ActiveRecord
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
         (owner, desc_table_name) = resolve_data_source_name(table_name)
 
-        seqs = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name, nil))])
+        seqs = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name, nil))])
           select us.sequence_name
           from all_sequences us
           where us.sequence_owner = :owner
@@ -748,7 +748,7 @@ module ActiveRecord
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
-        pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+        pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
             FROM all_constraints c, all_cons_columns cc
            WHERE c.owner = :owner
@@ -782,7 +782,7 @@ module ActiveRecord
       def primary_keys(table_name) # :nodoc:
         (_owner, desc_table_name) = resolve_data_source_name(table_name)
 
-        pks = select_values_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
+        pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
             FROM all_constraints c, all_cons_columns cc
            WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -813,7 +813,7 @@ module ActiveRecord
       end
 
       def temporary_table?(table_name) # :nodoc:
-        select_value_forcing_binds(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
+        select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
           SELECT
           temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
@@ -973,22 +973,6 @@ module ActiveRecord
       # create bind object for type String
       def bind_string(name, value)
         ActiveRecord::Relation::QueryAttribute.new(name, value, Type::OracleEnhanced::String.new)
-      end
-
-      # call select_values using binds even if surrounding SQL preparation/execution is done + # with conn.unprepared_statement (like AR.to_sql)
-      def select_values_forcing_binds(arel, name, binds)
-        # remove possible force of unprepared SQL during dictionary access
-        unprepared_statement_forced = prepared_statements_disabled_cache.include?(object_id)
-        prepared_statements_disabled_cache.delete(object_id) if unprepared_statement_forced
-
-        select_values(arel, name, binds)
-      ensure
-        # Restore unprepared_statement setting for surrounding SQL
-        prepared_statements_disabled_cache.add(object_id) if unprepared_statement_forced
-      end
-
-      def select_value_forcing_binds(arel, name, binds)
-        single_value_from_rows(select_values_forcing_binds(arel, name, binds))
       end
 
       ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracle_enhanced)
