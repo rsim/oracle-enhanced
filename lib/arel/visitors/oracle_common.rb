@@ -97,6 +97,35 @@ module Arel # :nodoc: all
           end
           array
         end
+
+        def visit_Arel_Nodes_In(o, collector)
+          attr, values = o.left, o.right
+          return super unless values.is_a?(Array)
+
+          in_clause_length = @connection.in_clause_length
+          return super if values.length <= in_clause_length
+
+          # Split into multiple IN nodes and combine with OR
+          in_nodes = values.each_slice(in_clause_length).map do |slice|
+            Arel::Nodes::In.new(attr, slice)
+          end
+          or_node = Arel::Nodes::Or.new(in_nodes)
+          visit(Arel::Nodes::Grouping.new(or_node), collector)
+        end
+
+        def visit_Arel_Nodes_NotIn(o, collector)
+          attr, values = o.left, o.right
+          return super unless values.is_a?(Array)
+
+          in_clause_length = @connection.in_clause_length
+          return super if values.length <= in_clause_length
+
+          # Split into multiple NOT IN nodes and combine with AND
+          not_in_nodes = values.each_slice(in_clause_length).map do |slice|
+            Arel::Nodes::NotIn.new(attr, slice)
+          end
+          visit(Arel::Nodes::And.new(not_in_nodes), collector)
+        end
     end
   end
 end

@@ -244,7 +244,7 @@ describe "OracleEnhancedAdapter" do
       class ::TestPost < ActiveRecord::Base
         has_many :test_comments
       end
-      @ids = (1..1010).to_a
+      @ids = (1..2010).to_a
       TestPost.transaction do
         @ids.each do |id|
           TestPost.create!(id: id, title: "Title #{id}")
@@ -271,6 +271,38 @@ describe "OracleEnhancedAdapter" do
     it "should allow more than 1000 items in a list where the list is non-homogenous" do
       posts = TestPost.where(id: [*@ids, nil]).to_a
       expect(posts.size).to eq(@ids.size)
+    end
+
+    # some frameworks like baby_squeel construct Arel objects directly
+    it "should allow more than 1000 items using Arel::Nodes::In" do
+      table = TestPost.arel_table
+      in_node = Arel::Nodes::In.new(table[:id], @ids)
+      query = table.where(in_node).project(Arel.star)
+
+      sql = query.to_sql
+      posts = TestPost.connection.select_all(sql).to_a
+      expect(posts.size).to eq(@ids.size)
+
+      # SQL contains multiple IN clauses (split due to 1000 limit)
+      expect(sql.scan(/IN \(/).size).to be > 1
+    end
+
+    it "should allow more than 1000 items using Arel::Nodes::NotIn" do
+      ids = @ids.dup
+      non_not_in = ids.pop
+
+      table = TestPost.arel_table
+      not_in_node = Arel::Nodes::NotIn.new(table[:id], ids)
+      query = table.where(not_in_node).project(Arel.star)
+
+      sql = query.to_sql
+      posts = TestPost.connection.select_all(sql).to_a
+
+      expect(posts.size).to eq(1)
+      expect(posts.first["id"]).to eq(non_not_in)
+
+      # SQL contains multiple NOT IN clauses (split due to 1000 limit)
+      expect(sql.scan(/NOT IN \(/).size).to be > 1
     end
   end
 
@@ -856,10 +888,54 @@ describe "OracleEnhancedAdapter" do
       ActiveRecord::Base.clear_cache!
     end
 
+    before(:each) do
+      TestPost.delete_all
+      TestComment.delete_all
+    end
+
     it "should not raise undefined method length" do
       post = TestPost.create!
       post.test_comments << TestComment.create!
       expect(TestComment.where(test_post_id: TestPost.select(:id)).size).to eq(1)
+    end
+
+    it "should handle IN with subquery using Arel::Nodes::In" do
+      post = TestPost.create!
+      post.test_comments << TestComment.create!
+
+      table = TestComment.arel_table
+      subquery = TestPost.select(:id).arel
+      in_node = Arel::Nodes::In.new(table[:test_post_id], subquery)
+      query = table.where(in_node).project(Arel.star)
+
+      sql = query.to_sql
+      comments = TestComment.connection.select_all(sql).to_a
+      expect(comments.size).to eq(1)
+
+      # SQL should contain IN with subquery, not split into multiple IN clauses
+      expect(sql).to match(/IN \(+SELECT/)
+      expect(sql.scan(/IN \(/).size).to eq(1)
+    end
+
+    it "should handle NOT IN with subquery using Arel::Nodes::NotIn" do
+      post = TestPost.create!
+      TestComment.create!(test_post_id: post.id)
+      orphan_comment = TestComment.create!(test_post_id: post.id + 1)
+
+      table = TestComment.arel_table
+      subquery = TestPost.select(:id).arel
+      not_in_node = Arel::Nodes::NotIn.new(table[:test_post_id], subquery)
+      query = table.where(not_in_node).project(Arel.star)
+
+      sql = query.to_sql
+      comments = TestComment.connection.select_all(sql).to_a
+
+      expect(comments.size).to eq(1)
+      expect(comments.first["id"]).to eq(orphan_comment.id)
+
+      # SQL should contain NOT IN with subquery, not split into multiple NOT IN clauses
+      expect(sql).to match(/NOT IN \(+SELECT/)
+      expect(sql.scan(/NOT IN \(/).size).to eq(1)
     end
   end
 
