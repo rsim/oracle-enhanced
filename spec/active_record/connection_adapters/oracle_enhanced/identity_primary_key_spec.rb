@@ -130,7 +130,7 @@ describe "identity primary keys" do
         expect(row.id).to be_a(Integer)
         expect(row.id).to be > 0
         expect(klass.find(row.id)).to eq(row)
-        expect(@logger.output(:debug)).to match(/INSERT INTO "TEST_IDENTITY_PKS" \("ID"\) VALUES \(DEFAULT\)/i)
+        expect(@logger.output(:debug)).to match(/INSERT INTO "TEST_IDENTITY_PKS" \("ID"\) VALUES \(DEFAULT\) RETURNING "ID" INTO :returning_id/i)
       ensure
         clear_logger
       end
