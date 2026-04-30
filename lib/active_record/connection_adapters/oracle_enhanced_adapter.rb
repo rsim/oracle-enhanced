@@ -278,6 +278,8 @@ module ActiveRecord
       def initialize(config_or_deprecated_connection, deprecated_logger = nil, deprecated_connection_options = nil, deprecated_config = nil) # :nodoc:
         super(config_or_deprecated_connection, deprecated_logger, deprecated_connection_options, deprecated_config)
 
+        resolve_service_name_alias
+
         connect
         @enable_dbms_output = false
         @prefetch_primary_key_cache = {}
@@ -864,6 +866,23 @@ module ActiveRecord
       # only the documented values.
       CURSOR_SHARING_VALUES = %w[EXACT FORCE SIMILAR].freeze
       SCHEMA_IDENTIFIER_PATTERN = /\A[[:alpha:]][\w$#]*\z/
+
+      # `:service_name` is an alias for `:database`. It is the recommended way
+      # to express the Oracle service name a connection should attach to;
+      # `:database` is retained because it is the Active Record convention
+      # and what `DATABASE_URL`'s path resolves into. The two options are
+      # mutually exclusive — supplying both is treated as a configuration
+      # error rather than picking a winner silently.
+      private def resolve_service_name_alias
+        return if @config[:service_name].nil?
+
+        if @config[:database]
+          raise ArgumentError,
+            "Cannot specify both :service_name and :database connection options; they are aliases. Use only one."
+        end
+
+        @config[:database] = @config[:service_name]
+      end
 
       private def configure_connection
         super
