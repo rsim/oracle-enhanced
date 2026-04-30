@@ -211,6 +211,13 @@ describe "OracleEnhancedConnection" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(schema: "oracle_enhanced;DROP TABLE x;--"))
       expect { ActiveRecord::Base.lease_connection }.to raise_error(ArgumentError, /Invalid :schema value/)
     end
+
+    it "honors :schema passed via DATABASE_URL query string" do
+      url = "oracle-enhanced://#{DATABASE_USER}:#{DATABASE_PASSWORD}@#{DATABASE_HOST}:#{DATABASE_PORT}/#{DATABASE_NAME}?schema=#{DATABASE_SCHEMA}"
+      ActiveRecord::Base.establish_connection(url)
+      expect(ActiveRecord::Base.lease_connection.current_schema).to eq(DATABASE_SCHEMA.upcase)
+      expect(ActiveRecord::Base.lease_connection.current_user).to eq(DATABASE_USER.upcase)
+    end
   end
 
   describe "resolving unqualified names with :schema set to a different user" do
