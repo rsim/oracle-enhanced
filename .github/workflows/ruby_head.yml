@@ -46,6 +46,8 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           rubygems: latest
+      - name: Show Ruby version and JIT status
+        run: ruby -v
       - name: Create symbolic link for libaio library compatibility
         run: |
           sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
