@@ -868,19 +868,6 @@ module ActiveRecord
       SCHEMA_IDENTIFIER_PATTERN = /\A[[:alpha:]][\w$#]*\z/
       SID_IDENTIFIER_PATTERN = /\A[\w$#]+\z/
 
-      # `:service_name` and `:sid` are explicit aliases for `:database` —
-      # `:service_name` for an Oracle service name (the modern, PDB-mandatory
-      # form) and `:sid` for an Oracle SID (legacy single-instance / 11g-era
-      # form). `:database` is retained because it is the Active Record
-      # convention and what `DATABASE_URL`'s path resolves into; it has been
-      # interpreted as a service name by this adapter since c3341667 (2020-07).
-      #
-      # The three options are mutually exclusive. Supplying more than one is
-      # a configuration error rather than a silent precedence choice.
-      #
-      # Unlike `:database`, both `:service_name` and `:sid` are clean
-      # greenfield keys so `/`- or `:`-prefixed values (adapter-side artefacts
-      # for building EZCONNECT URLs) are rejected outright.
       def resolve_database_aliases
         service_name = @config[:service_name]
         sid          = @config[:sid]
@@ -905,6 +892,27 @@ module ActiveRecord
         if sid && !sid.to_s.match?(SID_IDENTIFIER_PATTERN)
           raise ArgumentError,
             "Invalid :sid value #{sid.inspect}; must be an Oracle SID (alphanumeric, underscore, $, #)."
+        end
+
+        if @config[:database].to_s.start_with?(":")
+          raise ArgumentError,
+            "Setting `:database` to a value that starts with `:` " \
+            "(#{@config[:database].inspect}) is not supported. The leading " \
+            "colon was a SID marker on pre-2020 JDBC URLs and produces a " \
+            "malformed connection on the current adapter. Use the explicit " \
+            "`:sid` option instead (e.g. `sid: " \
+            "#{@config[:database].to_s.delete_prefix(':').inspect}`)."
+        end
+
+        if @config[:database].to_s.start_with?("/")
+          OracleEnhanced.deprecator.warn(
+            "Setting `:database` to a value that starts with `/` " \
+            "(#{@config[:database].inspect}) is deprecated and will raise " \
+            "in a future major version. The leading slash is an adapter " \
+            "artefact from when `:database` was prepended into an EZCONNECT " \
+            "URL; the slash is no longer needed. Use the same value without " \
+            "the leading `/`, or use the explicit `:service_name` option."
+          )
         end
       end
       private :resolve_database_aliases
