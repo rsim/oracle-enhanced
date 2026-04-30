@@ -49,7 +49,7 @@ describe "Arel::Visitors::Oracle12" do
       query = @table[:name].eq(Arel::Nodes::BindParam.new(1))
         .and(@table[:id].eq(Arel::Nodes::BindParam.new(1)))
       expect(compile(query)).to be_like %{
-        "users"."name" = :a1 AND "users"."id" = :a2
+        "USERS"."NAME" = :a1 AND "USERS"."ID" = :a2
       }
     end
   end
@@ -58,21 +58,21 @@ describe "Arel::Visitors::Oracle12" do
     it "should construct a valid generic SQL statement" do
       test = @table[:name].is_not_distinct_from "Aaron Patterson"
       expect(compile(test)).to be_like %{
-        DECODE("users"."name", 'Aaron Patterson', 0, 1) = 0
+        DECODE("USERS"."NAME", 'Aaron Patterson', 0, 1) = 0
       }
     end
 
     it "should handle column names on both sides" do
       test = @table[:first_name].is_not_distinct_from @table[:last_name]
       expect(compile(test)).to be_like %{
-        DECODE("users"."first_name", "users"."last_name", 0, 1) = 0
+        DECODE("USERS"."FIRST_NAME", "USERS"."LAST_NAME", 0, 1) = 0
       }
     end
 
     it "should handle nil" do
       val = Arel::Nodes.build_quoted(nil, @table[:active])
       sql = compile Arel::Nodes::IsNotDistinctFrom.new(@table[:name], val)
-      expect(sql).to be_like %{ "users"."name" IS NULL }
+      expect(sql).to be_like %{ "USERS"."NAME" IS NULL }
     end
   end
 
@@ -80,14 +80,14 @@ describe "Arel::Visitors::Oracle12" do
     it "should handle column names on both sides" do
       test = @table[:first_name].is_distinct_from @table[:last_name]
       expect(compile(test)).to be_like %{
-        DECODE("users"."first_name", "users"."last_name", 0, 1) = 1
+        DECODE("USERS"."FIRST_NAME", "USERS"."LAST_NAME", 0, 1) = 1
       }
     end
 
     it "should handle nil" do
       val = Arel::Nodes.build_quoted(nil, @table[:active])
       sql = compile Arel::Nodes::IsDistinctFrom.new(@table[:name], val)
-      expect(sql).to be_like %{ "users"."name" IS NOT NULL }
+      expect(sql).to be_like %{ "USERS"."NAME" IS NOT NULL }
     end
   end
 end
