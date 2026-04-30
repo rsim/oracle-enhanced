@@ -332,6 +332,17 @@ describe "OracleEnhancedAdapter" do
         @conn.exec_query("UPDATE test_posts SET id = 1", "SQL", [])
       }.not_to change(@statements, :length)
     end
+
+    it "should deallocate cached cursors on reset!" do
+      skip "applies only when prepared statements are enabled" unless @conn.prepared_statements?
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
+      @conn.exec_query("SELECT * FROM test_posts WHERE id = :id", "SQL", binds)
+      expect(@statements.length).to be > 0
+
+      expect(@statements).to receive(:clear).at_least(:once).and_call_original
+      @conn.reset!
+      expect(@statements.length).to eq(0)
+    end
   end
 
   describe "database_exists?" do
