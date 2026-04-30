@@ -873,12 +873,22 @@ module ActiveRecord
       # and what `DATABASE_URL`'s path resolves into. The two options are
       # mutually exclusive — supplying both is treated as a configuration
       # error rather than picking a winner silently.
+      #
+      # Unlike `:database`, `:service_name` is a clean greenfield key so
+      # `/`-prefixed values are rejected outright; the prefix was an
+      # adapter-side artefact for building EZCONNECT URLs and has no
+      # business in a value the user thinks of as a bare service name.
       private def resolve_service_name_alias
         return if @config[:service_name].nil?
 
         if @config[:database]
           raise ArgumentError,
             "Cannot specify both :service_name and :database connection options; they are aliases. Use only one."
+        end
+
+        if @config[:service_name].to_s.start_with?("/")
+          raise ArgumentError,
+            "Invalid :service_name value #{@config[:service_name].inspect}; must not start with '/'."
         end
 
         @config[:database] = @config[:service_name]

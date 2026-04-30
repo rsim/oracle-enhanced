@@ -244,6 +244,15 @@ describe "OracleEnhancedConnection" do
       expect { ActiveRecord::Base.lease_connection }
         .to raise_error(ArgumentError, /Cannot specify both :service_name and :database/)
     end
+
+    it "raises ArgumentError when :service_name starts with '/'" do
+      config = CONNECTION_PARAMS.dup
+      config.delete(:database)
+      config[:service_name] = "/#{DATABASE_NAME}"
+      ActiveRecord::Base.establish_connection(config)
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, %r{Invalid :service_name value .*; must not start with '/'})
+    end
   end
 
   describe "resolving unqualified names with :schema set to a different user" do
