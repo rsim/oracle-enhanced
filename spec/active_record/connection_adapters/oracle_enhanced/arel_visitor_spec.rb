@@ -6,7 +6,8 @@ describe "Arel::Visitors::Oracle12" do
   end
 
   let(:visitor) { Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection) }
-  let(:table) { Arel::Table.new(:users) }
+  let(:type_caster) { Class.new { def type_for_attribute(_name) = ActiveRecord::Type::Value.new }.new }
+  let(:table) { Arel::Table.new(:users, type_caster: type_caster) }
 
   describe "visit_Arel_Nodes_HomogeneousIn" do
     it "marks the collector as not preparable" do
@@ -14,7 +15,7 @@ describe "Arel::Visitors::Oracle12" do
       collector = Arel::Collectors::SQLString.new
       collector.preparable = true
       visitor.accept(node, collector)
-      expect(collector.preparable).to eq(false)
+      expect(collector.preparable).to be(false)
     end
   end
 end
@@ -25,7 +26,8 @@ describe "Arel::Visitors::Oracle" do
   end
 
   let(:visitor) { Arel::Visitors::Oracle.new(ActiveRecord::Base.connection) }
-  let(:table) { Arel::Table.new(:users) }
+  let(:type_caster) { Class.new { def type_for_attribute(_name) = ActiveRecord::Type::Value.new }.new }
+  let(:table) { Arel::Table.new(:users, type_caster: type_caster) }
 
   describe "visit_Arel_Nodes_HomogeneousIn" do
     it "marks the collector as not preparable" do
@@ -33,7 +35,7 @@ describe "Arel::Visitors::Oracle" do
       collector = Arel::Collectors::SQLString.new
       collector.preparable = true
       visitor.accept(node, collector)
-      expect(collector.preparable).to eq(false)
+      expect(collector.preparable).to be(false)
     end
   end
 end
