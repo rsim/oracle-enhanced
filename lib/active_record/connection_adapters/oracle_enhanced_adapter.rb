@@ -878,7 +878,7 @@ module ActiveRecord
       # `/`-prefixed values are rejected outright; the prefix was an
       # adapter-side artefact for building EZCONNECT URLs and has no
       # business in a value the user thinks of as a bare service name.
-      private def resolve_service_name_alias
+      def resolve_service_name_alias
         return if @config[:service_name].nil?
 
         if @config[:database]
@@ -893,6 +893,7 @@ module ActiveRecord
 
         @config[:database] = @config[:service_name]
       end
+      private :resolve_service_name_alias
 
       private def configure_connection
         super
