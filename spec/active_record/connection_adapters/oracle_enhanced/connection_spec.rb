@@ -242,7 +242,7 @@ describe "OracleEnhancedConnection" do
     it "raises ArgumentError when both :service_name and :database are set" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(service_name: DATABASE_NAME))
       expect { ActiveRecord::Base.lease_connection }
-        .to raise_error(ArgumentError, /Cannot specify both :service_name and :database/)
+        .to raise_error(ArgumentError, /Cannot specify more than one of :database, :service_name/)
     end
 
     it "raises ArgumentError when :service_name starts with '/'" do
@@ -252,6 +252,81 @@ describe "OracleEnhancedConnection" do
       ActiveRecord::Base.establish_connection(config)
       expect { ActiveRecord::Base.lease_connection }
         .to raise_error(ArgumentError, %r{Invalid :service_name value .*; must not start with '/'})
+    end
+  end
+
+  describe ":sid option" do
+    after(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    end
+
+    # Live SID connection — only runs against Oracle 11g XE in the
+    # `test_11g` CI workflow, where DATABASE_NAME=XE happens to refer to
+    # both the SID and the registered service name. Modern PDB-based
+    # deployments cannot be reached by SID, so the test is skipped there.
+    it "connects when :sid is supplied" do
+      skip "SID-based connection requires a SID-registered instance (Oracle 11g XE)" unless DATABASE_NAME.casecmp?("XE")
+      config = CONNECTION_PARAMS.dup
+      config.delete(:database)
+      config[:sid] = DATABASE_NAME
+      ActiveRecord::Base.establish_connection(config)
+      expect(ActiveRecord::Base.lease_connection).to be_active
+    end
+
+    it "honors :sid passed via DATABASE_URL query string" do
+      skip "SID-based connection requires a SID-registered instance (Oracle 11g XE)" unless DATABASE_NAME.casecmp?("XE")
+      url = "oracle-enhanced://#{DATABASE_USER}:#{DATABASE_PASSWORD}@#{DATABASE_HOST}:#{DATABASE_PORT}/?sid=#{DATABASE_NAME}"
+      ActiveRecord::Base.establish_connection(url)
+      expect(ActiveRecord::Base.lease_connection).to be_active
+    end
+
+    it "raises ArgumentError when both :sid and :database are set" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(sid: DATABASE_NAME))
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, /Cannot specify more than one of :database, :sid/)
+    end
+
+    it "raises ArgumentError when both :sid and :service_name are set" do
+      config = CONNECTION_PARAMS.dup
+      config.delete(:database)
+      config[:service_name] = DATABASE_NAME
+      config[:sid] = DATABASE_NAME
+      ActiveRecord::Base.establish_connection(config)
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, /Cannot specify more than one of :service_name, :sid/)
+    end
+
+    it "raises ArgumentError when all three of :database, :service_name and :sid are set" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(service_name: DATABASE_NAME, sid: DATABASE_NAME))
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, /Cannot specify more than one of :database, :service_name, :sid/)
+    end
+
+    it "raises ArgumentError when :sid starts with '/'" do
+      config = CONNECTION_PARAMS.dup
+      config.delete(:database)
+      config[:sid] = "/#{DATABASE_NAME}"
+      ActiveRecord::Base.establish_connection(config)
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, /Invalid :sid value/)
+    end
+
+    it "raises ArgumentError when :sid starts with ':'" do
+      config = CONNECTION_PARAMS.dup
+      config.delete(:database)
+      config[:sid] = ":#{DATABASE_NAME}"
+      ActiveRecord::Base.establish_connection(config)
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, /Invalid :sid value/)
+    end
+
+    it "raises ArgumentError when :sid contains a TNS connect descriptor" do
+      config = CONNECTION_PARAMS.dup
+      config.delete(:database)
+      config[:sid] = "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=foo)(PORT=1521))(CONNECT_DATA=(SID=XE)))"
+      ActiveRecord::Base.establish_connection(config)
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, /Invalid :sid value/)
     end
   end
 

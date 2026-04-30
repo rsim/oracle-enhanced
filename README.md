@@ -255,13 +255,27 @@ development:
   password: secret
 ```
 
-`service_name` and `database` are mutually exclusive — supplying both
-raises `ArgumentError`.
+If you are connecting to a SID-based instance (typically a pre-12c
+single-instance deployment such as Oracle 11g XE), use `sid` instead:
 
-The same option is available via `DATABASE_URL` query string:
+```yml
+development:
+  adapter: oracle_enhanced
+  sid: XE
+  host: localhost
+  port: 1521
+  username: user
+  password: secret
+```
+
+`database`, `service_name` and `sid` are mutually exclusive — supplying
+more than one raises `ArgumentError`.
+
+The same options are available via `DATABASE_URL` query string:
 
 ```bash
 DATABASE_URL=oracle-enhanced://user:secret@localhost:1521/?service_name=FREEPDB1
+DATABASE_URL=oracle-enhanced://user:secret@localhost:1521/?sid=XE
 ```
 
 If `TNS_ADMIN` environment variable is pointing to directory where `tnsnames.ora` file is located then you can use TNS connection name in `database` parameter. Otherwise you can directly specify database host, port (defaults to 1521) and database name in the following way:
