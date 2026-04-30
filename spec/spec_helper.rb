@@ -133,6 +133,14 @@ module SchemaDumpingHelper
   end
 end
 
+RSpec::Matchers.define :be_like do |expected|
+  normalize = ->(s) { s.to_s.gsub(/\s+/, " ").strip }
+  match { |actual| normalize.call(actual) == normalize.call(expected) }
+  failure_message do |actual|
+    "expected SQL\n  #{normalize.call(actual).inspect}\nto match\n  #{normalize.call(expected).inspect}"
+  end
+end
+
 DATABASE_NAME         = config["database"]["name"]         || ENV["DATABASE_NAME"]         || "orcl"
 DATABASE_HOST         = config["database"]["host"]         || ENV["DATABASE_HOST"]         || "127.0.0.1"
 DATABASE_PORT         = config["database"]["port"]         || ENV["DATABASE_PORT"]         || 1521
