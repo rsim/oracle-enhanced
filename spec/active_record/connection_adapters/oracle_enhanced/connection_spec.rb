@@ -220,6 +220,41 @@ describe "OracleEnhancedConnection" do
     end
   end
 
+  describe ":service_name option (alias for :database)" do
+    after(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    end
+
+    it "connects when :service_name is supplied in place of :database" do
+      config = CONNECTION_PARAMS.dup
+      service_name = config.delete(:database)
+      config[:service_name] = service_name
+      ActiveRecord::Base.establish_connection(config)
+      expect(ActiveRecord::Base.lease_connection).to be_active
+    end
+
+    it "honors :service_name passed via DATABASE_URL query string" do
+      url = "oracle-enhanced://#{DATABASE_USER}:#{DATABASE_PASSWORD}@#{DATABASE_HOST}:#{DATABASE_PORT}/?service_name=#{DATABASE_NAME}"
+      ActiveRecord::Base.establish_connection(url)
+      expect(ActiveRecord::Base.lease_connection).to be_active
+    end
+
+    it "raises ArgumentError when both :service_name and :database are set" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(service_name: DATABASE_NAME))
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, /Cannot specify both :service_name and :database/)
+    end
+
+    it "raises ArgumentError when :service_name starts with '/'" do
+      config = CONNECTION_PARAMS.dup
+      config.delete(:database)
+      config[:service_name] = "/#{DATABASE_NAME}"
+      ActiveRecord::Base.establish_connection(config)
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, %r{Invalid :service_name value .*; must not start with '/'})
+    end
+  end
+
   describe "resolving unqualified names with :schema set to a different user" do
     # Pins down the end-to-end contract of the `:schema` connection option:
     #

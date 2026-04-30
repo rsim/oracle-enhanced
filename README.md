@@ -237,20 +237,31 @@ In Rails application `config/database.yml` use oracle_enhanced as adapter name, 
 ```yml
 development:
   adapter: oracle_enhanced
-  database: xe
+  database: FREEPDB1
   username: user
   password: secret
 ```
 
-If you're connecting to a service name, indicate the service with a
-leading slash on the database parameter:
+The `database` parameter is interpreted as an Oracle service name. You
+can also use `service_name` as an explicit alias, which reads more
+naturally on PDB-based deployments where the value is unambiguously a
+service name:
 
 ```yml
 development:
   adapter: oracle_enhanced
-  database: /xe
+  service_name: FREEPDB1
   username: user
   password: secret
+```
+
+`service_name` and `database` are mutually exclusive — supplying both
+raises `ArgumentError`.
+
+The same option is available via `DATABASE_URL` query string:
+
+```bash
+DATABASE_URL=oracle-enhanced://user:secret@localhost:1521/?service_name=FREEPDB1
 ```
 
 If `TNS_ADMIN` environment variable is pointing to directory where `tnsnames.ora` file is located then you can use TNS connection name in `database` parameter. Otherwise you can directly specify database host, port (defaults to 1521) and database name in the following way:
@@ -260,7 +271,7 @@ development:
   adapter: oracle_enhanced
   host: localhost
   port: 1521
-  database: xe
+  database: FREEPDB1
   username: user
   password: secret
 ```
@@ -270,7 +281,7 @@ or you can use Oracle specific format in `database` parameter:
 ```yml
 development:
   adapter: oracle_enhanced
-  database: //localhost:1521/xe
+  database: //localhost:1521/FREEPDB1
   username: user
   password: secret
 ```
@@ -282,7 +293,7 @@ development:
   adapter: oracle_enhanced
   database: "(DESCRIPTION=
     (ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))
-    (CONNECT_DATA=(SERVICE_NAME=xe))
+    (CONNECT_DATA=(SERVICE_NAME=FREEPDB1))
   )"
   username: user
   password: secret
@@ -293,13 +304,13 @@ If you choose to specify your database connection via the `DATABASE_URL`
 environment variable, note that the adapter name uses a dash instead of an underscore:
 
 ```bash
-DATABASE_URL=oracle-enhanced://localhost/XE
+DATABASE_URL=oracle-enhanced://localhost/FREEPDB1
 ```
 
 You can also specify a connection string via the `DATABASE_URL`, as long as it doesn't have any whitespace:
 
 ```bash
-DATABASE_URL=oracle-enhanced://user:secret@connection-string/(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=xe)))
+DATABASE_URL=oracle-enhanced://user:secret@connection-string/(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=FREEPDB1)))
 ```
 
 If you deploy JRuby on Rails application in Java application server that supports JNDI connections then you can specify JNDI connection as well:
@@ -653,7 +664,7 @@ has appropriate privilege to select, insert, update and delete database objects 
 ```yml
 development:
   adapter: oracle_enhanced
-  database: xe
+  database: FREEPDB1
   username: user
   password: secret
   schema: tableowner
@@ -680,7 +691,7 @@ development:
   database: "(DESCRIPTION=
     (ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))
     (CONNECT_TIMEOUT=5)(TCP_CONNECT_TIMEOUT=5)
-    (CONNECT_DATA=(SERVICE_NAME=xe))
+    (CONNECT_DATA=(SERVICE_NAME=FREEPDB1))
   )"
 ```
 You should set a timeout value dependant on your network topology, and the time needed to establish a TCP connection with your ORACLE
@@ -702,7 +713,7 @@ development:
   database: "(DESCRIPTION=
     (ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))
     (RECV_TIMEOUT=60)(SEND_TIMEOUT=5)
-    (CONNECT_DATA=(SERVICE_NAME=xe))
+    (CONNECT_DATA=(SERVICE_NAME=FREEPDB1))
   )"
 ```
 
@@ -714,7 +725,7 @@ development:
     (ADDRESS_LIST=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521)))
     (CONNECT_TIMEOUT=5)(TCP_CONNECT_TIMEOUT=5)
     (RECV_TIMEOUT=60)(SEND_TIMEOUT=5)
-    (CONNECT_DATA=(SERVICE_NAME=xe))
+    (CONNECT_DATA=(SERVICE_NAME=FREEPDB1))
   )"
 ```
 
