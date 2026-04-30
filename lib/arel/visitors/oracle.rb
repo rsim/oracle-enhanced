@@ -32,7 +32,7 @@ module Arel # :nodoc: all
 
             collector = super(o, collector)
 
-            if offset.expr.type.is_a? ActiveModel::Type::Value
+            if bind_limit_offset?(limit, offset.expr)
               collector << ") raw_sql_ WHERE rownum <= ("
               collector = visit offset.expr, collector
               collector << " + "
@@ -41,8 +41,10 @@ module Arel # :nodoc: all
               collector = visit offset.expr, collector
               return collector
             else
+              offset_value = value_before_type_cast(offset.expr)
+              limit_value = value_before_type_cast(limit)
               collector << ") raw_sql_
-                  WHERE rownum <= #{offset.expr.value_before_type_cast + limit.value_before_type_cast}
+                  WHERE rownum <= #{offset_value + limit_value}
                 )
                 WHERE "
               return visit(offset, collector)
@@ -88,6 +90,21 @@ module Arel # :nodoc: all
           collector << "( "
           collector = infix_value o, collector, " MINUS "
           collector << " )"
+        end
+
+        def bind_limit_offset?(limit, offset)
+          [limit, offset].any? do |expr|
+            expr.is_a?(Arel::Nodes::BindParam) ||
+              (expr.respond_to?(:type) && expr.type.is_a?(ActiveModel::Type::Value))
+          end
+        end
+
+        def value_before_type_cast(expr)
+          if expr.respond_to?(:value_before_type_cast)
+            expr.value_before_type_cast
+          else
+            expr
+          end
         end
 
         ##
