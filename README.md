@@ -242,15 +242,26 @@ development:
   password: secret
 ```
 
-If you're connecting to a service name, indicate the service with a
-leading slash on the database parameter:
+The `database` parameter is interpreted as an Oracle service name. You
+can also use `service_name` as an explicit alias, which reads more
+naturally on PDB-based deployments where the value is unambiguously a
+service name:
 
 ```yml
 development:
   adapter: oracle_enhanced
-  database: /xe
+  service_name: xe
   username: user
   password: secret
+```
+
+`service_name` and `database` are mutually exclusive — supplying both
+raises `ArgumentError`.
+
+The same option is available via `DATABASE_URL` query string:
+
+```bash
+DATABASE_URL=oracle-enhanced://user:secret@localhost:1521/?service_name=xe
 ```
 
 If `TNS_ADMIN` environment variable is pointing to directory where `tnsnames.ora` file is located then you can use TNS connection name in `database` parameter. Otherwise you can directly specify database host, port (defaults to 1521) and database name in the following way:
