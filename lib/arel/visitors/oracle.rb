@@ -94,6 +94,7 @@ module Arel # :nodoc: all
         # To avoid ORA-01795: maximum number of expressions in a list is 1000
         # tell ActiveRecord to limit us to 1000 ids at a time
         def visit_Arel_Nodes_HomogeneousIn(o, collector)
+          collector.preparable = false
           in_clause_length = @connection.in_clause_length
           values = o.casted_values.map { |v| @connection.quote(v) }
           operator =
