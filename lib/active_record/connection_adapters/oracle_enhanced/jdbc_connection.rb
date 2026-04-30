@@ -111,12 +111,17 @@ module ActiveRecord
             username = config[:username] && config[:username].to_s
             password = config[:password] && config[:password].to_s
             database = config[:database] && config[:database].to_s || "XE"
+            sid      = config[:sid] && config[:sid].to_s
             host, port = config[:host], config[:port]
             privilege = config[:privilege] && config[:privilege].to_s
 
             # connection using TNS alias, or connection-string from DATABASE_URL
             using_tns_alias = !host && !config[:url] && ENV["TNS_ADMIN"]
-            if database && (using_tns_alias || host == "connection-string")
+            if sid
+              # Oracle SID syntax: `jdbc:oracle:thin:@host:port:SID` -- no `//`,
+              # which is reserved for the EZCONNECT (service-name) form.
+              url = config[:url] || "jdbc:oracle:thin:@#{host || 'localhost'}:#{port || 1521}:#{sid}"
+            elsif database && (using_tns_alias || host == "connection-string")
               url = "jdbc:oracle:thin:@#{database}"
             else
               database = "/#{database}" unless database.start_with?("/")

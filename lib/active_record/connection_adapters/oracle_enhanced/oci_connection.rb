@@ -319,13 +319,23 @@ module ActiveRecord
           username = config[:username] && config[:username].to_s
           password = config[:password] && config[:password].to_s
           database = config[:database] && config[:database].to_s
+          sid      = config[:sid] && config[:sid].to_s
           host, port = config[:host], config[:port]
           privilege = config[:privilege] && config[:privilege].to_sym
           async = config[:allow_concurrency]
           prefetch_rows = config[:prefetch_rows] || 100
 
+          # connection using a SID -- OCI has no SID form for EZCONNECT, so
+          # build a TNS connect descriptor inline and pass it as the
+          # connection-string. Lets `:sid` work without requiring a
+          # tnsnames.ora entry.
+          connection_string = if sid
+            host ||= "localhost"
+            host = "[#{host}]" if /^[^\[].*:/.match?(host)  # IPv6
+            port ||= 1521
+            "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=#{host})(PORT=#{port}))(CONNECT_DATA=(SID=#{sid})))"
           # using a connection string via DATABASE_URL
-          connection_string = if host == "connection-string"
+          elsif host == "connection-string"
             database
           # connection using host, port and database name
           elsif host || port
