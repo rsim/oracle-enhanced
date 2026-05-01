@@ -860,7 +860,7 @@ describe "OracleEnhancedConnection" do
       # Arel::Visitors::Oracle12) is transparently recovered by the server
       # after `ALTER SYSTEM KILL SESSION`, so the adapter never sees an
       # OCIError and the expected StatementInvalid is never raised.
-      skip "Oracle 23ai transparently recovers FETCH FIRST queries after session kill" if ActiveRecord::Base.connection.database_version.first >= 23
+      skip "Oracle 23ai transparently recovers FETCH FIRST queries after session kill" if ActiveRecord::Base.connection.database_version >= "23"
       Post.create!
       ActiveRecord::Base.lease_connection.auto_retry = false
       kill_current_session

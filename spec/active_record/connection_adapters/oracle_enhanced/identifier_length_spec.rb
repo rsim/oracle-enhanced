@@ -15,7 +15,7 @@ describe "OracleEnhancedAdapter identifier length configuration" do
   end
 
   def twelve_two_or_later?(conn)
-    Gem::Version.new(conn.database_version.join(".")) >= Gem::Version.new("12.2")
+    conn.database_version >= "12.2"
   end
 
   describe "use_shorter_identifier (deprecated global fallback)" do
@@ -99,7 +99,7 @@ describe "OracleEnhancedAdapter identifier length configuration" do
       else
         expect { conn.max_identifier_length }.to raise_error(
           ArgumentError,
-          /identifier_max_length: :long requires Oracle 12\.2 or later \(connected server reports #{Regexp.escape(conn.database_version.join("."))}\)/
+          /identifier_max_length: :long requires Oracle 12\.2 or later \(connected server reports #{Regexp.escape(conn.database_version.to_s)}\)/
         )
       end
     end

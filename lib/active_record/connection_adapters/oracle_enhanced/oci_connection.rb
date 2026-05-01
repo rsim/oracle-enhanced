@@ -277,7 +277,15 @@ module ActiveRecord
         end
 
         def database_version
-          @database_version ||= (version = raw_connection.oracle_server_version) && [version.major, version.minor]
+          @database_version ||= begin
+            version = raw_connection.oracle_server_version
+            if version
+              ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::Version.new(
+                "#{version.major}.#{version.minor}",
+                version.to_s
+              )
+            end
+          end
         end
 
       private
