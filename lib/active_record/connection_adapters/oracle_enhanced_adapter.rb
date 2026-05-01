@@ -1053,6 +1053,17 @@ module ActiveRecord
           unless schema.match?(SCHEMA_IDENTIFIER_PATTERN)
             raise ArgumentError, "Invalid :schema value #{schema.inspect}; must be an Oracle unquoted identifier"
           end
+          # The cap is the *connected database*'s capability, not the adapter's
+          # `max_identifier_length` (which is config-resolved and tracks
+          # adapter-emitted identifiers; `identifier_max_length: :short` and
+          # `use_shorter_identifier = true` would wrongly reject existing
+          # 31..128-byte schema names on a 12.2+ server).
+          schema_byte_limit = supports_longer_identifier? ? 128 : 30
+          if schema.bytesize > schema_byte_limit
+            raise ArgumentError,
+              "Invalid :schema value #{schema.inspect}; exceeds the #{schema_byte_limit}-byte " \
+              "identifier limit (#{schema.bytesize} bytes)."
+          end
           execute("alter session set current_schema = #{schema}", "SCHEMA")
         end
 

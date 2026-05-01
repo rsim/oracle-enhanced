@@ -212,6 +212,29 @@ describe "OracleEnhancedConnection" do
       expect { ActiveRecord::Base.lease_connection }.to raise_error(ArgumentError, /Invalid :schema value/)
     end
 
+    it "should raise ArgumentError for a :schema value longer than the connected DB's identifier limit" do
+      conn = ActiveRecord::Base.connection
+      cap = conn.supports_longer_identifier? ? 128 : 30
+      ActiveRecord::Base.remove_connection
+      overlong = "a" + "b" * cap   # cap + 1 bytes, all valid unquoted-identifier characters
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(schema: overlong))
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, /exceeds the #{cap}-byte identifier limit/)
+    end
+
+    it "rejects a multibyte :schema name by bytesize, not character count" do
+      conn = ActiveRecord::Base.connection
+      cap = conn.supports_longer_identifier? ? 128 : 30
+      ActiveRecord::Base.remove_connection
+      # `é` is 2 bytes in UTF-8 and matches `[[:alpha:]]` (the SCHEMA_IDENTIFIER_PATTERN
+      # first-char rule). The total has cap+1 characters but cap+2 bytes, so it must be
+      # rejected on the byte limit rather than slipping through a character-length check.
+      multibyte = "é" + "a" * cap
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(schema: multibyte))
+      expect { ActiveRecord::Base.lease_connection }
+        .to raise_error(ArgumentError, /exceeds the #{cap}-byte identifier limit/)
+    end
+
     it "honors :schema passed via DATABASE_URL query string" do
       url = "oracle-enhanced://#{DATABASE_USER}:#{DATABASE_PASSWORD}@#{DATABASE_HOST}:#{DATABASE_PORT}/#{DATABASE_NAME}?schema=#{DATABASE_SCHEMA}"
       ActiveRecord::Base.establish_connection(url)
