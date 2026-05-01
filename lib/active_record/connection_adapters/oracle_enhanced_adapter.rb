@@ -190,15 +190,48 @@ module ActiveRecord
 
       ##
       # :singleton-method:
-      # By default, OracleEnhanced adapter uses `Arel::Visitors::Oracle12`,
-      # which emits `FETCH FIRST n ROWS ONLY` / `OFFSET n ROWS` for limits
-      # and offsets. To opt back into `Arel::Visitors::Oracle` (ROWNUM-based
-      # output, intended for pre-12c servers) on every connection, add the
-      # following line to your initializer:
+      # Selects the Arel visitor used to compile SQL for the connection.
       #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor = true
-      cattr_accessor :use_old_oracle_visitor
-      self.use_old_oracle_visitor = false
+      # * +:auto+ — pick based on the connected database version:
+      #   +Arel::Visitors::Oracle12+ on Oracle 12.1+,
+      #   +Arel::Visitors::Oracle+ (ROWNUM-based LIMIT/OFFSET) on earlier
+      #   releases.
+      # * +:rownum+ — force +Arel::Visitors::Oracle+ regardless of version.
+      # * +:fetch_first+ — force +Arel::Visitors::Oracle12+. Raises
+      #   +ArgumentError+ at connect time if the server is older than 12.1.
+      #
+      # When the key is omitted, the class-level +use_old_oracle_visitor+
+      # decides the default: +true+ maps to +:rownum+, +false+ (default)
+      # maps to +:auto+. Setting +arel_visitor: :auto+ explicitly overrides
+      # the class-level setting, so the result stays the same when
+      # +use_old_oracle_visitor+ is removed in a future major.
+      #
+      # Set per connection via database.yml:
+      #
+      #   production:
+      #     adapter: oracle_enhanced
+      #     arel_visitor: rownum
+      @@use_old_oracle_visitor = false
+
+      def self.use_old_oracle_visitor
+        @@use_old_oracle_visitor
+      end
+
+      def self.use_old_oracle_visitor=(value)
+        OracleEnhanced.deprecator.deprecation_warning(
+          "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor=",
+          "set `arel_visitor: rownum` per connection in database.yml instead"
+        )
+        @@use_old_oracle_visitor = value
+      end
+
+      def use_old_oracle_visitor
+        self.class.use_old_oracle_visitor
+      end
+
+      def use_old_oracle_visitor=(value)
+        self.class.use_old_oracle_visitor = value
+      end
 
       ##
       # :singleton-method:
@@ -290,15 +323,10 @@ module ActiveRecord
 
         configure_connection
 
-        # `super` already memoised @visitor based on the class-level
-        # `use_old_oracle_visitor` flag, but the right visitor depends on the
-        # actual server version which is only readable after `connect`. Pin
-        # `Arel::Visitors::Oracle` for pre-12c servers regardless of the flag,
-        # because Oracle 11g rejects the `FETCH FIRST n ROWS ONLY` syntax
-        # `Arel::Visitors::Oracle12` emits with ORA-00933.
-        if !use_old_oracle_visitor && database_version.first < 12
-          @visitor = Arel::Visitors::Oracle.new(self)
-        end
+        # AbstractAdapter#initialize memoized @visitor before `connect` ran,
+        # when `database_version` was not yet callable. Recompute now that the
+        # connection is live so :auto can see the real server version.
+        @visitor = arel_visitor
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -364,13 +392,7 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        return false if use_old_oracle_visitor
-        # Pre-connect: claim support so `arel_visitor` returns the modern
-        # `Arel::Visitors::Oracle12` placeholder. Post-connect, gate on the
-        # actual server version so a pre-12c instance does not advertise a
-        # syntax (`FETCH FIRST n ROWS ONLY`) that it would reject with
-        # ORA-00933.
-        return true unless defined?(@raw_connection) && @raw_connection
+        return false unless @raw_connection
         database_version.first >= 12
       end
 
@@ -1044,11 +1066,48 @@ module ActiveRecord
       ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
 
       private
+        AREL_VISITOR_MODES = %i[auto rownum fetch_first].freeze
+        private_constant :AREL_VISITOR_MODES
+
         def arel_visitor
-          if supports_fetch_first_n_rows_and_offset?
+          case resolved_arel_visitor_mode
+          when :fetch_first
             Arel::Visitors::Oracle12.new(self)
-          else
+          when :rownum
             Arel::Visitors::Oracle.new(self)
+          end
+        end
+
+        def resolved_arel_visitor_mode
+          return :rownum unless @raw_connection
+
+          mode = configured_arel_visitor_mode
+
+          if mode == :fetch_first && !supports_fetch_first_n_rows_and_offset?
+            raise ArgumentError,
+              "arel_visitor: :fetch_first requires Oracle 12.1 or later " \
+              "(connected server reports #{database_version.join('.')}). " \
+              "Omit the key for version-aware selection, or use :rownum to force ROWNUM-based LIMIT/OFFSET."
+          end
+
+          return mode unless mode == :auto
+          supports_fetch_first_n_rows_and_offset? ? :fetch_first : :rownum
+        end
+
+        def configured_arel_visitor_mode
+          per_connection = @config[:arel_visitor] if @config.key?(:arel_visitor)
+
+          if per_connection.nil?
+            self.class.use_old_oracle_visitor ? :rownum : :auto
+          else
+            unless per_connection.is_a?(String) || per_connection.is_a?(Symbol)
+              raise ArgumentError, "arel_visitor must be a String or Symbol (got #{per_connection.inspect}). Expected one of #{AREL_VISITOR_MODES.inspect}."
+            end
+            mode = per_connection.to_sym
+            unless AREL_VISITOR_MODES.include?(mode)
+              raise ArgumentError, "Unknown arel_visitor #{mode.inspect}. Expected one of #{AREL_VISITOR_MODES.inspect}."
+            end
+            mode
           end
         end
 
