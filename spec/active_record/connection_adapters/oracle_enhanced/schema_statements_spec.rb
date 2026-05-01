@@ -6,10 +6,7 @@ describe "OracleEnhancedAdapter schema definition" do
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @oracle11g_or_higher = !! !! ActiveRecord::Base.lease_connection.select_value(
-      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
-    @oracle12cr2_or_higher = !! !! ActiveRecord::Base.lease_connection.select_value(
-      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,4)) >= 12.2")
+    @conn = ActiveRecord::Base.lease_connection
   end
 
   describe "option to create sequence when adding a column" do
@@ -560,7 +557,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should return shortened index name by removing 'index', 'on' and 'and' keywords" do
-      if @oracle12cr2_or_higher
+      if @conn.database_version >= "12.2"
         expect(@conn.index_name("employees", column: ["first_name", "email"])).to eq("index_employees_on_first_name_and_email")
       else
         expect(@conn.index_name("employees", column: ["first_name", "email"])).to eq("i_employees_first_name_email")
@@ -568,7 +565,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should return shortened index name by shortening table and column names" do
-      if @oracle12cr2_or_higher
+      if @conn.database_version >= "12.2"
         expect(@conn.index_name("employees", column: ["first_name", "last_name"])).to eq("index_employees_on_first_name_and_last_name")
       else
         expect(@conn.index_name("employees", column: ["first_name", "last_name"])).to eq("i_emp_fir_nam_las_nam")
@@ -576,7 +573,7 @@ describe "OracleEnhancedAdapter schema definition" do
     end
 
     it "should raise error if too large index name cannot be shortened" do
-      if @oracle12cr2_or_higher
+      if @conn.database_version >= "12.2"
         expect(@conn.index_name("test_employees", column: ["first_name", "middle_name", "last_name"])).to eq(
           ("index_test_employees_on_first_name_and_middle_name_and_last_name"))
       else
@@ -1274,7 +1271,7 @@ end
     end
 
     it "should add longer column" do
-      skip unless @oracle12cr2_or_higher
+      skip unless @conn.database_version >= "12.2"
       schema_define do
         add_column :test_posts, "a" * 128, :string
       end
@@ -1355,7 +1352,7 @@ end
 
   describe "virtual columns in create_table" do
     before(:each) do
-      skip "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @conn.database_version >= "11"
     end
 
     it "should raise error if column expression is not provided" do
@@ -1372,7 +1369,7 @@ end
 
   describe "virtual columns" do
     before(:each) do
-      skip "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @conn.database_version >= "11"
       expr = "( numerator/NULLIF(denominator,0) )*100"
       schema_define do
         create_table :test_fractions, force: true do |t|
@@ -1388,7 +1385,7 @@ end
     end
 
     after(:each) do
-      if @oracle11g_or_higher
+      if @conn.database_version >= "11"
         schema_define do
           drop_table :test_fractions
         end
