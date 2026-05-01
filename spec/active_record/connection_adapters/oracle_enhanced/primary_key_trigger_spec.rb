@@ -7,7 +7,6 @@ describe "primary_key_trigger" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
-    @oracle12c_or_higher = @conn.database_version.first >= 12
   end
 
   after(:each) do
@@ -214,7 +213,7 @@ describe "primary_key_trigger" do
     end
 
     it "raises when combined with identity: true" do
-      skip "requires Oracle 12.1+" unless @oracle12c_or_higher
+      skip "requires Oracle 12.1+" unless @conn.database_version.first >= 12
 
       expect {
         @conn.create_table :test_pk_triggers, primary_key_trigger: true, identity: true, force: true do |t|
@@ -258,7 +257,7 @@ describe "primary_key_trigger" do
     end
 
     it "does not emit primary_key_trigger: true for identity tables" do
-      skip "requires Oracle 12.1+" unless @oracle12c_or_higher
+      skip "requires Oracle 12.1+" unless @conn.database_version.first >= 12
 
       schema_define do
         create_table :test_pk_triggers, identity: true do |t|
