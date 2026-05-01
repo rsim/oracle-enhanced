@@ -54,6 +54,16 @@ describe "Arel::Visitors::Oracle12" do
       expect(sql).not_to match(/FETCH FIRST/)
     end
 
+    it "preserves the source SelectStatement on repeated compilation" do
+      stmt = Arel::Nodes::SelectStatement.new
+      stmt.limit = Arel::Nodes::Limit.new(10)
+      stmt.lock = Arel::Nodes::Lock.new(Arel.sql("FOR UPDATE"))
+      first = compile(stmt)
+      second = compile(stmt)
+      expect(first).to eq(second)
+      expect(second.scan(/ROWNUM/).size).to eq(1)
+    end
+
     it "defaults to FOR UPDATE when locking" do
       node = Arel::Nodes::Lock.new(Arel.sql("FOR UPDATE"))
       expect(compile(node)).to be_like "FOR UPDATE"
