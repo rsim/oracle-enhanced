@@ -64,16 +64,14 @@ describe "OracleEnhancedAdapter#columns_for_distinct" do
     expect(sql).not_to match(/NULLS/i)
   end
 
-  describe "integration with Arel::Visitors::Oracle#order_hacks" do
-    let(:oracle_visitor) { Arel::Visitors::Oracle.new(@conn) }
-
+  describe "integration with order_hacks" do
     def compile_distinct_order(distinct_columns, order)
       projection = "DISTINCT #{distinct_columns.join(', ')}, " \
                    "#{@conn.columns_for_distinct(distinct_columns, [order])}"
       stmt = Arel::Nodes::SelectStatement.new
       stmt.cores.first.projections << Arel::Nodes::SqlLiteral.new(projection)
       stmt.orders << (order.is_a?(String) ? Arel::Nodes::SqlLiteral.new(order) : order)
-      oracle_visitor.accept(stmt, Arel::Collectors::SQLString.new).value
+      @conn.visitor.accept(stmt, Arel::Collectors::SQLString.new).value
     end
 
     it "preserves DESC NULLS LAST in the outer ORDER BY for a raw SQL order" do

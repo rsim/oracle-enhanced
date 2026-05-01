@@ -167,56 +167,6 @@ module Arel # :nodoc: all
           super
         end
 
-        ###
-        # Hacks for the order clauses specific to Oracle
-        def order_hacks(o)
-          return o if o.orders.empty?
-          return o unless o.cores.any? do |core|
-            core.projections.any? do |projection|
-              projection.to_s.include?("FIRST_VALUE")
-            end
-          end
-          # Previous version with join and split broke ORDER BY clause
-          # if it contained functions with several arguments (separated by ',').
-          #
-          # orders   = o.orders.map { |x| visit x }.join(', ').split(',')
-          orders   = o.orders.map do |x|
-            string = visit(x, Arel::Collectors::SQLString.new).value
-            if string.include?(",")
-              split_order_string(string)
-            else
-              string
-            end
-          end.flatten
-          o.orders = []
-          orders.each_with_index do |order, i|
-            parts = ["alias_#{i}__"]
-            parts << "DESC" if /\bdesc\b/i.match?(order)
-            if (nulls_match = order.match(/\bNULLS\s+(FIRST|LAST)\b/i))
-              parts << "NULLS #{nulls_match[1].upcase}"
-            end
-            o.orders << Nodes::SqlLiteral.new(parts.join(" "))
-          end
-          o
-        end
-
-        # Split string by commas but count opening and closing brackets
-        # and ignore commas inside brackets.
-        def split_order_string(string)
-          array = []
-          i = 0
-          string.split(",").each do |part|
-            if array[i]
-              array[i] << "," << part
-            else
-              # to ensure that array[i] will be String and not Arel::Nodes::SqlLiteral
-              array[i] = part.to_s
-            end
-            i += 1 if array[i].count("(") == array[i].count(")")
-          end
-          array
-        end
-
         def is_distinct_from(o, collector)
           collector << "DECODE("
           collector = visit [o.left, o.right, 0, 1], collector

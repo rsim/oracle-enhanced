@@ -46,6 +46,57 @@ module Arel # :nodoc: all
         def schema_cache
           @connection.schema_cache
         end
+
+        # Oracle 12c+ (Oracle12 visitor) and pre-12c (Oracle visitor) both
+        # generate `FIRST_VALUE(...) OVER (...) AS alias_N__` projections via
+        # `columns_for_distinct` for DISTINCT queries that order by columns
+        # outside the SELECT list. Oracle's own SQL parser then rejects an
+        # outer ORDER BY referencing the original (non-aliased) column with
+        # ORA-01791 ("not a SELECTed expression"). Rewriting the outer ORDER
+        # BY to reference `alias_N__` instead is what makes the SQL valid.
+        def order_hacks(o)
+          return o if o.orders.empty?
+          return o unless o.cores.any? do |core|
+            core.projections.any? do |projection|
+              projection.to_s.include?("FIRST_VALUE")
+            end
+          end
+          orders = o.orders.map do |x|
+            string = visit(x, Arel::Collectors::SQLString.new).value
+            if string.include?(",")
+              split_order_string(string)
+            else
+              string
+            end
+          end.flatten
+          o.orders = []
+          orders.each_with_index do |order, i|
+            parts = ["alias_#{i}__"]
+            parts << "DESC" if /\bdesc\b/i.match?(order)
+            if (nulls_match = order.match(/\bNULLS\s+(FIRST|LAST)\b/i))
+              parts << "NULLS #{nulls_match[1].upcase}"
+            end
+            o.orders << Arel::Nodes::SqlLiteral.new(parts.join(" "))
+          end
+          o
+        end
+
+        # Split string by commas but count opening and closing brackets
+        # and ignore commas inside brackets.
+        def split_order_string(string)
+          array = []
+          i = 0
+          string.split(",").each do |part|
+            if array[i]
+              array[i] << "," << part
+            else
+              # to ensure that array[i] will be String and not Arel::Nodes::SqlLiteral
+              array[i] = part.to_s
+            end
+            i += 1 if array[i].count("(") == array[i].count(")")
+          end
+          array
+        end
     end
   end
 end

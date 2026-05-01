@@ -23,6 +23,7 @@ module Arel # :nodoc: all
             # `ROWNUM <= n AND ROWNUM <= n AND ...` predicates.
             return oracle11_visitor.accept(o.dup, collector)
           end
+          o = order_hacks(o)
           super
         end
 
