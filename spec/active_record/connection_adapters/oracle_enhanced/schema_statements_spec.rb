@@ -11,7 +11,6 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "option to create sequence when adding a column" do
     before do
-      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :keyboards, force: true, id: false do |t|
           t.string      :name
@@ -30,7 +29,6 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "table and sequence creation with non-default primary key" do
     before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :keyboards, force: true, id: false do |t|
           t.primary_key :key_number
@@ -67,10 +65,6 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "primary_key inside create_table block with type and keyword options" do
-    before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
-    end
-
     after(:each) do
       schema_define do
         drop_table :test_lookups, if_exists: true
@@ -202,7 +196,6 @@ describe "OracleEnhancedAdapter schema definition" do
     # `super` call and silently letting the invalid combination
     # through.
     before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :test_pk_null_check, force: true do |t|
           t.string :name
@@ -288,10 +281,6 @@ describe "OracleEnhancedAdapter schema definition" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.default_sequence_start_value = @saved_sequence_start_value
     end
 
-    before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
-    end
-
     before(:each) do
       save_default_sequence_start_value
     end
@@ -352,10 +341,6 @@ describe "OracleEnhancedAdapter schema definition" do
           t.string      :last_name, comment: column_comments[:last_name]
         end
       end
-    end
-
-    before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
     end
 
     before(:each) do
@@ -431,10 +416,6 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "drop tables" do
-    before(:each) do
-      @conn = ActiveRecord::Base.lease_connection
-    end
-
     after(:each) do
       schema_define do
         drop_table :multi_drop_posts, if_exists: true
@@ -465,7 +446,6 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "rename tables and sequences" do
     before(:each) do
-      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table  :test_employees, force: true do |t|
           t.string    :first_name
@@ -548,10 +528,6 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "add index" do
-    before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
-    end
-
     it "should return default index name if it is not larger than 30 characters" do
       expect(@conn.index_name("employees", column: "first_name")).to eq("index_employees_on_first_name")
     end
@@ -601,7 +577,6 @@ describe "OracleEnhancedAdapter schema definition" do
 
   describe "rename index" do
   before(:each) do
-    @conn = ActiveRecord::Base.lease_connection
     schema_define do
       create_table  :test_employees do |t|
         t.string    :first_name
@@ -652,7 +627,6 @@ end
 
   describe "add_index with if_not_exists" do
     before(:each) do
-      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :test_posts, force: true do |t|
           t.string :title
@@ -681,10 +655,6 @@ end
   end
 
   describe "create_table with if_not_exists" do
-    before(:each) do
-      @conn = ActiveRecord::Base.lease_connection
-    end
-
     after(:each) do
       schema_define { drop_table :test_posts, if_exists: true }
     end
@@ -727,7 +697,6 @@ end
 
   describe "add timestamps" do
     before(:each) do
-      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :test_employees, force: true
       end
@@ -1007,8 +976,6 @@ end
 
   describe "primary key in table definition" do
     before do
-      @conn = ActiveRecord::Base.lease_connection
-
       class ::TestPost < ActiveRecord::Base
       end
     end
@@ -1133,10 +1100,6 @@ end
   end
 
   describe "disable referential integrity" do
-    before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
-    end
-
     before(:each) do
       schema_define do
         create_table :test_posts, force: true do |t|
@@ -1180,7 +1143,6 @@ end
 
   describe "synonyms" do
     before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
       @username = CONNECTION_PARAMS[:username]
       schema_define do
         create_table :test_posts, force: true do |t|
@@ -1486,7 +1448,6 @@ end
 
   describe "materialized views" do
     before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table  :test_employees, force: true do |t|
           t.string    :first_name
@@ -1516,7 +1477,6 @@ end
 
   describe "miscellaneous options" do
     before(:all) do
-      @conn = ActiveRecord::Base.lease_connection
       # `before(:each)` below stubs `execute` to capture DDL into a string
       # without running it. `Schema.define` (which `schema_define` wraps)
       # writes to `AR_INTERNAL_METADATA`, and the table's CREATE goes through
@@ -1711,7 +1671,6 @@ end
     }
 
     before do
-      @conn = ActiveRecord::Base.lease_connection
       ActiveRecord::Base.connection_pool.schema_migration.create_table
     end
 
