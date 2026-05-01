@@ -198,7 +198,9 @@ module ActiveRecord
       #   releases.
       # * +:rownum+ — force +Arel::Visitors::Oracle+ regardless of version.
       # * +:fetch_first+ — force +Arel::Visitors::Oracle12+. Raises
-      #   +ArgumentError+ at connect time if the server is older than 12.1.
+      #   +ArgumentError+ during adapter initialization (after the connection
+      #   is established and the visitor is resolved) if the connected server
+      #   is older than 12.1.
       #
       # When the key is omitted, the class-level +use_old_oracle_visitor+
       # decides the default: +true+ maps to +:rownum+, +false+ (default)
@@ -217,6 +219,9 @@ module ActiveRecord
         @@use_old_oracle_visitor
       end
 
+      # Only the writer is deprecated. The reader is consulted on the
+      # fallback path inside +configured_arel_visitor_mode+ even when the user
+      # never wrote to it, so warning on read would be noisy.
       def self.use_old_oracle_visitor=(value)
         OracleEnhanced.deprecator.deprecation_warning(
           "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor=",
@@ -323,9 +328,13 @@ module ActiveRecord
 
         configure_connection
 
-        # AbstractAdapter#initialize memoized @visitor before `connect` ran,
-        # when `database_version` was not yet callable. Recompute now that the
-        # connection is live so :auto can see the real server version.
+        # AbstractAdapter#initialize ran `@visitor = arel_visitor` before
+        # `connect`, when `database_version` was unavailable. Reassign now that
+        # the connection is live so :auto sees the real server version. A lazy
+        # `visitor` override is not an option: AbstractAdapter exposes
+        # `attr_reader :visitor` and reads `@visitor` directly. Nothing in
+        # `configure_connection` compiles SQL, so the placeholder visitor set
+        # by super is never used before this reassignment.
         @visitor = arel_visitor
       end
 
