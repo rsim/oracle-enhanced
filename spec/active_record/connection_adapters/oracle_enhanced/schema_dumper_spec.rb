@@ -7,8 +7,6 @@ describe "OracleEnhancedAdapter schema dump" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
-    @oracle11g_or_higher = !! @conn.select_value(
-      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
   end
 
   def standard_dump(options = {})
@@ -368,7 +366,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
   describe "virtual columns" do
     before(:all) do
-      skip "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @conn.database_version >= "11"
       schema_define do
         create_table :test_names, force: true do |t|
           t.string :first_name
@@ -384,7 +382,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     before(:each) do
-      if @oracle11g_or_higher
+      if @conn.database_version >= "11"
         class ::TestName < ActiveRecord::Base
           self.table_name = "test_names"
         end
@@ -392,7 +390,7 @@ describe "OracleEnhancedAdapter schema dump" do
     end
 
     after(:all) do
-      if @oracle11g_or_higher
+      if @conn.database_version >= "11"
         schema_define do
           drop_table :test_names
         end
@@ -411,7 +409,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
     context "with index on virtual column" do
       before(:all) do
-        if @oracle11g_or_higher
+        if @conn.database_version >= "11"
           schema_define do
             add_index "test_names", "field_with_leading_space", name: "index_on_virtual_col"
           end
@@ -419,7 +417,7 @@ describe "OracleEnhancedAdapter schema dump" do
       end
 
       after(:all) do
-        if @oracle11g_or_higher
+        if @conn.database_version >= "11"
           schema_define do
             remove_index "test_names", name: "index_on_virtual_col"
           end

@@ -6,9 +6,7 @@ describe "OracleEnhancedAdapter attribute API support for JSON type" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
-    @oracle12c_or_higher = !! @conn.select_value(
-      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 12")
-    skip "Not supported in this database version" unless @oracle12c_or_higher
+    skip "Not supported in this database version" unless @conn.database_version >= "12"
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     schema_define do
       create_table :test_posts, force: true do |t|

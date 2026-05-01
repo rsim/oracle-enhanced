@@ -6,8 +6,6 @@ describe "OracleEnhancedAdapter structure dump" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
-    @oracle11g_or_higher = !! @conn.select_value(
-      "select * from product_component_version where product like 'Oracle%' and to_number(substr(version,1,2)) >= 11")
   end
 
   describe "structure dump" do
@@ -130,7 +128,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump virtual columns" do
-      skip "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @conn.database_version >= "11"
       @conn.execute <<~SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
@@ -143,7 +141,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump RAW virtual columns" do
-      skip "Not supported in this database version" unless @oracle11g_or_higher
+      skip "Not supported in this database version" unless @conn.database_version >= "11"
       @conn.execute <<~SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
