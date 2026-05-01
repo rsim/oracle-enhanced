@@ -330,6 +330,46 @@ describe "OracleEnhancedConnection" do
     end
   end
 
+  describe "`:database` value with leading `/`" do
+    after(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    end
+
+    it "still connects (behaviour unchanged)" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(database: "/#{DATABASE_NAME}"))
+      ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
+        expect(ActiveRecord::Base.lease_connection).to be_active
+      end
+    end
+
+    it "emits an OracleEnhanced.deprecator warning naming the recommended replacements" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(database: "/#{DATABASE_NAME}"))
+      expect {
+        ActiveRecord::Base.lease_connection
+      }.to output(/DEPRECATION WARNING: Setting `:database` to a value that starts with `\/`.*:service_name/m).to_stderr
+    end
+
+    it "does not warn when :database has no leading slash" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      expect {
+        ActiveRecord::Base.lease_connection
+      }.not_to output(/value that starts with `\//).to_stderr
+    end
+  end
+
+  describe "`:database` value with leading `:`" do
+    after(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    end
+
+    it "raises ArgumentError pointing at the :sid option" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(database: ":#{DATABASE_NAME}"))
+      expect {
+        ActiveRecord::Base.lease_connection
+      }.to raise_error(ArgumentError, /Setting `:database` to a value that starts with `:`.*`:sid` option/m)
+    end
+  end
+
   describe "resolving unqualified names with :schema set to a different user" do
     # Pins down the end-to-end contract of the `:schema` connection option:
     #
