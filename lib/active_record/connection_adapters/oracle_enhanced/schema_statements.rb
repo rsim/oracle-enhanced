@@ -691,7 +691,7 @@ module ActiveRecord
             return unless identity
             unless supports_identity_columns?
               raise ArgumentError,
-                "`identity: true` requires Oracle Database 12.1 or higher (current: #{database_version.join('.')}). Remove `identity: true` or upgrade the database."
+                "`identity: true` requires Oracle Database 12.1 or higher (current: #{database_version}). Remove `identity: true` or upgrade the database."
             end
             unless id == :primary_key
               raise ArgumentError,

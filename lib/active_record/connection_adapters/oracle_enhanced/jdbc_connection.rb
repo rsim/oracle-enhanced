@@ -305,7 +305,24 @@ module ActiveRecord
         end
 
         def database_version
-          @database_version ||= (md = raw_connection.getMetaData) && [md.getDatabaseMajorVersion, md.getDatabaseMinorVersion]
+          @database_version ||= begin
+            md = raw_connection.getMetaData
+            if md
+              major = md.getDatabaseMajorVersion
+              minor = md.getDatabaseMinorVersion
+              # Extract the 5-part dotted form Oracle uses (`major . X . X . X . X`)
+              # from the verbose product string. If the regex misses (older driver /
+              # unexpected format), pass nil rather than fabricate a misleading
+              # `"#{major}.#{minor}.0.0.0"` value — callers reading
+              # `full_version_string` get nil, signaling "patch-level detail not
+              # available from this driver's product version string."
+              full = md.getDatabaseProductVersion[/\b\d{1,2}(?:\.\d{1,2}){4}\b/]
+              ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter::Version.new(
+                "#{major}.#{minor}",
+                full
+              )
+            end
+          end
         end
 
         class Cursor

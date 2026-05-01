@@ -19,7 +19,10 @@ module ActiveRecord
         attr_reader :raw_connection, :owner
       end
 
-      # Returns array with major and minor version of database (e.g. [12, 1])
+      # Returns an ActiveRecord::ConnectionAdapters::AbstractAdapter::Version
+      # instance representing the connected Oracle Database version. Comparable
+      # against version strings (e.g. <tt>database_version >= "12.2"</tt>) via
+      # the included +Comparable+ module.
       def database_version
         raise NoMethodError, "Not implemented for this raw driver"
       end
