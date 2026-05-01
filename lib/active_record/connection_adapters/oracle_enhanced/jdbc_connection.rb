@@ -305,7 +305,13 @@ module ActiveRecord
         end
 
         def database_version
-          @database_version ||= (md = raw_connection.getMetaData) && [md.getDatabaseMajorVersion, md.getDatabaseMinorVersion]
+          @database_version ||= begin
+            md = raw_connection.getMetaData
+            ActiveRecord::ConnectionAdapters::AbstractAdapter::Version.new(
+              "#{md.getDatabaseMajorVersion}.#{md.getDatabaseMinorVersion}",
+              md.getDatabaseProductVersion
+            )
+          end
         end
 
         class Cursor

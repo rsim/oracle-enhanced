@@ -7,7 +7,7 @@ describe "primary_key_trigger" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
-    @oracle12c_or_higher = @conn.database_version.first >= 12
+    @oracle12c_or_higher = @conn.database_version >= "12"
   end
 
   after(:each) do

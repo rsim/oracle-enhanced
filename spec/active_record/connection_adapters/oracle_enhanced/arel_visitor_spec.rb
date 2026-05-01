@@ -3,6 +3,10 @@
 describe "OracleEnhancedAdapter arel_visitor configuration" do
   let(:adapter_class) { ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter }
 
+  def version(version_string)
+    ActiveRecord::ConnectionAdapters::AbstractAdapter::Version.new(version_string)
+  end
+
   before(:each) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
@@ -42,7 +46,7 @@ describe "OracleEnhancedAdapter arel_visitor configuration" do
   describe "visitor selection" do
     it "picks Oracle12 on a real 12.1+ database by default" do
       conn = ActiveRecord::Base.connection
-      if conn.database_version.first >= 12
+      if conn.database_version >= "12"
         expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
       else
         expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
@@ -59,7 +63,7 @@ describe "OracleEnhancedAdapter arel_visitor configuration" do
     end
 
     it "honors per-connection arel_visitor: :fetch_first" do
-      skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version.first < 12
+      skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version < "12"
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :fetch_first))
       conn = ActiveRecord::Base.connection
@@ -99,7 +103,7 @@ describe "OracleEnhancedAdapter arel_visitor configuration" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: nil))
       conn = ActiveRecord::Base.connection
 
-      if conn.database_version.first >= 12
+      if conn.database_version >= "12"
         expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
       else
         expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
@@ -119,7 +123,7 @@ describe "OracleEnhancedAdapter arel_visitor configuration" do
     end
 
     it "per-connection arel_visitor overrides class-level use_old_oracle_visitor" do
-      skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version.first < 12
+      skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version < "12"
       ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
         adapter_class.use_old_oracle_visitor = true
       end
@@ -141,7 +145,7 @@ describe "OracleEnhancedAdapter arel_visitor configuration" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :auto))
       conn = ActiveRecord::Base.connection
 
-      if conn.database_version.first >= 12
+      if conn.database_version >= "12"
         expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
       else
         expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
@@ -152,21 +156,21 @@ describe "OracleEnhancedAdapter arel_visitor configuration" do
   describe "resolved_arel_visitor_mode" do
     it "returns :fetch_first when database_version is 12.1+ and no override" do
       conn = ActiveRecord::Base.connection
-      allow(conn).to receive(:database_version).and_return([12, 1])
+      allow(conn).to receive(:database_version).and_return(version("12.1"))
       expect(conn.send(:resolved_arel_visitor_mode)).to eq(:fetch_first)
     end
 
     it "returns :rownum when database_version is 11.2 and no override" do
       conn = ActiveRecord::Base.connection
-      allow(conn).to receive(:database_version).and_return([11, 2])
+      allow(conn).to receive(:database_version).and_return(version("11.2"))
       expect(conn.send(:resolved_arel_visitor_mode)).to eq(:rownum)
     end
 
     it "returns :fetch_first on recent Oracle releases" do
       conn = ActiveRecord::Base.connection
-      allow(conn).to receive(:database_version).and_return([19, 3])
+      allow(conn).to receive(:database_version).and_return(version("19.3"))
       expect(conn.send(:resolved_arel_visitor_mode)).to eq(:fetch_first)
-      allow(conn).to receive(:database_version).and_return([23, 0])
+      allow(conn).to receive(:database_version).and_return(version("23.0"))
       expect(conn.send(:resolved_arel_visitor_mode)).to eq(:fetch_first)
     end
   end
@@ -178,12 +182,12 @@ describe "OracleEnhancedAdapter arel_visitor configuration" do
     # not change what the database supports; it only changes what the adapter
     # emits.
     it "reflects database_version >= 12 regardless of arel_visitor override" do
-      skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version.first < 12
+      skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version < "12"
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :rownum))
       conn = ActiveRecord::Base.connection
 
-      expect(conn.database_version.first).to be >= 12
+      expect(conn.database_version).to be >= "12"
       expect(conn.supports_fetch_first_n_rows_and_offset?).to be(true)
     end
 
@@ -192,7 +196,7 @@ describe "OracleEnhancedAdapter arel_visitor configuration" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       conn = ActiveRecord::Base.connection
 
-      allow(conn).to receive(:database_version).and_return([11, 2])
+      allow(conn).to receive(:database_version).and_return(version("11.2"))
       expect(conn.supports_fetch_first_n_rows_and_offset?).to be(false)
     end
   end
@@ -204,11 +208,11 @@ describe "OracleEnhancedAdapter arel_visitor configuration" do
     end
 
     it "raises ArgumentError" do
-      skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version.first < 12
+      skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version < "12"
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :fetch_first))
       conn = ActiveRecord::Base.connection
-      allow(conn).to receive(:database_version).and_return([11, 2])
+      allow(conn).to receive(:database_version).and_return(version("11.2"))
 
       expect { conn.send(:resolved_arel_visitor_mode) }
         .to raise_error(ArgumentError, /arel_visitor: :fetch_first requires Oracle 12\.1 or later/)
