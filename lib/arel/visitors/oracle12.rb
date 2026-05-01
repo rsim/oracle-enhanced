@@ -17,13 +17,17 @@ module Arel # :nodoc: all
         # an ArgumentError from an internal visitor that callers cannot avoid.
         def visit_Arel_Nodes_SelectStatement(o, collector)
           if o.limit && o.lock
-            return oracle_visitor_for_lock.accept(o, collector)
+            # Arel::Visitors::Oracle's simple-limit branch mutates `o.cores`
+            # by pushing a ROWNUM predicate into the WHERE list. dup the node
+            # so a re-compile of the same statement does not accumulate
+            # `ROWNUM <= n AND ROWNUM <= n AND ...` predicates.
+            return oracle11_visitor.accept(o.dup, collector)
           end
           super
         end
 
-        def oracle_visitor_for_lock
-          @oracle_visitor_for_lock ||= Arel::Visitors::Oracle.new(@connection)
+        def oracle11_visitor
+          @oracle11_visitor ||= Arel::Visitors::Oracle.new(@connection)
         end
 
         def visit_Arel_Nodes_SelectOptions(o, collector)
