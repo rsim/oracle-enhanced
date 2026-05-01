@@ -190,10 +190,11 @@ module ActiveRecord
 
       ##
       # :singleton-method:
-      # By default, OracleEnhanced adapter will use Oracle12 visitor
-      # if database version is Oracle 12.1.
-      # If you wish to use Oracle visitor which is intended to work with Oracle 11.2 or lower
-      # for Oracle 12.1 database you can add the following line to your initializer file:
+      # By default, OracleEnhanced adapter uses `Arel::Visitors::Oracle12`,
+      # which emits `FETCH FIRST n ROWS ONLY` / `OFFSET n ROWS` for limits
+      # and offsets. To opt back into `Arel::Visitors::Oracle` (ROWNUM-based
+      # output, intended for pre-12c servers) on every connection, add the
+      # following line to your initializer:
       #
       #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor = true
       cattr_accessor :use_old_oracle_visitor
@@ -288,6 +289,16 @@ module ActiveRecord
         @notice_receiver_sql_warnings = []
 
         configure_connection
+
+        # `super` already memoised @visitor based on the class-level
+        # `use_old_oracle_visitor` flag, but the right visitor depends on the
+        # actual server version which is only readable after `connect`. Pin
+        # `Arel::Visitors::Oracle` for pre-12c servers regardless of the flag,
+        # because Oracle 11g rejects the `FETCH FIRST n ROWS ONLY` syntax
+        # `Arel::Visitors::Oracle12` emits with ORA-00933.
+        if !use_old_oracle_visitor && database_version.first < 12
+          @visitor = Arel::Visitors::Oracle.new(self)
+        end
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -353,12 +364,14 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        false
-
-        # TODO: At this point the connection is not initialized yet,
-        # so `database_version` raises an error
-        #
-        # !use_old_oracle_visitor && database_version.first >= 12
+        return false if use_old_oracle_visitor
+        # Pre-connect: claim support so `arel_visitor` returns the modern
+        # `Arel::Visitors::Oracle12` placeholder. Post-connect, gate on the
+        # actual server version so a pre-12c instance does not advertise a
+        # syntax (`FETCH FIRST n ROWS ONLY`) that it would reject with
+        # ORA-00933.
+        return true unless defined?(@raw_connection) && @raw_connection
+        database_version.first >= 12
       end
 
       def supports_datetime_with_precision?

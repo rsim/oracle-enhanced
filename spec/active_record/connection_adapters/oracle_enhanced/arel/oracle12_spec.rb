@@ -31,11 +31,37 @@ describe "Arel::Visitors::Oracle12" do
   end
 
   describe "locking" do
-    it "raises ArgumentError if limit and lock are used" do
+    it "falls back to Arel::Visitors::Oracle (ROWNUM) when limit and lock are combined" do
       stmt = Arel::Nodes::SelectStatement.new
       stmt.limit = Arel::Nodes::Limit.new(10)
       stmt.lock = Arel::Nodes::Lock.new(Arel.sql("FOR UPDATE"))
-      expect { compile(stmt) }.to raise_error(ArgumentError)
+      sql = compile(stmt)
+      expect(sql).to match(/ROWNUM/)
+      expect(sql).to match(/FOR UPDATE/)
+      expect(sql).not_to match(/FETCH FIRST/)
+    end
+
+    it "compiles compound limit+lock+ORDER BY without raising; lets Oracle return ORA-02014 at execute time" do
+      stmt = Arel::Nodes::SelectStatement.new
+      stmt.orders << Arel::Nodes::SqlLiteral.new("foo")
+      stmt.limit = Arel::Nodes::Limit.new(10)
+      stmt.lock = Arel::Nodes::Lock.new(Arel.sql("FOR UPDATE"))
+      expect { compile(stmt) }.not_to raise_error
+      sql = compile(stmt)
+      expect(sql).to match(/ROWNUM/)
+      expect(sql).to match(/FOR UPDATE/)
+      expect(sql).to match(/ORDER BY/)
+      expect(sql).not_to match(/FETCH FIRST/)
+    end
+
+    it "preserves the source SelectStatement on repeated compilation" do
+      stmt = Arel::Nodes::SelectStatement.new
+      stmt.limit = Arel::Nodes::Limit.new(10)
+      stmt.lock = Arel::Nodes::Lock.new(Arel.sql("FOR UPDATE"))
+      first = compile(stmt)
+      second = compile(stmt)
+      expect(first).to eq(second)
+      expect(second.scan(/ROWNUM/).size).to eq(1)
     end
 
     it "defaults to FOR UPDATE when locking" do

@@ -694,8 +694,15 @@ describe "OracleEnhancedAdapter" do
       Thread.report_on_exception, @original_report_on_exception = false, Thread.report_on_exception
     end
 
+    it "supports with_lock without raising ArgumentError (#2237)" do
+      post = TestPost.create!(title: "lock me")
+      expect {
+        post.with_lock { post.update(title: "locked and updated") }
+      }.not_to raise_error
+      expect(post.reload.title).to eq("locked and updated")
+    end
+
     it "Raises Deadlocked when a deadlock is encountered" do
-      skip "Skip temporary due to #1599" if ActiveRecord::Base.lease_connection.supports_fetch_first_n_rows_and_offset?
       expect {
         barrier = Concurrent::CyclicBarrier.new(2)
 

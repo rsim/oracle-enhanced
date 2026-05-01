@@ -64,7 +64,7 @@ describe "OracleEnhancedAdapter#columns_for_distinct" do
     expect(sql).not_to match(/NULLS/i)
   end
 
-  describe "integration with Arel::Visitors::Oracle#order_hacks" do
+  describe "integration with order_hacks" do
     def compile_distinct_order(distinct_columns, order)
       projection = "DISTINCT #{distinct_columns.join(', ')}, " \
                    "#{@conn.columns_for_distinct(distinct_columns, [order])}"
