@@ -17,7 +17,7 @@ module Arel # :nodoc: all
         # an ArgumentError from an internal visitor that callers cannot avoid.
         def visit_Arel_Nodes_SelectStatement(o, collector)
           if o.limit && o.lock
-            return oracle_visitor_for_lock.send(:visit_Arel_Nodes_SelectStatement, o, collector)
+            return oracle_visitor_for_lock.accept(o, collector)
           end
           super
         end
