@@ -8,87 +8,168 @@ describe "OracleEnhancedAdapter identifier length configuration" do
   end
 
   after(:each) do
-    adapter_class.use_legacy_identifier_length = false
     ActiveRecord::Base.remove_connection
+    # Reset the deprecated global fallback that individual tests may have toggled.
+    # Use the class variable directly to avoid emitting a deprecation warning.
+    adapter_class.class_variable_set(:@@use_shorter_identifier, false)
   end
 
-  describe "use_shorter_identifier" do
-    it "is deprecated when assigned and delegates to use_legacy_identifier_length" do
+  def twelve_two_or_later?(conn)
+    Gem::Version.new(conn.database_version.join(".")) >= Gem::Version.new("12.2")
+  end
+
+  describe "use_shorter_identifier (deprecated global fallback)" do
+    setter_warning = /use_shorter_identifier=.* is deprecated and will be removed from activerecord-oracle_enhanced-adapter a future version/m
+    getter_warning = /use_shorter_identifier.* is deprecated and will be removed from activerecord-oracle_enhanced-adapter a future version/m
+
+    it "warns of deprecation and future removal when assigned" do
       expect {
         adapter_class.use_shorter_identifier = true
-      }.to output(/use_shorter_identifier.* is deprecated/).to_stderr
+      }.to output(setter_warning).to_stderr
 
-      expect(adapter_class.use_legacy_identifier_length).to be(true)
+      expect(adapter_class.class_variable_get(:@@use_shorter_identifier)).to be(true)
     end
 
-    it "is deprecated when read and reflects use_legacy_identifier_length" do
-      adapter_class.use_legacy_identifier_length = true
+    it "warns of deprecation and future removal when read" do
+      adapter_class.class_variable_set(:@@use_shorter_identifier, true)
 
       expect {
         expect(adapter_class.use_shorter_identifier).to be(true)
-      }.to output(/use_shorter_identifier.* is deprecated/).to_stderr
+      }.to output(getter_warning).to_stderr
+    end
+
+    it "is honored by connections that do not set identifier_max_length themselves" do
+      adapter_class.class_variable_set(:@@use_shorter_identifier, true)
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      conn = ActiveRecord::Base.connection
+
+      expect(conn.max_identifier_length).to eq(30)
+    end
+
+    it "is overridden by an explicit per-connection identifier_max_length" do
+      adapter_class.class_variable_set(:@@use_shorter_identifier, true)
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :auto))
+      conn = ActiveRecord::Base.connection
+
+      if twelve_two_or_later?(conn)
+        expect(conn.max_identifier_length).to eq(128)
+      else
+        expect(conn.max_identifier_length).to eq(30)
+      end
     end
   end
 
-  describe "supports_longer_identifier?" do
-    it "honors global use_legacy_identifier_length" do
-      adapter_class.use_legacy_identifier_length = true
+  describe "supports_longer_identifier? (pure DB capability)" do
+    it "reflects the connected database version, ignoring identifier_max_length config" do
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      conn = ActiveRecord::Base.lease_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :short))
+      conn = ActiveRecord::Base.connection
 
-      expect(conn.supports_longer_identifier?).to be(false)
-      expect(conn.max_identifier_length).to eq(30)
+      expect(conn.supports_longer_identifier?).to be(twelve_two_or_later?(conn))
     end
+  end
 
-    it "honors per-connection use_legacy_identifier_length" do
-      ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(use_legacy_identifier_length: true))
-      conn = ActiveRecord::Base.lease_connection
-
-      expect(conn.supports_longer_identifier?).to be(false)
-      expect(conn.max_identifier_length).to eq(30)
-    end
-
-    it "per-connection config overrides global (legacy locally, longer globally)" do
-      adapter_class.use_legacy_identifier_length = false
-      ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(use_legacy_identifier_length: true))
-      conn = ActiveRecord::Base.lease_connection
-
-      expect(conn.supports_longer_identifier?).to be(false)
-    end
-
-    it "per-connection config overrides global (longer locally, legacy globally)" do
-      adapter_class.use_legacy_identifier_length = true
-      ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(use_legacy_identifier_length: false))
-      conn = ActiveRecord::Base.lease_connection
-
-      if Gem::Version.new(conn.database_version.join(".")) >= Gem::Version.new("12.2")
-        expect(conn.supports_longer_identifier?).to be(true)
+  describe "identifier_max_length (per-connection)" do
+    it "defaults to :auto when the key is absent" do
+      conn = ActiveRecord::Base.connection
+      if twelve_two_or_later?(conn)
         expect(conn.max_identifier_length).to eq(128)
       else
-        expect(conn.supports_longer_identifier?).to be(false)
         expect(conn.max_identifier_length).to eq(30)
       end
     end
 
-    it "silently falls back to 30-byte identifiers on a pre-12.2 database" do
-      conn = ActiveRecord::Base.lease_connection
-      allow(conn).to receive(:database_version).and_return([11, 2])
-      expect(conn.supports_longer_identifier?).to be(false)
+    it "honors identifier_max_length: :short" do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :short))
+      conn = ActiveRecord::Base.connection
+
+      expect(conn.max_identifier_length).to eq(30)
+    end
+
+    it "honors identifier_max_length: :long on 12.2+, raises ArgumentError on pre-12.2" do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :long))
+      conn = ActiveRecord::Base.connection
+
+      if twelve_two_or_later?(conn)
+        expect(conn.max_identifier_length).to eq(128)
+      else
+        expect { conn.max_identifier_length }.to raise_error(
+          ArgumentError,
+          /identifier_max_length: :long requires Oracle 12\.2 or later \(connected server reports #{Regexp.escape(conn.database_version.join("."))}\)/
+        )
+      end
+    end
+
+    it "accepts YAML string values and coerces them via to_sym" do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: "short"))
+      conn = ActiveRecord::Base.connection
+
+      expect(conn.max_identifier_length).to eq(30)
+    end
+
+    it "silently falls back to 30-byte identifiers on a pre-12.2 database with :auto" do
+      conn = ActiveRecord::Base.connection
+      skip "requires Oracle pre-12.2" if twelve_two_or_later?(conn)
+
       expect(conn.max_identifier_length).to eq(30)
     end
 
     it "falls back to the global setting when the per-connection value is nil" do
-      adapter_class.use_legacy_identifier_length = true
+      adapter_class.class_variable_set(:@@use_shorter_identifier, true)
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(use_legacy_identifier_length: nil))
-      conn = ActiveRecord::Base.lease_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: nil))
+      conn = ActiveRecord::Base.connection
 
-      expect(conn.supports_longer_identifier?).to be(false)
       expect(conn.max_identifier_length).to eq(30)
+    end
+
+    it "raises ArgumentError for unknown symbol values" do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :bogus))
+      conn = ActiveRecord::Base.connection
+      expect { conn.max_identifier_length }.to raise_error(
+        ArgumentError,
+        /Unknown identifier_max_length :bogus\. Expected :auto, :short, or :long/
+      )
+    end
+
+    it "raises ArgumentError for unknown string values" do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: "bogus"))
+      conn = ActiveRecord::Base.connection
+      expect { conn.max_identifier_length }.to raise_error(
+        ArgumentError,
+        /Unknown identifier_max_length :bogus\. Expected :auto, :short, or :long/
+      )
+    end
+
+    it "raises ArgumentError for non-symbol/non-string values (e.g. booleans) per-connection" do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: true))
+      conn = ActiveRecord::Base.connection
+      expect { conn.max_identifier_length }.to raise_error(
+        ArgumentError,
+        /identifier_max_length must be a String or Symbol \(got true\)\. Expected :auto, :short, or :long/
+      )
+    end
+
+    it "lets per-connection identifier_max_length: :long win over use_shorter_identifier=true" do
+      adapter_class.class_variable_set(:@@use_shorter_identifier, true)
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :long))
+      conn = ActiveRecord::Base.connection
+
+      if twelve_two_or_later?(conn)
+        expect(conn.max_identifier_length).to eq(128)
+      else
+        expect { conn.max_identifier_length }
+          .to raise_error(ArgumentError, /identifier_max_length: :long requires Oracle 12\.2 or later/)
+      end
     end
   end
 
