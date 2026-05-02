@@ -656,11 +656,7 @@ module ActiveRecord
         return true if table_name.nil?
         table_name = table_name.to_s
         if @prefetch_primary_key_cache[table_name].nil?
-          owner, desc_table_name = resolve_data_source_name(table_name)
-          has_pk                = has_primary_key?(table_name, owner, desc_table_name)
-          has_identity_pk       = supports_identity_columns? && identity_primary_key?(owner, desc_table_name)
-          has_trigger_backed_pk = trigger_backed_primary_key?(owner, desc_table_name)
-          @prefetch_primary_key_cache[table_name] = has_pk && !has_identity_pk && !has_trigger_backed_pk
+          @prefetch_primary_key_cache[table_name] = prefetch_primary_key_from_dictionary(table_name)
         end
         @prefetch_primary_key_cache[table_name]
       end
@@ -1140,6 +1136,14 @@ module ActiveRecord
       ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
 
       private
+        def prefetch_primary_key_from_dictionary(table_name)
+          owner, desc_table_name = resolve_data_source_name(table_name)
+          has_pk                = has_primary_key?(table_name, owner, desc_table_name)
+          has_identity_pk       = supports_identity_columns? && identity_primary_key?(owner, desc_table_name)
+          has_trigger_backed_pk = trigger_backed_primary_key?(owner, desc_table_name)
+          has_pk && !has_identity_pk && !has_trigger_backed_pk
+        end
+
         AREL_VISITOR_MODES = %i[auto rownum fetch_first].freeze
         private_constant :AREL_VISITOR_MODES
 
