@@ -239,6 +239,7 @@ module ActiveRecord
           schema_cache.clear_data_source_cache!(new_name.to_s)
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
           execute "RENAME #{default_sequence_name(table_name, nil)} TO #{default_sequence_name(new_name, nil)}" rescue nil
+          rename_pk_trigger(table_name, new_name)
           @prefetch_primary_key_cache.delete(table_name.to_s)
           clear_table_columns_cache(table_name)
           clear_table_columns_cache(new_name)
@@ -892,6 +893,22 @@ module ActiveRecord
                 END IF;
               END;
             SQL
+          end
+
+          def rename_pk_trigger(old_table_name, new_table_name)
+            existing = trigger_backed_table_names[new_table_name.to_s.upcase]
+            return unless existing
+
+            pk_column = primary_keys(new_table_name).first
+            return unless pk_column
+
+            default_old = default_trigger_name(old_table_name).upcase
+            if existing.upcase == default_old
+              create_pk_trigger(new_table_name, pk_column, {})
+              execute "DROP TRIGGER #{quote_table_name(existing)}" rescue nil
+            else
+              create_pk_trigger(new_table_name, pk_column, trigger_name: existing.downcase)
+            end
           end
 
           def rebuild_primary_key_index_to_default_tablespace(table_name, options)

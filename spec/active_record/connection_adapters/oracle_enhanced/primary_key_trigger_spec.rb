@@ -553,4 +553,101 @@ describe "primary_key_trigger" do
       expect(stream.string).not_to include("primary_key_trigger")
     end
   end
+
+  describe "rename_table on a trigger-backed table" do
+    after(:each) do
+      ActiveRecord::Migration.suppress_messages do
+        schema_define do
+          drop_table :test_pk_triggers_renamed, if_exists: true
+        end
+      end
+    end
+
+    it "lets INSERT continue to work after rename" do
+      schema_define do
+        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+          t.string :name
+        end
+      end
+      schema_define do
+        rename_table :test_pk_triggers, :test_pk_triggers_renamed
+      end
+
+      expect {
+        @conn.execute("INSERT INTO test_pk_triggers_renamed (name) VALUES ('after-rename')")
+      }.not_to raise_error
+      expect(@conn.select_value("SELECT id FROM test_pk_triggers_renamed WHERE name = 'after-rename'")).to be > 0
+    end
+
+    it "renames the trigger to follow the new table when the trigger uses the default name" do
+      schema_define do
+        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+          t.string :name
+        end
+      end
+      expect(trigger_exists?(:test_pk_triggers_pkt)).to be true
+
+      schema_define do
+        rename_table :test_pk_triggers, :test_pk_triggers_renamed
+      end
+
+      expect(trigger_exists?(:test_pk_triggers_pkt)).to be false
+      expect(trigger_exists?(:test_pk_triggers_renamed_pkt)).to be true
+    end
+
+    it "preserves a custom trigger_name and refreshes only its body" do
+      schema_define do
+        create_table :test_pk_triggers, primary_key_trigger: true, trigger_name: "custom_pkt" do |t|
+          t.string :name
+        end
+      end
+      expect(trigger_exists?(:custom_pkt)).to be true
+
+      schema_define do
+        rename_table :test_pk_triggers, :test_pk_triggers_renamed
+      end
+
+      expect(trigger_exists?(:custom_pkt)).to be true
+      expect(trigger_exists?(:test_pk_triggers_renamed_pkt)).to be false
+      # The custom-named trigger should still fire and pull from the renamed sequence.
+      expect {
+        @conn.execute("INSERT INTO test_pk_triggers_renamed (name) VALUES ('with-custom-trigger')")
+      }.not_to raise_error
+    end
+
+    it "does not touch any trigger when the table has no primary_key_trigger" do
+      schema_define do
+        create_table :test_pk_triggers do |t|
+          t.string :name
+        end
+      end
+
+      schema_define do
+        rename_table :test_pk_triggers, :test_pk_triggers_renamed
+      end
+
+      expect(trigger_exists?(:test_pk_triggers_pkt)).to be false
+      expect(trigger_exists?(:test_pk_triggers_renamed_pkt)).to be false
+    end
+
+    it "is round-tripped by SchemaDumper after rename" do
+      schema_define do
+        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+          t.string :name
+        end
+      end
+      schema_define do
+        rename_table :test_pk_triggers, :test_pk_triggers_renamed
+      end
+
+      stream = StringIO.new
+      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_pk_triggers_renamed"]
+      ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
+      ActiveRecord::SchemaDumper.ignore_tables = []
+
+      expect(stream.string).to include("primary_key_trigger: true")
+      # The default trigger name was renamed; no explicit :trigger_name should be needed.
+      expect(stream.string).not_to include("trigger_name:")
+    end
+  end
 end
