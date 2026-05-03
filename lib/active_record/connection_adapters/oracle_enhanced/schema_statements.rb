@@ -53,6 +53,8 @@ module ActiveRecord
         end
 
         def data_source_exists?(table_name)
+          return true if schema_cache.cached?(table_name.to_s)
+
           (_owner, _table_name) = resolve_data_source_name(table_name)
           true
         rescue
