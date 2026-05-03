@@ -44,7 +44,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
     it "should dump single primary key" do
       dump = ActiveRecord::Base.lease_connection.structure_dump
-      expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \(ID\)\n/)
+      expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \("ID"\)\n/)
     end
 
     it "should dump composite primary keys" do
@@ -59,7 +59,7 @@ describe "OracleEnhancedAdapter structure dump" do
         add CONSTRAINT pk_id_title PRIMARY KEY (id, title)
       SQL
       dump = ActiveRecord::Base.lease_connection.structure_dump
-      expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \(ID,TITLE\)\n/)
+      expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \("ID","TITLE"\)\n/)
     end
 
     it "should dump foreign keys" do
@@ -124,7 +124,7 @@ describe "OracleEnhancedAdapter structure dump" do
       @conn.execute "create or replace VIEW test_posts_view_z as select * from test_posts"
       @conn.execute "create or replace VIEW test_posts_view_a as select * from test_posts_view_z"
       dump = ActiveRecord::Base.lease_connection.structure_dump.gsub(/\n|\s+/, " ")
-      expect(dump).to match(/CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_A.*CREATE OR REPLACE FORCE VIEW TEST_POSTS_VIEW_Z/)
+      expect(dump).to match(/CREATE OR REPLACE FORCE VIEW "TEST_POSTS_VIEW_A".*CREATE OR REPLACE FORCE VIEW "TEST_POSTS_VIEW_Z"/)
     end
 
     it "should dump virtual columns" do
@@ -171,10 +171,10 @@ describe "OracleEnhancedAdapter structure dump" do
           add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
       dump = ActiveRecord::Base.lease_connection.structure_dump_unique_keys("test_posts")
-      expect(dump).to eq(["ALTER TABLE TEST_POSTS ADD CONSTRAINT UK_FOO_FOO_ID UNIQUE (FOO,FOO_ID)"])
+      expect(dump).to eq([%(ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "UK_FOO_FOO_ID" UNIQUE ("FOO","FOO_ID"))])
 
       dump = ActiveRecord::Base.lease_connection.structure_dump
-      expect(dump).to match(/CONSTRAINT UK_FOO_FOO_ID UNIQUE \(FOO,FOO_ID\)/)
+      expect(dump).to match(/CONSTRAINT "UK_FOO_FOO_ID" UNIQUE \("FOO","FOO_ID"\)/)
     end
 
     it "should dump indexes" do
@@ -187,8 +187,8 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
 
       dump = ActiveRecord::Base.lease_connection.structure_dump
-      expect(dump).to match(/CREATE UNIQUE INDEX "?IX_TEST_POSTS_FOO_ID"? ON "?TEST_POSTS"? \("?FOO_ID"?\)/i)
-      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO"? ON "?TEST_POSTS"? \("?FOO"?\)/i)
+      expect(dump).to match(/CREATE UNIQUE INDEX "IX_TEST_POSTS_FOO_ID" ON "TEST_POSTS" \("FOO_ID"\)/)
+      expect(dump).to match(/CREATE INDEX "IX_TEST_POSTS_FOO" ON "TEST_POSTS" \("FOO"\)/)
       expect(dump).not_to match(/CREATE UNIQUE INDEX "?UK_TEST_POSTS_/i)
     end
 
@@ -200,8 +200,8 @@ describe "OracleEnhancedAdapter structure dump" do
       SQL
 
       dump = ActiveRecord::Base.lease_connection.structure_dump
-      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FOO_FOO_ID"? ON "?TEST_POSTS"? \("?FOO"?, "?FOO_ID"?\)/i)
-      expect(dump).to match(/CREATE  INDEX "?IX_TEST_POSTS_FUNCTION"? ON "?TEST_POSTS"? \(TO_CHAR\(LENGTH\("?FOO"?\)\)\|\|"?FOO"?\)/i)
+      expect(dump).to match(/CREATE INDEX "IX_TEST_POSTS_FOO_FOO_ID" ON "TEST_POSTS" \("FOO", "FOO_ID"\)/)
+      expect(dump).to match(/CREATE INDEX "IX_TEST_POSTS_FUNCTION" ON "TEST_POSTS" \(TO_CHAR\(LENGTH\("FOO"\)\)\|\|"FOO"\)/)
     end
 
     it "should dump RAW columns" do
@@ -533,7 +533,7 @@ describe "OracleEnhancedAdapter structure dump" do
 
     it "emits a non-PUBLIC CREATE OR REPLACE SYNONYM with a single space before SYNONYM" do
       output = @conn.send(:structure_dump_synonyms)
-      expect(output).to include("CREATE OR REPLACE SYNONYM TEST_SYNONYM FOR ")
+      expect(output).to include(%(CREATE OR REPLACE SYNONYM "TEST_SYNONYM" FOR ))
       expect(output).not_to match(/PUBLIC/)
       expect(output).not_to match(/REPLACE\s{2,}SYNONYM/)
     end

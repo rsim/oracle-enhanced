@@ -116,7 +116,15 @@ module ActiveRecord # :nodoc:
             opts[:name] = row["constraint_name"]
             opts[:cols][row["position"] - 1] = row["column_name"]
           end
-          opts[:cols].length > 0 ? ",\n CONSTRAINT #{opts[:name]} PRIMARY KEY (#{opts[:cols].join(',')})" : ""
+          # `position` from ALL_CONS_COLUMNS is 1..N and contiguous in
+          # practice, but `compact` is cheap insurance against a sparse
+          # array reaching `quote_column_name(nil)`.
+          quoted_cols = opts[:cols].compact.map { |c| quote_column_name(c) }.join(",")
+          if quoted_cols.empty?
+            ""
+          else
+            ",\n CONSTRAINT #{quote_column_name(opts[:name])} PRIMARY KEY (#{quoted_cols})"
+          end
         end
 
         def structure_dump_unique_keys(table) # :nodoc:
@@ -136,7 +144,8 @@ module ActiveRecord # :nodoc:
             keys[uk["constraint_name"]][uk["position"] - 1] = uk["column_name"]
           end
           keys.map do |k, v|
-            "ALTER TABLE #{table.upcase} ADD CONSTRAINT #{k} UNIQUE (#{v.join(',')})"
+            quoted_cols = v.compact.map { |c| quote_column_name(c) }.join(",")
+            "ALTER TABLE #{quote_table_name(table)} ADD CONSTRAINT #{quote_column_name(k)} UNIQUE (#{quoted_cols})"
           end
         end
 
@@ -146,13 +155,15 @@ module ActiveRecord # :nodoc:
             options = { name: options.name, unique: options.unique }
             index_name = index_name(table_name, column: column_names)
             if Hash === options # legacy support, since this param was a string
-              index_type = options[:unique] ? "UNIQUE" : ""
+              unique = options[:unique]
               index_name = options[:name] || index_name
             else
-              index_type = options
+              # Legacy String form only ever carried "UNIQUE" / ""; BITMAP and
+              # other index_types were never supported via this helper.
+              unique = (options == "UNIQUE")
             end
             quoted_column_names = column_names.map { |e| quote_column_name_or_expression(e) }.join(", ")
-            "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
+            "CREATE#{' UNIQUE' if unique} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
           end
         end
 
@@ -285,7 +296,7 @@ module ActiveRecord # :nodoc:
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY view_name ASC
           SQL
           views.each do |view|
-            structure << "CREATE OR REPLACE FORCE VIEW #{view['view_name']} AS\n #{view['text']}"
+            structure << "CREATE OR REPLACE FORCE VIEW #{quote_table_name(view['view_name'])} AS\n #{view['text']}"
           end
           join_with_statement_token(structure)
         end
@@ -298,7 +309,7 @@ module ActiveRecord # :nodoc:
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           synonyms.each do |synonym|
-            structure << "CREATE OR REPLACE SYNONYM #{synonym['synonym_name']} FOR #{synonym['table_owner']}.#{synonym['table_name']}"
+            structure << "CREATE OR REPLACE SYNONYM #{quote_table_name(synonym['synonym_name'])} FOR #{quote_table_name(synonym['table_owner'])}.#{quote_table_name(synonym['table_name'])}"
           end
           join_with_statement_token(structure)
         end
