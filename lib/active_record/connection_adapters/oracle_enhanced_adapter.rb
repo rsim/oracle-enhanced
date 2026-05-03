@@ -650,19 +650,14 @@ module ActiveRecord
         SQL
       end
 
-      # Returns true for Oracle adapter (since Oracle requires primary key
-      # values to be pre-fetched before insert). See also #next_sequence_value.
       def prefetch_primary_key?(table_name = nil)
         return true if table_name.nil?
         table_name = table_name.to_s
-        if @prefetch_primary_key_cache[table_name].nil?
-          owner, desc_table_name = resolve_data_source_name(table_name)
-          has_pk                = has_primary_key?(table_name, owner, desc_table_name)
-          has_identity_pk       = supports_identity_columns? && identity_primary_key?(owner, desc_table_name)
-          has_trigger_backed_pk = trigger_backed_primary_key?(owner, desc_table_name)
-          @prefetch_primary_key_cache[table_name] = has_pk && !has_identity_pk && !has_trigger_backed_pk
-        end
-        @prefetch_primary_key_cache[table_name]
+        return @prefetch_primary_key_cache[table_name] if @prefetch_primary_key_cache.key?(table_name)
+
+        result = prefetch_primary_key_from_schema_cache(table_name)
+        result = prefetch_primary_key_from_dictionary(table_name) if result.nil?
+        @prefetch_primary_key_cache[table_name] = result
       end
 
       # Returns true when the primary key column of +desc_table_name+ is an
@@ -866,12 +861,6 @@ module ActiveRecord
         # only support single column keys
         pks.size == 1 ? [oracle_downcase(pks.first),
                          oracle_downcase(seqs.first)] : nil
-      end
-
-      # Returns just a table's primary key
-      def primary_key(table_name)
-        pk_and_sequence = pk_and_sequence_for(table_name)
-        pk_and_sequence && pk_and_sequence.first
       end
 
       def has_primary_key?(table_name, owner = nil, desc_table_name = nil) # :nodoc:
@@ -1140,6 +1129,42 @@ module ActiveRecord
       ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
 
       private
+        def prefetch_primary_key_from_schema_cache(table_name)
+          pk_col = primary_key_column_from_schema_cache(table_name)
+          # Propagate false (cache says no-prefetch) and nil (caller must fall back) as-is.
+          return pk_col unless pk_col.is_a?(OracleEnhanced::Column)
+          !(pk_col.auto_incremented_by_db? || pk_col.auto_populated?)
+        end
+
+        def primary_key_column_from_schema_cache(table_name)
+          return nil unless schema_cache.data_source_exists?(table_name)
+
+          pks = schema_cache.primary_keys(table_name)
+          return false if composite_primary_key?(pks)
+          return false if pks.nil?
+
+          pk_col = schema_cache.columns_hash(table_name)[pks]
+          pk_col if column_with_pk_metadata?(pk_col)
+        end
+
+        def composite_primary_key?(pks)
+          pks.is_a?(Array)
+        end
+
+        def column_with_pk_metadata?(pk_col)
+          pk_col.is_a?(OracleEnhanced::Column) &&
+            pk_col.instance_variable_defined?(:@identity) &&
+            pk_col.instance_variable_defined?(:@trigger_assigned)
+        end
+
+        def prefetch_primary_key_from_dictionary(table_name)
+          owner, desc_table_name = resolve_data_source_name(table_name)
+          has_pk                = has_primary_key?(table_name, owner, desc_table_name)
+          has_identity_pk       = supports_identity_columns? && identity_primary_key?(owner, desc_table_name)
+          has_trigger_backed_pk = trigger_backed_primary_key?(owner, desc_table_name)
+          has_pk && !has_identity_pk && !has_trigger_backed_pk
+        end
+
         AREL_VISITOR_MODES = %i[auto rownum fetch_first].freeze
         private_constant :AREL_VISITOR_MODES
 

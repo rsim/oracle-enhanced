@@ -12,6 +12,18 @@ module ActiveRecord
           @trigger_assigned = trigger_assigned
         end
 
+        def init_with(coder) # :nodoc:
+          super
+          @identity = coder["identity"] unless coder["identity"].nil?
+          @trigger_assigned = coder["trigger_assigned"] unless coder["trigger_assigned"].nil?
+        end
+
+        def encode_with(coder) # :nodoc:
+          super
+          coder["identity"] = @identity
+          coder["trigger_assigned"] = @trigger_assigned
+        end
+
         def virtual?
           virtual
         end
