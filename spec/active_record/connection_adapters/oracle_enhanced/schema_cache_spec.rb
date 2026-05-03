@@ -5,6 +5,24 @@ require "tempfile"
 describe "OracleEnhancedAdapter schema cache" do
   include SchemaSpecHelper
 
+  PERMITTED_YAML_CLASSES = [
+    ActiveRecord::ConnectionAdapters::OracleEnhanced::Column,
+    ActiveRecord::ConnectionAdapters::OracleEnhanced::IndexDefinition,
+    ActiveRecord::ConnectionAdapters::OracleEnhanced::TypeMetadata,
+    ActiveRecord::ConnectionAdapters::SqlTypeMetadata,
+    ActiveRecord::ConnectionAdapters::SchemaCache,
+    ActiveRecord::Type::Integer,
+    ActiveRecord::Type::String,
+    ActiveRecord::Type::DateTime,
+    ActiveRecord::Type::Boolean,
+    ActiveRecord::Type::Decimal,
+    ActiveRecord::Type::Text,
+    ActiveRecord::Type::OracleEnhanced::Integer,
+    ActiveRecord::Type::OracleEnhanced::String,
+    ActiveRecord::Type::OracleEnhanced::Text,
+    Symbol,
+  ].freeze
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     schema_define do
@@ -139,13 +157,25 @@ describe "OracleEnhancedAdapter schema cache" do
       expect(original).not_to be_nil
 
       yaml = YAML.dump(original)
-      restored = YAML.unsafe_load(yaml)
+      restored = YAML.safe_load(yaml, permitted_classes: PERMITTED_YAML_CLASSES, aliases: true)
 
       expect(restored).to be_a(ActiveRecord::ConnectionAdapters::OracleEnhanced::Column)
       expect(restored.instance_variable_get(:@identity)).to eq(original.instance_variable_get(:@identity))
       expect(restored.instance_variable_get(:@trigger_assigned)).to eq(original.instance_variable_get(:@trigger_assigned))
       expect(restored.auto_incremented_by_db?).to eq(original.auto_incremented_by_db?)
       expect(restored.auto_populated?).to eq(original.auto_populated?)
+    end
+
+    it "leaves @identity and @trigger_assigned undefined when YAML predates these keys" do
+      original = schema_cache.columns("test_schema_cache_posts").find { |c| c.name == "id" }
+      yaml = YAML.dump(original)
+
+      old_yaml = yaml.lines.reject { |l| l.start_with?("identity:", "trigger_assigned:") }.join
+      restored = YAML.safe_load(old_yaml, permitted_classes: PERMITTED_YAML_CLASSES, aliases: true)
+
+      expect(restored).to be_a(ActiveRecord::ConnectionAdapters::OracleEnhanced::Column)
+      expect(restored.instance_variable_defined?(:@identity)).to be false
+      expect(restored.instance_variable_defined?(:@trigger_assigned)).to be false
     end
 
     it "returns true for a sequence-backed primary key without firing catalog SQL" do
@@ -180,6 +210,15 @@ describe "OracleEnhancedAdapter schema cache" do
         expect(result).to be false
         expect(catalog).to be_empty
       end
+
+      it "carries trigger_assigned = true through the YAML round trip" do
+        original = schema_cache.columns("test_schema_cache_legacy_posts").find { |c| c.name == "id" }
+        expect(original.auto_populated?).to be true
+
+        restored = YAML.safe_load(YAML.dump(original), permitted_classes: PERMITTED_YAML_CLASSES, aliases: true)
+        expect(restored.auto_populated?).to be true
+        expect(restored.instance_variable_get(:@trigger_assigned)).to be true
+      end
     end
 
     context "with an identity primary key" do
@@ -206,6 +245,15 @@ describe "OracleEnhancedAdapter schema cache" do
         result, catalog = capture_pk_lookup { conn.prefetch_primary_key?("test_schema_cache_identity_posts") }
         expect(result).to be false
         expect(catalog).to be_empty
+      end
+
+      it "carries identity = true through the YAML round trip" do
+        original = schema_cache.columns("test_schema_cache_identity_posts").find { |c| c.name == "id" }
+        expect(original.auto_incremented_by_db?).to be true
+
+        restored = YAML.safe_load(YAML.dump(original), permitted_classes: PERMITTED_YAML_CLASSES, aliases: true)
+        expect(restored.auto_incremented_by_db?).to be true
+        expect(restored.instance_variable_get(:@identity)).to be true
       end
     end
 
@@ -267,7 +315,7 @@ describe "OracleEnhancedAdapter schema cache" do
       tmpfile = Tempfile.new(["schema_cache", ".yml"])
       begin
         schema_cache.dump_to(tmpfile.path)
-        reloaded = YAML.unsafe_load_file(tmpfile.path)
+        reloaded = YAML.safe_load_file(tmpfile.path, permitted_classes: PERMITTED_YAML_CLASSES, aliases: true)
 
         cols = reloaded.instance_variable_get(:@columns)["test_schema_cache_posts"]
         expect(cols).not_to be_nil
