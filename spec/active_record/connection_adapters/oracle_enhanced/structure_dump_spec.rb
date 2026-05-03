@@ -6,6 +6,19 @@ describe "OracleEnhancedAdapter structure dump" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
+    # The exact-DDL assertions below were written for the legacy ALL_*-based
+    # backend. The DBMS_METADATA backend (default since #2513) emits a
+    # functionally-equivalent but stylistically different DDL stream
+    # (different attribute ordering, NLS quoting, COMMENT placement, etc.),
+    # so this file exercises the legacy path explicitly. The DBMS_METADATA
+    # backend is verified by `dbms_metadata_structure_dump_spec.rb`, which
+    # asserts on round-trip loadability rather than exact text.
+    @structure_dump_method_was = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.structure_dump_method
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.structure_dump_method = :data_dictionary
+  end
+
+  after(:all) do
+    ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.structure_dump_method = @structure_dump_method_was
   end
 
   describe "structure dump" do
