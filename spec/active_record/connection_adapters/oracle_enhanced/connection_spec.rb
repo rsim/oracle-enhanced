@@ -972,10 +972,10 @@ describe "OracleEnhancedConnection" do
     # Exercises all five catalog paths (table, view, materialized view,
     # private synonym, public synonym) for one underlying table in a single
     # run. The individual cases above use disjoint fixtures; this one proves
-    # the DECODE-ordered all_objects lookup + synonym follow-through stays
-    # consistent when a private and a public synonym to the same table
-    # coexist, and that a materialized view created on the same base table
-    # resolves to the MV name (not the base table) as a sibling data source.
+    # NAME_RESOLVE stays consistent when a private and a public synonym to
+    # the same table coexist, and that a materialized view created on the
+    # same base table resolves to the MV name (not the base table) as a
+    # sibling data source.
     it "resolves table, view, materialized view, private synonym and public synonym for the same underlying table" do
       @conn.execute "CREATE TABLE test_describe_all (id NUMBER)"
       @conn.execute "CREATE VIEW test_describe_all_v AS SELECT * FROM test_describe_all"
@@ -996,12 +996,81 @@ describe "OracleEnhancedConnection" do
       @conn.drop_table("test_describe_all", if_exists: true)
     end
 
+    # Mixed-case quoted identifiers need per-dotted-part quoting before
+    # reaching DBMS_UTILITY.NAME_RESOLVE: the schema should be upcased and
+    # left unquoted, but the case-preserving table name must be wrapped in
+    # double quotes so Oracle doesn't uppercase it away.
+    it "should resolve a mixed-case quoted table qualified with its owner" do
+      @conn.execute %{CREATE TABLE "test_Mixed_Case_Desc" (id NUMBER)}
+      expect(resolve(%{#{@owner}.test_Mixed_Case_Desc})).to eq([@owner, "test_Mixed_Case_Desc"])
+    ensure
+      @conn.drop_table "test_Mixed_Case_Desc", if_exists: true
+    end
+
+    # Local objects shadow same-named public synonyms — the precedence the
+    # legacy SQL encoded explicitly (ORDER BY DECODE(owner, 'PUBLIC', 2, 1)).
+    # NAME_RESOLVE relies on Oracle's parser rules for the same outcome.
+    # CREATE statements are not rescued so a future identifier-too-long
+    # regression cannot silently turn this into a no-op (see the sibling
+    # private-vs-public spec for the full story).
+    it "prefers a local table over a same-named public synonym" do
+      @conn.execute "CREATE TABLE test_prec_local (id NUMBER)"
+      @conn.execute "CREATE PUBLIC SYNONYM test_prec_local FOR sys.dual"
+      expect(resolve("test_prec_local")).to eq([@owner, "TEST_PREC_LOCAL"])
+    ensure
+      @conn.drop_if_exists("PUBLIC SYNONYM", "test_prec_local")
+      @conn.drop_table("test_prec_local", if_exists: true)
+    end
+
+    # Local objects (and private synonyms in the current schema) shadow
+    # same-named public synonyms — the precedence the legacy SQL encoded
+    # explicitly. NAME_RESOLVE relies on Oracle's parser rules for the
+    # same outcome.
+    #
+    # Identifiers are kept under 30 characters so the spec works on Oracle
+    # 11g XE (identifier max length 30) as well as 12.2+ (max 128). CREATE
+    # statements are not rescued — a `rescue nil` here previously hid a
+    # silent ORA-00972 (identifier too long) on 11g, which left only the
+    # PUBLIC SYNONYM in place and made resolve return [SYS, DUAL].
+    it "prefers a private synonym over a same-named public synonym" do
+      @conn.execute "CREATE TABLE test_prec_target (id NUMBER)"
+      @conn.execute "CREATE SYNONYM test_prec_syn FOR test_prec_target"
+      @conn.execute "CREATE PUBLIC SYNONYM test_prec_syn FOR sys.dual"
+      expect(resolve("test_prec_syn")).to eq([@owner, "TEST_PREC_TARGET"])
+    ensure
+      @conn.drop_if_exists("PUBLIC SYNONYM", "test_prec_syn")
+      @conn.drop_if_exists("SYNONYM", "test_prec_syn")
+      @conn.drop_table("test_prec_target", if_exists: true)
+    end
+
+    it "raises ArgumentError for malformed identifiers with empty parts" do
+      expect { resolve("schema..table") }.to raise_error(ArgumentError, /malformed identifier/)
+    end
+
+    it "raises ArgumentError for an unbalanced double quote" do
+      expect { resolve(%{"foo}) }.to raise_error(ArgumentError, /malformed identifier/)
+    end
+
+    it "raises ArgumentError for a three-part name" do
+      expect { resolve(%{schema."table".extra}) }.to raise_error(ArgumentError, /malformed identifier/)
+    end
+
+    it "doubles embedded double-quote characters when wrapping an unquoted identifier" do
+      result = @conn.send(:normalize_name_for_name_resolve, %{Test"x})
+      expect(result).to eq(%{"Test""x"})
+    end
+
+    # DBMS_UTILITY.NAME_RESOLVE chases synonyms server-side, so a circular
+    # chain surfaces as ORA-00980 ("synonym translation is no longer valid")
+    # rather than SQL's ORA-01775 ("looping chain of synonyms"). The thing
+    # that matters either way: no Ruby-side stack overflow, a clean
+    # ConnectionException.
     it "raises when synonym resolution produces a looping chain" do
       @conn.execute "CREATE SYNONYM test_cycle_a FOR test_cycle_b"
       @conn.execute "CREATE SYNONYM test_cycle_b FOR test_cycle_a"
       expect { resolve("test_cycle_a") }.to raise_error(
         ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException,
-        /looping chain of synonyms/
+        /ORA-00980/
       )
     ensure
       @conn.drop_if_exists("SYNONYM", "test_cycle_a")
@@ -1014,7 +1083,7 @@ describe "OracleEnhancedConnection" do
       @conn.execute "CREATE SYNONYM test_cycle_c FOR test_cycle_a"
       expect { resolve("test_cycle_a") }.to raise_error(
         ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException,
-        /looping chain of synonyms/
+        /ORA-00980/
       )
     ensure
       @conn.drop_if_exists("SYNONYM", "test_cycle_a")
@@ -1026,11 +1095,28 @@ describe "OracleEnhancedConnection" do
       expect { resolve("test@db_link") }.to raise_error(ArgumentError, /db link is not supported/)
     end
 
-    # The previous Connection#describe path bypassed the adapter's query machinery
-    # by driving a raw cursor, so its catalog lookup produced no sql.active_record
-    # event. Routing through select_one(..., "SCHEMA", ...) makes the lookup
-    # participate in logging, instrumentation, and the query cache. Lock that in
-    # so a future refactor can't silently regress to the raw-cursor path.
+    it "raises ConnectionException for a non-existent object" do
+      expect { resolve("test_nonexistent_object_xyz") }.to raise_error(
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException,
+        /does it exist/
+      )
+    end
+
+    it "preserves dots inside a quoted identifier" do
+      result = @conn.send(:normalize_name_for_name_resolve, %{"Foo.Bar"})
+      expect(result).to eq(%{"Foo.Bar"})
+    end
+
+    it "preserves dots inside the quoted part of a schema-qualified name" do
+      result = @conn.send(:normalize_name_for_name_resolve, %{SCHEMA."Foo.Bar"})
+      expect(result).to eq(%{SCHEMA."Foo.Bar"})
+    end
+
+    # The lookup runs DBMS_UTILITY.NAME_RESOLVE wrapped in
+    # `instrumenter.instrument` (sql.active_record, name: "SCHEMA"),
+    # so it shows up in logging and instrumentation subscribers.
+    # Lock that in so a future refactor can't silently drop the
+    # instrumentation.
     it "emits a SCHEMA sql.active_record event for the catalog lookup" do
       @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))"
       events = []
