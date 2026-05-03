@@ -862,4 +862,55 @@ describe "OracleEnhancedAdapter" do
       expect(TestComment.where(test_post_id: TestPost.select(:id)).size).to eq(1)
     end
   end
+
+  describe "data_source_exists? schema cache shortcut" do
+    before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      schema_define do
+        create_table :test_data_source_exists, force: true do |t|
+          t.string :title
+        end
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_data_source_exists, if_exists: true
+      end
+    end
+
+    let(:conn) { ActiveRecord::Base.connection }
+    let(:cache) { ActiveRecord::Base.connection_pool.schema_cache }
+
+    def capture_dictionary_lookup
+      events = []
+      sub = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+        events << payload
+      end
+      result = yield
+      [result, events.select { |p| p[:name] == "SCHEMA" }]
+    ensure
+      ActiveSupport::Notifications.unsubscribe(sub) if sub
+    end
+
+    it "fires no SCHEMA query when the table's columns are already in the schema cache" do
+      cache.columns("test_data_source_exists")
+
+      result, schema_queries = capture_dictionary_lookup { conn.data_source_exists?("test_data_source_exists") }
+      expect(result).to be true
+      expect(schema_queries).to be_empty
+    end
+
+    it "falls back to the live lookup for tables not in the schema cache" do
+      cache.clear_data_source_cache!("test_data_source_exists")
+
+      result, schema_queries = capture_dictionary_lookup { conn.data_source_exists?("test_data_source_exists") }
+      expect(result).to be true
+      expect(schema_queries).not_to be_empty
+    end
+
+    it "returns false for non-existing tables not in the cache" do
+      expect(conn.data_source_exists?("test_nonexistent_xyz_table")).to be false
+    end
+  end
 end
