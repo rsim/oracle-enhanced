@@ -138,9 +138,11 @@ describe "OracleEnhancedAdapter establish connection" do
   end
 
   it "should connect to database using service_name" do
-    ActiveRecord::Base.establish_connection(SERVICE_NAME_CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.lease_connection).not_to be_nil
-    expect(ActiveRecord::Base.lease_connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+    ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
+      ActiveRecord::Base.establish_connection(SERVICE_NAME_CONNECTION_PARAMS)
+      expect(ActiveRecord::Base.lease_connection).not_to be_nil
+      expect(ActiveRecord::Base.lease_connection.class).to eq(ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter)
+    end
   end
 end
 
@@ -346,7 +348,16 @@ describe "OracleEnhancedConnection" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(database: "/#{DATABASE_NAME}"))
       expect {
         ActiveRecord::Base.lease_connection
-      }.to output(/DEPRECATION WARNING: Setting `:database` to a value that starts with `\/`.*:service_name/m).to_stderr
+      }.to output(
+        %r{DEPRECATION WARNING: Setting `:database`.*starts with `/`.*database: "#{DATABASE_NAME}".*service_name: "#{DATABASE_NAME}"}mo
+      ).to_stderr
+    end
+
+    it "points the 'called from' frame at the user's call site, not adapter internals" do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(database: "/#{DATABASE_NAME}"))
+      expect {
+        ActiveRecord::Base.lease_connection
+      }.to output(%r{called from .*\bconnection_spec\.rb:\d+}).to_stderr
     end
 
     it "does not warn when :database has no leading slash" do
