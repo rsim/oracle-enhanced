@@ -1459,7 +1459,7 @@ end
     end
 
     after(:all) do
-      @conn.execute("drop materialized view sum_test_employees") rescue nil
+      @conn.drop_if_exists("MATERIALIZED VIEW", "sum_test_employees")
       schema_define do
         drop_table :sum_test_employees, if_exists: true
         drop_table :test_employees, if_exists: true

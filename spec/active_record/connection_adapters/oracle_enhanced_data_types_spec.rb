@@ -4,8 +4,7 @@ describe "OracleEnhancedAdapter date and datetime type detection based on attrib
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
-    @conn.execute "DROP TABLE test_employees" rescue nil
-    @conn.execute "DROP SEQUENCE test_employees_seq" rescue nil
+    @conn.drop_table "test_employees", if_exists: true
     @conn.execute <<~SQL
       CREATE TABLE test_employees (
         employee_id   NUMBER(6,0) PRIMARY KEY,

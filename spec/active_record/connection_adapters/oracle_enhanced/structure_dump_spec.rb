@@ -36,21 +36,14 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     after(:each) do
+      @conn.drop_if_exists("VIEW", "test_posts_view_a")
+      @conn.drop_if_exists("VIEW", "test_posts_view_z")
       @conn.drop_table :test_posts
       @conn.drop_table :foos
-      @conn.execute "DROP SEQUENCE test_posts_seq" rescue nil
-      @conn.execute "ALTER TABLE test_posts drop CONSTRAINT fk_test_post_foo" rescue nil
-      @conn.execute "DROP TRIGGER test_post_trigger" rescue nil
-      @conn.execute "DROP TYPE TEST_TYPE" rescue nil
-      @conn.execute "DROP TABLE bars" rescue nil
-      @conn.execute "ALTER TABLE foos drop CONSTRAINT UK_BAZ" rescue nil
-      @conn.execute "ALTER TABLE foos drop CONSTRAINT UK_FOOZ_BAZ" rescue nil
-      @conn.execute "ALTER TABLE foos drop column fooz_id" rescue nil
-      @conn.execute "ALTER TABLE foos drop column baz_id" rescue nil
-      @conn.execute "ALTER TABLE test_posts drop column fooz_id" rescue nil
-      @conn.execute "ALTER TABLE test_posts drop column baz_id" rescue nil
-      @conn.execute "DROP VIEW test_posts_view_z" rescue nil
-      @conn.execute "DROP VIEW test_posts_view_a" rescue nil
+      @conn.drop_table :bars, if_exists: true
+      @conn.drop_if_exists("SEQUENCE", "test_posts_seq")
+      @conn.drop_if_exists("TRIGGER", "test_post_trigger")
+      @conn.drop_if_exists("TYPE", "TEST_TYPE")
       Object.send(:remove_const, "TestPost") if defined?(TestPost)
       ActiveRecord::Base.clear_cache!
     end
@@ -470,15 +463,15 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     after(:each) do
+      @conn.drop_if_exists("VIEW", "full_drop_test_view")
+      @conn.drop_if_exists("MATERIALIZED VIEW", "full_drop_test_mview")
+      @conn.drop_if_exists("SYNONYM", "full_drop_test_synonym")
+      @conn.drop_if_exists("PACKAGE", "full_drop_test_package")
+      @conn.drop_if_exists("FUNCTION", "full_drop_test_function")
+      @conn.drop_if_exists("PROCEDURE", "full_drop_test_procedure")
+      @conn.drop_if_exists("TYPE", "full_drop_test_type")
       @conn.drop_table :full_drop_test
       @conn.drop_table :full_drop_test_temp
-      @conn.execute "DROP VIEW FULL_DROP_TEST_VIEW" rescue nil
-      @conn.execute "DROP MATERIALIZED VIEW FULL_DROP_TEST_MVIEW" rescue nil
-      @conn.execute "DROP SYNONYM FULL_DROP_TEST_SYNONYM" rescue nil
-      @conn.execute "DROP PACKAGE FULL_DROP_TEST_PACKAGE" rescue nil
-      @conn.execute "DROP FUNCTION FULL_DROP_TEST_FUNCTION" rescue nil
-      @conn.execute "DROP PROCEDURE FULL_DROP_TEST_PROCEDURE" rescue nil
-      @conn.execute "DROP TYPE FULL_DROP_TEST_TYPE" rescue nil
     end
 
     it "should contain correct sql" do
@@ -540,7 +533,7 @@ describe "OracleEnhancedAdapter structure dump" do
     end
 
     after do
-      @conn.execute("DROP SYNONYM test_synonym") rescue nil
+      @conn.drop_if_exists("SYNONYM", "test_synonym")
       @conn.drop_table :test_synonym_target, if_exists: true
     end
 

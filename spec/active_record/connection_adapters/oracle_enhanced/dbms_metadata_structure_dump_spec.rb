@@ -178,11 +178,11 @@ describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
   describe "structure_dump_db_stored_code (DBMS_METADATA path)" do
     before(:each) do
       skip "requires Oracle 12.1+ for the DBMS_METADATA path" unless @conn.use_dbms_metadata_dump?
-      @conn.execute "DROP PACKAGE test_dbms_metadata_pkg" rescue nil
+      @conn.drop_if_exists("PACKAGE", "test_dbms_metadata_pkg")
     end
 
     after(:each) do
-      @conn.execute "DROP PACKAGE test_dbms_metadata_pkg" rescue nil
+      @conn.drop_if_exists("PACKAGE", "test_dbms_metadata_pkg")
     end
 
     it "emits a PACKAGE BODY only once" do
