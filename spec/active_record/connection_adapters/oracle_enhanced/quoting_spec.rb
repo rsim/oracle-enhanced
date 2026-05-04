@@ -200,8 +200,8 @@ describe "OracleEnhancedAdapter quoting" do
           drop_table "CamelCase", if_exists: true
         end
       end
-      Object.send(:remove_const, "WarehouseThing") rescue nil
-      Object.send(:remove_const, "CamelCase") rescue nil
+      Object.send(:remove_const, "WarehouseThing") if Object.const_defined?("WarehouseThing")
+      Object.send(:remove_const, "CamelCase") if Object.const_defined?("CamelCase")
     end
 
     it "should allow creation of a table with non alphanumeric characters" do

@@ -130,8 +130,8 @@ describe "OracleEnhancedAdapter schema dump" do
 
     after(:each) do
       schema_define do
-        remove_foreign_key :test_comments, :test_posts rescue nil
-        remove_foreign_key :test_comments, name: "comments_posts_baz_fooz_fk" rescue nil
+        remove_foreign_key :test_comments, :test_posts, if_exists: true
+        remove_foreign_key :test_comments, name: "comments_posts_baz_fooz_fk", if_exists: true
       end
     end
 
@@ -326,7 +326,7 @@ describe "OracleEnhancedAdapter schema dump" do
 
   describe "materialized views" do
     after(:each) do
-      @conn.execute "DROP MATERIALIZED VIEW test_posts_mv" rescue nil
+      @conn.drop_if_exists("MATERIALIZED VIEW", "test_posts_mv")
       drop_test_posts_table
     end
 
