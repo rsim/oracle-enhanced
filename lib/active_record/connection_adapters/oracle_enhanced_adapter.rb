@@ -519,6 +519,14 @@ module ActiveRecord
         database_version >= "12"
       end
 
+      # Oracle Database 23ai (23.4) introduced the `IF EXISTS` and
+      # `IF NOT EXISTS` clauses for several DDL statements (DROP TABLE,
+      # DROP SEQUENCE, etc.). On older releases the adapter has to rescue
+      # ORA-00942 / ORA-02289 manually for idempotent drops.
+      def supports_drop_if_exists? # :nodoc:
+        database_version >= "23.4"
+      end
+
       # Whether `structure_dump_method: :auto` resolves to +:dbms_metadata+
       # on this connection. `DBMS_METADATA.GET_DDL` itself exists since
       # Oracle 9i, but the constructs the backend depends on (`IDENTITY`
