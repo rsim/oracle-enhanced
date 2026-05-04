@@ -726,7 +726,7 @@ describe "OracleEnhancedConnection" do
 
     after(:all) do
       ENV["NLS_NUMERIC_CHARACTERS"] = nil
-      @conn.exec "DROP TABLE test_employees" rescue nil
+      @conn_base.drop_table("test_employees", if_exists: true)
       ActiveRecord::Base.clear_cache!
     end
 
@@ -911,9 +911,9 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should resolve existing table" do
-      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
+      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))"
       expect(resolve("test_employees")).to eq([@owner, "TEST_EMPLOYEES"])
-      @conn.execute "DROP TABLE test_employees" rescue nil
+      @conn.drop_table("test_employees", if_exists: true)
     end
 
     it "should not resolve non-existing table" do
@@ -929,11 +929,11 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should resolve existing view" do
-      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
-      @conn.execute "CREATE VIEW test_employees_v AS SELECT * FROM test_employees" rescue nil
+      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))"
+      @conn.execute "CREATE VIEW test_employees_v AS SELECT * FROM test_employees"
       expect(resolve("test_employees_v")).to eq([@owner, "TEST_EMPLOYEES_V"])
-      @conn.execute "DROP VIEW test_employees_v" rescue nil
-      @conn.execute "DROP TABLE test_employees" rescue nil
+      @conn.drop_if_exists("VIEW", "test_employees_v")
+      @conn.drop_table("test_employees", if_exists: true)
     end
 
     it "should resolve view in other schema" do
@@ -941,17 +941,17 @@ describe "OracleEnhancedConnection" do
     end
 
     it "should resolve existing materialized view" do
-      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
-      @conn.execute "CREATE MATERIALIZED VIEW test_employees_mv AS SELECT * FROM test_employees" rescue nil
+      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))"
+      @conn.execute "CREATE MATERIALIZED VIEW test_employees_mv AS SELECT * FROM test_employees"
       expect(resolve("test_employees_mv")).to eq([@owner, "TEST_EMPLOYEES_MV"])
-      @conn.execute "DROP MATERIALIZED VIEW test_employees_mv" rescue nil
-      @conn.execute "DROP TABLE test_employees" rescue nil
+      @conn.drop_if_exists("MATERIALIZED VIEW", "test_employees_mv")
+      @conn.drop_table("test_employees", if_exists: true)
     end
 
     it "should resolve existing private synonym" do
-      @conn.execute "CREATE SYNONYM test_dual FOR sys.dual" rescue nil
+      @conn.execute "CREATE SYNONYM test_dual FOR sys.dual"
       expect(resolve("test_dual")).to eq(["SYS", "DUAL"])
-      @conn.execute "DROP SYNONYM test_dual" rescue nil
+      @conn.drop_if_exists("SYNONYM", "test_dual")
     end
 
     it "should resolve existing public synonym" do
@@ -966,11 +966,11 @@ describe "OracleEnhancedConnection" do
     # coexist, and that a materialized view created on the same base table
     # resolves to the MV name (not the base table) as a sibling data source.
     it "resolves table, view, materialized view, private synonym and public synonym for the same underlying table" do
-      @conn.execute "CREATE TABLE test_describe_all (id NUMBER)" rescue nil
-      @conn.execute "CREATE VIEW test_describe_all_v AS SELECT * FROM test_describe_all" rescue nil
-      @conn.execute "CREATE MATERIALIZED VIEW test_describe_all_mv AS SELECT * FROM test_describe_all" rescue nil
-      @conn.execute "CREATE SYNONYM test_describe_all_syn FOR test_describe_all" rescue nil
-      @conn.execute "CREATE PUBLIC SYNONYM test_describe_all_pub FOR #{@owner}.test_describe_all" rescue nil
+      @conn.execute "CREATE TABLE test_describe_all (id NUMBER)"
+      @conn.execute "CREATE VIEW test_describe_all_v AS SELECT * FROM test_describe_all"
+      @conn.execute "CREATE MATERIALIZED VIEW test_describe_all_mv AS SELECT * FROM test_describe_all"
+      @conn.execute "CREATE SYNONYM test_describe_all_syn FOR test_describe_all"
+      @conn.execute "CREATE PUBLIC SYNONYM test_describe_all_pub FOR #{@owner}.test_describe_all"
 
       expect(resolve("test_describe_all")).to eq([@owner, "TEST_DESCRIBE_ALL"])
       expect(resolve("test_describe_all_v")).to eq([@owner, "TEST_DESCRIBE_ALL_V"])
@@ -978,37 +978,37 @@ describe "OracleEnhancedConnection" do
       expect(resolve("test_describe_all_syn")).to eq([@owner, "TEST_DESCRIBE_ALL"])
       expect(resolve("test_describe_all_pub")).to eq([@owner, "TEST_DESCRIBE_ALL"])
     ensure
-      @conn.execute "DROP PUBLIC SYNONYM test_describe_all_pub" rescue nil
-      @conn.execute "DROP SYNONYM test_describe_all_syn" rescue nil
-      @conn.execute "DROP MATERIALIZED VIEW test_describe_all_mv" rescue nil
-      @conn.execute "DROP VIEW test_describe_all_v" rescue nil
-      @conn.execute "DROP TABLE test_describe_all" rescue nil
+      @conn.drop_if_exists("PUBLIC SYNONYM", "test_describe_all_pub")
+      @conn.drop_if_exists("SYNONYM", "test_describe_all_syn")
+      @conn.drop_if_exists("MATERIALIZED VIEW", "test_describe_all_mv")
+      @conn.drop_if_exists("VIEW", "test_describe_all_v")
+      @conn.drop_table("test_describe_all", if_exists: true)
     end
 
     it "raises when synonym resolution produces a looping chain" do
-      @conn.execute "CREATE SYNONYM test_cycle_a FOR test_cycle_b" rescue nil
-      @conn.execute "CREATE SYNONYM test_cycle_b FOR test_cycle_a" rescue nil
+      @conn.execute "CREATE SYNONYM test_cycle_a FOR test_cycle_b"
+      @conn.execute "CREATE SYNONYM test_cycle_b FOR test_cycle_a"
       expect { resolve("test_cycle_a") }.to raise_error(
         ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException,
         /looping chain of synonyms/
       )
     ensure
-      @conn.execute "DROP SYNONYM test_cycle_a" rescue nil
-      @conn.execute "DROP SYNONYM test_cycle_b" rescue nil
+      @conn.drop_if_exists("SYNONYM", "test_cycle_a")
+      @conn.drop_if_exists("SYNONYM", "test_cycle_b")
     end
 
     it "raises when a multi-hop synonym chain eventually revisits an earlier link" do
-      @conn.execute "CREATE SYNONYM test_cycle_a FOR test_cycle_b" rescue nil
-      @conn.execute "CREATE SYNONYM test_cycle_b FOR test_cycle_c" rescue nil
-      @conn.execute "CREATE SYNONYM test_cycle_c FOR test_cycle_a" rescue nil
+      @conn.execute "CREATE SYNONYM test_cycle_a FOR test_cycle_b"
+      @conn.execute "CREATE SYNONYM test_cycle_b FOR test_cycle_c"
+      @conn.execute "CREATE SYNONYM test_cycle_c FOR test_cycle_a"
       expect { resolve("test_cycle_a") }.to raise_error(
         ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException,
         /looping chain of synonyms/
       )
     ensure
-      @conn.execute "DROP SYNONYM test_cycle_a" rescue nil
-      @conn.execute "DROP SYNONYM test_cycle_b" rescue nil
-      @conn.execute "DROP SYNONYM test_cycle_c" rescue nil
+      @conn.drop_if_exists("SYNONYM", "test_cycle_a")
+      @conn.drop_if_exists("SYNONYM", "test_cycle_b")
+      @conn.drop_if_exists("SYNONYM", "test_cycle_c")
     end
 
     it "raises ArgumentError when the name contains a db link" do
@@ -1021,7 +1021,7 @@ describe "OracleEnhancedConnection" do
     # participate in logging, instrumentation, and the query cache. Lock that in
     # so a future refactor can't silently regress to the raw-cursor path.
     it "emits a SCHEMA sql.active_record event for the catalog lookup" do
-      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))" rescue nil
+      @conn.execute "CREATE TABLE test_employees (first_name VARCHAR2(20))"
       events = []
       subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
         events << payload
@@ -1030,7 +1030,7 @@ describe "OracleEnhancedConnection" do
       expect(events.map { |p| p[:name] }).to include("SCHEMA")
     ensure
       ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
-      @conn.execute "DROP TABLE test_employees" rescue nil
+      @conn.drop_table("test_employees", if_exists: true)
     end
   end
 
