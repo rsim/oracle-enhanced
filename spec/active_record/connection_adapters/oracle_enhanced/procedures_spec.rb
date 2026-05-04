@@ -316,7 +316,7 @@ describe "OracleEnhancedAdapter custom methods for create, update and destroy" d
   end
 
   it "should log update record" do
-    (TestEmployee.partial_updates = false) rescue nil
+    TestEmployee.partial_updates = false
     @employee = TestEmployee.create(
       first_name: "First",
       last_name: "Last",
