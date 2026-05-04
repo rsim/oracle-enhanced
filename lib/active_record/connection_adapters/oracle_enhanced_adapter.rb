@@ -1062,13 +1062,16 @@ module ActiveRecord
         end
 
         if @config[:database].to_s.start_with?("/")
+          trimmed = @config[:database].to_s.delete_prefix("/")
           OracleEnhanced.deprecator.warn(
             "Setting `:database` to a value that starts with `/` " \
             "(#{@config[:database].inspect}) is deprecated and will raise " \
             "in a future major version. The leading slash is an adapter " \
             "artefact from when `:database` was prepended into an EZCONNECT " \
-            "URL; the slash is no longer needed. Use the same value without " \
-            "the leading `/`, or use the explicit `:service_name` option."
+            "URL; the slash is no longer needed. Use `database: " \
+            "#{trimmed.inspect}` or `service_name: #{trimmed.inspect}` " \
+            "instead (no leading slash on either).",
+            caller_locations(2)
           )
         end
       end
