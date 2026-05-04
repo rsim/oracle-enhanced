@@ -15,6 +15,7 @@ jobs:
           'jruby-10.1.0.0',
         ]
     env:
+      CI: true
       ORACLE_HOME: /opt/oracle/instantclient_21_21
       LD_LIBRARY_PATH: /opt/oracle/instantclient_21_21
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8

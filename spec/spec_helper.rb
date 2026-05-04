@@ -248,6 +248,36 @@ RSpec.configure do |config|
   config.order = :random
   Kernel.srand config.seed
 
+  # In CI, fail any example that lets a DEPRECATION WARNING leak to
+  # stderr — i.e. one that triggered a deprecation but did not consume
+  # it via `expect { ... }.to output(/.../).to_stderr` or
+  # `OracleEnhanced.deprecator.silence { ... }`. Both of those mechanisms
+  # capture/suppress at the inner-most stderr layer, so this outer
+  # capture only ever sees stderr that genuinely escaped the example.
+  # Skipped outside CI so local runs keep their existing stderr stream.
+  if ENV["CI"]
+    config.around(:each) do |example|
+      outer_stderr = StringIO.new
+      original_stderr = $stderr
+      $stderr = outer_stderr
+      begin
+        example.run
+      ensure
+        $stderr = original_stderr
+      end
+      if example.exception.nil? && outer_stderr.string.include?("DEPRECATION WARNING")
+        raise <<~MSG
+          Unexpected DEPRECATION WARNING leaked to stderr from this example. Either
+          assert on it with `expect { ... }.to output(/.../).to_stderr` or wrap the
+          call in `OracleEnhanced.deprecator.silence { ... }` if the deprecation
+          is intentional and not under test. Captured:
+
+          #{outer_stderr.string}
+        MSG
+      end
+    end
+  end
+
   config.before(:suite) do
     seed = RSpec.configuration.seed
     puts "==> Randomized with seed #{seed} (reproduce: bundle exec rspec --seed #{seed})"

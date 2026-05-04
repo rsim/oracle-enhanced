@@ -28,6 +28,7 @@ jobs:
           - ruby: 'jruby-10.1.0.0'
             jruby_opts: '--dev'
     env:
+      CI: true
       JRUBY_OPTS: ${{ matrix.jruby_opts }}
       ORACLE_HOME: /opt/oracle/instantclient_21_21
       LD_LIBRARY_PATH: /opt/oracle/instantclient_21_21

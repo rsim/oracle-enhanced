@@ -18,6 +18,7 @@ jobs:
           - ruby: 'jruby-10.1.0.0'
             jruby_opts: '--dev'
     env:
+      CI: true
       JRUBY_OPTS: ${{ matrix.jruby_opts }}
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       TNS_ADMIN: ./ci/network/admin

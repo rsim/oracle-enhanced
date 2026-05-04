@@ -15,6 +15,7 @@ jobs:
         ruby: ['head', 'debug', 'asan']
         jit: ['none', 'yjit', 'zjit']
     env:
+      CI: true
       RUBY_YJIT_ENABLE: ${{ matrix.jit == 'yjit' && '1' || '0' }}
       RUBYOPT: "-W2 --debug-frozen-string-literal${{ matrix.jit == 'zjit' && ' --zjit' || '' }}"
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
