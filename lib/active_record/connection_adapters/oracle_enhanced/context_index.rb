@@ -126,18 +126,21 @@ module ActiveRecord
           execute sql
         end
 
-        # Drop full text index with Oracle specific CONTEXT index type
+        # Drop full text index with Oracle specific CONTEXT index type.
+        # Pass `if_exists: true` to tolerate the index already being absent
+        # (rescues only ORA-01418 "specified index does not exist").
         def remove_context_index(table_name, options = {})
           unless Hash === options # if column names passed as argument
             options = { column: Array(options) }
           end
+          if_exists = options[:if_exists]
           index_name = options[:name] || index_name(table_name,
             column: options[:index_column] || options[:column], identifier_max_length: 25)
-          execute "DROP INDEX #{index_name}"
+          drop_if_exists("INDEX", index_name, if_exists: if_exists)
           drop_ctx_preference(default_datastore_name(index_name))
           drop_ctx_preference(default_storage_name(index_name))
           procedure_name = default_datastore_procedure(index_name)
-          execute "DROP PROCEDURE #{quote_table_name(procedure_name)}" rescue nil
+          drop_if_exists("PROCEDURE", procedure_name, if_exists: true)
           drop_index_column_trigger(index_name)
         end
 
@@ -291,7 +294,7 @@ module ActiveRecord
 
           def drop_index_column_trigger(index_name)
             trigger_name = default_index_column_trigger_name(index_name)
-            execute "DROP TRIGGER #{quote_table_name(trigger_name)}" rescue nil
+            drop_if_exists("TRIGGER", trigger_name, if_exists: true)
           end
 
           def default_datastore_procedure(index_name)

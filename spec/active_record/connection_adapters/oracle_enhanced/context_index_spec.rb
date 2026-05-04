@@ -204,8 +204,8 @@ describe "OracleEnhancedAdapter context index" do
     end
 
     after(:each) do
-      @conn.remove_context_index :posts, name: "post_and_comments_index" rescue nil
-      @conn.remove_context_index :posts, index_column: :all_text rescue nil
+      @conn.remove_context_index :posts, name: "post_and_comments_index", if_exists: true
+      @conn.remove_context_index :posts, index_column: :all_text, if_exists: true
       Post.destroy_all
     end
 
