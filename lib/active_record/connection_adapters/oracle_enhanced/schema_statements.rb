@@ -253,17 +253,31 @@ module ActiveRecord
           # :sequence_name names a single sequence, so it cannot unambiguously
           # apply across multiple tables; honor it only for single-table drops.
           custom_sequence_name = table_names.size == 1 ? options[:sequence_name] : nil
+          if_exists = options[:if_exists]
+          cascade = options[:force] == :cascade
+
           table_names.each do |table_name|
             schema_cache.clear_data_source_cache!(table_name.to_s)
-            execute "DROP TABLE #{quote_table_name(table_name)}#{' CASCADE CONSTRAINTS' if options[:force] == :cascade}"
             seq_name = custom_sequence_name || default_sequence_name(table_name, nil)
-            execute "DROP SEQUENCE #{quote_table_name(seq_name)}" rescue nil
-          rescue ActiveRecord::StatementInvalid => e
-            raise e unless options[:if_exists]
+
+            drop_if_exists("TABLE", table_name, cascade_constraints: cascade, if_exists: if_exists)
+            drop_if_exists("SEQUENCE", seq_name, if_exists: true)
           ensure
             clear_table_columns_cache(table_name)
             @prefetch_primary_key_cache.delete(table_name.to_s)
           end
+        end
+
+        def drop_if_exists(object_type, name, if_exists: true, cascade_constraints: false) # :nodoc:
+          cascade_clause = " CASCADE CONSTRAINTS" if cascade_constraints
+          if supports_drop_if_exists?
+            if_exists_clause = " IF EXISTS" if if_exists
+            execute "DROP #{object_type}#{if_exists_clause} #{quote_table_name(name)}#{cascade_clause}"
+          else
+            execute "DROP #{object_type} #{quote_table_name(name)}#{cascade_clause}"
+          end
+        rescue ActiveRecord::StatementInvalid => e
+          raise unless if_exists && missing_object_ora_code?(e.message, object_type)
         end
 
         def add_index(table_name, column_name, **options) # :nodoc:
@@ -668,6 +682,28 @@ module ActiveRecord
         end
 
         private
+          # Per-object-kind "does not exist" ORA codes used by `drop_if_exists`.
+          MISSING_OBJECT_ORA_CODES = {
+            "TABLE"             => "ORA-00942",
+            "VIEW"              => "ORA-00942",
+            "SEQUENCE"          => "ORA-02289",
+            "PUBLIC SYNONYM"    => "ORA-01432",
+            "SYNONYM"           => "ORA-01434",
+            "MATERIALIZED VIEW" => "ORA-12003",
+            "PROCEDURE"         => "ORA-04043",
+            "FUNCTION"          => "ORA-04043",
+            "PACKAGE"           => "ORA-04043",
+            "TYPE"              => "ORA-04043",
+            "TRIGGER"           => "ORA-04080",
+            "INDEX"             => "ORA-01418",
+          }.freeze
+          private_constant :MISSING_OBJECT_ORA_CODES
+
+          def missing_object_ora_code?(message, object_type)
+            code = MISSING_OBJECT_ORA_CODES[object_type.to_s.upcase]
+            code && message.include?(code)
+          end
+
           def index_column_names(column_names) # :nodoc:
             column_names.is_a?(Array) ? column_names : Array(column_names)
           end

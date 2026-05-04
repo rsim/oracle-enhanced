@@ -384,7 +384,7 @@ describe "primary_key_trigger" do
     end
 
     after(:each) do
-      tables_to_drop = [@long_table_name, @long_unicode_table_name].compact
+      tables_to_drop = [@long_table_name].compact
       schema_define do
         tables_to_drop.each do |t|
           drop_table t.to_sym, if_exists: true
@@ -421,8 +421,8 @@ describe "primary_key_trigger" do
       # "é" is 2 bytes in UTF-8. Build a name whose pre-truncation byte length
       # exceeds the budget so the slice has to land in the middle of a
       # multibyte character on its first attempt.
-      @long_unicode_table_name = "é" * ((max / 2) + 5)
-      derived = @conn.default_trigger_name(@long_unicode_table_name)
+      long_unicode_table_name = "é" * ((max / 2) + 5)
+      derived = @conn.default_trigger_name(long_unicode_table_name)
       expect(derived.bytesize).to be <= max
       expect(derived).to be_valid_encoding
       expect(derived).to end_with("_pkt")
