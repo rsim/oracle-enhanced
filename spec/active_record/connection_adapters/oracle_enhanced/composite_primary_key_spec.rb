@@ -376,5 +376,11 @@ describe "OracleEnhancedAdapter composite primary key" do
         expect(CpkDoc.find([3, 3]).data).to eq(data)
       end
     end
+
+    it "insert_fixture writes a CLOB body for a CPK model" do
+      body = "y" * 5000
+      @conn.insert_fixture({ "author_id" => 7, "id" => 9, "body" => body }, "cpk_docs")
+      expect(CpkDoc.find([7, 9]).body).to eq(body)
+    end
   end
 end
