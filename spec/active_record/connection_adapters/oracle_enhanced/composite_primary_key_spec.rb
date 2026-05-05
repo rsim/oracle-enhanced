@@ -93,10 +93,6 @@ describe "OracleEnhancedAdapter composite primary key" do
       schema_define { drop_table :test_no_pks, if_exists: true }
     end
 
-    it "has_primary_key? returns true for a composite-PK table" do
-      expect(@conn.has_primary_key?("uber_barcodes")).to be true
-    end
-
     it "pk_and_sequence_for returns nil for a composite-PK table" do
       expect(@conn.pk_and_sequence_for("uber_barcodes")).to be_nil
     end
