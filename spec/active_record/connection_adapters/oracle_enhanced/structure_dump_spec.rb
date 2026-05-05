@@ -393,6 +393,90 @@ describe "OracleEnhancedAdapter structure dump" do
       end
     end
 
+    context "when the Rails default formatter is configured" do
+      it "substitutes OracleEnhanced::SchemaVersionsFormatter" do
+        expect(ActiveRecord.schema_versions_formatter)
+          .to equal(ActiveRecord::Migration::DefaultSchemaVersionsFormatter)
+        expect(dump).to start_with("INSERT ALL\n").or include("\n\n/\n\n")
+        expect(dump).not_to include("VALUES\n('")
+      end
+    end
+
+    context "with a user-configured schema_versions_formatter" do
+      let(:custom_formatter) do
+        Class.new do
+          def initialize(_connection); end
+          def format(versions) = "-- custom: #{Array(versions).join(',')}"
+        end
+      end
+
+      around do |example|
+        previous = ActiveRecord.schema_versions_formatter
+        ActiveRecord.schema_versions_formatter = custom_formatter
+        begin
+          example.run
+        ensure
+          ActiveRecord.schema_versions_formatter = previous
+        end
+      end
+
+      it "dumps through the configured formatter" do
+        expect(dump).to eq "-- custom: #{versions.join(',')}"
+      end
+    end
+
+    context "with a subclass of DefaultSchemaVersionsFormatter" do
+      let(:default_subclass) do
+        Class.new(ActiveRecord::Migration::DefaultSchemaVersionsFormatter)
+      end
+
+      around do |example|
+        previous = ActiveRecord.schema_versions_formatter
+        ActiveRecord.schema_versions_formatter = default_subclass
+        begin
+          example.run
+        ensure
+          ActiveRecord.schema_versions_formatter = previous
+        end
+      end
+
+      it "honors the subclass instead of substituting Oracle's formatter" do
+        expect(dump).to include("VALUES\n(")
+        expect(dump).not_to start_with("INSERT ALL\n")
+      end
+    end
+
+    context "with a scalar version (formatter API contract)" do
+      it "produces a single-row Oracle INSERT under the default formatter" do
+        expect(ActiveRecord::Base.lease_connection.send(:insert_versions_sql, "20160101000000"))
+          .to eq(%Q|INSERT INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160101000000')|)
+      end
+
+      context "with a user-configured schema_versions_formatter" do
+        let(:custom_formatter) do
+          Class.new do
+            def initialize(_connection); end
+            def format(versions) = "-- custom: #{Array(versions).join(',')}"
+          end
+        end
+
+        around do |example|
+          previous = ActiveRecord.schema_versions_formatter
+          ActiveRecord.schema_versions_formatter = custom_formatter
+          begin
+            example.run
+          ensure
+            ActiveRecord.schema_versions_formatter = previous
+          end
+        end
+
+        it "still routes through the configured formatter" do
+          expect(ActiveRecord::Base.lease_connection.send(:insert_versions_sql, "20160101000000"))
+            .to eq("-- custom: 20160101000000")
+        end
+      end
+    end
+
     after do
       ActiveRecord::Base.connection_pool.schema_migration.drop_table
     end
