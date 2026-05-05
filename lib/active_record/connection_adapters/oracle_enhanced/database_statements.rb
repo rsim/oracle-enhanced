@@ -217,13 +217,11 @@ module ActiveRecord
         end
 
         # Writes LOB values from attributes for specified columns
-        # TODO: composite primary key support — the +id+ lookup and the +WHERE+
-        # clause below assume a scalar +klass.primary_key+. For CPK models with
-        # CLOB/BLOB columns, fixture insertion and the post-save LOB rewrite
-        # path will fail. Handle the +Array+ case by zipping columns/values and
-        # building a multi-column predicate.
         def write_lobs(table_name, klass, attributes, columns) # :nodoc:
-          id = quote(attributes[klass.primary_key])
+          pk_predicate = Array(klass.primary_key).map { |pk|
+            "#{quote_column_name(pk)} = #{quote(attributes[pk])}"
+          }.join(" AND ")
+
           columns.each do |col|
             value = attributes[col.name]
             # changed sequence of next two lines - should check if value is nil before converting to yaml
@@ -234,7 +232,7 @@ module ActiveRecord
             uncached do
               unless lob_record = select_one(sql = <<~SQL.squish, "Writable Large Object")
                 SELECT #{quote_column_name(col.name)} FROM #{quote_table_name(table_name)}
-                WHERE #{quote_column_name(klass.primary_key)} = #{id} FOR UPDATE
+                WHERE #{pk_predicate} FOR UPDATE
               SQL
                 raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
               end
