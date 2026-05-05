@@ -885,8 +885,8 @@ module ActiveRecord
         @trigger_assigned_pk_cache.delete(table_name.to_s)
       end
 
-      # Find a table's primary key and sequence.
-      # *Note*: Only primary key is implemented - sequence will be nil.
+      # Returns +[pk, sequence]+ for single-column PKs; +nil+ for composite or
+      # missing PKs (composite PKs are introspected via +primary_keys+).
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
         (owner, desc_table_name) = resolve_data_source_name(table_name)
 
@@ -908,19 +908,14 @@ module ActiveRecord
              AND cc.constraint_name = c.constraint_name
         SQL
 
-        warn <<~WARNING if pks.count > 1
-          WARNING: Active Record does not support composite primary key.
-
-          #{table_name} has composite primary key. Composite primary key is ignored.
-        WARNING
-
-        # only support single column keys
-        pks.size == 1 ? [oracle_downcase(pks.first),
-                         oracle_downcase(seqs.first)] : nil
+        case pks.size
+        when 1 then [oracle_downcase(pks.first), oracle_downcase(seqs.first)]
+        else nil
+        end
       end
 
       def has_primary_key?(table_name, owner = nil, desc_table_name = nil) # :nodoc:
-        !pk_and_sequence_for(table_name, owner, desc_table_name).nil?
+        primary_keys(table_name).any?
       end
 
       def primary_keys(table_name) # :nodoc:
@@ -1218,10 +1213,16 @@ module ActiveRecord
 
         def prefetch_primary_key_from_dictionary(table_name)
           owner, desc_table_name = resolve_data_source_name(table_name)
-          has_pk                = has_primary_key?(table_name, owner, desc_table_name)
+          pks                   = primary_keys(table_name)
+          # Composite PKs cannot be prefetched from a single sequence; mirror the
+          # schema-cache path's behaviour and fall through to the RETURNING-driven
+          # insert path instead. Note: cannot use `composite_primary_key?(pks)`
+          # here — that predicate is `Array?`-based and `primary_keys` always
+          # returns an Array (including `["id"]` for single-column PKs).
+          return false if pks.size > 1
           has_identity_pk       = supports_identity_columns? && identity_primary_key?(owner, desc_table_name)
           has_trigger_backed_pk = trigger_backed_primary_key?(owner, desc_table_name)
-          has_pk && !has_identity_pk && !has_trigger_backed_pk
+          pks.any? && !has_identity_pk && !has_trigger_backed_pk
         end
 
         AREL_VISITOR_MODES = %i[auto rownum fetch_first].freeze
