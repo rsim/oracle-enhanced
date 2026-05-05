@@ -341,9 +341,14 @@ describe "identity primary keys" do
   end
 
   describe "empty_insert_statement_value composite primary key" do
-    it "raises NotImplementedError when called with an Array primary key" do
+    it "returns a multi-column DEFAULT VALUES form for an Array primary key" do
+      expect(@conn.empty_insert_statement_value([:a, :b]))
+        .to eq('("A", "B") VALUES (DEFAULT, DEFAULT)')
+    end
+
+    it "still raises NotImplementedError when the primary key is nil" do
       expect {
-        @conn.empty_insert_statement_value([:a, :b])
+        @conn.empty_insert_statement_value(nil)
       }.to raise_error(NotImplementedError)
     end
   end
