@@ -507,10 +507,6 @@ module ActiveRecord
         true
       end
 
-      def supports_multi_insert?
-        database_version >= "11.2"
-      end
-
       def supports_virtual_columns?
         database_version >= "11"
       end

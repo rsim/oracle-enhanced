@@ -362,9 +362,9 @@ describe "OracleEnhancedAdapter structure dump" do
       end
     end
 
-    context "multi insert is supported" do
-      it "should dump schema migrations using multi inserts" do
-        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.supports_multi_insert?
+    context "when INSERT ALL accepts 1000+ rows (Oracle 11.2 or later)" do
+      it "should dump schema migrations using a single INSERT ALL block" do
+        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.database_version >= "11.2"
 
         expect(dump).to eq <<~SQL
           INSERT ALL
@@ -383,7 +383,7 @@ describe "OracleEnhancedAdapter structure dump" do
       end
     end
 
-    context "multi insert is NOT supported" do
+    context "when INSERT ALL is capped at 999 rows (Oracle older than 11.2)" do
       let(:insert_statement_per_migration) {
         1.step(10).map { |i|
           %Q|INSERT INTO "SCHEMA_MIGRATIONS" (version) VALUES ('201601#{sprintf("%02d", i)}000000')|
@@ -391,7 +391,7 @@ describe "OracleEnhancedAdapter structure dump" do
       }
 
       it "should dump schema migrations one version per insert" do
-        skip "Not supported in this database version" if ActiveRecord::Base.lease_connection.supports_multi_insert?
+        skip "Not supported in this database version" if ActiveRecord::Base.lease_connection.database_version >= "11.2"
 
         expect(dump).to eq insert_statement_per_migration
       end

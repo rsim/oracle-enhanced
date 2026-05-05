@@ -12,7 +12,7 @@ module ActiveRecord
           sm_table = connection.quote_table_name(connection.pool.schema_migration.table_name)
 
           if versions.is_a?(Array)
-            if connection.supports_multi_insert?
+            if connection.database_version >= "11.2"
               versions.inject(+"INSERT ALL\n") { |sql, version|
                 sql << "INTO #{sm_table} (version) VALUES (#{connection.quote(version)})\n"
               } << "SELECT * FROM DUAL\n"
