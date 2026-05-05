@@ -38,10 +38,17 @@ describe "OracleEnhancedAdapter composite primary key" do
         t.string  :title
         t.integer :revision
       end
+      create_table :cpk_docs, primary_key: [:author_id, :id], force: true do |t|
+        t.integer :author_id
+        t.integer :id
+        t.text    :body
+        t.binary  :data
+      end
     end
 
     stub_const("UberBarcode", Class.new(ActiveRecord::Base) { self.table_name = "uber_barcodes" })
     stub_const("CpkBook", Class.new(ActiveRecord::Base) { self.table_name = "cpk_books" })
+    stub_const("CpkDoc", Class.new(ActiveRecord::Base) { self.table_name = "cpk_docs" })
   end
 
   after(:each) do
@@ -50,6 +57,7 @@ describe "OracleEnhancedAdapter composite primary key" do
       drop_table :barcodes_reverse, if_exists: true
       drop_table :travels,          if_exists: true
       drop_table :cpk_books,        if_exists: true
+      drop_table :cpk_docs,         if_exists: true
     end
     @conn.schema_cache.clear!
   end
@@ -338,6 +346,35 @@ describe "OracleEnhancedAdapter composite primary key" do
     it "destroy removes only the matching mixed-type row" do
       @jp100.destroy
       expect(UberBarcode.pluck(:region, :code)).to eq([["US", 200]])
+    end
+  end
+
+  describe "CLOB / BLOB columns" do
+    it "create! persists a CLOB body above the inline VARCHAR2 limit" do
+      body = "x" * 5000
+      CpkDoc.create!(id: [1, 1], body: body)
+      expect(CpkDoc.find([1, 1]).body).to eq(body)
+    end
+
+    describe "with prepared_statements disabled" do
+      around(:each) do |example|
+        old_prepared_statements = @conn.prepared_statements
+        @conn.instance_variable_set(:@prepared_statements, false)
+        example.run
+        @conn.instance_variable_set(:@prepared_statements, old_prepared_statements)
+      end
+
+      it "create! writes a CLOB body via write_lobs when prepared_statements is false" do
+        body = "x" * 5000
+        CpkDoc.create!(id: [2, 2], body: body)
+        expect(CpkDoc.find([2, 2]).body).to eq(body)
+      end
+
+      it "create! writes a BLOB data column via write_lobs when prepared_statements is false" do
+        data = ("\x00\x01\x02\x03".b * 1500)
+        CpkDoc.create!(id: [3, 3], data: data)
+        expect(CpkDoc.find([3, 3]).data).to eq(data)
+      end
     end
   end
 end
