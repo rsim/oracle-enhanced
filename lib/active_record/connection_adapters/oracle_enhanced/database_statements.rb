@@ -168,8 +168,6 @@ module ActiveRecord
 
         # Inserts the given fixture into the table. Overridden to properly handle lobs.
         def insert_fixture(fixture, table_name) # :nodoc:
-          super
-
           if ActiveRecord::Base.pluralize_table_names
             klass = table_name.to_s.singularize.camelize
           else
@@ -177,8 +175,15 @@ module ActiveRecord
           end
 
           klass = klass.constantize rescue nil
-          if klass.respond_to?(:ancestors) && klass.ancestors.include?(ActiveRecord::Base)
-            write_lobs(table_name, klass, fixture, klass.lob_columns)
+          if klass.respond_to?(:ancestors) && klass.ancestors.include?(ActiveRecord::Base) &&
+              !klass.lob_columns.empty?
+            # write_lobs needs a transaction; SELECT ... FOR UPDATE outside one raises ORA-01002.
+            transaction do
+              super
+              write_lobs(table_name, klass, fixture, klass.lob_columns)
+            end
+          else
+            super
           end
         end
 
