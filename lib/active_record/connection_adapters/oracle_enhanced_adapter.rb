@@ -914,10 +914,6 @@ module ActiveRecord
         end
       end
 
-      def has_primary_key?(table_name, owner = nil, desc_table_name = nil) # :nodoc:
-        primary_keys(table_name).any?
-      end
-
       def primary_keys(table_name) # :nodoc:
         (_owner, desc_table_name) = resolve_data_source_name(table_name)
 
