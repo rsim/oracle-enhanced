@@ -116,4 +116,11 @@ describe "OracleEnhancedAdapter handling of BLOB columns" do
     @employee.reload
     expect(@employee.binary_data).to eq(@binary_data)
   end
+
+  it "insert_fixture writes BLOB content for a model with LOB columns" do
+    @conn.insert_fixture({ "id" => 101, "first_name" => "Fix", "last_name" => "Ture", "binary_data" => @binary_data }, "test_employees")
+    expect(TestEmployee.find(101).binary_data).to eq(@binary_data)
+  ensure
+    TestEmployee.where(id: 101).delete_all
+  end
 end

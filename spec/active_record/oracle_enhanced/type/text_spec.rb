@@ -242,6 +242,14 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
     expect(Test2Employee.where(comments: search_data)).to have_attributes(count: 1)
   end
 
+  it "insert_fixture writes CLOB content for a model with LOB columns" do
+    body = "x" * 5000
+    @conn.insert_fixture({ "id" => 101, "first_name" => "Fix", "last_name" => "Ture", "comments" => body }, "test_employees")
+    expect(TestEmployee.find(101).comments).to eq(body)
+  ensure
+    TestEmployee.where(id: 101).delete_all
+  end
+
   describe "with prepared_statements disabled" do
     around(:each) do |example|
       old_prepared_statements = @conn.prepared_statements
@@ -290,6 +298,14 @@ describe "OracleEnhancedAdapter handling of CLOB columns" do
       )
       @employee.reload
       expect(@employee.comments).to eq(ruby_data)
+    end
+
+    it "insert_fixture writes CLOB content when prepared_statements is false" do
+      body = "x" * 5000
+      @conn.insert_fixture({ "id" => 102, "first_name" => "Fix", "last_name" => "Ture", "comments" => body }, "test_employees")
+      expect(TestEmployee.find(102).comments).to eq(body)
+    ensure
+      TestEmployee.where(id: 102).delete_all
     end
 
     it "should respect attr_readonly setting for CLOB column when prepared_statements is false" do
