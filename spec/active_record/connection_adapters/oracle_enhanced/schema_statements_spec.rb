@@ -1674,9 +1674,9 @@ end
       ActiveRecord::Base.connection_pool.schema_migration.create_table
     end
 
-    context "multi insert is supported" do
+    context "when INSERT ALL accepts 1000+ rows (Oracle 11.2 or later)" do
       it "should loads the migration schema table from insert versions sql" do
-        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.supports_multi_insert?
+        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.database_version >= "11.2"
 
         expect {
           @conn.execute @conn.send(:insert_versions_sql, versions)
@@ -1686,9 +1686,9 @@ end
       end
     end
 
-    context "multi insert is NOT supported" do
+    context "when INSERT ALL is capped at 999 rows (Oracle older than 11.2)" do
       it "should loads the migration schema table from insert versions sql" do
-        skip "Not supported in this database version" if ActiveRecord::Base.lease_connection.supports_multi_insert?
+        skip "Not supported in this database version" if ActiveRecord::Base.lease_connection.database_version >= "11.2"
 
         expect {
           versions.each { |version| @conn.execute @conn.send(:insert_versions_sql, version) }
