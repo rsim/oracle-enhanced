@@ -878,6 +878,22 @@ describe "OracleEnhancedConnection" do
       expect { Post.take }.to raise_error(ActiveRecord::StatementInvalid)
     end
 
+    # ORA-00031 ("session is marked for kill") arrives during the brief
+    # window after `ALTER SYSTEM KILL SESSION` is issued but before the
+    # target session has actually been torn down. Treating it as a lost
+    # connection lets `with_retry` reset and reconnect transparently —
+    # parallel to ORA-00028 (kill complete). Regression test for the
+    # auto-reconnection flake observed in CI under tight kill-then-query
+    # timing.
+    it "recognises ORA-00031 (session marked for kill) as a lost connection" do
+      exception = if RUBY_ENGINE == "jruby"
+        Java::JavaSql::SQLException.new("ORA-00031: session marked for kill", nil, 31)
+      else
+        OCIError.new("ORA-00031: session marked for kill", 31)
+      end
+      expect(@conn.lost_connection?(exception)).to be true
+    end
+
     if RUBY_ENGINE == "jruby"
       # ojdbc17 surfaces dropped-connection errors with both a proper
       # SQLException#getErrorCode and an "ORA-17NNN:" prefix in the message.
