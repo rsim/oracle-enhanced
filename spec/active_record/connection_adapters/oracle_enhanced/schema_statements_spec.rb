@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter schema definition" do
+RSpec.describe "OracleEnhancedAdapter schema definition" do
   include SchemaSpecHelper
   include LoggerSpecHelper
 

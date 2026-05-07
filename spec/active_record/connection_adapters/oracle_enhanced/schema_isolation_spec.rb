@@ -10,7 +10,7 @@
 # PDBs, or entirely separate databases.
 #
 
-describe "Oracle schema isolation between primary and remote connections" do
+RSpec.describe "Oracle schema isolation between primary and remote connections" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
 

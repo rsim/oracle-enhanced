@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter timestamp with timezone support" do
+RSpec.describe "OracleEnhancedAdapter timestamp with timezone support" do
   include SchemaSpecHelper
 
   before(:all) do

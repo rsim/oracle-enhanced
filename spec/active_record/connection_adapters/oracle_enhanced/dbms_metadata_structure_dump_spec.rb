@@ -13,7 +13,7 @@
 # This mirrors how `pg_dump` and `mysqldump` are tested upstream: the
 # implementation's exact byte output is not part of the contract;
 # round-trip-loadability is.
-describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
+RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
   include SchemaSpecHelper
 
   before(:all) do

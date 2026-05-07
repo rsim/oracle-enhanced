@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter boolean type detection based on string column types and names" do
+RSpec.describe "OracleEnhancedAdapter boolean type detection based on string column types and names" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
@@ -179,7 +179,7 @@ describe "OracleEnhancedAdapter boolean type detection based on string column ty
   end
 end
 
-describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strings = true" do
+RSpec.describe "OracleEnhancedAdapter boolean support when emulate_booleans_from_strings = true" do
   include SchemaSpecHelper
 
   before(:all) do

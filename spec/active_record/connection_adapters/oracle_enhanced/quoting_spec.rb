@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter quoting" do
+RSpec.describe "OracleEnhancedAdapter quoting" do
   include LoggerSpecHelper
   include SchemaSpecHelper
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter arel_visitor configuration" do
+RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
   let(:adapter_class) { ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter }
 
   before(:each) do

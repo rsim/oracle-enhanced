@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter establish connection" do
+RSpec.describe "OracleEnhancedAdapter establish connection" do
   it "should connect to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     expect(ActiveRecord::Base.lease_connection).not_to be_nil
@@ -146,7 +146,7 @@ describe "OracleEnhancedAdapter establish connection" do
   end
 end
 
-describe "OracleEnhancedConnection" do
+RSpec.describe "OracleEnhancedConnection" do
   describe "create connection" do
     before(:all) do
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)

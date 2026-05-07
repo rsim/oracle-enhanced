@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "Oracle Enhanced adapter dbconsole" do
+RSpec.describe "Oracle Enhanced adapter dbconsole" do
   subject { ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter }
 
   it "uses sqlplus with user@db when password is not requested" do

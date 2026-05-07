@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "identity primary keys" do
+RSpec.describe "identity primary keys" do
   include SchemaSpecHelper
   include LoggerSpecHelper
 

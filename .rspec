@@ -1,4 +1,4 @@
---color
+--force-color
 --backtrace
 --require spec_helper
 --warnings

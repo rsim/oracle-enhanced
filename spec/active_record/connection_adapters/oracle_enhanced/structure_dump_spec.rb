@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter structure dump" do
+RSpec.describe "OracleEnhancedAdapter structure dump" do
   include LoggerSpecHelper
 
   before(:all) do

@@ -2,7 +2,7 @@
 
 require "tempfile"
 
-describe "OracleEnhancedAdapter schema cache" do
+RSpec.describe "OracleEnhancedAdapter schema cache" do
   include SchemaSpecHelper
 
   PERMITTED_YAML_CLASSES = [

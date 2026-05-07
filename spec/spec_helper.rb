@@ -254,6 +254,7 @@ ActiveRecord::Base.logger = ActiveSupport::Logger.new("debug.log", 0, 100 * 1024
 #   bundle exec rspec --seed <value> --bisect
 #
 RSpec.configure do |config|
+  config.disable_monkey_patching!
   config.order = :random
   Kernel.srand config.seed
 

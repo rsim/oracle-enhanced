@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "Arel::Visitors::Oracle" do
+RSpec.describe "Arel::Visitors::Oracle" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end

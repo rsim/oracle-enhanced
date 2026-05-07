@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter date and datetime type detection based on attribute settings" do
+RSpec.describe "OracleEnhancedAdapter date and datetime type detection based on attribute settings" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
@@ -83,7 +83,7 @@ describe "OracleEnhancedAdapter date and datetime type detection based on attrib
   end
 end
 
-describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
+RSpec.describe "OracleEnhancedAdapter assign string to :date and :datetime columns" do
   include SchemaSpecHelper
 
   before(:all) do

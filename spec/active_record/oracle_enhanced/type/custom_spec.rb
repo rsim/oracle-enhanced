@@ -2,7 +2,7 @@
 
 require "base64"
 
-describe "OracleEnhancedAdapter custom types handling" do
+RSpec.describe "OracleEnhancedAdapter custom types handling" do
   include SchemaSpecHelper
 
   before(:all) do

@@ -9,7 +9,7 @@
 # Association-level coverage (HABTM joins, `has_many :through`) lives in
 # the sibling `composite_spec.rb` and is intentionally not duplicated here.
 
-describe "OracleEnhancedAdapter composite primary key" do
+RSpec.describe "OracleEnhancedAdapter composite primary key" do
   include SchemaSpecHelper
   include SchemaDumpingHelper
 

@@ -7,7 +7,7 @@
 # Pattern: abstract base class with establish_connection — the programmatic
 # equivalent of connects_to — to connect models to a second Oracle schema.
 
-describe "OracleEnhancedAdapter multiple database support" do
+RSpec.describe "OracleEnhancedAdapter multiple database support" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
 
