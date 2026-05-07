@@ -66,7 +66,7 @@ RSpec.describe "OracleEnhancedAdapter" do
       end
 
       it "should get columns from database at first time" do
-        @conn.clear_table_columns_cache(:test_employees)
+        @conn.clear_table_caches(:test_employees)
         expect(TestEmployee.lease_connection.columns("test_employees").map(&:name)).to eq(@column_names)
         expect(@logger.logged(:debug).join("\n")).to match(/select .* from all_tab_cols/im)
       end
@@ -104,6 +104,19 @@ RSpec.describe "OracleEnhancedAdapter" do
         TestEmployee.create!
         expect(@logger.logged(:debug).first).to match(/SELECT "TEST_EMPLOYEES_SEQ".NEXTVAL FROM dual/im)
       end
+    end
+  end
+
+  describe "deprecated clear_table_columns_cache" do
+    before(:all) do
+      @conn = ActiveRecord::Base.lease_connection
+    end
+
+    it "warns and forwards to clear_table_caches" do
+      expect(@conn).to receive(:clear_table_caches).with(:test_employees)
+      expect {
+        @conn.clear_table_columns_cache(:test_employees)
+      }.to output(/clear_table_columns_cache is deprecated.*activerecord-oracle_enhanced-adapter.*a future version/m).to_stderr
     end
   end
 

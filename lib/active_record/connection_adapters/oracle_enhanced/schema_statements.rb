@@ -242,9 +242,8 @@ module ActiveRecord
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
           execute "RENAME #{default_sequence_name(table_name, nil)} TO #{default_sequence_name(new_name, nil)}" rescue nil
           rename_pk_trigger(table_name, new_name)
-          @prefetch_primary_key_cache.delete(table_name.to_s)
-          clear_table_columns_cache(table_name)
-          clear_table_columns_cache(new_name)
+          clear_table_caches(table_name)
+          clear_table_caches(new_name)
 
           rename_table_indexes(table_name, new_name, **options)
         end
@@ -263,8 +262,7 @@ module ActiveRecord
             drop_if_exists("TABLE", table_name, cascade_constraints: cascade, if_exists: if_exists)
             drop_if_exists("SEQUENCE", seq_name, if_exists: true)
           ensure
-            clear_table_columns_cache(table_name)
-            @prefetch_primary_key_cache.delete(table_name.to_s)
+            clear_table_caches(table_name)
           end
         end
 
@@ -453,7 +451,7 @@ module ActiveRecord
           end
           change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
         ensure
-          clear_table_columns_cache(table_name)
+          clear_table_caches(table_name)
         end
 
         def aliased_types(name, fallback)
@@ -464,7 +462,7 @@ module ActiveRecord
           default = extract_new_default_value(default_or_changes)
           execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
         ensure
-          clear_table_columns_cache(table_name)
+          clear_table_caches(table_name)
         end
 
         def change_column_null(table_name, column_name, null, default = nil) # :nodoc:
@@ -498,20 +496,20 @@ module ActiveRecord
 
           change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
         ensure
-          clear_table_columns_cache(table_name)
+          clear_table_caches(table_name)
         end
 
         def rename_column(table_name, column_name, new_column_name) # :nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} RENAME COLUMN #{quote_column_name(column_name)} to #{quote_column_name(new_column_name)}"
           rename_column_indexes(table_name, column_name, new_column_name)
         ensure
-          clear_table_columns_cache(table_name)
+          clear_table_caches(table_name)
         end
 
         def remove_column(table_name, column_name, type = nil, **options) # :nodoc:
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)} CASCADE CONSTRAINTS"
         ensure
-          clear_table_columns_cache(table_name)
+          clear_table_caches(table_name)
         end
 
         def remove_columns(table_name, *column_names, type: nil, **options) # :nodoc:
@@ -519,7 +517,7 @@ module ActiveRecord
 
           execute "ALTER TABLE #{quote_table_name(table_name)} DROP (#{quoted_column_names}) CASCADE CONSTRAINTS"
         ensure
-          clear_table_columns_cache(table_name)
+          clear_table_caches(table_name)
         end
 
         def change_table_comment(table_name, comment_or_changes)
