@@ -29,6 +29,10 @@ module ActiveRecord
               statements.concat(o.foreign_keys.map { |fk| accept fk })
             end
 
+            if supports_unique_constraints? && o.respond_to?(:unique_constraints)
+              statements.concat(o.unique_constraints.map { |uc| accept uc })
+            end
+
             create_sql << "(#{statements.join(', ')})" if statements.present?
 
             unless o.temporary
@@ -81,6 +85,25 @@ module ActiveRecord
             super.dup.tap do |sql|
               sql << " DEFERRABLE INITIALLY #{o.deferrable.to_s.upcase}" if o.deferrable
             end
+          end
+
+          def visit_AlterTable(o)
+            sql = super
+            sql << o.unique_constraint_adds.map { |c| visit_AddUniqueConstraint(c) }.join(" ")
+          end
+
+          def visit_UniqueConstraintDefinition(o)
+            cols = Array(o.column).map { |c| quote_column_name(c) }.join(", ")
+            sql = ["CONSTRAINT", quote_column_name(o.name), "UNIQUE", "(#{cols})"]
+
+            sql << "DEFERRABLE INITIALLY #{o.deferrable.to_s.upcase}" if o.deferrable
+            sql << "USING INDEX #{quote_column_name(o.using_index)}" if o.using_index
+
+            sql.join(" ")
+          end
+
+          def visit_AddUniqueConstraint(o)
+            "ADD #{accept(o)}"
           end
 
           def visit_CreateIndexDefinition(o)

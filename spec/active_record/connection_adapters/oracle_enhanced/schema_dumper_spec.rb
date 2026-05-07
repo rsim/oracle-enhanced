@@ -324,6 +324,102 @@ describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "unique constraints" do
+    before(:each) do
+      schema_define do
+        create_table :test_sections, force: true do |t|
+          t.string :title
+          t.integer :position
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_sections, if_exists: true
+      end
+    end
+
+    it "dumps a stand-alone unique constraint as t.unique_constraint" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_position_dump"
+      end
+      output = dump_table_schema "test_sections"
+      expect(output).to match(/t\.unique_constraint \["position"\], name: "uniq_position_dump"/)
+    end
+
+    it "dumps a divergent constraint via post-create_table add_unique_constraint and keeps the t.index line" do
+      schema_define do
+        add_index :test_sections, :position, name: :idx_div_dump
+      end
+      schema_define do
+        add_unique_constraint :test_sections, name: "uniq_div_dump", using_index: :idx_div_dump
+      end
+      output = dump_table_schema "test_sections"
+      expect(output).to match(/t\.index \["position"\], name: "idx_div_dump"/)
+      expect(output).to match(/add_unique_constraint "test_sections", \["position"\], using_index: "idx_div_dump", name: "uniq_div_dump"/)
+      expect(output).not_to match(/t\.unique_constraint .*using_index/)
+    end
+
+    it "round-trips a divergent unique constraint through dump and load" do
+      schema_define do
+        add_index :test_sections, :position, name: :idx_div_rt
+      end
+      schema_define do
+        add_unique_constraint :test_sections, name: "uniq_div_rt", using_index: :idx_div_rt, deferrable: :deferred
+      end
+
+      dumped = dump_table_schema "test_sections"
+      schema_define do
+        drop_table :test_sections, if_exists: true
+      end
+
+      # Extract the body inside ActiveRecord::Schema[...].define(version: ...) do ... end
+      # so loading does not insert the dumped version into schema_migrations.
+      body = dumped[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { instance_eval(body) }
+
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_div_rt" }
+      expect(uc).not_to be_nil
+      expect(uc.using_index).to eq("idx_div_rt")
+      expect(uc.deferrable).to eq(:deferred)
+      expect(@conn.indexes(:test_sections).map(&:name)).to include("idx_div_rt")
+    end
+
+    it "does not double-emit t.index unique: true for an index that backs a unique constraint" do
+      schema_define do
+        add_index :test_sections, :position, unique: true, name: :uniq_via_idx
+      end
+      output = dump_table_schema "test_sections"
+      expect(output).not_to match(/t\.index .*"uniq_via_idx".*unique: true/)
+      expect(output).to match(/t\.unique_constraint .*name: "uniq_via_idx"/)
+    end
+
+    it "should include deferrable initially deferred unique constraint in schema dump" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_def_dump", deferrable: :deferred
+      end
+      output = dump_table_schema "test_sections"
+      expect(output).to match(/t\.unique_constraint .*deferrable: :deferred.*name: "uniq_def_dump"/)
+    end
+
+    it "should include deferrable initially immediate unique constraint in schema dump" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_imm_dump", deferrable: :immediate
+      end
+      output = dump_table_schema "test_sections"
+      expect(output).to match(/t\.unique_constraint .*deferrable: :immediate.*name: "uniq_imm_dump"/)
+    end
+
+    it "should not emit deferrable option when unique constraint is not deferrable" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_plain_dump"
+      end
+      output = dump_table_schema "test_sections"
+      expect(output).to match(/t\.unique_constraint \["position"\], name: "uniq_plain_dump"$/)
+    end
+  end
+
   describe "materialized views" do
     after(:each) do
       @conn.drop_if_exists("MATERIALIZED VIEW", "test_posts_mv")

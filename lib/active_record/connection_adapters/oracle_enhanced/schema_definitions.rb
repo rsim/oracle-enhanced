@@ -49,10 +49,38 @@ module ActiveRecord
         end
       end
 
+      UniqueConstraintDefinition = Struct.new(:table_name, :column, :options) do
+        def name
+          options[:name]
+        end
+
+        def deferrable
+          options[:deferrable]
+        end
+
+        def using_index
+          options[:using_index]
+        end
+
+        def export_name_on_schema_dump?
+          !ActiveRecord::SchemaDumper.unique_ignore_pattern.match?(name) if name
+        end
+
+        def defined_for?(name: nil, column: nil, **options)
+          options = options.slice(*self.options.keys)
+
+          (name.nil? || self.name == name.to_s) &&
+            (column.nil? || Array(self.column).map(&:to_s) == Array(column).map(&:to_s)) &&
+            options.all? { |k, v| self.options[k].to_s == v.to_s }
+        end
+      end
+
       class TableDefinition < ActiveRecord::ConnectionAdapters::TableDefinition
         include OracleEnhanced::ColumnMethods
 
         attr_accessor :tablespace, :organization
+        attr_reader :unique_constraints
+
         def initialize(
           conn,
           name,
@@ -66,6 +94,7 @@ module ActiveRecord
         )
           @tablespace = tablespace
           @organization = organization
+          @unique_constraints = []
           super(conn, name, temporary: temporary, options: options, as: as, comment: comment)
         end
 
@@ -82,6 +111,15 @@ module ActiveRecord
         end
         alias :belongs_to :references
 
+        def unique_constraint(column_name, **options)
+          unique_constraints << new_unique_constraint_definition(column_name, options)
+        end
+
+        def new_unique_constraint_definition(column_name, options) # :nodoc:
+          options = @conn.unique_constraint_options(name, column_name, options)
+          UniqueConstraintDefinition.new(name, column_name, options)
+        end
+
         private
           def valid_column_definition_options
             super + [ :as, :sequence_name, :sequence_start_value, :type, :identity, :primary_key_trigger, :trigger_name ]
@@ -89,10 +127,28 @@ module ActiveRecord
       end
 
       class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable
+        attr_reader :unique_constraint_adds
+
+        def initialize(td)
+          super
+          @unique_constraint_adds = []
+        end
+
+        def add_unique_constraint(column_name, options)
+          @unique_constraint_adds << @td.new_unique_constraint_definition(column_name, options)
+        end
       end
 
       class Table < ActiveRecord::ConnectionAdapters::Table
         include OracleEnhanced::ColumnMethods
+
+        def unique_constraint(...)
+          @base.add_unique_constraint(name, ...)
+        end
+
+        def remove_unique_constraint(...)
+          @base.remove_unique_constraint(name, ...)
+        end
       end
     end
   end
