@@ -274,7 +274,8 @@ module ActiveRecord
                 binds << ActiveRecord::Relation::QueryAttribute.new("returning_#{col}", nil, type)
               end
             end
-            super(sql, pk, binds, returning)
+            # Skip super: AR's abstract appends PG-style `RETURNING col1, col2` which conflicts with Oracle's `RETURNING ... INTO :bind` form (ORA-00925).
+            [sql, binds]
           end
 
           def columns_for_returning_clause(sql, pk, binds, returning)

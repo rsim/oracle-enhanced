@@ -519,6 +519,10 @@ module ActiveRecord
         true
       end
 
+      def supports_insert_returning?
+        true
+      end
+
       def supports_optimizer_hints?
         true
       end
