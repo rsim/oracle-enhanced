@@ -902,9 +902,24 @@ module ActiveRecord
       end
 
       def clear_table_columns_cache(table_name)
-        @columns_cache[table_name.to_s] = nil
-        @trigger_assigned_pk_cache.delete(table_name.to_s)
+        table_name = table_name.to_s
+        @columns_cache[table_name] = nil
+        @trigger_assigned_pk_cache.delete(table_name)
+        evict_prepared_statements_for(table_name)
       end
+
+      def evict_prepared_statements_for(table_name) # :nodoc:
+        return unless prepared_statements?
+        return unless @statements
+
+        quoted_table_name = quote_table_name(table_name)
+        keys_to_delete = []
+        @statements.each do |sql, _stmt|
+          keys_to_delete << sql if sql.include?(quoted_table_name)
+        end
+        keys_to_delete.each { |sql| @statements.delete(sql) }
+      end
+      private :evict_prepared_statements_for
 
       # Returns +[pk, sequence]+ for single-column PKs; +nil+ for composite or
       # missing PKs (composite PKs are introspected via +primary_keys+).

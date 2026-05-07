@@ -1628,6 +1628,54 @@ end
     end
   end
 
+  describe "prepared statement cache eviction on DDL" do
+    before(:each) do
+      schema_define do
+        create_table :test_evict, force: true do |t|
+          t.string :name
+          t.integer :extra
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_evict, if_exists: true
+      end
+      ActiveRecord::Base.clear_cache!
+    end
+
+    def cached_prepared_sqls_for(table_name)
+      pool = @conn.instance_variable_get(:@statements)
+      return [] unless pool
+      pool.map { |sql, _| sql }.select { |sql| sql.include?(@conn.send(:quote_table_name, table_name)) }
+    end
+
+    it "removes cached prepared statements after a column is dropped" do
+      klass = Class.new(ActiveRecord::Base) { self.table_name = :test_evict }
+      klass.create!(name: "before-ddl", extra: 1)
+      expect(cached_prepared_sqls_for(:test_evict)).not_to be_empty
+
+      schema_define do
+        remove_column :test_evict, :extra
+      end
+
+      expect(cached_prepared_sqls_for(:test_evict)).to be_empty
+    end
+
+    it "removes cached prepared statements after the table is dropped" do
+      klass = Class.new(ActiveRecord::Base) { self.table_name = :test_evict }
+      klass.create!(name: "before-drop", extra: 1)
+      expect(cached_prepared_sqls_for(:test_evict)).not_to be_empty
+
+      schema_define do
+        drop_table :test_evict, if_exists: true
+      end
+
+      expect(cached_prepared_sqls_for(:test_evict)).to be_empty
+    end
+  end
+
   describe "alter columns with column cache" do
     include LoggerSpecHelper
 
