@@ -901,11 +901,20 @@ module ActiveRecord
         SQL
       end
 
-      def clear_table_columns_cache(table_name)
+      def clear_table_caches(table_name) # :nodoc:
         table_name = table_name.to_s
         @columns_cache[table_name] = nil
         @trigger_assigned_pk_cache.delete(table_name)
+        @prefetch_primary_key_cache.delete(table_name)
         evict_prepared_statements_for(table_name)
+      end
+
+      def clear_table_columns_cache(table_name)
+        OracleEnhanced.deprecator.deprecation_warning(
+          "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter#clear_table_columns_cache",
+          "use clear_table_caches instead"
+        )
+        clear_table_caches(table_name)
       end
 
       def evict_prepared_statements_for(table_name) # :nodoc:
