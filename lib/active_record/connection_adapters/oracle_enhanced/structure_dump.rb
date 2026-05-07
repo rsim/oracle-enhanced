@@ -129,8 +129,10 @@ module ActiveRecord # :nodoc:
 
         def structure_dump_unique_keys(table) # :nodoc:
           keys = {}
+          metadata = {}
           uks = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])
-            SELECT a.constraint_name, a.column_name, a.position
+            SELECT a.constraint_name, a.column_name, a.position,
+                   c.index_name, c.deferrable, c.deferred
               FROM all_cons_columns a
               JOIN all_constraints c
                 ON a.constraint_name = c.constraint_name
@@ -142,10 +144,19 @@ module ActiveRecord # :nodoc:
           uks.each do |uk|
             keys[uk["constraint_name"]] ||= []
             keys[uk["constraint_name"]][uk["position"] - 1] = uk["column_name"]
+            metadata[uk["constraint_name"]] ||= uk
           end
           keys.map do |k, v|
             quoted_cols = v.compact.map { |c| quote_column_name(c) }.join(",")
-            "ALTER TABLE #{quote_table_name(table)} ADD CONSTRAINT #{quote_column_name(k)} UNIQUE (#{quoted_cols})"
+            sql = +"ALTER TABLE #{quote_table_name(table)} ADD CONSTRAINT #{quote_column_name(k)} UNIQUE (#{quoted_cols})"
+            row = metadata[k]
+            if row["deferrable"] == "DEFERRABLE"
+              sql << " DEFERRABLE INITIALLY #{row['deferred'] == 'DEFERRED' ? 'DEFERRED' : 'IMMEDIATE'}"
+            end
+            if row["index_name"] && row["index_name"] != k
+              sql << " USING INDEX #{quote_column_name(row["index_name"])}"
+            end
+            sql
           end
         end
 

@@ -912,6 +912,196 @@ end
     end
   end
 
+  describe "unique constraints" do
+    before(:each) do
+      schema_define do
+        create_table :test_sections, force: true do |t|
+          t.string :title
+          t.integer :position
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_sections, if_exists: true
+      end
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "adds a unique constraint with an explicit name" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_position"
+      end
+      ucs = @conn.unique_constraints(:test_sections)
+      expect(ucs.size).to eq(1)
+      expect(ucs.first.name).to eq("uniq_position")
+      expect(ucs.first.column).to eq(["position"])
+    end
+
+    it "auto-generates a constraint name when none is supplied" do
+      schema_define do
+        add_unique_constraint :test_sections, :position
+      end
+      ucs = @conn.unique_constraints(:test_sections)
+      expect(ucs.size).to eq(1)
+      expect(ucs.first.name).to match(/\Auniq_rails_[0-9a-f]{10}\z/)
+    end
+
+    it "allows attaching a unique constraint to an existing index via :using_index" do
+      schema_define do
+        add_index :test_sections, :position, unique: true, name: :idx_existing_unique
+      end
+      # The trailing constraint added by add_index already shares the index name; drop it
+      # so we can re-attach a constraint with a different name pointing at the same index.
+      @conn.execute "ALTER TABLE test_sections DROP CONSTRAINT idx_existing_unique"
+      schema_define do
+        add_unique_constraint :test_sections, name: "uniq_via_idx", using_index: :idx_existing_unique
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_via_idx" }
+      expect(uc).not_to be_nil
+      expect(uc.using_index).to eq("idx_existing_unique")
+    end
+
+    it "emits DEFERRABLE INITIALLY DEFERRED when :deferrable is :deferred" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_deferred", deferrable: :deferred
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_deferred" }
+      expect(uc.deferrable).to eq(:deferred)
+    end
+
+    it "emits DEFERRABLE INITIALLY IMMEDIATE when :deferrable is :immediate" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_immediate", deferrable: :immediate
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_immediate" }
+      expect(uc.deferrable).to eq(:immediate)
+    end
+
+    it "should add non-deferrable unique constraint when deferrable option is omitted" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_nondef"
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_nondef" }
+      expect(uc.deferrable).to be(false)
+    end
+
+    it "supports deferrable + using_index together against a non-unique backing index" do
+      schema_define do
+        add_index :test_sections, :position, name: :idx_def_nonu
+      end
+      schema_define do
+        add_unique_constraint :test_sections, name: "uniq_def_using", using_index: :idx_def_nonu, deferrable: :deferred
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_def_using" }
+      expect(uc.deferrable).to eq(:deferred)
+      expect(uc.using_index).to eq("idx_def_nonu")
+    end
+
+    it "raises ArgumentError on invalid :deferrable value" do
+      expect {
+        schema_define do
+          add_unique_constraint :test_sections, :position, name: "uniq_bad", deferrable: true
+        end
+      }.to raise_error(ArgumentError, /deferrable must be `:immediate` or `:deferred`/)
+    end
+
+    it "raises ArgumentError when an expression column is supplied" do
+      expect {
+        schema_define do
+          add_unique_constraint :test_sections, "LOWER(title)", name: "uniq_expr"
+        end
+      }.to raise_error(ArgumentError, /do not support expression columns/)
+    end
+
+    it "raises ArgumentError when a constraint with the same name already exists" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_dup"
+      end
+      expect {
+        schema_define do
+          add_unique_constraint :test_sections, :title, name: "uniq_dup"
+        end
+      }.to raise_error(ArgumentError, /already has a unique constraint named 'uniq_dup'/)
+    end
+
+    it "removes a unique constraint by name" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_rm_by_name"
+        remove_unique_constraint :test_sections, name: "uniq_rm_by_name"
+      end
+      expect(@conn.unique_constraints(:test_sections).map(&:name)).not_to include("uniq_rm_by_name")
+    end
+
+    it "removes a unique constraint by column" do
+      schema_define do
+        add_unique_constraint :test_sections, :position, name: "uniq_rm_by_col"
+        remove_unique_constraint :test_sections, :position
+      end
+      expect(@conn.unique_constraints(:test_sections).map(&:name)).not_to include("uniq_rm_by_col")
+    end
+
+    it "drains t.unique_constraint declared inline in create_table" do
+      schema_define do
+        drop_table :test_sections, if_exists: true
+        create_table :test_sections, force: true do |t|
+          t.string :title
+          t.integer :position
+          t.unique_constraint :position, name: "uniq_inline"
+        end
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_inline" }
+      expect(uc).not_to be_nil
+      expect(uc.column).to eq(["position"])
+    end
+
+    it "supports t.unique_constraint inside change_table" do
+      schema_define do
+        change_table :test_sections do |t|
+          t.unique_constraint :position, name: "uniq_change"
+        end
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_change" }
+      expect(uc).not_to be_nil
+    end
+
+    it "supports composite columns via add_unique_constraint" do
+      schema_define do
+        add_unique_constraint :test_sections, [:title, :position], name: "uniq_composite"
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_composite" }
+      expect(uc).not_to be_nil
+      expect(uc.column).to eq(["title", "position"])
+    end
+
+    it "supports composite columns via inline t.unique_constraint" do
+      schema_define do
+        drop_table :test_sections, if_exists: true
+        create_table :test_sections, force: true do |t|
+          t.string :title
+          t.integer :position
+          t.unique_constraint [:title, :position], name: "uniq_inline_composite"
+        end
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_inline_composite" }
+      expect(uc).not_to be_nil
+      expect(uc.column).to eq(["title", "position"])
+    end
+
+    it "preserves divergent constraint and index names on round-trip" do
+      schema_define do
+        add_index :test_sections, :position, unique: true, name: :idx_div
+      end
+      @conn.execute "ALTER TABLE test_sections DROP CONSTRAINT idx_div"
+      schema_define do
+        add_unique_constraint :test_sections, name: "uniq_div", using_index: :idx_div
+      end
+      uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_div" }
+      expect(uc.using_index).to eq("idx_div")
+    end
+  end
+
   describe "lob in table definition" do
     before do
       class ::TestPost < ActiveRecord::Base

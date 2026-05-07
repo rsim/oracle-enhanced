@@ -28,6 +28,7 @@ module ActiveRecord # :nodoc:
             sorted_tables.each do |tbl|
               next if ignored? tbl
               foreign_keys(tbl, stream)
+              divergent_unique_constraints(tbl, stream)
             end
 
             # add synonyms in local schema
@@ -48,6 +49,8 @@ module ActiveRecord # :nodoc:
 
           def _indexes(table, stream)
             if (indexes = @connection.indexes(table)).any?
+              indexes = reject_unique_constraint_indexes(table, indexes)
+
               add_index_statements = indexes.filter_map do |index|
                 case index.type
                 when nil
@@ -79,11 +82,66 @@ module ActiveRecord # :nodoc:
 
           def indexes_in_create(table, stream)
             if (indexes = @connection.indexes(table)).any?
+              indexes = reject_unique_constraint_indexes(table, indexes)
+
               index_statements = indexes.map do |index|
                 "    t.index #{index_parts(index).join(', ')}" unless index.type == "CTXSYS.CONTEXT"
               end
               stream.puts index_statements.compact.sort.join("\n")
             end
+          end
+
+          # Filter only indexes that back a same-name (non-divergent) unique constraint.
+          # Divergent constraints are emitted post-create_table via add_unique_constraint,
+          # so their backing index must remain in the t.index emission.
+          def reject_unique_constraint_indexes(table, indexes)
+            return indexes unless @connection.supports_unique_constraints?
+
+            unique_constraints = @connection.unique_constraints(table)
+            return indexes if unique_constraints.empty?
+
+            backing_index_names = unique_constraints.filter_map { |uc| uc.using_index ? nil : uc.name }
+            indexes.reject { |index| backing_index_names.include?(index.name) }
+          end
+
+          # Inline only same-name unique constraints. Divergent ones (using_index != name)
+          # need the backing index to exist first, so they are emitted as add_unique_constraint
+          # statements after the create_table block via divergent_unique_constraints.
+          def unique_constraints_in_create(table, stream)
+            return unless @connection.supports_unique_constraints?
+
+            inline_ucs = @connection.unique_constraints(table).reject { |uc| uc.using_index }
+            return if inline_ucs.empty?
+
+            statements = inline_ucs.map do |uc|
+              parts = [ uc.column.inspect ]
+              parts << "deferrable: #{uc.deferrable.inspect}" if uc.deferrable
+              parts << "name: #{uc.name.inspect}" if uc.export_name_on_schema_dump?
+
+              "    t.unique_constraint #{parts.join(', ')}"
+            end
+            stream.puts statements.sort.join("\n")
+          end
+
+          def divergent_unique_constraints(table, stream)
+            return unless @connection.supports_unique_constraints?
+
+            ucs = @connection.unique_constraints(table).select { |uc| uc.using_index }
+            return if ucs.empty?
+
+            statements = ucs.map do |uc|
+              parts = [
+                remove_prefix_and_suffix(table).inspect,
+                uc.column.inspect,
+              ]
+              parts << "deferrable: #{uc.deferrable.inspect}" if uc.deferrable
+              parts << "using_index: #{uc.using_index.inspect}"
+              parts << "name: #{uc.name.inspect}" if uc.export_name_on_schema_dump?
+
+              "  add_unique_constraint #{parts.join(', ')}"
+            end
+            stream.puts statements.sort.join("\n")
+            stream.puts
           end
 
           def index_parts(index)
@@ -154,6 +212,7 @@ module ActiveRecord # :nodoc:
               end
 
               indexes_in_create(table, tbl)
+              unique_constraints_in_create(table, tbl)
 
               tbl.puts "  end"
               tbl.puts

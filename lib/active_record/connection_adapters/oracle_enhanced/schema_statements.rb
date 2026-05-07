@@ -612,6 +612,102 @@ module ActiveRecord
           end
         end
 
+        # Returns an array of unique constraints for the given table.
+        # The unique constraints are represented as UniqueConstraintDefinition objects.
+        def unique_constraints(table_name) # :nodoc:
+          (_owner, desc_table_name) = resolve_data_source_name(table_name)
+
+          rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+            SELECT c.constraint_name AS name,
+                   c.index_name,
+                   c.deferrable,
+                   c.deferred,
+                   cc.column_name,
+                   cc.position
+              FROM all_constraints c
+              JOIN all_cons_columns cc
+                ON cc.owner = c.owner
+               AND cc.constraint_name = c.constraint_name
+             WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
+               AND c.table_name = :desc_table_name
+               AND c.constraint_type = 'U'
+             ORDER BY c.constraint_name, cc.position
+          SQL
+
+          grouped = rows.group_by { |row| row["name"] }
+          grouped.map do |name, group|
+            columns = group.sort_by { |r| r["position"] }.map { |r| oracle_downcase(r["column_name"]) }
+            sample = group.first
+            constraint_name = oracle_downcase(name)
+            index_name = oracle_downcase(sample["index_name"])
+
+            options = { name: constraint_name }
+            options[:deferrable] = extract_foreign_key_deferrable(sample["deferrable"], sample["deferred"])
+            if index_name && index_name != constraint_name
+              options[:using_index] = index_name
+            end
+
+            OracleEnhanced::UniqueConstraintDefinition.new(oracle_downcase(table_name), columns, options)
+          end
+        end
+
+        # Adds a new unique constraint to the table.
+        #
+        #   add_unique_constraint :sections, :position, name: "uniq_position", deferrable: :deferred
+        #
+        # generates:
+        #
+        #   ALTER TABLE "sections" ADD CONSTRAINT uniq_position UNIQUE ("position") DEFERRABLE INITIALLY DEFERRED
+        #
+        # If you want the constraint to attach to an existing unique index, use +:using_index+.
+        # Oracle, unlike PostgreSQL, allows the constraint name to differ from its backing index.
+        #
+        #   add_unique_constraint :sections, name: "uniq_position", using_index: "index_sections_on_position"
+        def add_unique_constraint(table_name, column_name = nil, **options)
+          # Oracle's UNIQUE constraint syntax requires the column list even with USING INDEX.
+          if column_name.nil? && options[:using_index]
+            index = indexes(table_name).detect { |idx| idx.name.to_s == options[:using_index].to_s }
+            raise ArgumentError, "No index '#{options[:using_index]}' found on '#{table_name}'" unless index
+            column_name = index.columns
+          end
+
+          options = unique_constraint_options(table_name, column_name, options)
+
+          if unique_constraints(table_name).any? { |uc| uc.name == options[:name].to_s }
+            raise ArgumentError, "Table '#{table_name}' already has a unique constraint named '#{options[:name]}'"
+          end
+
+          at = create_alter_table(table_name)
+          at.add_unique_constraint(column_name, options)
+
+          execute schema_creation.accept(at)
+        end
+
+        def unique_constraint_options(table_name, column_name, options) # :nodoc:
+          assert_valid_deferrable(options[:deferrable])
+
+          if column_name && Array(column_name).any? { |c| c.to_s.include?("(") }
+            raise ArgumentError, "Unique constraints do not support expression columns. Use add_index with :unique => true for functional uniqueness."
+          end
+
+          options = options.dup
+          options[:name] ||= unique_constraint_name(table_name, column: column_name, **options)
+          options
+        end
+
+        # Removes the given unique constraint from the table.
+        #
+        #   remove_unique_constraint :sections, name: "uniq_position"
+        #
+        # The +column_name+ parameter will be ignored if present. It can be helpful
+        # to provide this in a migration's +change+ method so it can be reverted.
+        # In that case, +column_name+ will be used by #add_unique_constraint.
+        def remove_unique_constraint(table_name, column_name = nil, **options)
+          unique_name_to_delete = unique_constraint_for!(table_name, column: column_name, **options).name
+
+          execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(unique_name_to_delete)}"
+        end
+
         # REFERENTIAL INTEGRITY ====================================
 
         def disable_referential_integrity(&block) # :nodoc:
@@ -812,6 +908,26 @@ module ActiveRecord
             return if !deferrable || %i(immediate deferred).include?(deferrable)
 
             raise ArgumentError, "deferrable must be `:immediate` or `:deferred`, got: `#{deferrable.inspect}`"
+          end
+
+          def unique_constraint_name(table_name, **options)
+            options.fetch(:name) do
+              column_or_index = Array(options[:column] || options[:using_index]).map(&:to_s)
+              identifier = "#{table_name}_#{column_or_index * '_and_'}_unique"
+              hashed_identifier = OpenSSL::Digest::SHA256.hexdigest(identifier).first(10)
+
+              "uniq_rails_#{hashed_identifier}"
+            end
+          end
+
+          def unique_constraint_for(table_name, **options)
+            name = unique_constraint_name(table_name, **options) unless options.key?(:column)
+            unique_constraints(table_name).detect { |uc| uc.defined_for?(name: name, **options) }
+          end
+
+          def unique_constraint_for!(table_name, column: nil, **options)
+            unique_constraint_for(table_name, column: column, **options) ||
+              raise(ArgumentError, "Table '#{table_name}' has no unique constraint for #{column || options}")
           end
 
           def create_alter_table(name)
