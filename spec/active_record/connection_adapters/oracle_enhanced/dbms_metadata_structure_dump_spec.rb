@@ -144,19 +144,21 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
     # as VISIBLE.
     it "emits ALTER INDEX ... INVISIBLE for an INVISIBLE constraint-backed index" do
       skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
-      schema_define do
-        create_table :test_dbms_meta_inv_uniq, force: true do |t|
-          t.string :email
+      with_implicit_unique_constraint_enabled do
+        schema_define do
+          create_table :test_dbms_meta_inv_uniq, force: true do |t|
+            t.string :email
+          end
+          add_index :test_dbms_meta_inv_uniq, :email,
+                    unique: true, name: "ix_dbms_meta_inv_uniq", enabled: false
         end
-        add_index :test_dbms_meta_inv_uniq, :email,
-                  unique: true, name: "ix_dbms_meta_inv_uniq", enabled: false
-      end
 
-      dump = @conn.structure_dump
-      alter_stmt = dump.split("\n\n/\n\n").find do |stmt|
-        stmt.match?(/\AALTER\s+INDEX\s+"?IX_DBMS_META_INV_UNIQ"?\s+INVISIBLE\s*\z/i)
+        dump = @conn.structure_dump
+        alter_stmt = dump.split("\n\n/\n\n").find do |stmt|
+          stmt.match?(/\AALTER\s+INDEX\s+"?IX_DBMS_META_INV_UNIQ"?\s+INVISIBLE\s*\z/i)
+        end
+        expect(alter_stmt).not_to be_nil
       end
-      expect(alter_stmt).not_to be_nil
     ensure
       schema_define { drop_table :test_dbms_meta_inv_uniq, if_exists: true }
     end
@@ -230,7 +232,14 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
         create_table :test_dbms_metadata_posts, force: true do |t|
           t.string :email
         end
-        add_index :test_dbms_metadata_posts, :email, unique: true, name: "ix_test_dbms_metadata_email"
+      end
+      # Use the legacy implicit-constraint path so this Oracle 12.1+
+      # DBMS_METADATA path test exercises the "unique index backed by a
+      # same-name UNIQUE constraint" scenario it was written for.
+      with_implicit_unique_constraint_enabled do
+        schema_define do
+          add_index :test_dbms_metadata_posts, :email, unique: true, name: "ix_test_dbms_metadata_email"
+        end
       end
       dump = @conn.structure_dump
       stmts = dump.split("\n\n/\n\n")

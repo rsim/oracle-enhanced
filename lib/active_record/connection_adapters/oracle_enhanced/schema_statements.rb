@@ -309,7 +309,7 @@ module ActiveRecord
           execute schema_creation.accept(create_index)
 
           index = create_index.index
-          if needs_unique_constraint?(index.unique, index.columns) && OracleEnhancedAdapter.add_index_unique_creates_constraint
+          if needs_unique_constraint?(index.unique, index.columns) && implicit_unique_constraint_active?
             warn_implicit_unique_constraint_deprecation
             execute add_unique_constraint_sql(index.table, index.columns, index.name)
           end
@@ -1248,11 +1248,28 @@ module ActiveRecord
           def add_inline_unique_constraints(table_name, td)
             td.indexes.each do |column_name, index_options|
               next unless needs_unique_constraint?(index_options[:unique], column_name)
-              next unless OracleEnhancedAdapter.add_index_unique_creates_constraint
+              next unless implicit_unique_constraint_active?
               warn_implicit_unique_constraint_deprecation
               inline_index_name = index_options[:name]&.to_s || index_name(table_name, column: index_column_names(column_name))
               execute add_unique_constraint_sql(table_name, column_name, inline_index_name)
             end
+          end
+
+          # Implicit UNIQUE CONSTRAINT creation for `add_index unique: true`
+          # is gated by:
+          #
+          # * the global flag `add_index_unique_creates_constraint` (explicit
+          #   user opt-in), OR
+          # * `MigrationCompatibility.implicit_unique_constraint_enabled?`,
+          #   set to true while an `Migration[8.1]` or earlier migration is
+          #   running (legacy default preserved for old migrations).
+          #
+          # In Phase 2, the global flag defaults to `false`, so callers
+          # outside the V8_1 path (Migration[8.2]+, Schema.define, direct
+          # adapter calls) skip the implicit constraint by default.
+          def implicit_unique_constraint_active?
+            return true if OracleEnhancedAdapter.add_index_unique_creates_constraint
+            OracleEnhanced::MigrationCompatibility.implicit_unique_constraint_enabled?
           end
 
           def warn_implicit_unique_constraint_deprecation
