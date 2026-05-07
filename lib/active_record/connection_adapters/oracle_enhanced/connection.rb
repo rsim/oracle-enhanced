@@ -28,11 +28,12 @@ module ActiveRecord
       end
 
       # ORA-00028 your session has been killed
+      # ORA-00031 your session is marked for kill (kill in progress; the session is dead-on-arrival to its next op)
       # ORA-01012 not logged on
       # ORA-03113 end-of-file on communication channel
       # ORA-03114 not connected to ORACLE
       # ORA-03135 connection lost contact
-      LOST_CONNECTION_ERROR_CODES = [28, 1012, 3113, 3114, 3135] # :nodoc:
+      LOST_CONNECTION_ERROR_CODES = [28, 31, 1012, 3113, 3114, 3135] # :nodoc:
 
       class ConnectionException < StandardError # :nodoc:
       end
