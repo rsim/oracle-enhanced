@@ -185,7 +185,9 @@ describe "OracleEnhancedAdapter structure dump" do
 
     it "should dump indexes" do
       ActiveRecord::Base.lease_connection.add_index(:test_posts, :foo, name: :ix_test_posts_foo)
-      ActiveRecord::Base.lease_connection.add_index(:test_posts, :foo_id, name: :ix_test_posts_foo_id, unique: true)
+      ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
+        ActiveRecord::Base.lease_connection.add_index(:test_posts, :foo_id, name: :ix_test_posts_foo_id, unique: true)
+      end
 
       @conn.execute <<~SQL
         ALTER TABLE test_posts

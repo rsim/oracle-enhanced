@@ -113,9 +113,18 @@ ActiveRecord::StructuredEventSubscriber::IGNORE_PAYLOAD_NAMES.replace(["EXPLAIN"
 
 module SchemaSpecHelper
   def schema_define(&block)
-    ActiveRecord::Schema.define do
-      suppress_messages do
-        instance_eval(&block)
+    # `schema_define` is the primary test-infrastructure helper for setting
+    # up tables and indexes inside specs. Silencing deprecation warnings
+    # here keeps the CI's "no leaked DEPRECATION" gate (see RSpec.configure
+    # below) from catching warnings that come from schema setup itself.
+    # Specs that explicitly want to assert on a deprecation should call
+    # `ActiveRecord::Schema.define` (or the adapter API) directly instead
+    # of going through `schema_define`.
+    ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
+      ActiveRecord::Schema.define do
+        suppress_messages do
+          instance_eval(&block)
+        end
       end
     end
   end

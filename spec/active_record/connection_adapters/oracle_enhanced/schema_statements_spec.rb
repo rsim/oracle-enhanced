@@ -786,6 +786,99 @@ end
     end
   end
 
+  describe "add_index unique: true implicit constraint deprecation" do
+    around(:each) do |example|
+      original = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint
+      example.run
+    ensure
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = original
+      schema_define do
+        drop_table :test_dep_warn, if_exists: true
+      end
+    end
+
+    before(:each) do
+      schema_define do
+        create_table :test_dep_warn, force: true do |t|
+          t.string :first_name
+          t.string :last_name
+        end
+      end
+    end
+
+    it "emits a deprecation warning and creates the implicit constraint by default" do
+      expect {
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = true
+        @conn.add_index :test_dep_warn, :first_name, unique: true, name: :uniq_dep_default
+      }.to output(/add_index :col, unique: true creates an implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.unique_constraints(:test_dep_warn).map(&:name)).to include("uniq_dep_default")
+    end
+
+    it "does not emit a warning and does not create the constraint when the flag is false" do
+      expect {
+        ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = false
+        @conn.add_index :test_dep_warn, :first_name, unique: true, name: :uniq_dep_off
+      }.not_to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.unique_constraints(:test_dep_warn).map(&:name)).not_to include("uniq_dep_off")
+      expect(@conn.indexes(:test_dep_warn).map(&:name)).to include("uniq_dep_off")
+    end
+
+    it "skips both the warning and the constraint for functional unique indexes regardless of the flag" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = true
+
+      expect {
+        @conn.add_index :test_dep_warn, "LOWER(first_name)", unique: true, name: :uniq_dep_func
+      }.not_to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.unique_constraints(:test_dep_warn).map(&:name)).not_to include("uniq_dep_func")
+    end
+
+    it "emits the deprecation warning for inline t.index :col, unique: true inside create_table" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = true
+      begin
+        # Bypass `schema_define` here — it wraps in `OracleEnhanced.deprecator.silence`,
+        # which would suppress the very warning we want to capture.
+        expect {
+          ActiveRecord::Schema.define do
+            create_table :test_dep_inline, force: true do |t|
+              t.string :first_name
+              t.index :first_name, unique: true, name: :uniq_dep_inline
+            end
+          end
+        }.to output(/add_index :col, unique: true creates an implicit named UNIQUE constraint/).to_stderr
+
+        expect(@conn.unique_constraints(:test_dep_inline).map(&:name)).to include("uniq_dep_inline")
+      ensure
+        schema_define { drop_table :test_dep_inline, if_exists: true }
+      end
+    end
+
+    it "emits the deprecation warning for composite-column add_index unique: true" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = true
+
+      expect {
+        @conn.add_index :test_dep_warn, [:first_name, :last_name], unique: true, name: :uniq_dep_composite
+      }.to output(/add_index :col, unique: true creates an implicit named UNIQUE constraint/).to_stderr
+
+      uc = @conn.unique_constraints(:test_dep_warn).detect { |u| u.name == "uniq_dep_composite" }
+      expect(uc).not_to be_nil
+    end
+
+    it "includes a 'called from' frame in the deprecation warning so users can locate the call site" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = true
+
+      # Lightweight call-site check: relies on ActiveSupport::Deprecation's
+      # default `[:stderr]` behavior, which emits `(called from <caller>)`
+      # appended to the message. If a future Rails release changes that
+      # format, update the regex here rather than removing the assertion.
+      expect {
+        @conn.add_index :test_dep_warn, :first_name, unique: true, name: :uniq_dep_caller
+      }.to output(/\(called from /).to_stderr
+    end
+  end
+
   describe "add_index with if_not_exists" do
     before(:each) do
       schema_define do

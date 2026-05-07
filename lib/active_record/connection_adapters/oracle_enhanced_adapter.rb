@@ -239,6 +239,23 @@ module ActiveRecord
 
       ##
       # :singleton-method:
+      # Controls whether <tt>add_index :col, unique: true</tt> implicitly creates
+      # a same-named UNIQUE CONSTRAINT in addition to the unique index. This
+      # behavior was introduced so that Oracle-specific FK targetability worked
+      # with Rails-standard <tt>add_index unique: true</tt> migrations, but the
+      # explicit <tt>add_unique_constraint</tt> DSL is now the recommended path
+      # for callers who actually need a constraint. Defaults to +true+ for
+      # backward compatibility; will flip to +false+ in a future release.
+      #
+      # Set to +false+ in an initializer to opt out of the implicit-constraint
+      # behavior (and silence the deprecation warning) immediately:
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = false
+      cattr_accessor :add_index_unique_creates_constraint
+      self.add_index_unique_creates_constraint = true
+
+      ##
+      # :singleton-method:
       # Selects the Arel visitor used to compile SQL for the connection.
       #
       # * +:auto+ — pick based on the connected database version:

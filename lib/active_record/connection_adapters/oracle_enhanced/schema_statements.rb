@@ -287,7 +287,8 @@ module ActiveRecord
           execute schema_creation.accept(create_index)
 
           index = create_index.index
-          if needs_unique_constraint?(index.unique, index.columns)
+          if needs_unique_constraint?(index.unique, index.columns) && OracleEnhancedAdapter.add_index_unique_creates_constraint
+            warn_implicit_unique_constraint_deprecation
             execute add_unique_constraint_sql(index.table, index.columns, index.name)
           end
         end
@@ -825,9 +826,36 @@ module ActiveRecord
           def add_inline_unique_constraints(table_name, td)
             td.indexes.each do |column_name, index_options|
               next unless needs_unique_constraint?(index_options[:unique], column_name)
+              next unless OracleEnhancedAdapter.add_index_unique_creates_constraint
+              warn_implicit_unique_constraint_deprecation
               inline_index_name = index_options[:name]&.to_s || index_name(table_name, column: index_column_names(column_name))
               execute add_unique_constraint_sql(table_name, column_name, inline_index_name)
             end
+          end
+
+          def warn_implicit_unique_constraint_deprecation
+            OracleEnhanced.deprecator.warn(<<~MSG)
+              add_index :col, unique: true creates an implicit named UNIQUE constraint on Oracle,
+              in addition to the unique index. This implicit-constraint behavior will be removed
+              in a future oracle-enhanced release.
+
+              To silence this warning, set the flag in an initializer:
+
+                ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = false
+
+              After setting the flag, choose the path that matches your intent:
+
+              * Unique INDEX only (typical when foreign keys reference primary keys):
+                no migration changes needed — add_index :col, unique: true keeps creating
+                the unique index, just without the extra UNIQUE CONSTRAINT.
+
+              * Unique INDEX + UNIQUE CONSTRAINT (needed when this column is a non-PK
+                foreign-key target, which Oracle only allows against named constraints):
+                use add_unique_constraint instead — it creates both the constraint and
+                its backing unique index in one call, e.g.
+
+                  add_unique_constraint :sections, :position, name: :uniq_position
+            MSG
           end
 
           def validate_identity_options!(identity, id, primary_key)
