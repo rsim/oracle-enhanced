@@ -625,6 +625,122 @@ describe "OracleEnhancedAdapter schema definition" do
   end
 end
 
+  describe "remove index" do
+    before(:each) do
+      schema_define do
+        create_table :test_employees do |t|
+          t.string :first_name
+          t.string :last_name
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_employees, if_exists: true
+      end
+      ActiveRecord::Base.clear_cache!
+    end
+
+    def capture_sql
+      captured = []
+      subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+        captured << payload[:sql]
+      end
+      yield
+      captured
+    ensure
+      ActiveSupport::Notifications.unsubscribe(subscriber)
+    end
+
+    it "drops a non-unique index without issuing a DROP CONSTRAINT" do
+      schema_define do
+        add_index :test_employees, :first_name, name: :idx_test_employees_first_name
+      end
+
+      sqls = capture_sql do
+        schema_define do
+          remove_index :test_employees, :first_name
+        end
+      end
+
+      drop_constraint = sqls.find { |s| s =~ /DROP CONSTRAINT.*idx_test_employees_first_name/i }
+      drop_index = sqls.find { |s| s =~ /DROP INDEX.*idx_test_employees_first_name/i }
+
+      expect(drop_constraint).to be_nil
+      expect(drop_index).not_to be_nil
+      expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
+    end
+
+    it "drops a unique index together with its implicit constraint" do
+      schema_define do
+        add_index :test_employees, :first_name, unique: true, name: :uniq_test_employees_first_name
+      end
+
+      sqls = capture_sql do
+        schema_define do
+          remove_index :test_employees, :first_name
+        end
+      end
+
+      drop_constraint = sqls.find { |s| s =~ /DROP CONSTRAINT.*uniq_test_employees_first_name/i }
+      drop_index = sqls.find { |s| s =~ /DROP INDEX.*uniq_test_employees_first_name/i }
+
+      expect(drop_constraint).not_to be_nil
+      expect(drop_index).not_to be_nil
+      expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
+      expect(@conn.unique_constraints(:test_employees).map(&:name)).not_to include("uniq_test_employees_first_name")
+    end
+
+    it "honors if_exists: true when the index is missing" do
+      sqls = capture_sql do
+        schema_define do
+          remove_index :test_employees, :first_name, if_exists: true
+        end
+      end
+
+      expect(sqls.none? { |s| s =~ /DROP\s+(INDEX|CONSTRAINT)/i }).to be(true)
+    end
+
+    it "drops a unique functional index without issuing DROP CONSTRAINT" do
+      schema_define do
+        add_index :test_employees, "LOWER(first_name)", unique: true, name: :uniq_lower_first_name
+      end
+
+      sqls = capture_sql do
+        schema_define do
+          remove_index :test_employees, name: :uniq_lower_first_name
+        end
+      end
+
+      drop_constraint = sqls.find { |s| s =~ /DROP CONSTRAINT.*uniq_lower_first_name/i }
+      drop_index = sqls.find { |s| s =~ /DROP INDEX.*uniq_lower_first_name/i }
+
+      expect(drop_constraint).to be_nil
+      expect(drop_index).not_to be_nil
+    end
+
+    it "skips DROP CONSTRAINT after the implicit constraint was manually dropped" do
+      schema_define do
+        add_index :test_employees, :first_name, unique: true, name: :uniq_manual_drop
+      end
+      @conn.execute "ALTER TABLE test_employees DROP CONSTRAINT uniq_manual_drop"
+
+      sqls = capture_sql do
+        schema_define do
+          remove_index :test_employees, name: :uniq_manual_drop
+        end
+      end
+
+      drop_constraint = sqls.find { |s| s =~ /DROP CONSTRAINT/i }
+      drop_index = sqls.find { |s| s =~ /DROP INDEX/i }
+
+      expect(drop_constraint).to be_nil
+      expect(drop_index).not_to be_nil
+      expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
+    end
+  end
+
   describe "add_index with if_not_exists" do
     before(:each) do
       schema_define do
