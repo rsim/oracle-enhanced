@@ -625,7 +625,7 @@ module ActiveRecord
 
           # `search_condition` is LONG; cannot appear in WHERE (ORA-00997).
           rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
-            SELECT constraint_name AS name, search_condition
+            SELECT constraint_name AS name, search_condition, validated
               FROM all_constraints
              WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
                AND table_name = :desc_table_name
@@ -637,8 +637,21 @@ module ActiveRecord
           rows.filter_map do |row|
             next if row["search_condition"].nil?
             options = { name: oracle_downcase(row["name"]) }
+            options[:validate] = false if row["validated"] == "NOT VALIDATED"
             CheckConstraintDefinition.new(oracle_downcase(table_name), row["search_condition"], options)
           end
+        end
+
+        def validate_constraint(table_name, constraint_name) # :nodoc:
+          at = create_alter_table(table_name)
+          at.validate_constraint(constraint_name)
+
+          execute schema_creation.accept(at)
+        end
+
+        def validate_check_constraint(table_name, **options) # :nodoc:
+          chk_name_to_validate = check_constraint_for!(table_name, **options).name
+          validate_constraint(table_name, chk_name_to_validate)
         end
 
         # Returns an array of unique constraints for the given table.

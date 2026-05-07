@@ -94,6 +94,15 @@ module ActiveRecord
           def visit_AlterTable(o)
             sql = super
             sql << o.unique_constraint_adds.map { |c| visit_AddUniqueConstraint(c) }.join(" ")
+            sql << o.constraint_validations.map { |name| visit_ValidateConstraint(name) }.join(" ")
+          end
+
+          def visit_CheckConstraintDefinition(o)
+            super.dup.tap { |sql| sql << " NOVALIDATE" unless o.validate? }
+          end
+
+          def visit_ValidateConstraint(name)
+            "MODIFY CONSTRAINT #{quote_column_name(name)} VALIDATE"
           end
 
           def visit_UniqueConstraintDefinition(o)
