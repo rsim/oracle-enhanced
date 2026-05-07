@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "primary_key_trigger" do
+RSpec.describe "primary_key_trigger" do
   include SchemaSpecHelper
   include LoggerSpecHelper
 

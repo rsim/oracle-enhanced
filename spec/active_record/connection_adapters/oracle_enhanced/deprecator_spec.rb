@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe ActiveRecord::ConnectionAdapters::OracleEnhanced do
+RSpec.describe ActiveRecord::ConnectionAdapters::OracleEnhanced do
   describe ".deprecator" do
     subject(:deprecator) { described_class.deprecator }
 

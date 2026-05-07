@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter integer type detection based on attribute settings" do
+RSpec.describe "OracleEnhancedAdapter integer type detection based on attribute settings" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     conn = ActiveRecord::Base.lease_connection

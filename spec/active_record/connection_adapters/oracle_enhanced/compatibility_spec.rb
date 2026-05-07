@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "compatibility migrations" do
+RSpec.describe "compatibility migrations" do
   include SchemaSpecHelper
 
   before(:all) do

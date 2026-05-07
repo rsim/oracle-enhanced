@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter handling of RAW columns" do
+RSpec.describe "OracleEnhancedAdapter handling of RAW columns" do
   include SchemaSpecHelper
 
   before(:all) do

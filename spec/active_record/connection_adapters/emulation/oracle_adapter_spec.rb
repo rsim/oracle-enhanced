@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter emulate OracleAdapter" do
+RSpec.describe "OracleEnhancedAdapter emulate OracleAdapter" do
   after(:all) do
     # Restore the default connection in case the example below replaced it.
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)

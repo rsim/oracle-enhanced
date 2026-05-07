@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
+RSpec.describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection

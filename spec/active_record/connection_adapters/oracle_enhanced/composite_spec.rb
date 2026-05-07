@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter should support composite primary" do
+RSpec.describe "OracleEnhancedAdapter should support composite primary" do
   include SchemaSpecHelper
 
   before(:all) do

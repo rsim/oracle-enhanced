@@ -5,7 +5,7 @@ require "active_support/testing/stream"
 require "stringio"
 require "tempfile"
 
-describe "Oracle Enhanced adapter database tasks" do
+RSpec.describe "Oracle Enhanced adapter database tasks" do
   include SchemaSpecHelper
 
   let(:config) { CONNECTION_PARAMS.with_indifferent_access }

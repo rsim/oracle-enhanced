@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter schema dump" do
+RSpec.describe "OracleEnhancedAdapter schema dump" do
   include SchemaSpecHelper
   include SchemaDumpingHelper
 

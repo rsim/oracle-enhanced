@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter::Version" do
+RSpec.describe "OracleEnhancedAdapter::Version" do
   let(:adapter_class) { ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter }
   let(:version_class) { adapter_class::Version }
 

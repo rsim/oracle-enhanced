@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter identifier length configuration" do
+RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
   let(:adapter_class) { ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter }
 
   before(:each) do

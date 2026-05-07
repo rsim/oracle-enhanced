@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "OracleEnhancedAdapter dirty object tracking" do
+RSpec.describe "OracleEnhancedAdapter dirty object tracking" do
   include SchemaSpecHelper
 
   before(:all) do
