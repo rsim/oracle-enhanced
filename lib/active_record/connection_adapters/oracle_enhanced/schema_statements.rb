@@ -332,8 +332,9 @@ module ActiveRecord
           return if options[:if_exists] && !index_exists?(table_name, column_name, **options)
 
           index_name = index_name_for_remove(table_name, column_name, options)
-          # TODO: It should execute only when index_type == "UNIQUE"
-          execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(index_name)}" rescue nil
+          if unique_constraints(table_name).any? { |uc| uc.name == index_name }
+            execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(index_name)}"
+          end
           execute "DROP INDEX #{quote_column_name(index_name)}"
         end
 
