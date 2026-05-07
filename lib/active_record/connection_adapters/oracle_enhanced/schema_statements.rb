@@ -331,8 +331,15 @@ module ActiveRecord
         def remove_index(table_name, column_name = nil, **options) # :nodoc:
           return if options[:if_exists] && !index_exists?(table_name, column_name, **options)
 
-          index_name = index_name_for_remove(table_name, column_name, options)
-          if unique_constraints(table_name).any? { |uc| uc.name == index_name }
+          index_name = index_name_for_remove(table_name, column_name, options).to_s
+          ucs = unique_constraints(table_name)
+
+          divergent = ucs.detect { |uc| uc.using_index == index_name }
+          if divergent
+            raise ArgumentError, "Index '#{index_name}' on table '#{table_name}' is used by unique constraint '#{divergent.name}' (USING INDEX #{index_name}). Call remove_unique_constraint(:#{table_name}, name: \"#{divergent.name}\") first, then remove_index."
+          end
+
+          if ucs.any? { |uc| uc.name == index_name }
             execute "ALTER TABLE #{quote_table_name(table_name)} DROP CONSTRAINT #{quote_column_name(index_name)}"
           end
           execute "DROP INDEX #{quote_column_name(index_name)}"
