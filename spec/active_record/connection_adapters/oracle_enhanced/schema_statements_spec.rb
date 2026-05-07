@@ -739,6 +739,51 @@ end
       expect(drop_index).not_to be_nil
       expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
     end
+
+    it "drops a unique index and its implicit constraint when name is given as a Symbol" do
+      schema_define do
+        add_index :test_employees, :first_name, unique: true, name: :uniq_sym_name
+      end
+
+      schema_define do
+        remove_index :test_employees, name: :uniq_sym_name
+      end
+
+      expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
+      expect(@conn.unique_constraints(:test_employees).map(&:name)).not_to include("uniq_sym_name")
+    end
+
+    it "raises ArgumentError when a divergent unique constraint references the index" do
+      schema_define do
+        add_index :test_employees, :first_name, name: :idx_divergent
+        add_unique_constraint :test_employees, name: "uniq_divergent", using_index: :idx_divergent
+      end
+
+      expect {
+        schema_define do
+          remove_index :test_employees, name: :idx_divergent
+        end
+      }.to raise_error(ArgumentError, /idx_divergent.*used by unique constraint 'uniq_divergent'.*remove_unique_constraint/)
+
+      # Ensure neither the index nor the constraint were touched.
+      expect(@conn.index_exists?(:test_employees, :first_name)).to be(true)
+      expect(@conn.unique_constraints(:test_employees).map(&:name)).to include("uniq_divergent")
+    end
+
+    it "succeeds when the divergent constraint is dropped before the index" do
+      schema_define do
+        add_index :test_employees, :first_name, name: :idx_divergent_ok
+        add_unique_constraint :test_employees, name: "uniq_divergent_ok", using_index: :idx_divergent_ok
+      end
+
+      schema_define do
+        remove_unique_constraint :test_employees, name: "uniq_divergent_ok"
+        remove_index :test_employees, name: :idx_divergent_ok
+      end
+
+      expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
+      expect(@conn.unique_constraints(:test_employees).map(&:name)).not_to include("uniq_divergent_ok")
+    end
   end
 
   describe "add_index with if_not_exists" do
