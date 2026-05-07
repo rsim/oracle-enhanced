@@ -646,7 +646,7 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
 
     it "does not double-emit t.index unique: true for an index that backs a unique constraint" do
       schema_define do
-        add_index :test_sections, :position, unique: true, name: :uniq_via_idx
+        add_unique_constraint :test_sections, :position, name: :uniq_via_idx
       end
       output = dump_table_schema "test_sections"
       expect(output).not_to match(/t\.index .*"uniq_via_idx".*unique: true/)
