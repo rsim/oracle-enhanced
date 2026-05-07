@@ -33,6 +33,10 @@ module ActiveRecord
               statements.concat(o.unique_constraints.map { |uc| accept uc })
             end
 
+            if supports_check_constraints? && o.respond_to?(:check_constraints)
+              statements.concat(o.check_constraints.map { |chk| accept chk })
+            end
+
             create_sql << "(#{statements.join(', ')})" if statements.present?
 
             unless o.temporary

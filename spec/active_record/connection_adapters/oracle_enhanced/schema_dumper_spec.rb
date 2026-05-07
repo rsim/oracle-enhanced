@@ -324,6 +324,47 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "check constraints" do
+    before(:each) do
+      schema_define do
+        create_table :test_products, force: true do |t|
+          t.integer :price
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_products, if_exists: true
+      end
+    end
+
+    it "dumps a check constraint as t.check_constraint inside create_table" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "price_dump_check"
+      end
+      output = dump_table_schema "test_products"
+      expect(output).to match(/t\.check_constraint .*name: "price_dump_check"/)
+    end
+
+    it "round-trips a check constraint through dump and load" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "price_rt_check"
+      end
+
+      dumped = dump_table_schema "test_products"
+      schema_define do
+        drop_table :test_products, if_exists: true
+      end
+
+      body = dumped[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { instance_eval(body) }
+
+      cc = @conn.check_constraints(:test_products).detect { |c| c.name == "price_rt_check" }
+      expect(cc).not_to be_nil
+    end
+  end
+
   describe "unique constraints" do
     before(:each) do
       schema_define do

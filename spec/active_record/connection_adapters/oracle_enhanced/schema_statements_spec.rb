@@ -1166,6 +1166,100 @@ end
     end
   end
 
+  describe "check constraints" do
+    before(:each) do
+      schema_define do
+        create_table :test_products, force: true do |t|
+          t.integer :price
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_products, if_exists: true
+      end
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "adds a check constraint with an explicit name" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "price_check"
+      end
+      ccs = @conn.check_constraints(:test_products)
+      expect(ccs.size).to eq(1)
+      expect(ccs.first.name).to eq("price_check")
+      expect(ccs.first.expression).to match(/price\s*>\s*0/i)
+    end
+
+    it "auto-generates a name when none is supplied" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0"
+      end
+      cc = @conn.check_constraints(:test_products).first
+      expect(cc).not_to be_nil
+      expect(cc.name).to match(/\Achk_rails_[0-9a-f]{10}\z/)
+    end
+
+    it "drains t.check_constraint declared inline in create_table" do
+      schema_define do
+        drop_table :test_products, if_exists: true
+        create_table :test_products, force: true do |t|
+          t.integer :price
+          t.check_constraint "price > 100", name: "inline_check"
+        end
+      end
+      cc = @conn.check_constraints(:test_products).detect { |c| c.name == "inline_check" }
+      expect(cc).not_to be_nil
+    end
+
+    it "removes a check constraint by name" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "rm_check"
+        remove_check_constraint :test_products, name: "rm_check"
+      end
+      expect(@conn.check_constraints(:test_products).map(&:name)).not_to include("rm_check")
+    end
+
+    it "honors if_not_exists: true on add_check_constraint" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "ifne_check"
+        add_check_constraint :test_products, "price > 0", name: "ifne_check", if_not_exists: true
+      end
+      expect(@conn.check_constraints(:test_products).map(&:name).count("ifne_check")).to eq(1)
+    end
+
+    it "honors if_exists: true on remove_check_constraint" do
+      expect {
+        schema_define do
+          remove_check_constraint :test_products, name: "nonexistent_check", if_exists: true
+        end
+      }.not_to raise_error
+    end
+
+    it "raises ArgumentError on remove_check_constraint for a missing constraint without if_exists" do
+      expect {
+        schema_define do
+          remove_check_constraint :test_products, name: "nonexistent_check"
+        end
+      }.to raise_error(ArgumentError, /no check constraint/)
+    end
+
+    it "supports a multi-column CHECK expression" do
+      schema_define do
+        drop_table :test_products, if_exists: true
+        create_table :test_products, force: true do |t|
+          t.integer :price
+          t.integer :quantity
+        end
+        add_check_constraint :test_products, "price > 0 AND quantity >= 0", name: "multi_col_check"
+      end
+      cc = @conn.check_constraints(:test_products).detect { |c| c.name == "multi_col_check" }
+      expect(cc).not_to be_nil
+      expect(cc.expression).to match(/price\s*>\s*0\s+and\s+quantity\s*>=\s*0/i)
+    end
+  end
+
   describe "unique constraints" do
     before(:each) do
       schema_define do
