@@ -587,7 +587,7 @@ RSpec.describe "OracleEnhancedAdapter" do
 
     it "includes synonyms in data_source" do
       conn = ActiveRecord::Base.lease_connection
-      expect(conn).to be_data_source_exist("synonym_comments")
+      expect(conn).to be_data_source_exists("synonym_comments")
       expect(conn.data_sources).to include("synonym_comments")
     end
   end
