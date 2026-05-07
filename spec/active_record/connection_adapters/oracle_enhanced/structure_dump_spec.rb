@@ -235,6 +235,12 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
       expect(dump).to match(/ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "TEST_POSTS_TITLE_CHECK" CHECK/)
     end
 
+    it "should dump check constraints added via add_check_constraint DSL" do
+      ActiveRecord::Base.lease_connection.add_check_constraint(:test_posts, "LENGTH(title) > 0", name: "test_posts_dsl_title_check")
+      dump = ActiveRecord::Base.lease_connection.structure_dump
+      expect(dump).to match(/ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "TEST_POSTS_DSL_TITLE_CHECK" CHECK/)
+    end
+
     it "should dump table comments" do
       comment_sql = %Q(COMMENT ON TABLE "TEST_POSTS" IS 'Test posts with ''some'' "quotes"')
       @conn.execute comment_sql

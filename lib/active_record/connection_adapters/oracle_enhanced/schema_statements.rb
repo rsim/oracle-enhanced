@@ -619,6 +619,28 @@ module ActiveRecord
           end
         end
 
+        # `generated = 'USER NAME'` skips implicit NOT NULL checks (system-named, type 'C').
+        def check_constraints(table_name) # :nodoc:
+          (_owner, desc_table_name) = resolve_data_source_name(table_name)
+
+          # `search_condition` is LONG; cannot appear in WHERE (ORA-00997).
+          rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+            SELECT constraint_name AS name, search_condition
+              FROM all_constraints
+             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+               AND table_name = :desc_table_name
+               AND constraint_type = 'C'
+               AND generated = 'USER NAME'
+             ORDER BY constraint_name
+          SQL
+
+          rows.filter_map do |row|
+            next if row["search_condition"].nil?
+            options = { name: oracle_downcase(row["name"]) }
+            CheckConstraintDefinition.new(oracle_downcase(table_name), row["search_condition"], options)
+          end
+        end
+
         # Returns an array of unique constraints for the given table.
         # The unique constraints are represented as UniqueConstraintDefinition objects.
         def unique_constraints(table_name) # :nodoc:

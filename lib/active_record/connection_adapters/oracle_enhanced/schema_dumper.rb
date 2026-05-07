@@ -213,9 +213,15 @@ module ActiveRecord # :nodoc:
 
               indexes_in_create(table, tbl)
               unique_constraints_in_create(table, tbl)
+              remaining = check_constraints_in_create(table, tbl) if @connection.supports_check_constraints?
 
               tbl.puts "  end"
               tbl.puts
+
+              if remaining
+                tbl.print remaining.string
+                tbl.puts
+              end
 
               _indexes(table, tbl)
 

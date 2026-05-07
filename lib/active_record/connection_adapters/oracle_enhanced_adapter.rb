@@ -503,6 +503,10 @@ module ActiveRecord
         true
       end
 
+      def supports_check_constraints?
+        true
+      end
+
       def supports_optimizer_hints?
         true
       end
