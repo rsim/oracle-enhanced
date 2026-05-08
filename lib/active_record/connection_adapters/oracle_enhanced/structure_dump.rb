@@ -161,20 +161,9 @@ module ActiveRecord # :nodoc:
         end
 
         def structure_dump_indexes(table_name) # :nodoc:
-          indexes(table_name).map do |options|
-            column_names = options.columns
-            options = { name: options.name, unique: options.unique }
-            index_name = index_name(table_name, column: column_names)
-            if Hash === options # legacy support, since this param was a string
-              unique = options[:unique]
-              index_name = options[:name] || index_name
-            else
-              # Legacy String form only ever carried "UNIQUE" / ""; BITMAP and
-              # other index_types were never supported via this helper.
-              unique = (options == "UNIQUE")
-            end
-            quoted_column_names = column_names.map { |e| quote_column_name_or_expression(e) }.join(", ")
-            "CREATE#{' UNIQUE' if unique} INDEX #{quote_column_name(index_name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
+          indexes(table_name).map do |index|
+            quoted_column_names = index.columns.map { |c| quote_column_name_or_expression(c) }.join(", ")
+            "CREATE#{' UNIQUE' if index.unique} INDEX #{quote_column_name(index.name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
           end
         end
 
