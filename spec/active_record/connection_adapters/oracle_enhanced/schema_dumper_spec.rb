@@ -148,6 +148,75 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "index sort order" do
+    before(:each) do
+      schema_define do
+        create_table :test_idx_sort_dump, force: true do |t|
+          t.string :first_name
+          t.string :last_name
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_idx_sort_dump, if_exists: true
+      end
+    end
+
+    it "dumps order: { col: :desc } for descending indexes" do
+      schema_define do
+        add_index :test_idx_sort_dump, [:first_name, :last_name],
+                  name: "ix_dump_sort", order: { last_name: :desc }
+      end
+      output = dump_table_schema "test_idx_sort_dump"
+      expect(output).to match(/t\.index \[.*first_name.*last_name.*\], name: "ix_dump_sort", order: \{ last_name: :desc \}/im)
+    end
+
+    it "round-trips a DESC index through dump and load" do
+      schema_define do
+        add_index :test_idx_sort_dump, [:first_name, :last_name],
+                  name: "ix_rt_sort", order: { last_name: :desc }
+      end
+      dumped = dump_table_schema "test_idx_sort_dump"
+      schema_define do
+        drop_table :test_idx_sort_dump, if_exists: true
+      end
+      body = dumped[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { instance_eval(body) }
+      desc_count = ActiveRecord::Base.lease_connection.select_value(<<~SQL.squish)
+        SELECT COUNT(*) FROM all_ind_columns
+         WHERE index_owner = SYS_CONTEXT('userenv', 'current_schema')
+           AND index_name = 'IX_RT_SORT'
+           AND descend = 'DESC'
+      SQL
+      expect(desc_count).to eq(1)
+    end
+
+    it "dumps a single-column DESC index" do
+      schema_define do
+        add_index :test_idx_sort_dump, :last_name,
+                  name: "ix_single_desc", order: :desc
+      end
+      output = dump_table_schema "test_idx_sort_dump"
+      expect(output).to match(/t\.index \[.*last_name.*\], name: "ix_single_desc", order: \{ last_name: :desc \}/im)
+    end
+
+    it "dumps a function-based DESC index without invalid order hash" do
+      # Function-based + DESC: AR core's hash formatter cannot emit
+      # `order: { LOWER("NAME"): :desc }` as valid Ruby (the key is not a
+      # bare identifier). The reader skips DESC tracking in that case so
+      # the dump stays parseable; DESC fidelity is lost on round-trip.
+      schema_define do
+        add_index :test_idx_sort_dump, "LOWER(last_name)",
+                  name: "ix_expr_desc", order: :desc
+      end
+      output = dump_table_schema "test_idx_sort_dump"
+      expect(output).to include('name: "ix_expr_desc"')
+      expect(output).not_to match(/order: \{ LOWER/)
+    end
+  end
+
   describe "foreign key constraints" do
     # Recreate the canonical tables before each example. One example
     # (`should include primary_key when reference column name is not 'id'`)

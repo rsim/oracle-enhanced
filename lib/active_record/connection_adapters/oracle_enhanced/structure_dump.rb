@@ -162,7 +162,12 @@ module ActiveRecord # :nodoc:
 
         def structure_dump_indexes(table_name) # :nodoc:
           indexes(table_name).map do |index|
-            quoted_column_names = index.columns.map { |c| quote_column_name_or_expression(c) }.join(", ")
+            orders = index.orders || {}
+            quoted_column_names = index.columns.map do |c|
+              sql = quote_column_name_or_expression(c)
+              sql = "#{sql} DESC" if orders[c] == :desc
+              sql
+            end.join(", ")
             "CREATE#{' UNIQUE' if index.unique} INDEX #{quote_column_name(index.name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
           end
         end

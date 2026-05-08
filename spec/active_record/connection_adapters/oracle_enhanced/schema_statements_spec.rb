@@ -586,6 +586,31 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       expect(@conn.supports_expression_index?).to be(true)
     end
 
+    it "supports per-column sort order in add_index" do
+      schema_define do
+        create_table :test_idx_sort, force: true do |t|
+          t.string :first_name
+          t.string :last_name
+        end
+        add_index :test_idx_sort, [:first_name, :last_name],
+                  name: "ix_sort_order",
+                  order: { first_name: :asc, last_name: :desc }
+      end
+      desc_count = @conn.select_value(<<~SQL.squish)
+        SELECT COUNT(*) FROM all_ind_columns
+         WHERE index_owner = SYS_CONTEXT('userenv', 'current_schema')
+           AND index_name = 'IX_SORT_ORDER'
+           AND descend = 'DESC'
+      SQL
+      expect(desc_count).to eq(1)
+    ensure
+      schema_define { drop_table :test_idx_sort, if_exists: true }
+    end
+
+    it "reports supports_index_sort_order? as true" do
+      expect(@conn.supports_index_sort_order?).to be(true)
+    end
+
     it "measures default index name length in bytes, not characters" do
       max = @conn.index_name_length
       # "index_t_on_<col>" fits in `max` characters but overflows in bytes
