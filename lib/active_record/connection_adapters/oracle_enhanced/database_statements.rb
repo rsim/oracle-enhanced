@@ -222,18 +222,30 @@ module ActiveRecord
         end
 
         def build_insert_sql(insert) # :nodoc:
-          if insert.skip_duplicates? || insert.update_duplicates?
-            raise NotImplementedError,
-                  "Oracle insert_all does not yet support :on_duplicate (skip/update). " \
-                  "Use a MERGE statement directly until upsert_all support lands (tracked separately)."
+          if insert.update_duplicates?
+            return build_merge_sql(insert, on_duplicate: :update)
+          elsif insert.skip_duplicates?
+            return build_merge_sql(insert, on_duplicate: :skip)
           end
 
           rows = split_values_list(insert.values_list)
-          rows_sql = rows.map { |row| "  #{insert.into} VALUES #{row}" }.join("\n")
-          # `INSERT ALL ... SELECT 1 FROM DUAL` is Oracle's bulk-insert idiom.
-          # Active Record's RETURNING expectations don't apply here -- INSERT ALL
-          # cannot carry a RETURNING clause -- so `insert.returning` is dropped.
-          "INSERT ALL\n#{rows_sql}\nSELECT 1 FROM DUAL"
+          model = insert.send(:model)
+          pk = model.primary_key
+          pk_in_keys = pk.is_a?(String) || pk.is_a?(Symbol) ?
+            insert.send(:keys_including_timestamps).include?(pk.to_s) : true
+
+          if pk_in_keys
+            # Standard INSERT ALL path. AR's `returning:` does NOT round-trip --
+            # INSERT ALL cannot carry a RETURNING clause per Oracle SQL Reference.
+            rows_sql = rows.map { |row| "  #{insert.into} VALUES #{row}" }.join("\n")
+            "INSERT ALL\n#{rows_sql}\nSELECT 1 FROM DUAL"
+          else
+            # Auto-PK injection path. INSERT ALL evaluates `seq.NEXTVAL` only
+            # once per statement (causing ORA-00001), so we route through
+            # `INSERT INTO t (...) SELECT seq.NEXTVAL, ... FROM dual UNION ALL ...`
+            # where NEXTVAL is evaluated per row of the SELECT.
+            build_insert_select_with_nextval(insert, rows)
+          end
         end
 
         # Writes LOB values from attributes for specified columns
@@ -392,6 +404,142 @@ module ActiveRecord
               warning.sql = sql
               ActiveRecord.db_warnings_action.call(warning)
             end
+          end
+
+          # PoC: when the PK isn't supplied, wrap the values in a subquery and
+          # SELECT seq.NEXTVAL from the outer query. Oracle disallows NEXTVAL
+          # directly inside `UNION ALL` branches (ORA-02287), so we layer it as:
+          #
+          #   INSERT INTO t (pk, col1, col2)
+          #   SELECT seq.NEXTVAL, col1, col2 FROM (
+          #     SELECT 'a' AS col1, 1 AS col2 FROM dual UNION ALL
+          #     SELECT 'b' AS col1, 2 AS col2 FROM dual
+          #   )
+          def build_insert_select_with_nextval(insert, rows)
+            model = insert.send(:model)
+            pk = model.primary_key
+            seq_name = default_sequence_name(model.table_name, nil)
+            unless seq_name && oracle_sequence_exists?(seq_name)
+              raise NotImplementedError,
+                    "Oracle insert_all without explicit primary key requires a sequence " \
+                    "named #{seq_name.inspect} for the table; none found."
+            end
+
+            quoted_seq = "#{quote_table_name(seq_name)}.NEXTVAL"
+            keys = insert.send(:keys_including_timestamps)
+            new_into = insert.into.sub(/\(([^)]*)\)\z/) { "(#{quote_column_name(pk)}, #{$1})" }
+
+            inner_select = rows.map do |row|
+              tuple = split_tuple(row)
+              aliases = keys.zip(tuple).map { |k, v| "#{v} AS #{quote_column_name(k)}" }
+              "SELECT #{aliases.join(", ")} FROM dual"
+            end.join(" UNION ALL ")
+
+            outer_cols = keys.map { |k| quote_column_name(k) }.join(", ")
+            "INSERT #{new_into} SELECT #{quoted_seq}, #{outer_cols} FROM (#{inner_select})"
+          end
+
+          def oracle_sequence_exists?(seq_name)
+            select_value(<<~SQL.squish, "SCHEMA", [bind_string("seq_name", seq_name.upcase)]).to_i.positive?
+              SELECT COUNT(*) FROM all_sequences
+               WHERE sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
+                 AND sequence_name = :seq_name
+            SQL
+          end
+
+          # PoC: emit a MERGE statement to bridge AR's `:skip` / `:update` semantics.
+          # Requires `unique_by:` to be supplied so we can build the ON clause.
+          # Limitations: no `returning:` (Oracle MERGE does not carry RETURNING in
+          # standard versions); composite/expression unique_by not exercised.
+          def build_merge_sql(insert, on_duplicate:)
+            insert_all = insert.send(:insert_all)
+            unique_by = insert_all.unique_by or
+              raise NotImplementedError, "Oracle MERGE-based insert_all requires :unique_by to identify the conflict target"
+
+            model = insert.send(:model)
+            target = quote_table_name(model.table_name)
+
+            # PoC: MERGE path expects explicit values (including PK) -- auto-PK
+            # injection isn't applied here because the conflict target normally
+            # IS the primary key, so a fresh seq.NEXTVAL would never match.
+            into = insert.into
+            rows = split_values_list(insert.values_list)
+            keys_match = into.match(/\(([^)]*)\)\z/)
+            quoted_keys_csv = keys_match ? keys_match[1] : ""
+            keys = quoted_keys_csv.scan(/"([^"]+)"/).flatten
+
+            using_select = rows.map do |row|
+              tuple = split_tuple(row)
+              pairs = keys.zip(tuple).map { |k, v| "#{v} AS #{quote_column_name(k)}" }
+              "SELECT #{pairs.join(", ")} FROM dual"
+            end.join(" UNION ALL ")
+
+            on_columns = Array(unique_by.columns).map(&:to_s)
+            on_clause = on_columns.map { |c| "t.#{quote_column_name(c)} = s.#{quote_column_name(c)}" }.join(" AND ")
+
+            insert_vals = keys.map { |k| "s.#{quote_column_name(k)}" }.join(", ")
+
+            sql = +"MERGE INTO #{target} t\n"
+            sql << "USING (#{using_select}) s\n"
+            sql << "ON (#{on_clause})\n"
+
+            if on_duplicate == :update
+              on_set = on_columns.map(&:downcase).to_set
+              updatable = keys.reject { |k| on_set.include?(k.downcase) }
+              update_cols = updatable.map { |k| "t.#{quote_column_name(k)} = s.#{quote_column_name(k)}" }.join(", ")
+              sql << "WHEN MATCHED THEN UPDATE SET #{update_cols}\n" unless update_cols.empty?
+            end
+
+            sql << "WHEN NOT MATCHED THEN INSERT (#{quoted_keys_csv}) VALUES (#{insert_vals})"
+            sql
+          end
+
+          # Split a `(...)` row tuple into individual value strings while tracking
+          # nested parens and single-quoted string literals (with `''` escapes).
+          def split_tuple(row)
+            inside = row[1..-2]
+            values = []
+            current = +""
+            depth = 0
+            in_string = false
+            i = 0
+            while i < inside.length
+              c = inside[i]
+              if in_string
+                if c == "'" && inside[i + 1] == "'"
+                  current << "''"
+                  i += 2
+                  next
+                elsif c == "'"
+                  in_string = false
+                end
+                current << c
+              else
+                case c
+                when "'"
+                  in_string = true
+                  current << c
+                when "("
+                  depth += 1
+                  current << c
+                when ")"
+                  depth -= 1
+                  current << c
+                when ","
+                  if depth.zero?
+                    values << current
+                    current = +""
+                  else
+                    current << c
+                  end
+                else
+                  current << c
+                end
+              end
+              i += 1
+            end
+            values << current unless current.empty?
+            values
           end
 
           # Split a `VALUES (...), (...)` SQL fragment into individual `(...)` row

@@ -523,6 +523,20 @@ module ActiveRecord
         true
       end
 
+      # PoC overrides for insert_all bulk paths (#TBD-poc-insert-all-extras).
+      # Skip/update map to MERGE; conflict_target enables `:unique_by`.
+      def supports_insert_on_duplicate_skip?
+        true
+      end
+
+      def supports_insert_on_duplicate_update?
+        true
+      end
+
+      def supports_insert_conflict_target?
+        true
+      end
+
       def supports_optimizer_hints?
         true
       end

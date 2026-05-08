@@ -294,11 +294,46 @@ RSpec.describe "OracleEnhancedAdapter" do
       expect(rows).to eq(["Hello (world)", "O'Reilly's"])
     end
 
-    it "raises NotImplementedError when build_insert_sql is reached with on_duplicate" do
-      insert = double(skip_duplicates?: true, update_duplicates?: false)
-      expect {
-        ActiveRecord::Base.lease_connection.build_insert_sql(insert)
-      }.to raise_error(NotImplementedError, /on_duplicate/)
+    # PoC: auto-PK injection — `id` need not be supplied; `seq.NEXTVAL` is inlined
+    # into INSERT ALL per row by the adapter. Validates feasibility, not yet
+    # production-ready (see PR description for caveats).
+    it "auto-fills primary keys from the table's sequence (PoC)" do
+      TestInsertAllItem.insert_all!([
+        { name: "auto-alpha", qty: 1 },
+        { name: "auto-beta", qty: 2 },
+      ])
+      rows = TestInsertAllItem.order(:qty).pluck(:id, :name)
+      expect(rows.size).to eq(2)
+      expect(rows.map(&:last)).to eq(["auto-alpha", "auto-beta"])
+      expect(rows.map(&:first)).to all(be > 0)
+    end
+
+    # PoC: skip_duplicates via MERGE (Oracle's upsert primitive). Existing rows
+    # whose `unique_by` matches are left alone; new rows are inserted.
+    it "honors :skip on_duplicate via MERGE (PoC)" do
+      TestInsertAllItem.insert_all!([{ id: 100, name: "skip-anchor", qty: 5 }])
+      TestInsertAllItem.insert_all(
+        [{ id: 100, name: "skip-NEW", qty: 99 }, { id: 101, name: "skip-fresh", qty: 1 }],
+        unique_by: :id,
+      )
+      anchor = TestInsertAllItem.find(100)
+      expect(anchor.name).to eq("skip-anchor")
+      expect(anchor.qty).to eq(5)
+      expect(TestInsertAllItem.find(101).name).to eq("skip-fresh")
+    end
+
+    # PoC: update_duplicates via MERGE WHEN MATCHED. Existing rows have non-key
+    # columns updated; new rows are inserted.
+    it "honors :update on_duplicate via MERGE WHEN MATCHED (PoC)" do
+      TestInsertAllItem.insert_all!([{ id: 200, name: "upsert-anchor", qty: 5 }])
+      TestInsertAllItem.upsert_all(
+        [{ id: 200, name: "upsert-NEW", qty: 99 }, { id: 201, name: "upsert-fresh", qty: 1 }],
+        unique_by: :id,
+      )
+      anchor = TestInsertAllItem.find(200)
+      expect(anchor.name).to eq("upsert-NEW")
+      expect(anchor.qty).to eq(99)
+      expect(TestInsertAllItem.find(201).name).to eq("upsert-fresh")
     end
   end
 
