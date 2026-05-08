@@ -127,15 +127,20 @@ module ActiveRecord
       end
 
       class AlterTable < ActiveRecord::ConnectionAdapters::AlterTable
-        attr_reader :unique_constraint_adds
+        attr_reader :unique_constraint_adds, :constraint_validations
 
         def initialize(td)
           super
           @unique_constraint_adds = []
+          @constraint_validations = []
         end
 
         def add_unique_constraint(column_name, options)
           @unique_constraint_adds << @td.new_unique_constraint_definition(column_name, options)
+        end
+
+        def validate_constraint(name)
+          @constraint_validations << name
         end
       end
 
@@ -148,6 +153,14 @@ module ActiveRecord
 
         def remove_unique_constraint(...)
           @base.remove_unique_constraint(name, ...)
+        end
+
+        def validate_constraint(...)
+          @base.validate_constraint(name, ...)
+        end
+
+        def validate_check_constraint(...)
+          @base.validate_check_constraint(name, ...)
         end
       end
     end

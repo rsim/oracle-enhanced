@@ -134,6 +134,17 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
       expect(dump).to match(/REFERENCES\s+"?TEST_DBMS_METADATA_POSTS"?/i)
     end
 
+    it "emits NOVALIDATE for check constraints added with validate: false" do
+      schema_define do
+        create_table :test_dbms_metadata_posts, force: true do |t|
+          t.integer :price
+        end
+      end
+      @conn.add_check_constraint(:test_dbms_metadata_posts, "price > 0", name: "dbms_meta_novalidate_chk", validate: false)
+      dump = @conn.structure_dump
+      expect(dump).to match(/CONSTRAINT\s+"DBMS_META_NOVALIDATE_CHK"\s+CHECK\s*\(.+\)\s+.*\bNOVALIDATE\b/im)
+    end
+
     it "emits COMMENT ON TABLE / COMMENT ON COLUMN for documented tables" do
       schema_define do
         create_table :test_dbms_metadata_comments, force: true, comment: "table-level comment" do |t|

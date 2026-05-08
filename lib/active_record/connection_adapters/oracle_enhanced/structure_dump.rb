@@ -194,19 +194,11 @@ module ActiveRecord # :nodoc:
           join_with_statement_token(fks)
         end
 
-        # Only user-named CHECK constraints are preserved. Anonymous
-        # constraints created via `ALTER TABLE ... ADD CHECK (...)` receive
-        # Oracle-generated names (e.g. SYS_C00123) and are skipped to avoid
-        # also emitting the implicit NOT NULL check constraints that Oracle
-        # stores with constraint_type = 'C'.
+        # `generated = 'USER NAME'` skips implicit NOT NULL checks (system-named, type 'C').
         def structure_dump_check_constraints(table_name) # :nodoc:
-          # `search_condition` is a LONG column, so it cannot appear in a
-          # WHERE clause (ORA-00997). The driver reads it as a String on
-          # SELECT. Implicit NOT NULL constraints Oracle stores with
-          # constraint_type = 'C' are excluded by `generated = 'USER NAME'`
-          # since they receive system-generated names.
+          # `search_condition` is LONG; cannot appear in WHERE (ORA-00997).
           check_constraints = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)])
-            SELECT constraint_name, search_condition
+            SELECT constraint_name, search_condition, validated
             FROM all_constraints
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
@@ -217,7 +209,9 @@ module ActiveRecord # :nodoc:
           check_constraints.filter_map do |row|
             condition = row["search_condition"]
             next if condition.nil?
-            "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(row["constraint_name"])} CHECK (#{condition})"
+            sql = "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(row["constraint_name"])} CHECK (#{condition})"
+            sql << " NOVALIDATE" if row["validated"] == "NOT VALIDATED"
+            sql
           end
         end
 

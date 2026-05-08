@@ -241,6 +241,24 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
       expect(dump).to match(/ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "TEST_POSTS_DSL_TITLE_CHECK" CHECK/)
     end
 
+    it "appends NOVALIDATE for check constraints added with validate: false" do
+      ActiveRecord::Base.lease_connection.add_check_constraint(:test_posts, "LENGTH(title) > 0", name: "test_posts_novalidate_check", validate: false)
+      dump = ActiveRecord::Base.lease_connection.structure_dump_check_constraints("test_posts")
+      novalidate_row = dump.find { |line| line.include?("TEST_POSTS_NOVALIDATE_CHECK") }
+      expect(novalidate_row).to match(/ NOVALIDATE\z/)
+    end
+
+    it "round-trips a NOVALIDATE check constraint via structure_dump and execute_structure_dump" do
+      conn = ActiveRecord::Base.lease_connection
+      conn.add_check_constraint(:test_posts, "LENGTH(title) > 0", name: "test_posts_rt_novalidate", validate: false)
+      dumped_alter = conn.structure_dump_check_constraints("test_posts").find { |line| line.include?("TEST_POSTS_RT_NOVALIDATE") }
+      conn.remove_check_constraint(:test_posts, name: "test_posts_rt_novalidate")
+      conn.execute_structure_dump(dumped_alter)
+      cc = conn.check_constraints(:test_posts).detect { |c| c.name == "test_posts_rt_novalidate" }
+      expect(cc).not_to be_nil
+      expect(cc.validate?).to be(false)
+    end
+
     it "should dump table comments" do
       comment_sql = %Q(COMMENT ON TABLE "TEST_POSTS" IS 'Test posts with ''some'' "quotes"')
       @conn.execute comment_sql

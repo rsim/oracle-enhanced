@@ -842,9 +842,11 @@ end
         # which would suppress the very warning we want to capture.
         expect {
           ActiveRecord::Schema.define do
-            create_table :test_dep_inline, force: true do |t|
-              t.string :first_name
-              t.index :first_name, unique: true, name: :uniq_dep_inline
+            suppress_messages do
+              create_table :test_dep_inline, force: true do |t|
+                t.string :first_name
+                t.index :first_name, unique: true, name: :uniq_dep_inline
+              end
             end
           end
         }.to output(/add_index :col, unique: true creates an implicit named UNIQUE constraint/).to_stderr
@@ -1257,6 +1259,70 @@ end
       cc = @conn.check_constraints(:test_products).detect { |c| c.name == "multi_col_check" }
       expect(cc).not_to be_nil
       expect(cc.expression).to match(/price\s*>\s*0\s+and\s+quantity\s*>=\s*0/i)
+    end
+
+    it "creates a NOVALIDATE check constraint when validate: false is given" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "novalidate_check", validate: false
+      end
+      cc = @conn.check_constraints(:test_products).detect { |c| c.name == "novalidate_check" }
+      expect(cc).not_to be_nil
+      expect(cc.validate?).to be(false)
+    end
+
+    it "drains inline t.check_constraint with validate: false" do
+      schema_define do
+        drop_table :test_products, if_exists: true
+        create_table :test_products, force: true do |t|
+          t.integer :price
+          t.check_constraint "price > 0", name: "inline_novalidate", validate: false
+        end
+      end
+      cc = @conn.check_constraints(:test_products).detect { |c| c.name == "inline_novalidate" }
+      expect(cc).not_to be_nil
+      expect(cc.validate?).to be(false)
+    end
+
+    it "validates a NOVALIDATE constraint via validate_check_constraint" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "to_validate", validate: false
+      end
+      expect(@conn.check_constraints(:test_products).detect { |c| c.name == "to_validate" }.validate?).to be(false)
+
+      schema_define do
+        validate_check_constraint :test_products, name: "to_validate"
+      end
+      expect(@conn.check_constraints(:test_products).detect { |c| c.name == "to_validate" }.validate?).to be(true)
+    end
+
+    it "validates a constraint by name via validate_constraint" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "to_validate2", validate: false
+      end
+      schema_define do
+        validate_constraint :test_products, "to_validate2"
+      end
+      expect(@conn.check_constraints(:test_products).detect { |c| c.name == "to_validate2" }.validate?).to be(true)
+    end
+
+    it "supports change_table { |t| t.validate_check_constraint name: ... }" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "ct_validate_chk", validate: false
+        change_table :test_products do |t|
+          t.validate_check_constraint name: "ct_validate_chk"
+        end
+      end
+      expect(@conn.check_constraints(:test_products).detect { |c| c.name == "ct_validate_chk" }.validate?).to be(true)
+    end
+
+    it "supports change_table { |t| t.validate_constraint(name) }" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "ct_validate_bare", validate: false
+        change_table :test_products do |t|
+          t.validate_constraint "ct_validate_bare"
+        end
+      end
+      expect(@conn.check_constraints(:test_products).detect { |c| c.name == "ct_validate_bare" }.validate?).to be(true)
     end
   end
 

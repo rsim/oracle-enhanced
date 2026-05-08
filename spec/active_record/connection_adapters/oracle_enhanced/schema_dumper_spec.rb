@@ -363,6 +363,32 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
       cc = @conn.check_constraints(:test_products).detect { |c| c.name == "price_rt_check" }
       expect(cc).not_to be_nil
     end
+
+    it "dumps validate: false for NOVALIDATE check constraints" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "novalidate_dump", validate: false
+      end
+      output = dump_table_schema "test_products"
+      expect(output).to match(/add_check_constraint "test_products".*name: "novalidate_dump".*validate: false/)
+    end
+
+    it "round-trips validate: false through dump and load" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "novalidate_rt", validate: false
+      end
+
+      dumped = dump_table_schema "test_products"
+      schema_define do
+        drop_table :test_products, if_exists: true
+      end
+
+      body = dumped[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { instance_eval(body) }
+
+      cc = @conn.check_constraints(:test_products).detect { |c| c.name == "novalidate_rt" }
+      expect(cc).not_to be_nil
+      expect(cc.validate?).to be(false)
+    end
   end
 
   describe "unique constraints" do
