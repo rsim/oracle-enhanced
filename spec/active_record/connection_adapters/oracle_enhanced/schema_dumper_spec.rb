@@ -197,6 +197,32 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
       expect(standard_dump(ignore_tables: %w(test_comments))).not_to match(/add_foreign_key "test_comments"/)
     end
 
+    it "dumps validate: false for NOVALIDATE foreign keys" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, validate: false
+      end
+      output = dump_table_schema "test_comments"
+      expect(output).to match(/add_foreign_key "test_comments", "test_posts".*validate: false/)
+    end
+
+    it "round-trips validate: false on a foreign key through dump and load" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, validate: false
+      end
+
+      dumped = dump_table_schema "test_comments"
+      schema_define do
+        remove_foreign_key :test_comments, :test_posts, if_exists: true
+      end
+
+      body = dumped[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { instance_eval(body) }
+
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk).not_to be_nil
+      expect(fk.options[:validate]).to be(false)
+    end
+
     it "should not include foreign keys on ignored table regexes in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts

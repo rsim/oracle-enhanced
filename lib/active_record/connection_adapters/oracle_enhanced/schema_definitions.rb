@@ -162,6 +162,10 @@ module ActiveRecord
         def validate_check_constraint(...)
           @base.validate_check_constraint(name, ...)
         end
+
+        def validate_foreign_key(...)
+          @base.validate_foreign_key(name, ...)
+        end
       end
     end
   end

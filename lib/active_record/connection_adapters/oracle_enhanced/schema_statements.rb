@@ -592,6 +592,7 @@ module ActiveRecord
                   ,c.delete_rule
                   ,c.deferrable
                   ,c.deferred
+                  ,c.validated
               FROM all_constraints c, all_cons_columns cc,
                    all_constraints r, all_cons_columns rc
              WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -615,6 +616,7 @@ module ActiveRecord
             }
             options[:on_delete] = extract_foreign_key_action(row["delete_rule"])
             options[:deferrable] = extract_foreign_key_deferrable(row["deferrable"], row["deferred"])
+            options[:validate] = false if row["validated"] == "NOT VALIDATED"
             ActiveRecord::ConnectionAdapters::ForeignKeyDefinition.new(oracle_downcase(table_name), oracle_downcase(row["to_table"]), options)
           end
         end
@@ -652,6 +654,11 @@ module ActiveRecord
         def validate_check_constraint(table_name, **options) # :nodoc:
           chk_name_to_validate = check_constraint_for!(table_name, **options).name
           validate_constraint(table_name, chk_name_to_validate)
+        end
+
+        def validate_foreign_key(from_table, to_table = nil, **options) # :nodoc:
+          fk_name_to_validate = foreign_key_for!(from_table, to_table: to_table, **options).name
+          validate_constraint(from_table, fk_name_to_validate)
         end
 
         # Returns an array of unique constraints for the given table.

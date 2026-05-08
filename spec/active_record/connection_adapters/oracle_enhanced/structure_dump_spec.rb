@@ -2,6 +2,7 @@
 
 RSpec.describe "OracleEnhancedAdapter structure dump" do
   include LoggerSpecHelper
+  include SchemaSpecHelper
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
@@ -102,6 +103,17 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
       dump = ActiveRecord::Base.lease_connection.structure_dump_fk_constraints
       expect(dump.split('\n').length).to eq(0)
       expect(dump).to eq("")
+    end
+
+    it "appends NOVALIDATE for foreign keys added with validate: false" do
+      schema_define do
+        add_column :test_posts, :foo_uniq, :integer
+        add_index :test_posts, :foo_uniq, unique: true, name: "ix_test_posts_foo_uniq"
+        add_foreign_key :test_posts, :test_posts, column: :foo_id, primary_key: :foo_uniq, name: "fk_novalidate_baz", validate: false
+      end
+      dump = ActiveRecord::Base.lease_connection.structure_dump
+      fk_alter = dump.split("\n\n/\n\n").find { |stmt| stmt.include?("FK_NOVALIDATE_BAZ") }
+      expect(fk_alter).to match(/ NOVALIDATE\b/)
     end
 
     it "should dump triggers" do
