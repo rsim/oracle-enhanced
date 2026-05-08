@@ -342,6 +342,172 @@ RSpec.describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "insert_all!" do
+    # `insert_all!` with explicit IDs is the minimum-viable surface for Oracle:
+    # `INSERT ALL` cannot consume sequence-via-trigger or IDENTITY auto-fill
+    # (Oracle evaluates the underlying sequence once per statement on INSERT ALL,
+    # causing ORA-00001), so callers must supply IDs in either schema. Auto-PK
+    # injection is tracked as follow-up.
+    shared_examples "insert_all! basics" do
+      it "inserts multiple rows in a single INSERT ALL statement" do
+        model.insert_all!([
+          { id: 1, name: "alpha", qty: 1 },
+          { id: 2, name: "beta", qty: 2 },
+          { id: 3, name: "gamma", qty: 3 },
+        ])
+        rows = model.order(:qty).pluck(:name, :qty)
+        expect(rows).to eq([["alpha", 1], ["beta", 2], ["gamma", 3]])
+      end
+
+      it "handles values containing parens and embedded single quotes" do
+        model.insert_all!([
+          { id: 1, name: "Hello (world)", qty: 10 },
+          { id: 2, name: "O'Reilly's", qty: 20 },
+        ])
+        rows = model.order(:qty).pluck(:name)
+        expect(rows).to eq(["Hello (world)", "O'Reilly's"])
+      end
+
+      it "returns an empty result because INSERT ALL cannot carry RETURNING" do
+        result = model.insert_all!([{ id: 1, name: "alpha", qty: 1 }])
+        expect(result.rows).to eq([])
+      end
+
+      it "returns an empty result even when `returning:` is explicitly requested" do
+        result = model.insert_all!([{ id: 1, name: "alpha", qty: 1 }], returning: [:id])
+        expect(result.rows).to eq([])
+      end
+
+      it "raises ActiveModel::UnknownAttributeError for unknown columns (parity with AR core)" do
+        expect {
+          model.insert_all!([{ id: 1, name: "alpha", qty: 1, bogus: 99 }])
+        }.to raise_error(ActiveModel::UnknownAttributeError, /bogus/)
+      end
+    end
+
+    context "with sequence-based PK" do
+      before(:all) do
+        schema_define do
+          create_table :test_insert_all_items, force: true do |t|
+            t.string :name
+            t.integer :qty
+          end
+        end
+        class ::TestInsertAllItem < ActiveRecord::Base
+        end
+      end
+
+      after(:all) do
+        schema_define do
+          drop_table :test_insert_all_items, if_exists: true
+        end
+        Object.send(:remove_const, "TestInsertAllItem") if defined?(TestInsertAllItem)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      after(:each) { TestInsertAllItem.delete_all }
+
+      let(:model) { TestInsertAllItem }
+
+      include_examples "insert_all! basics"
+    end
+
+    context "with IDENTITY PK (Oracle 12.1+)" do
+      before(:all) do
+        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.supports_identity_columns?
+        schema_define do
+          create_table :test_insert_all_identity_items, force: true, identity: true do |t|
+            t.string :name
+            t.integer :qty
+          end
+        end
+        class ::TestInsertAllIdentityItem < ActiveRecord::Base
+        end
+      end
+
+      after(:all) do
+        schema_define do
+          drop_table :test_insert_all_identity_items, if_exists: true
+        end
+        Object.send(:remove_const, "TestInsertAllIdentityItem") if defined?(TestInsertAllIdentityItem)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      after(:each) { TestInsertAllIdentityItem.delete_all }
+
+      let(:model) { TestInsertAllIdentityItem }
+
+      include_examples "insert_all! basics"
+    end
+
+    it "raises NotImplementedError when build_insert_sql is reached with on_duplicate" do
+      insert = double(skip_duplicates?: true, update_duplicates?: false)
+      expect {
+        ActiveRecord::Base.lease_connection.build_insert_sql(insert)
+      }.to raise_error(NotImplementedError, /on_duplicate/)
+    end
+
+    # Unit-level coverage of the helper that bridges AR core's bundled
+    # values_list to Oracle's per-row INSERT ALL form. Locks in the per-row
+    # split shape and the value-quoting behavior so a regression in either
+    # AR core's `Builder#values_list` coercion or Arel's
+    # `ValuesList` visitor surfaces here rather than as a misleading
+    # ORA-9999 from the DB.
+    describe "compile_per_row_values" do
+      before(:all) do
+        schema_define do
+          create_table :test_insert_all_items, force: true do |t|
+            t.string :name
+            t.integer :qty
+          end
+        end
+        class ::TestInsertAllItem < ActiveRecord::Base
+        end unless defined?(TestInsertAllItem)
+      end
+
+      after(:all) do
+        schema_define do
+          drop_table :test_insert_all_items, if_exists: true
+        end
+        Object.send(:remove_const, "TestInsertAllItem") if defined?(TestInsertAllItem)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      let(:conn) { ActiveRecord::Base.lease_connection }
+
+      def builder_for(rows)
+        insert_all = ActiveRecord::InsertAll.new(
+          TestInsertAllItem.all, conn, rows, on_duplicate: :raise,
+        )
+        ActiveRecord::InsertAll::Builder.new(insert_all)
+      end
+
+      it "returns one VALUES (...) fragment per input row" do
+        builder = builder_for([
+          { id: 1, name: "alpha", qty: 10 },
+          { id: 2, name: "beta", qty: 20 },
+        ])
+        rows = conn.send(:compile_per_row_values, builder)
+        expect(rows).to eq([
+          "VALUES (1, 'alpha', 10)",
+          "VALUES (2, 'beta', 20)",
+        ])
+      end
+
+      it "preserves embedded parens and quote-escapes single quotes" do
+        builder = builder_for([
+          { id: 1, name: "Hello (world)", qty: 10 },
+          { id: 2, name: "O'Reilly's",    qty: 20 },
+        ])
+        rows = conn.send(:compile_per_row_values, builder)
+        expect(rows).to eq([
+          "VALUES (1, 'Hello (world)', 10)",
+          "VALUES (2, 'O''Reilly''s', 20)",
+        ])
+      end
+    end
+  end
+
   describe "lists" do
     before(:all) do
       schema_define do
