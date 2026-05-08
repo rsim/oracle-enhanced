@@ -1166,6 +1166,58 @@ end
         end
       }.to raise_error(ArgumentError, /deferrable must be `:immediate` or `:deferred`/)
     end
+
+    it "creates a NOVALIDATE foreign key when validate: false is given" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, validate: false
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:validate]).to be(false)
+    end
+
+    it "validates a NOVALIDATE foreign key via validate_foreign_key" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, name: "fk_to_validate", validate: false
+      end
+      fk_before = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk_before.options[:validate]).to be(false)
+
+      schema_define do
+        validate_foreign_key :test_comments, :test_posts
+      end
+      fk_after = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk_after.options.key?(:validate)).to be(false)
+    end
+
+    it "supports change_table { |t| t.validate_foreign_key }" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, name: "fk_ct_validate", validate: false
+        change_table :test_comments do |t|
+          t.validate_foreign_key :test_posts
+        end
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options.key?(:validate)).to be(false)
+    end
+
+    it "validates a foreign key by name" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, name: "fk_by_name", validate: false
+        validate_foreign_key :test_comments, name: "fk_by_name"
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options.key?(:validate)).to be(false)
+    end
+
+    it "validates a foreign key by column" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, column: :post_id, name: "fk_by_col", validate: false
+        validate_foreign_key :test_comments, column: :post_id
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).detect { |f| f.options[:name] == "fk_by_col" }
+      expect(fk).not_to be_nil
+      expect(fk.options.key?(:validate)).to be(false)
+    end
   end
 
   describe "check constraints" do

@@ -145,6 +145,22 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
       expect(dump).to match(/CONSTRAINT\s+"DBMS_META_NOVALIDATE_CHK"\s+CHECK\s*\(.+\)\s+.*\bNOVALIDATE\b/im)
     end
 
+    it "emits NOVALIDATE for foreign keys added with validate: false" do
+      schema_define do
+        create_table :test_dbms_metadata_posts, force: true do |t|
+          t.string :title
+        end
+        create_table :test_dbms_metadata_children, force: true do |t|
+          t.references :test_dbms_metadata_post
+        end
+      end
+      @conn.add_foreign_key :test_dbms_metadata_children, :test_dbms_metadata_posts,
+                            column: :test_dbms_metadata_post_id,
+                            name: "dbms_meta_novalidate_fk", validate: false
+      dump = @conn.structure_dump
+      expect(dump).to match(/CONSTRAINT\s+"DBMS_META_NOVALIDATE_FK"\s+FOREIGN\s+KEY.+REFERENCES\s+"TEST_DBMS_METADATA_POSTS".+\bNOVALIDATE\b/im)
+    end
+
     it "emits COMMENT ON TABLE / COMMENT ON COLUMN for documented tables" do
       schema_define do
         create_table :test_dbms_metadata_comments, force: true, comment: "table-level comment" do |t|

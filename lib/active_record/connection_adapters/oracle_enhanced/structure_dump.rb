@@ -258,6 +258,7 @@ module ActiveRecord # :nodoc:
             sql << " ON DELETE CASCADE"
           end
           sql << " DEFERRABLE INITIALLY #{options[:deferrable].to_s.upcase}" if options[:deferrable]
+          sql << " NOVALIDATE" if options[:validate] == false
           sql
         end
 

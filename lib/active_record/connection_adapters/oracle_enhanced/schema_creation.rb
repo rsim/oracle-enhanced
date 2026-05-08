@@ -88,6 +88,7 @@ module ActiveRecord
           def visit_ForeignKeyDefinition(o)
             super.dup.tap do |sql|
               sql << " DEFERRABLE INITIALLY #{o.deferrable.to_s.upcase}" if o.deferrable
+              sql << " NOVALIDATE" unless o.validate?
             end
           end
 
