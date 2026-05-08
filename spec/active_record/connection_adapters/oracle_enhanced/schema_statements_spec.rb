@@ -559,6 +559,33 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       end
     end
 
+    it "supports expression indexes (function-based) via add_index" do
+      schema_define do
+        create_table :test_idx_expr, force: true do |t|
+          t.string :name
+        end
+        add_index :test_idx_expr, "LOWER(name)", name: "ix_expr_lower_name"
+      end
+      idx_count = @conn.select_value(<<~SQL.squish)
+        SELECT COUNT(*) FROM all_indexes
+         WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+           AND index_name = 'IX_EXPR_LOWER_NAME'
+      SQL
+      expect(idx_count).to eq(1)
+      expr = @conn.select_value(<<~SQL.squish)
+        SELECT column_expression FROM all_ind_expressions
+         WHERE index_owner = SYS_CONTEXT('userenv', 'current_schema')
+           AND index_name = 'IX_EXPR_LOWER_NAME'
+      SQL
+      expect(expr).to match(/LOWER\("?NAME"?\)/i)
+    ensure
+      schema_define { drop_table :test_idx_expr, if_exists: true }
+    end
+
+    it "reports supports_expression_index? as true" do
+      expect(@conn.supports_expression_index?).to be(true)
+    end
+
     it "measures default index name length in bytes, not characters" do
       max = @conn.index_name_length
       # "index_t_on_<col>" fits in `max` characters but overflows in bytes

@@ -511,6 +511,10 @@ module ActiveRecord
         true
       end
 
+      def supports_expression_index?
+        true
+      end
+
       def supports_optimizer_hints?
         true
       end
