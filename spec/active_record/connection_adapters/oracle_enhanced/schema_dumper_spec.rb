@@ -106,6 +106,48 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "expression index" do
+    before(:each) do
+      schema_define do
+        create_table :test_idx_expr_dump, force: true do |t|
+          t.string :name
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_idx_expr_dump, if_exists: true
+      end
+    end
+
+    it "dumps a function-based index with the expression preserved" do
+      schema_define do
+        add_index :test_idx_expr_dump, "LOWER(name)", name: "ix_dump_expr"
+      end
+      output = dump_table_schema "test_idx_expr_dump"
+      expect(output).to match(/t\.index \[.*LOWER\(.*NAME.*\).*\], name: "ix_dump_expr"/im)
+    end
+
+    it "round-trips an expression index through dump and load" do
+      schema_define do
+        add_index :test_idx_expr_dump, "LOWER(name)", name: "ix_rt_expr"
+      end
+      dumped = dump_table_schema "test_idx_expr_dump"
+      schema_define do
+        drop_table :test_idx_expr_dump, if_exists: true
+      end
+      body = dumped[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { instance_eval(body) }
+      expr = ActiveRecord::Base.lease_connection.select_value(<<~SQL.squish)
+        SELECT column_expression FROM all_ind_expressions
+         WHERE index_owner = SYS_CONTEXT('userenv', 'current_schema')
+           AND index_name = 'IX_RT_EXPR'
+      SQL
+      expect(expr).to match(/LOWER\("?NAME"?\)/i)
+    end
+  end
+
   describe "foreign key constraints" do
     # Recreate the canonical tables before each example. One example
     # (`should include primary_key when reference column name is not 'id'`)

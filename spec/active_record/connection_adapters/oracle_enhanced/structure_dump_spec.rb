@@ -105,6 +105,14 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
       expect(dump).to eq("")
     end
 
+    it "dumps a function-based index expression in structure_dump_indexes" do
+      schema_define do
+        add_index :test_posts, "LOWER(title)", name: "ix_struct_expr"
+      end
+      dump = @conn.structure_dump_indexes("test_posts").join("\n")
+      expect(dump).to match(/CREATE INDEX "?IX_STRUCT_EXPR"? ON "?TEST_POSTS"? \(LOWER\("?TITLE"?\)\)/i)
+    end
+
     it "appends NOVALIDATE for foreign keys added with validate: false" do
       schema_define do
         add_column :test_posts, :foo_uniq, :integer
