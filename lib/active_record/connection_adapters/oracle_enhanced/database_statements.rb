@@ -221,6 +221,20 @@ module ActiveRecord
           "(#{quoted_cols}) VALUES (#{defaults})"
         end
 
+        def build_insert_sql(insert) # :nodoc:
+          if insert.skip_duplicates? || insert.update_duplicates?
+            raise NotImplementedError,
+                  "Oracle insert_all does not yet support :on_duplicate (skip/update). " \
+                  "Use a MERGE statement directly until upsert_all support lands (tracked in #2733)."
+          end
+
+          # INSERT ALL cannot carry RETURNING; `insert.returning` is dropped and `result.rows` is empty.
+          rows_sql = compile_per_row_values(insert).map do |row_values|
+            "  #{insert.into} #{row_values}"
+          end.join("\n")
+          "INSERT ALL\n#{rows_sql}\nSELECT 1 FROM DUAL"
+        end
+
         # Writes LOB values from attributes for specified columns
         def write_lobs(table_name, klass, attributes, columns) # :nodoc:
           pk_predicate = Array(klass.primary_key).map { |pk|
@@ -377,6 +391,34 @@ module ActiveRecord
               warning.sql = sql
               ActiveRecord.db_warnings_action.call(warning)
             end
+          end
+
+          # Compile each insert row to `VALUES (...)` individually via Arel, so
+          # we can interleave each row between `INTO ... VALUES` for Oracle's
+          # multi-table INSERT ALL form. Mirrors the per-row coercion that
+          # ActiveRecord::InsertAll::Builder#values_list applies before bundling
+          # rows into a single `VALUES (...), (...)` fragment.
+          def compile_per_row_values(insert)
+            insert_all = insert.send(:insert_all)
+            keys = insert.send(:keys_including_timestamps)
+            # Delegate to AR core's check so unknown attributes raise
+            # `ActiveModel::UnknownAttributeError` locally rather than slipping
+            # through to Oracle as ORA-00904.
+            types = insert.send(:extract_types_for, keys)
+            primary_keys = insert_all.primary_keys.to_set
+
+            rows = insert_all.send(:map_key_with_value) do |key, value|
+              if Arel::Nodes::SqlLiteral === value
+                value
+              elsif primary_keys.include?(key) && value.nil?
+                default_insert_value(insert_all.model.columns_hash[key])
+              else
+                type = types[key]
+                ActiveModel::Type::SerializeCastValue.serialize(type, type.cast(value))
+              end
+            end
+
+            rows.map { |row| visitor.compile(Arel::Nodes::ValuesList.new([row])) }
           end
       end
     end
