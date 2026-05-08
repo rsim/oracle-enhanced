@@ -120,6 +120,101 @@ RSpec.describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "supports_insert_returning?" do
+    it "is true" do
+      expect(ActiveRecord::Base.lease_connection.supports_insert_returning?).to be(true)
+    end
+
+    # `RETURNING ... INTO :bind` path: triggered when the PK is database-assigned
+    # at INSERT time (IDENTITY column on Oracle 12.1+).
+    context "with an IDENTITY primary key" do
+      before(:all) do
+        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.supports_identity_columns?
+        schema_define do
+          create_table :test_returning_identity_items, force: true, identity: true do |t|
+            t.string :name
+          end
+        end
+        class ::TestReturningIdentityItem < ActiveRecord::Base
+        end
+      end
+
+      after(:all) do
+        schema_define { drop_table :test_returning_identity_items, if_exists: true }
+        Object.send(:remove_const, "TestReturningIdentityItem") if defined?(TestReturningIdentityItem)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      before(:each) { set_logger }
+
+      after(:each) do
+        clear_logger
+        TestReturningIdentityItem.delete_all
+      end
+
+      it "returns the database-assigned primary key from Model.create!" do
+        record = TestReturningIdentityItem.create!(name: "alpha")
+        expect(record.id).to be_a(Integer)
+        expect(record.id).to be > 0
+      end
+
+      it "emits Oracle's `RETURNING ... INTO :bind` form (not the PG-style `RETURNING col`)" do
+        TestReturningIdentityItem.create!(name: "alpha")
+        insert_log = @logger.logged(:debug).find { |line| line.include?("INSERT INTO") && line.include?("TEST_RETURNING_IDENTITY_ITEMS") }
+        expect(insert_log).not_to be_nil, "INSERT statement was not logged"
+        expect(insert_log).to match(/RETURNING\s+"ID"\s+INTO\s+:returning_id/i)
+        expect(insert_log).not_to match(/RETURNING\s+"ID"\s*\)?\s*\z/i)
+      end
+    end
+
+    # Sequence-prefetched path: oracle-enhanced's default for `create_table` (no
+    # `identity: true`). The PK is fetched via `seq.NEXTVAL` before the INSERT
+    # and bound into the values list, so RETURNING is NOT used. This spec locks
+    # in that the flag flip + super-skip does not accidentally inject a RETURNING
+    # clause on this path.
+    context "with a sequence-prefetched primary key" do
+      before(:all) do
+        schema_define do
+          create_table :test_returning_seq_items, force: true do |t|
+            t.string :name
+          end
+        end
+        class ::TestReturningSeqItem < ActiveRecord::Base
+        end
+      end
+
+      after(:all) do
+        schema_define { drop_table :test_returning_seq_items, if_exists: true }
+        Object.send(:remove_const, "TestReturningSeqItem") if defined?(TestReturningSeqItem)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      before(:each) { set_logger }
+
+      after(:each) do
+        clear_logger
+        TestReturningSeqItem.delete_all
+      end
+
+      it "returns the sequence-fetched primary key from Model.create!" do
+        record = TestReturningSeqItem.create!(name: "alpha")
+        expect(record.id).to be_a(Integer)
+        expect(record.id).to be > 0
+      end
+
+      it "binds the sequence-fetched id into the INSERT and does NOT emit RETURNING" do
+        TestReturningSeqItem.create!(name: "alpha")
+        insert_log = @logger.logged(:debug).find { |line| line.include?("INSERT INTO") && line.include?("TEST_RETURNING_SEQ_ITEMS") }
+        expect(insert_log).not_to be_nil, "INSERT statement was not logged"
+        expect(insert_log).to match(/INSERT INTO "TEST_RETURNING_SEQ_ITEMS".*"ID"/im)
+        # \bRETURNING\b\s+(?:"|INTO) catches the SQL keyword followed by either
+        # a quoted column or `INTO :bind`; avoids false matches on the table
+        # name (which contains the substring "RETURNING").
+        expect(insert_log).not_to match(/\bRETURNING\b\s+(?:"|INTO\b)/i)
+      end
+    end
+  end
+
   describe "session information" do
     before(:all) do
       @conn = ActiveRecord::Base.lease_connection
