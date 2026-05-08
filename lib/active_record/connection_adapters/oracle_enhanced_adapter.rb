@@ -515,6 +515,10 @@ module ActiveRecord
         true
       end
 
+      def supports_index_sort_order?
+        true
+      end
+
       def supports_optimizer_hints?
         true
       end

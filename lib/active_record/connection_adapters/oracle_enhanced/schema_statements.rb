@@ -96,7 +96,7 @@ module ActiveRecord
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name,
-              LOWER(c.column_name) AS column_name, e.column_expression,
+              LOWER(c.column_name) AS column_name, c.descend, e.column_expression,
               atc.virtual_column
             FROM all_indexes i
               JOIN all_ind_columns c ON c.index_name = i.index_name AND c.index_owner = i.owner
@@ -146,14 +146,33 @@ module ActiveRecord
               current_index = row["index_name"]
             end
 
-            # Functional index columns and virtual columns both get stored as column expressions,
-            # but re-creating a virtual column index as an expression (instead of using the virtual column's name)
-            # results in a ORA-54018 error.  Thus, we only want the column expression value returned
-            # when the column is not virtual.
-            if row["column_expression"] && row["virtual_column"] != "YES"
-              all_schema_indexes.last.columns << row["column_expression"]
+            expression = row["column_expression"]
+            user_defined_virtual_column = row["virtual_column"] == "YES"
+            column = if user_defined_virtual_column || expression.nil?
+              # Plain column or user-defined virtual column. Re-creating a
+              # virtual-column index as an expression (instead of using the
+              # virtual column's name) results in ORA-54018, so use the
+              # column name in both cases.
+              row["column_name"].downcase
+            elsif row["descend"] == "DESC" && expression =~ /\A"([^"]+)"\z/ # quoted-bare-identifier ("LAST_NAME"); function expressions like LOWER("NAME") fail to match
+              # Oracle implements `(col DESC)` via a system-generated virtual
+              # column whose column_expression is the quoted user column
+              # name. Peel that off so the orders hash keys off the bare name.
+              # Example: column_name = SYS_NC00003$, column_expression = "LAST_NAME"
+              # -> column = "last_name", orders["last_name"] = :desc.
+              $1.downcase
             else
-              all_schema_indexes.last.columns << row["column_name"].downcase
+              # Function-based expression (e.g. `LOWER("NAME")`).
+              expression
+            end
+            all_schema_indexes.last.columns << column
+            # Track DESC only for plain column names. A function-based DESC index
+            # (column = expression) would dump as `order: { LOWER("NAME"): :desc }`,
+            # which AR core's hash formatter emits in symbol-shorthand form and
+            # produces invalid Ruby. Plain columns / DESC-marker virtuals are safe
+            # because `column` is downcased and identifier-like.
+            if row["descend"] == "DESC" && column != expression
+              all_schema_indexes.last.orders[column] = :desc
             end
           end
 
@@ -315,7 +334,7 @@ module ActiveRecord
             index_name,
             options[:unique] || false,
             column_names,
-            {},
+            options[:order] || {},
             nil,
             nil,
             options[:options],
