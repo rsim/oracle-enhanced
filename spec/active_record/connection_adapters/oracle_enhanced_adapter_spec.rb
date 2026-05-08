@@ -165,6 +165,19 @@ RSpec.describe "OracleEnhancedAdapter" do
         expect(insert_log).to match(/RETURNING\s+"ID"\s+INTO\s+:returning_id/i)
         expect(insert_log).not_to match(/RETURNING\s+"ID"\s*\)?\s*\z/i)
       end
+
+      # AbstractAdapter#sql_for_insert infers the primary key from the SQL when
+      # the caller passes pk: nil. Generic callers that go through this path
+      # without an explicit `pk` used to miss out on RETURNING auto-fetch on
+      # Oracle because the fallback was not mirrored locally; this spec locks
+      # in the parity introduced for issue #2732.
+      it "infers the primary key from the SQL when pk: nil (parity with AbstractAdapter)" do
+        conn = ActiveRecord::Base.lease_connection
+        insert_sql = "INSERT INTO #{conn.quote_table_name('test_returning_identity_items')} (#{conn.quote_column_name('name')}) VALUES ('direct-call')"
+        out_sql, out_binds = conn.send(:sql_for_insert, insert_sql, nil, [], nil)
+        expect(out_sql).to match(/RETURNING\s+"ID"\s+INTO\s+:returning_id/i)
+        expect(out_binds.last.name).to eq("returning_id")
+      end
     end
 
     # Sequence-prefetched path: oracle-enhanced's default for `create_table` (no
