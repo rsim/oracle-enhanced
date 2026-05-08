@@ -275,15 +275,20 @@ module ActiveRecord
           end
 
           def sql_for_insert(sql, pk, binds, returning) # :nodoc:
+            table_ref = extract_table_ref_from_insert_sql(sql)
+            # Mirror AbstractAdapter#sql_for_insert: when caller passes pk: nil,
+            # infer the primary key from the SQL via the schema cache so that
+            # generic `connection.exec_insert(sql, name, binds)` callers also
+            # benefit from RETURNING auto-fetch.
+            pk = schema_cache.primary_keys(table_ref) if pk.nil? && table_ref
             cols = columns_for_returning_clause(sql, pk, binds, returning)
             unless cols.empty?
-              table_name = extract_table_ref_from_insert_sql(sql)
               quoted_cols = cols.map { |c| quote_column_name(c) }.join(", ")
               placeholders = cols.map { |c| ":returning_#{c}" }.join(", ")
               sql = "#{sql} RETURNING #{quoted_cols} INTO #{placeholders}"
               binds = binds.dup
               cols.each do |col|
-                column = table_name ? columns(table_name).find { |c| c.name == col } : nil
+                column = table_ref ? columns(table_ref).find { |c| c.name == col } : nil
                 type = column&.cast_type || Type::OracleEnhanced::Integer.new
                 binds << ActiveRecord::Relation::QueryAttribute.new("returning_#{col}", nil, type)
               end
