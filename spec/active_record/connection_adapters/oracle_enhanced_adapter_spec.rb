@@ -247,6 +247,61 @@ RSpec.describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "insert_all!" do
+    before(:all) do
+      schema_define do
+        create_table :test_insert_all_items, force: true do |t|
+          t.string :name
+          t.integer :qty
+        end
+      end
+      class ::TestInsertAllItem < ActiveRecord::Base
+      end
+    end
+
+    after(:all) do
+      schema_define do
+        drop_table :test_insert_all_items, if_exists: true
+      end
+      Object.send(:remove_const, "TestInsertAllItem")
+      ActiveRecord::Base.clear_cache!
+    end
+
+    after(:each) do
+      TestInsertAllItem.delete_all
+    end
+
+    # `insert_all!` with explicit IDs is the minimum-viable surface for Oracle:
+    # `INSERT ALL` cannot consume Oracle's sequence-via-trigger primary keys
+    # (the BEFORE INSERT trigger doesn't fire), so callers must supply IDs.
+    # Sequence-injection support is tracked as follow-up.
+    it "inserts multiple rows in a single INSERT ALL statement" do
+      TestInsertAllItem.insert_all!([
+        { id: 1, name: "alpha", qty: 1 },
+        { id: 2, name: "beta", qty: 2 },
+        { id: 3, name: "gamma", qty: 3 },
+      ])
+      rows = TestInsertAllItem.order(:qty).pluck(:name, :qty)
+      expect(rows).to eq([["alpha", 1], ["beta", 2], ["gamma", 3]])
+    end
+
+    it "handles values containing parens and embedded single quotes" do
+      TestInsertAllItem.insert_all!([
+        { id: 1, name: "Hello (world)", qty: 10 },
+        { id: 2, name: "O'Reilly's", qty: 20 },
+      ])
+      rows = TestInsertAllItem.order(:qty).pluck(:name)
+      expect(rows).to eq(["Hello (world)", "O'Reilly's"])
+    end
+
+    it "raises NotImplementedError when build_insert_sql is reached with on_duplicate" do
+      insert = double(skip_duplicates?: true, update_duplicates?: false)
+      expect {
+        ActiveRecord::Base.lease_connection.build_insert_sql(insert)
+      }.to raise_error(NotImplementedError, /on_duplicate/)
+    end
+  end
+
   describe "lists" do
     before(:all) do
       schema_define do

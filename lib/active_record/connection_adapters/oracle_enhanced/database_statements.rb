@@ -221,6 +221,21 @@ module ActiveRecord
           "(#{quoted_cols}) VALUES (#{defaults})"
         end
 
+        def build_insert_sql(insert) # :nodoc:
+          if insert.skip_duplicates? || insert.update_duplicates?
+            raise NotImplementedError,
+                  "Oracle insert_all does not yet support :on_duplicate (skip/update). " \
+                  "Use a MERGE statement directly until upsert_all support lands (tracked separately)."
+          end
+
+          rows = split_values_list(insert.values_list)
+          rows_sql = rows.map { |row| "  #{insert.into} VALUES #{row}" }.join("\n")
+          # `INSERT ALL ... SELECT 1 FROM DUAL` is Oracle's bulk-insert idiom.
+          # Active Record's RETURNING expectations don't apply here -- INSERT ALL
+          # cannot carry a RETURNING clause -- so `insert.returning` is dropped.
+          "INSERT ALL\n#{rows_sql}\nSELECT 1 FROM DUAL"
+        end
+
         # Writes LOB values from attributes for specified columns
         def write_lobs(table_name, klass, attributes, columns) # :nodoc:
           pk_predicate = Array(klass.primary_key).map { |pk|
@@ -377,6 +392,45 @@ module ActiveRecord
               warning.sql = sql
               ActiveRecord.db_warnings_action.call(warning)
             end
+          end
+
+          # Split a `VALUES (...), (...)` SQL fragment into individual `(...)` row
+          # tuples, tracking nested parens and single-quoted string literals (with
+          # `''` escapes) so values containing those characters parse correctly.
+          def split_values_list(values_list)
+            body = values_list.sub(/\AVALUES\s*/, "")
+            rows = []
+            depth = 0
+            in_string = false
+            start_idx = nil
+            i = 0
+            while i < body.length
+              c = body[i]
+              if in_string
+                if c == "'" && body[i + 1] == "'"
+                  i += 2
+                  next
+                elsif c == "'"
+                  in_string = false
+                end
+              else
+                case c
+                when "'"
+                  in_string = true
+                when "("
+                  start_idx = i if depth.zero?
+                  depth += 1
+                when ")"
+                  depth -= 1
+                  if depth.zero?
+                    rows << body[start_idx..i]
+                    start_idx = nil
+                  end
+                end
+              end
+              i += 1
+            end
+            rows
           end
       end
     end
