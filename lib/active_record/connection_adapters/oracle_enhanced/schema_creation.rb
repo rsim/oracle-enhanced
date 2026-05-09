@@ -130,8 +130,9 @@ module ActiveRecord
             sql << "ON"
             sql << quote_table_name(index.table)
             sql << "(#{quoted_columns(index)})"
-            sql << "TABLESPACE #{index.tablespace}" if index.tablespace.present?
             sql << index.statement_parameters if index.statement_parameters.present?
+            sql << "INVISIBLE" if index.respond_to?(:disabled?) && index.disabled?
+            sql << "TABLESPACE #{index.tablespace}" if index.tablespace.present?
 
             sql.join(" ")
           end

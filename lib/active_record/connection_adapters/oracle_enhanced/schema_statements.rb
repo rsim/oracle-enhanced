@@ -92,10 +92,14 @@ module ActiveRecord
           (_owner, table_name) = resolve_data_source_name(table_name)
           default_tablespace_name = default_tablespace
 
+          # `all_indexes.visibility` was introduced in Oracle 11g R1. Pre-11g
+          # connections do not have the column, so substitute a literal
+          # 'VISIBLE' so the rest of the reader works unchanged.
+          visibility_column = supports_disabling_indexes? ? "i.visibility" : "'VISIBLE' AS visibility"
           result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
             SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
-              LOWER(i.tablespace_name) AS tablespace_name,
+              LOWER(i.tablespace_name) AS tablespace_name, #{visibility_column},
               LOWER(c.column_name) AS column_name, c.descend, e.column_expression,
               atc.virtual_column
             FROM all_indexes i
@@ -139,10 +143,11 @@ module ActiveRecord
                 row["uniqueness"] == "UNIQUE",
                 [],
                 {},
-                row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
-                row["parameters"],
-                statement_parameters,
-                row["tablespace_name"] == default_tablespace_name ? nil : row["tablespace_name"])
+                type: row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
+                parameters: row["parameters"],
+                statement_parameters: statement_parameters,
+                enabled: row["visibility"] != "INVISIBLE",
+                tablespace: row["tablespace_name"] == default_tablespace_name ? nil : row["tablespace_name"])
               current_index = row["index_name"]
             end
 
@@ -321,8 +326,12 @@ module ActiveRecord
           CreateIndexDefinition.new(index, algorithm, if_not_exists)
         end
 
-        def add_index_options(table_name, column_name, name: nil, if_not_exists: false, internal: false, **options) # :nodoc:
+        def add_index_options(table_name, column_name, name: nil, if_not_exists: false, internal: false, enabled: true, **options) # :nodoc:
           options.assert_valid_keys(:unique, :order, :where, :length, :tablespace, :options, :using, :comment)
+
+          if enabled == false && !supports_disabling_indexes?
+            raise ArgumentError, "`enabled: false` requires Oracle Database 11g or later (it is implemented via `INVISIBLE` indexes)"
+          end
 
           column_names = index_column_names(column_name)
           index_name = name&.to_s || index_name(table_name, column: column_names)
@@ -335,10 +344,9 @@ module ActiveRecord
             options[:unique] || false,
             column_names,
             options[:order] || {},
-            nil,
-            nil,
-            options[:options],
-            options[:tablespace] || default_tablespace_for(:index)
+            statement_parameters: options[:options],
+            enabled: enabled,
+            tablespace: options[:tablespace] || default_tablespace_for(:index)
           )
 
           [index, nil, if_not_exists]
@@ -407,6 +415,22 @@ module ActiveRecord
         def rename_index(table_name, old_name, new_name) # :nodoc:
           validate_index_length!(table_name, new_name)
           execute "ALTER INDEX #{quote_column_name(old_name)} rename to #{quote_column_name(new_name)}"
+        end
+
+        # Make the index invisible to the optimizer so queries stop using it
+        # while leaving it maintained on writes. Oracle 11g+ feature.
+        # The first argument is named with a leading underscore because Oracle
+        # index identifiers are schema-scoped, so the table is not part of the
+        # `ALTER INDEX` statement; the parameter exists only to match the
+        # MySQL adapter's contract.
+        def disable_index(_table_name, index_name) # :nodoc:
+          raise NotImplementedError unless supports_disabling_indexes?
+          execute "ALTER INDEX #{quote_column_name(index_name)} INVISIBLE"
+        end
+
+        def enable_index(_table_name, index_name) # :nodoc:
+          raise NotImplementedError unless supports_disabling_indexes?
+          execute "ALTER INDEX #{quote_column_name(index_name)} VISIBLE"
         end
 
         # Add synonym to existing table or view or sequence. Can be used to create local synonym to
