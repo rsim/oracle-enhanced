@@ -30,6 +30,7 @@ module ActiveRecord # :nodoc:
                 structure = []
                 table_names = list_schema_objects("TABLE", non_mview_only: true)
                 skip_indexes = constraint_backed_index_names
+                invisible_indexes = invisible_index_names
 
                 STRUCTURE_OBJECT_TYPES.each do |object_type|
                   names = if object_type == "TABLE"
@@ -40,8 +41,22 @@ module ActiveRecord # :nodoc:
                   names.each do |name|
                     next if object_type == "INDEX" && skip_indexes.include?(name.upcase)
                     ddl = dbms_metadata_get_ddl(object_type.tr(" ", "_"), name)
+                    if ddl && object_type == "INDEX" && invisible_indexes.include?(name.upcase)
+                      ddl = ensure_invisible_keyword(ddl)
+                    end
                     structure << ddl if ddl
                   end
+                end
+
+                # Constraint-backed indexes (PRIMARY KEY / UNIQUE) are
+                # inlined into the CREATE TABLE DDL by CONSTRAINTS=TRUE,
+                # so they are skipped above and never receive the standalone
+                # `INVISIBLE` patch via `ensure_invisible_keyword`. Restore
+                # their visibility separately with an explicit
+                # `ALTER INDEX ... INVISIBLE` after the table has been
+                # created.
+                (skip_indexes & invisible_indexes).sort.each do |index_name|
+                  structure << "ALTER INDEX #{quote_column_name(index_name)} INVISIBLE"
                 end
 
                 table_names.each do |table_name|
@@ -117,6 +132,26 @@ module ActiveRecord # :nodoc:
                 AND constraint_type IN ('P', 'U')
                 AND index_name IS NOT NULL
               SQL
+            end
+
+            # SEGMENT_ATTRIBUTES=FALSE strips the storage clause from
+            # GET_DDL output, and Oracle emits the INVISIBLE keyword
+            # inside that same clause. Re-attach it from all_indexes so
+            # invisible indexes round-trip on the DBMS_METADATA path.
+            # Pre-11g has no invisible-index concept (and no `visibility`
+            # column on `all_indexes`), so return an empty set there.
+            def invisible_index_names
+              return Set.new unless supports_disabling_indexes?
+              select_values(<<~SQL.squish, "SCHEMA").map(&:upcase).to_set
+                SELECT index_name FROM all_indexes
+                WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+                AND visibility = 'INVISIBLE'
+              SQL
+            end
+
+            def ensure_invisible_keyword(ddl)
+              return ddl if ddl.match?(/\bINVISIBLE\b/i)
+              "#{ddl.rstrip} INVISIBLE"
             end
 
             # GET_DEPENDENT_DDL("COMMENT", ...) returns an empty CLOB; query directly.

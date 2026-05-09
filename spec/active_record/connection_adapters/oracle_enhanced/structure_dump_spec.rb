@@ -121,6 +121,27 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
       expect(dump).to match(/CREATE INDEX "?IX_STRUCT_SORT"? ON "?TEST_POSTS"? \(.*"?TITLE"?.*"?FOO"?\s+DESC.*\)/im)
     end
 
+    it "dumps the INVISIBLE keyword for an INVISIBLE index in structure_dump_indexes" do
+      skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
+      schema_define do
+        add_index :test_posts, :title, name: "ix_struct_invisible", enabled: false
+      end
+      dump = @conn.structure_dump_indexes("test_posts").join("\n")
+      expect(dump).to match(/CREATE INDEX "?IX_STRUCT_INVISIBLE"? ON "?TEST_POSTS"? \(.*"?TITLE"?.*\)\s+INVISIBLE/i)
+    end
+
+    it "omits the INVISIBLE keyword for a VISIBLE index in structure_dump_indexes" do
+      skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
+      schema_define do
+        add_index :test_posts, :title, name: "ix_struct_default"
+      end
+      dump = @conn.structure_dump_indexes("test_posts").join("\n")
+      visible = dump.lines.find { |l| l.include?("IX_STRUCT_DEFAULT") }
+      expect(visible).not_to be_nil
+      expect(visible).not_to match(/\bINVISIBLE\b/i)
+      expect(visible).not_to match(/\bVISIBLE\b/i)
+    end
+
     it "appends NOVALIDATE for foreign keys added with validate: false" do
       schema_define do
         add_column :test_posts, :foo_uniq, :integer

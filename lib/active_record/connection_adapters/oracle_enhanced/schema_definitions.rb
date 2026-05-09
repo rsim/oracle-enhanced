@@ -39,13 +39,23 @@ module ActiveRecord
       end
 
       class IndexDefinition < ActiveRecord::ConnectionAdapters::IndexDefinition
-        attr_accessor :parameters, :statement_parameters, :tablespace
+        attr_accessor :parameters, :statement_parameters, :enabled, :tablespace
 
-        def initialize(table, name, unique, columns, orders, type, parameters, statement_parameters, tablespace)
+        def initialize(table, name, unique, columns, orders, type: nil, parameters: nil, statement_parameters: nil, enabled: true, tablespace: nil)
           @parameters = parameters
           @statement_parameters = statement_parameters
+          @enabled = enabled
           @tablespace = tablespace
           super(table, name, unique, columns, orders: orders, type: type)
+        end
+
+        def disabled?
+          !@enabled
+        end
+
+        def defined_for?(columns = nil, name: nil, unique: nil, valid: nil, include: nil, nulls_not_distinct: nil, enabled: nil, **options)
+          super(columns, name: name, unique: unique, valid: valid, include: include, nulls_not_distinct: nulls_not_distinct, **options) &&
+            (enabled.nil? || self.enabled == enabled)
         end
       end
 
@@ -161,6 +171,18 @@ module ActiveRecord
 
         def validate_check_constraint(...)
           @base.validate_check_constraint(name, ...)
+        end
+
+        # Re-expose the connection-level `disable_index` / `enable_index`
+        # on the `change_table` block receiver so migrations can write
+        # `t.disable_index(:idx_name)` / `t.enable_index(:idx_name)`.
+        # Mirrors the MySQL adapter's `Table` wrapper.
+        def disable_index(index_name)
+          @base.disable_index(name, index_name)
+        end
+
+        def enable_index(index_name)
+          @base.enable_index(name, index_name)
         end
 
         def validate_foreign_key(...)

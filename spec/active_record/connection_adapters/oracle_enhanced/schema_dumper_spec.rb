@@ -217,6 +217,60 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "INVISIBLE index" do
+    before(:each) do
+      skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.supports_disabling_indexes?
+      schema_define do
+        create_table :test_idx_visibility_dump, force: true do |t|
+          t.string :name
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_idx_visibility_dump, if_exists: true
+      end
+    end
+
+    it "dumps `enabled: false` for an INVISIBLE index" do
+      schema_define do
+        add_index :test_idx_visibility_dump, :name,
+                  name: "ix_dump_invisible", enabled: false
+      end
+      output = dump_table_schema "test_idx_visibility_dump"
+      expect(output).to match(/t\.index \[.*name.*\], name: "ix_dump_invisible", enabled: false/im)
+    end
+
+    it "round-trips an INVISIBLE index through dump and load" do
+      schema_define do
+        add_index :test_idx_visibility_dump, :name,
+                  name: "ix_rt_invisible", enabled: false
+      end
+      dumped = dump_table_schema "test_idx_visibility_dump"
+      schema_define do
+        drop_table :test_idx_visibility_dump, if_exists: true
+      end
+      body = dumped[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { instance_eval(body) }
+      visibility = ActiveRecord::Base.lease_connection.select_value(<<~SQL.squish)
+        SELECT visibility FROM all_indexes
+         WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+           AND index_name = 'IX_RT_INVISIBLE'
+      SQL
+      expect(visibility).to eq("INVISIBLE")
+    end
+
+    it "does not emit `enabled:` for VISIBLE indexes" do
+      schema_define do
+        add_index :test_idx_visibility_dump, :name, name: "ix_dump_visible"
+      end
+      output = dump_table_schema "test_idx_visibility_dump"
+      expect(output).to include('name: "ix_dump_visible"')
+      expect(output).not_to match(/enabled:/)
+    end
+  end
+
   describe "foreign key constraints" do
     # Recreate the canonical tables before each example. One example
     # (`should include primary_key when reference column name is not 'id'`)

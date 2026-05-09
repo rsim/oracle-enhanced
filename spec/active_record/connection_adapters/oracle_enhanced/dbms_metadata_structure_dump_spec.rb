@@ -120,6 +120,52 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
       expect(dump).to match(/CREATE\s+(?:UNIQUE\s+)?INDEX\s+"?IX_TEST_DBMS_METADATA_TITLE"?/i)
     end
 
+    it "preserves the INVISIBLE keyword when DBMS_METADATA dumps an INVISIBLE index" do
+      skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
+      schema_define do
+        create_table :test_dbms_metadata_posts, force: true do |t|
+          t.string :title
+        end
+        add_index :test_dbms_metadata_posts, :title, name: "ix_dbms_meta_invisible", enabled: false
+      end
+      dump = @conn.structure_dump
+      invisible_idx_stmt = dump.split("\n\n/\n\n").find do |stmt|
+        stmt.match?(/CREATE\s+(?:UNIQUE\s+)?INDEX\s+"?IX_DBMS_META_INVISIBLE"?/i)
+      end
+      expect(invisible_idx_stmt).not_to be_nil
+      expect(invisible_idx_stmt).to match(/\bINVISIBLE\b/i)
+    end
+
+    # Constraint-backed indexes (PRIMARY KEY / UNIQUE) are inlined into
+    # the CREATE TABLE DDL by CONSTRAINTS=TRUE and are therefore skipped
+    # by the standalone-INDEX loop. If they happen to be INVISIBLE, the
+    # dump must restore that state with an explicit `ALTER INDEX`
+    # statement; otherwise a re-load would silently bring the index back
+    # as VISIBLE.
+    it "emits ALTER INDEX ... INVISIBLE for an INVISIBLE constraint-backed index" do
+      skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
+      schema_define do
+        create_table :test_dbms_meta_inv_uniq, force: true do |t|
+          t.string :email
+        end
+        add_index :test_dbms_meta_inv_uniq, :email,
+                  unique: true, name: "ix_dbms_meta_inv_uniq", enabled: false
+      end
+
+      dump = @conn.structure_dump
+      alter_stmt = dump.split("\n\n/\n\n").find do |stmt|
+        stmt.match?(/\AALTER\s+INDEX\s+"?IX_DBMS_META_INV_UNIQ"?\s+INVISIBLE\s*\z/i)
+      end
+      expect(alter_stmt).not_to be_nil
+
+      # And the standalone CREATE INDEX should NOT be emitted (the
+      # constraint inline already created the index).
+      standalone = dump.split("\n\n/\n\n").select do |stmt|
+        stmt.match?(/\ACREATE\s+(?:UNIQUE\s+)?INDEX\s+"?IX_DBMS_META_INV_UNIQ"?/i)
+      end
+      expect(standalone).to be_empty
+    end
+
     it "emits referential constraints as ALTER TABLE … ADD CONSTRAINT after the tables" do
       schema_define do
         create_table :test_dbms_metadata_posts, force: true do |t|

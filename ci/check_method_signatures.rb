@@ -68,6 +68,16 @@ IGNORED_DRIFTS = [
   # shape that the read path (`indexes(table_name)`) and write path (`add_index_options`)
   # both rely on. Reconciling to the kwarg shape is a separate refactor.
   { method: :initialize, oe_owner: "ActiveRecord::ConnectionAdapters::OracleEnhanced::IndexDefinition", rails_owner: "ActiveRecord::ConnectionAdapters::IndexDefinition" },
+  # OE IndexDefinition adds an `enabled:` kwarg to `defined_for?` so
+  # `index_exists?(..., enabled: false)` round-trips through the visibility
+  # state for INVISIBLE indexes. Mirrors the MySQL adapter, which adds the
+  # same kwarg for the same feature.
+  { method: :defined_for?, oe_owner: "ActiveRecord::ConnectionAdapters::OracleEnhanced::IndexDefinition", rails_owner: "ActiveRecord::ConnectionAdapters::IndexDefinition" },
+  # OE add_index_options promotes `:enabled` from `**options` to an explicit
+  # kwarg so its discoverability matches `name:` / `if_not_exists:` /
+  # `internal:`. AR core's abstract still uses `**options` for everything
+  # past `internal:`, hence the kwarg drift.
+  { method: :add_index_options, oe_owner: "ActiveRecord::ConnectionAdapters::OracleEnhanced::SchemaStatements", rails_owner: "ActiveRecord::ConnectionAdapters::SchemaStatements" },
   # OE TableDefinition does not declare `if_not_exists:` explicitly — it absorbs
   # the kwarg through `**options` and lets the override of `create_table`
   # pre-check existence in Ruby (Oracle 21c and earlier do not support

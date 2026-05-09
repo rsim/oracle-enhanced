@@ -611,6 +611,110 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       expect(@conn.supports_index_sort_order?).to be(true)
     end
 
+    context "INVISIBLE indexes" do
+      before(:each) do
+        skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
+      end
+
+      it "reports supports_disabling_indexes? as true" do
+        expect(@conn.supports_disabling_indexes?).to be(true)
+      end
+
+      it "creates an INVISIBLE index when add_index passes enabled: false" do
+        schema_define do
+          create_table :test_idx_invisible, force: true do |t|
+            t.string :name
+          end
+          add_index :test_idx_invisible, :name, name: "ix_idx_invisible", enabled: false
+        end
+
+        idx = @conn.indexes("test_idx_invisible").detect { |i| i.name == "ix_idx_invisible" }
+        expect(idx).not_to be_nil
+        expect(idx.disabled?).to be(true)
+        expect(idx.enabled).to be(false)
+      ensure
+        schema_define { drop_table :test_idx_invisible, if_exists: true }
+      end
+
+      it "round-trips through disable_index / enable_index" do
+        schema_define do
+          create_table :test_idx_toggle, force: true do |t|
+            t.string :name
+          end
+          add_index :test_idx_toggle, :name, name: "ix_idx_toggle"
+        end
+
+        idx_before = @conn.indexes("test_idx_toggle").detect { |i| i.name == "ix_idx_toggle" }
+        expect(idx_before.enabled).to be(true)
+
+        @conn.disable_index(:test_idx_toggle, "ix_idx_toggle")
+        idx_after_disable = @conn.indexes("test_idx_toggle").detect { |i| i.name == "ix_idx_toggle" }
+        expect(idx_after_disable.disabled?).to be(true)
+
+        @conn.enable_index(:test_idx_toggle, "ix_idx_toggle")
+        idx_after_enable = @conn.indexes("test_idx_toggle").detect { |i| i.name == "ix_idx_toggle" }
+        expect(idx_after_enable.enabled).to be(true)
+      ensure
+        schema_define { drop_table :test_idx_toggle, if_exists: true }
+      end
+
+      # UNIQUE + INVISIBLE is a real combination: dual-write migrations and
+      # "introduce uniqueness without changing query plans yet" workflows
+      # both rely on adding a UNIQUE index in the disabled state.
+      it "creates an INVISIBLE UNIQUE index when add_index passes unique: true, enabled: false" do
+        schema_define do
+          create_table :test_idx_unique_invisible, force: true do |t|
+            t.string :name
+          end
+          add_index :test_idx_unique_invisible, :name, name: "ix_uniq_invisible", unique: true, enabled: false
+        end
+
+        idx = @conn.indexes("test_idx_unique_invisible").detect { |i| i.name == "ix_uniq_invisible" }
+        expect(idx).not_to be_nil
+        expect(idx.unique).to be(true)
+        expect(idx.disabled?).to be(true)
+
+        # Querying all_indexes directly confirms Oracle sees a UNIQUE INVISIBLE index.
+        row = @conn.select_one(<<~SQL.squish)
+          SELECT uniqueness, visibility FROM all_indexes
+           WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+             AND index_name = 'IX_UNIQ_INVISIBLE'
+        SQL
+        expect(row["uniqueness"]).to eq("UNIQUE")
+        expect(row["visibility"]).to eq("INVISIBLE")
+      ensure
+        schema_define { drop_table :test_idx_unique_invisible, if_exists: true }
+      end
+
+      # The `change_table` block receiver (`OracleEnhanced::Table`) must
+      # expose the same disable_index / enable_index API the connection
+      # has, mirroring the MySQL adapter so migrations can write
+      # `t.disable_index(:idx)` / `t.enable_index(:idx)` rather than
+      # reaching back to the connection.
+      it "exposes disable_index / enable_index on the change_table block receiver" do
+        schema_define do
+          create_table :test_idx_t_toggle, force: true do |t|
+            t.string :name
+          end
+          add_index :test_idx_t_toggle, :name, name: "ix_t_toggle"
+        end
+
+        @conn.change_table :test_idx_t_toggle do |t|
+          t.disable_index "ix_t_toggle"
+        end
+        idx = @conn.indexes("test_idx_t_toggle").detect { |i| i.name == "ix_t_toggle" }
+        expect(idx.disabled?).to be(true)
+
+        @conn.change_table :test_idx_t_toggle do |t|
+          t.enable_index "ix_t_toggle"
+        end
+        idx = @conn.indexes("test_idx_t_toggle").detect { |i| i.name == "ix_t_toggle" }
+        expect(idx.enabled).to be(true)
+      ensure
+        schema_define { drop_table :test_idx_t_toggle, if_exists: true }
+      end
+    end
+
     it "measures default index name length in bytes, not characters" do
       max = @conn.index_name_length
       # "index_t_on_<col>" fits in `max` characters but overflows in bytes

@@ -168,7 +168,9 @@ module ActiveRecord # :nodoc:
               sql = "#{sql} DESC" if orders[c] == :desc
               sql
             end.join(", ")
-            "CREATE#{' UNIQUE' if index.unique} INDEX #{quote_column_name(index.name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
+            sql = +"CREATE#{' UNIQUE' if index.unique} INDEX #{quote_column_name(index.name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
+            sql << " INVISIBLE" if index.respond_to?(:disabled?) && index.disabled?
+            sql
           end
         end
 
