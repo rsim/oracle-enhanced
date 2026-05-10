@@ -26,7 +26,7 @@ module ActiveRecord # :nodoc:
 
           private
             def dbms_metadata_structure_dump
-              dbms_metadata_with_transforms do
+              dbms_metadata_with_transforms(sql_terminator: true) do
                 structure = []
                 table_names = list_schema_objects("TABLE", non_mview_only: true)
                 skip_indexes = constraint_backed_index_names
@@ -41,10 +41,12 @@ module ActiveRecord # :nodoc:
                   names.each do |name|
                     next if object_type == "INDEX" && skip_indexes.include?(name.upcase)
                     ddl = dbms_metadata_get_ddl(object_type.tr(" ", "_"), name)
-                    if ddl && object_type == "INDEX" && invisible_indexes.include?(name.upcase)
-                      ddl = ensure_invisible_keyword(ddl)
+                    next unless ddl
+                    statements = split_dbms_metadata_sql_ddl(ddl)
+                    if object_type == "INDEX" && invisible_indexes.include?(name.upcase)
+                      statements = statements.map { |stmt| ensure_invisible_keyword(stmt) }
                     end
-                    structure << ddl if ddl
+                    structure.concat(statements)
                   end
                 end
 
@@ -66,7 +68,7 @@ module ActiveRecord # :nodoc:
 
                 fk_statements = table_names.flat_map do |table_name|
                   fk_ddl = dbms_metadata_get_dependent_ddl("REF_CONSTRAINT", table_name)
-                  fk_ddl ? split_dbms_metadata_ddl(fk_ddl) : []
+                  fk_ddl ? split_dbms_metadata_sql_ddl(fk_ddl) : []
                 end
 
                 join_with_statement_token(structure) << join_with_statement_token(fk_statements)
@@ -94,8 +96,8 @@ module ActiveRecord # :nodoc:
               end
             end
 
-            def dbms_metadata_with_transforms
-              configure_dbms_metadata_transforms
+            def dbms_metadata_with_transforms(sql_terminator: false)
+              configure_dbms_metadata_transforms(sql_terminator: sql_terminator)
               yield
             ensure
               reset_dbms_metadata_transforms
@@ -179,7 +181,14 @@ module ActiveRecord # :nodoc:
 
             # Suppress installation-specific output, in spirit of
             # `pg_dump --schema-only --no-owner --no-tablespaces`.
-            def configure_dbms_metadata_transforms
+            # When `sql_terminator: true` is requested, also tell Oracle
+            # to append a SQL terminator (`;`) to each statement so the
+            # caller can split a multi-statement TABLE DDL CLOB on the
+            # boundary; this is only safe for the SQL DDL path (TABLE /
+            # SEQUENCE / VIEW / INDEX). The PL/SQL DDL path leaves
+            # SQLTERMINATOR at the default FALSE because PL/SQL bodies
+            # contain `;` characters internally (`END;`).
+            def configure_dbms_metadata_transforms(sql_terminator: false)
               execute(<<~SQL)
                 BEGIN
                   DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'STORAGE', FALSE);
@@ -187,6 +196,7 @@ module ActiveRecord # :nodoc:
                   DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SEGMENT_ATTRIBUTES', FALSE);
                   DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'EMIT_SCHEMA', FALSE);
                   DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'REF_CONSTRAINTS', FALSE);
+                  DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SQLTERMINATOR', #{sql_terminator ? "TRUE" : "FALSE"});
                 END;
               SQL
             end
@@ -245,6 +255,19 @@ module ActiveRecord # :nodoc:
             def split_dbms_metadata_ddl(ddl)
               return [] if ddl.nil?
               ddl.split(/\n\s*\n/).map(&:strip).reject(&:empty?)
+            end
+
+            # `GET_DDL('TABLE', t)` can return more than one SQL statement
+            # in a single CLOB when the table has a UNIQUE constraint
+            # backed by a separately-named index (Oracle emits the
+            # `CREATE TABLE`, the `CREATE UNIQUE INDEX`, and the
+            # `ALTER TABLE ... ADD CONSTRAINT ... USING INDEX ...` as a
+            # group). With `SQLTERMINATOR=TRUE` each statement ends in
+            # `;`, so split on the terminator to surface each statement
+            # to the structure-dump output as its own entry.
+            def split_dbms_metadata_sql_ddl(ddl)
+              return [] if ddl.nil?
+              ddl.split(/;\s*(?:\n|\z)/).map(&:strip).reject(&:empty?)
             end
         end
       end

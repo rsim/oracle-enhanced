@@ -157,13 +157,6 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
         stmt.match?(/\AALTER\s+INDEX\s+"?IX_DBMS_META_INV_UNIQ"?\s+INVISIBLE\s*\z/i)
       end
       expect(alter_stmt).not_to be_nil
-
-      # And the standalone CREATE INDEX should NOT be emitted (the
-      # constraint inline already created the index).
-      standalone = dump.split("\n\n/\n\n").select do |stmt|
-        stmt.match?(/\ACREATE\s+(?:UNIQUE\s+)?INDEX\s+"?IX_DBMS_META_INV_UNIQ"?/i)
-      end
-      expect(standalone).to be_empty
     ensure
       schema_define { drop_table :test_dbms_meta_inv_uniq, if_exists: true }
     end
@@ -232,7 +225,7 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
       expect(dump).not_to match(/PCTFREE\s+/i)
     end
 
-    it "does not emit a standalone CREATE INDEX for a UNIQUE constraint's backing index" do
+    it "splits a UNIQUE-constraint-with-named-backing-index into separate CREATE INDEX and ADD CONSTRAINT statements" do
       schema_define do
         create_table :test_dbms_metadata_posts, force: true do |t|
           t.string :email
@@ -240,13 +233,81 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
         add_index :test_dbms_metadata_posts, :email, unique: true, name: "ix_test_dbms_metadata_email"
       end
       dump = @conn.structure_dump
-      # `CONSTRAINTS=TRUE` already inlines the unique constraint (and its
-      # backing index) into the CREATE TABLE DDL. Emitting a separate
-      # `CREATE UNIQUE INDEX` for the same name would duplicate it.
-      standalone_index_stmts = dump.split("\n\n/\n\n").select do |stmt|
+      stmts = dump.split("\n\n/\n\n")
+
+      # `GET_DDL('TABLE', ...)` returns CREATE TABLE, CREATE UNIQUE INDEX,
+      # and ALTER TABLE ... ADD CONSTRAINT ... USING INDEX as one CLOB
+      # when the UNIQUE constraint references a named backing index.
+      # `SQLTERMINATOR=TRUE` plus `split_dbms_metadata_sql_ddl` splits
+      # them so each one is a separate dump entry; `structure_load`
+      # would otherwise feed the whole CLOB as one statement and Oracle
+      # would reject it with ORA-00922.
+      create_index_stmts = stmts.select do |stmt|
         stmt.match?(/\ACREATE\s+UNIQUE\s+INDEX\s+"?IX_TEST_DBMS_METADATA_EMAIL"?/i)
       end
-      expect(standalone_index_stmts).to be_empty
+      expect(create_index_stmts.size).to eq(1)
+
+      add_constraint_stmts = stmts.select do |stmt|
+        stmt.match?(/\AALTER\s+TABLE\s+"?TEST_DBMS_METADATA_POSTS"?\s+ADD\s+CONSTRAINT\s+"?IX_TEST_DBMS_METADATA_EMAIL"?\s+UNIQUE/i)
+      end
+      expect(add_constraint_stmts.size).to eq(1)
+    end
+
+    # Round-trip regression for the same table shape: dump → drop → load
+    # used to fail with ORA-00922 because the multi-statement `GET_DDL`
+    # CLOB was sent to Oracle as a single statement.
+    it "round-trips a UNIQUE-with-named-backing-index table through structure_dump/structure_load" do
+      require "tempfile"
+      schema_define do
+        create_table :test_dbms_metadata_posts, force: true do |t|
+          t.string :email
+        end
+        add_index :test_dbms_metadata_posts, :email, unique: true, name: "ix_test_dbms_metadata_email"
+      end
+
+      temp_file = Tempfile.create(["oracle_enhanced_roundtrip", ".sql"]).path
+      config = ActiveRecord::Base.connection_db_config.configuration_hash
+
+      begin
+        ActiveRecord::Tasks::DatabaseTasks.structure_dump(config, temp_file)
+        ActiveRecord::Tasks::DatabaseTasks.drop(config)
+        ActiveRecord::Tasks::DatabaseTasks.structure_load(config, temp_file)
+        expect(@conn.table_exists?(:test_dbms_metadata_posts)).to be(true)
+      ensure
+        File.unlink(temp_file) if File.exist?(temp_file)
+      end
+    end
+
+    # Round-trip regression for foreign keys: with SQLTERMINATOR=TRUE
+    # the dependent FK DDL also ends with ';', so the dump must run it
+    # through `split_dbms_metadata_sql_ddl` to strip the trailing
+    # terminator. Otherwise the load raises ORA-00911 on the trailing ';'.
+    it "round-trips foreign-key constraints through structure_dump/structure_load" do
+      require "tempfile"
+      schema_define do
+        create_table :test_dbms_metadata_posts, force: true do |t|
+          t.string :title
+        end
+        create_table :test_dbms_metadata_children, force: true do |t|
+          t.integer :test_dbms_metadata_post_id
+        end
+        add_foreign_key :test_dbms_metadata_children, :test_dbms_metadata_posts,
+                        column: :test_dbms_metadata_post_id, name: "fk_dbms_meta_rt"
+      end
+
+      temp_file = Tempfile.create(["oracle_enhanced_fk_rt", ".sql"]).path
+      config = ActiveRecord::Base.connection_db_config.configuration_hash
+
+      begin
+        ActiveRecord::Tasks::DatabaseTasks.structure_dump(config, temp_file)
+        ActiveRecord::Tasks::DatabaseTasks.drop(config)
+        ActiveRecord::Tasks::DatabaseTasks.structure_load(config, temp_file)
+        expect(@conn.table_exists?(:test_dbms_metadata_children)).to be(true)
+        fk = @conn.foreign_keys(:test_dbms_metadata_children).find { |f| f.name == "fk_dbms_meta_rt" }
+        expect(fk).not_to be_nil
+      ensure
+        File.unlink(temp_file) if File.exist?(temp_file)
+      end
     end
   end
 
