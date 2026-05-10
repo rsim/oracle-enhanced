@@ -492,7 +492,7 @@ module ActiveRecord
             create_pk_sequence(table_name, options)
             create_pk_trigger(table_name, column_name, options) if options[:primary_key_trigger]
           end
-          change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
+          apply_column_comments(table_name, column_name, comment: options[:comment]) if options.key?(:comment)
         ensure
           clear_table_caches(table_name)
         end
@@ -537,7 +537,7 @@ module ActiveRecord
           change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{change_column_stmt}"
           execute(change_column_sql)
 
-          change_column_comment(table_name, column_name, options[:comment]) if options.key?(:comment)
+          apply_column_comments(table_name, column_name, comment: options[:comment]) if options.key?(:comment)
         ensure
           clear_table_caches(table_name)
         end
@@ -827,6 +827,7 @@ module ActiveRecord
           fragments.each do |fragment|
             execute "ALTER TABLE #{quote_table_name(table_name)} #{fragment}"
           end
+          apply_column_comments(table_name, :created_at, :updated_at, comment: options[:comment]) if options.key?(:comment)
         end
 
         def update_table_definition(table_name, base) # :nodoc:
@@ -870,6 +871,23 @@ module ActiveRecord
         end
 
         private
+          # Oracle does not allow inline `COMMENT '...'` in `ALTER TABLE
+          # ADD` / `MODIFY`, so column comments are issued as separate
+          # `COMMENT ON COLUMN` statements after the column DDL is in
+          # place. Centralising the post-ALTER call here keeps
+          # `add_column`, `change_column` and `add_timestamps` in lockstep.
+          # The helper does not short-circuit on `comment.nil?` because
+          # passing `comment: nil` is the canonical way for callers to
+          # clear an existing column comment (`change_column_comment_sql`
+          # turns a nil comment into `COMMENT ON COLUMN ... IS ''`); the
+          # `options.key?(:comment)` guard at each call site is what
+          # decides whether the helper runs at all.
+          def apply_column_comments(table_name, *column_names, comment:)
+            column_names.each do |column_name|
+              change_column_comment(table_name, column_name, comment)
+            end
+          end
+
           # Per-object-kind "does not exist" ORA codes used by `drop_if_exists`.
           MISSING_OBJECT_ORA_CODES = {
             "TABLE"             => "ORA-00942",
