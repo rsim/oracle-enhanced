@@ -1019,6 +1019,187 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       expect(col.sql_type).to match(/VARCHAR2\(8\)/i)
       expect(col.null).to be(false)
     end
+
+    it "combines change_column_default and change_column_null into a single MODIFY clause" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.change_default :qty, 42
+          t.change_null :name, false
+        end
+      end
+      modify_alters = sqls.grep(/ALTER TABLE.*\bMODIFY\b/i)
+      expect(modify_alters.size).to eq(1)
+      expect(modify_alters.first).to match(/MODIFY \(.*qty.*DEFAULT.*42.*name.*NOT NULL.*\)/i)
+
+      cols = @conn.columns(:test_bulk).index_by(&:name)
+      expect(cols["qty"].default.to_i).to eq(42)
+      expect(cols["name"].null).to be(false)
+    end
+
+    it "combines add_column with change_column_default in a single ALTER" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.string :added_col
+          t.change_default :qty, 7
+        end
+      end
+      expect(sqls.size).to eq(1)
+      expect(sqls.first).to match(/\AALTER TABLE.*ADD \(.*added_col.*\) MODIFY \(.*qty.*DEFAULT.*7.*\)\z/im)
+
+      cols = @conn.columns(:test_bulk).index_by(&:name)
+      expect(cols).to include("added_col")
+      expect(cols["qty"].default.to_i).to eq(7)
+    end
+
+    it "routes change_column_null through the full path when a default value is given (backfill UPDATE)" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql] }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.change_null :qty, false, 0
+        end
+      end
+      # The full change_column_null path issues UPDATE then MODIFY.
+      expect(sqls.any? { |s| s.match?(/UPDATE.*test_bulk.*SET.*qty/i) }).to be(true)
+      expect(sqls.any? { |s| s.match?(/ALTER TABLE.*MODIFY.*qty.*NOT NULL/i) }).to be(true)
+
+      col = @conn.columns(:test_bulk).find { |c| c.name == "qty" }
+      expect(col.null).to be(false)
+    end
+
+    it "flushes the queued ADD when bulk block sets default on a just-added column" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.integer :counter
+          t.change_default :counter, 5
+        end
+      end
+      add_alters = sqls.grep(/ALTER TABLE.*\bADD\b/i)
+      modify_alters = sqls.grep(/ALTER TABLE.*\bMODIFY\b/i)
+      expect(add_alters.size).to eq(1)
+      expect(modify_alters.size).to eq(1)
+
+      col = @conn.columns(:test_bulk).find { |c| c.name == "counter" }
+      expect(col.default.to_i).to eq(5)
+    end
+
+    it "flushes the queued ADD when bulk block sets NOT NULL on a just-added column" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.string :late_addition
+          t.change_null :late_addition, false
+        end
+      end
+      # `change_column_null_for_alter` calls `column_for`, which would not
+      # see the just-added column unless the dispatcher flushed the ADD
+      # first. Two ALTERs are expected: ADD then MODIFY NOT NULL.
+      add_alters = sqls.grep(/ALTER TABLE.*\bADD\b/i)
+      modify_alters = sqls.grep(/ALTER TABLE.*\bMODIFY\b/i)
+      expect(add_alters.size).to eq(1)
+      expect(modify_alters.size).to eq(1)
+
+      col = @conn.columns(:test_bulk).find { |c| c.name == "late_addition" }
+      expect(col).not_to be_nil
+      expect(col.null).to be(false)
+    end
+
+    it "skips a redundant change_null whose target matches the existing nullability" do
+      sqls = []
+      # `qty` is already nullable; asking for null: true is a no-op that
+      # the non-bulk path silently skips. The bulk path must do the same
+      # or Oracle raises ORA-01451 from MODIFY (col NULL).
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.change_null :qty, true
+        end
+      end
+      expect(sqls).to be_empty
+    end
+
+    it "splits same-column change_default + change_null into separate ALTERs to avoid duplicate column in MODIFY" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.change_default :qty, 9
+          t.change_null :qty, false
+        end
+      end
+      modify_alters = sqls.grep(/ALTER TABLE.*\bMODIFY\b/i)
+      expect(modify_alters.size).to eq(2)
+      # Each ALTER must reference qty exactly once — never duplicate it
+      # within a single MODIFY (..., ...) clause (ORA-00957 guard).
+      modify_alters.each do |sql|
+        expect(sql.scan(/"?QTY"?/i).size).to eq(1)
+      end
+      expect(modify_alters.first).to match(/DEFAULT.*9/i)
+      expect(modify_alters.last).to match(/NOT NULL/i)
+
+      col = @conn.columns(:test_bulk).find { |c| c.name == "qty" }
+      expect(col.default.to_i).to eq(9)
+      expect(col.null).to be(false)
+    end
+
+    it "splits duplicate change_default on the same column into separate ALTERs (last value wins on the table)" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.change_default :qty, 1
+          t.change_default :qty, 2
+        end
+      end
+      modify_alters = sqls.grep(/ALTER TABLE.*\bMODIFY\b/i)
+      expect(modify_alters.size).to eq(2)
+
+      col = @conn.columns(:test_bulk).find { |c| c.name == "qty" }
+      expect(col.default.to_i).to eq(2)
+    end
+
+    it "preserves user order across an interleaved change_default + add_column + change_null block" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.change_default :qty, 3
+          t.string :extra
+          t.change_null :name, false
+        end
+      end
+      # Oracle 11g rejects `ALTER TABLE ADD (...) MODIFY (col1 ..., col2 ...)`
+      # (ADD combined with multi-column MODIFY) with ORA-02264, even though
+      # 12c+ accept it. The dispatcher therefore flushes the pending ADD +
+      # first MODIFY before queuing the second MODIFY fragment, producing
+      # two ALTERs in user-specified order.
+      expect(sqls.size).to eq(2)
+      expect(sqls[0]).to match(/ADD \(.*extra.*\) MODIFY \(.*qty.*DEFAULT.*3.*\)/i)
+      expect(sqls[1]).to match(/MODIFY \(.*name.*NOT NULL.*\)/i)
+
+      cols = @conn.columns(:test_bulk).index_by(&:name)
+      expect(cols).to include("extra")
+      expect(cols["qty"].default.to_i).to eq(3)
+      expect(cols["name"].null).to be(false)
+    end
+
+    it "clears a default by emitting MODIFY (col DEFAULT NULL)" do
+      schema_define do
+        drop_table :test_bulk_clear, if_exists: true
+        create_table :test_bulk_clear, force: true do |t|
+          t.integer :n, default: 7
+        end
+      end
+
+      begin
+        @conn.change_table :test_bulk_clear, bulk: true do |t|
+          t.change_default :n, nil
+        end
+
+        col = @conn.columns(:test_bulk_clear).find { |c| c.name == "n" }
+        expect(col.default).to be_nil
+      ensure
+        schema_define { drop_table :test_bulk_clear, if_exists: true }
+      end
+    end
   end
 end
 

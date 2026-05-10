@@ -569,6 +569,8 @@ module ActiveRecord
         SUPPORTED_BULK_COMMANDS = %i[
           add_column
           change_column
+          change_column_default
+          change_column_null
           remove_column
           remove_columns
         ].freeze
@@ -605,7 +607,7 @@ module ActiveRecord
               else
                 flush_bulk_drops(table_name, drop_buf)
                 add_buf << add_column_for_alter(table_name, *args)
-                add_pending << column_name.to_s
+                add_pending << quote_column_name(column_name)
               end
             when :change_column
               column_name, type, options = args[0], args[1], (args[2] || {})
@@ -615,13 +617,36 @@ module ActiveRecord
                 change_column(table_name, column_name, type, **options)
               else
                 flush_bulk_drops(table_name, drop_buf)
-                # `change_column_for_alter` -> `column_for` reads the live
-                # catalog, so a same-block ADD must commit first.
-                if add_pending.any? { |c| c.casecmp?(column_name.to_s) }
+                if needs_pre_modify_flush?(add_buf, modify_buf, add_pending, column_name)
                   flush_bulk_add_modify(table_name, add_buf, modify_buf)
                   add_pending.clear
                 end
                 modify_buf << change_column_for_alter(table_name, *args)
+              end
+            when :change_column_default
+              column_name = args[0]
+              flush_bulk_drops(table_name, drop_buf)
+              if needs_pre_modify_flush?(add_buf, modify_buf, add_pending, column_name)
+                flush_bulk_add_modify(table_name, add_buf, modify_buf)
+                add_pending.clear
+              end
+              modify_buf << change_column_default_for_alter(table_name, *args)
+            when :change_column_null
+              column_name, null, default = args[0], args[1], args[2]
+              if !null && !default.nil?
+                # change_column_null with a default value runs an UPDATE before
+                # the MODIFY to backfill NULLs, which can't combine into ALTER.
+                flush_bulk_buffers(table_name, add_buf, modify_buf, drop_buf)
+                add_pending.clear
+                change_column_null(table_name, column_name, null, default)
+              else
+                flush_bulk_drops(table_name, drop_buf)
+                if needs_pre_modify_flush?(add_buf, modify_buf, add_pending, column_name)
+                  flush_bulk_add_modify(table_name, add_buf, modify_buf)
+                  add_pending.clear
+                end
+                fragment = change_column_null_for_alter(table_name, *args)
+                modify_buf << fragment if fragment
               end
             when :remove_column
               flush_bulk_add_modify(table_name, add_buf, modify_buf)
@@ -997,6 +1022,37 @@ module ActiveRecord
             schema_creation.accept(cd)
           end
 
+          # Bare-fragment helpers used only by `bulk_change_table`. AR core
+          # defines methods of the same name with different return shapes
+          # (a SchemaCreation node for default; a Proc-or-string sentinel
+          # for null). These overrides intentionally diverge — keep them
+          # private so AR core's contract is unaffected.
+          # Both fragments include the column's SQL type to match the
+          # non-bulk `change_column` shape (`MODIFY col TYPE …`); see the
+          # ORA-02264 / Oracle 11g caveat documented on
+          # `change_column_null_for_alter` below.
+          def change_column_default_for_alter(table_name, column_name, default_or_changes) # :nodoc:
+            column = column_for(table_name, column_name)
+            default = extract_new_default_value(default_or_changes)
+            "#{quote_column_name(column_name)} #{column.sql_type} DEFAULT #{quote(default)}"
+          end
+
+          # Returns nil when the requested nullability already matches the
+          # column read from the data dictionary, so the dispatcher can
+          # skip the MODIFY entirely.
+          # Mirrors the redundancy guard `change_column` uses to avoid
+          # ORA-01451 (already nullable) / ORA-01442 (already NOT NULL).
+          # Includes the column's SQL type in the fragment to match the
+          # non-bulk `change_column` path (`MODIFY col TYPE NOT NULL`);
+          # the bare-column form `MODIFY col NOT NULL` triggers ORA-02264
+          # on Oracle 11g (constraint-name auto-generation reuses an
+          # existing implicit constraint name when the type is omitted).
+          def change_column_null_for_alter(table_name, column_name, null, default = nil) # :nodoc:
+            column = column_for(table_name, column_name)
+            return nil if column.null == null
+            "#{quote_column_name(column_name)} #{column.sql_type} #{null ? 'NULL' : 'NOT NULL'}"
+          end
+
           # Returns true when the op needs the full `add_column` /
           # `change_column` path (not the bulk fragment) because those
           # methods issue extra SQL after the ALTER TABLE that the
@@ -1027,6 +1083,35 @@ module ActiveRecord
             return true if default_tablespaces.key?(type_sym)
             sql_type_sym = (type_to_sql(type).downcase.to_sym rescue nil)
             sql_type_sym && default_tablespaces.key?(sql_type_sym)
+          end
+
+          # True if a fragment targeting *this same* `column_name` is already
+          # queued in `modify_buf`. Each fragment built by the `*_for_alter`
+          # helpers starts with the quoted column name followed by a space,
+          # so a prefix scan is enough. Used to avoid emitting
+          # `MODIFY ("X" DEFAULT 1, "X" NOT NULL)` (ORA-00957).
+          def column_in_modify_buf?(modify_buf, column_name)
+            prefix = "#{quote_column_name(column_name)} "
+            modify_buf.any? { |frag| frag.start_with?(prefix) }
+          end
+
+          # Returns true if pushing another fragment to `modify_buf` should
+          # be preceded by a flush. Three triggers:
+          # 1. `column_name` is queued in `add_buf` — `column_for` would not
+          #    yet see the column, and the `MODIFY` would not be valid until
+          #    the ADD commits.
+          # 2. `column_name` is already in `modify_buf` — duplicate column
+          #    references inside `MODIFY (...)` raise ORA-00957.
+          # 3. Both `add_buf` and `modify_buf` are non-empty — Oracle 11g
+          #    rejects `ALTER TABLE ADD (...) MODIFY (col1 ..., col2 ...)`
+          #    (combined ADD with multi-column MODIFY) with ORA-02264, even
+          #    though 12c+ accept it. Splitting forces single-column MODIFY
+          #    when an ADD is in flight, which 11g handles cleanly.
+          def needs_pre_modify_flush?(add_buf, modify_buf, add_pending, column_name)
+            return true if add_pending.include?(quote_column_name(column_name))
+            return true if column_in_modify_buf?(modify_buf, column_name)
+            return true if add_buf.any? && modify_buf.any?
+            false
           end
 
           def flush_bulk_add_modify(table_name, add_buf, modify_buf)
