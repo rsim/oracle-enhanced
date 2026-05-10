@@ -114,8 +114,19 @@ module LoggerSpecHelper
   end
 end
 
-ActiveRecord::LogSubscriber::IGNORE_PAYLOAD_NAMES.replace(["EXPLAIN"])
-ActiveRecord::StructuredEventSubscriber::IGNORE_PAYLOAD_NAMES.replace(["EXPLAIN"]) if defined?(ActiveRecord::StructuredEventSubscriber)
+# `IGNORE_PAYLOAD_NAMES` was made frozen on Rails main (the constant ships
+# as `["SCHEMA", "EXPLAIN"].freeze`), so `replace` raises `FrozenError` on
+# recent Rails. Drop "SCHEMA" by reassigning the constant via
+# `remove_const` + `const_set` so the override works on both old (mutable)
+# and new (frozen) Rails versions. Without "SCHEMA" in the ignore list,
+# specs can assert on schema-tagged catalog SQL emitted by the adapter.
+%w[ActiveRecord::LogSubscriber ActiveRecord::StructuredEventSubscriber].each do |const_name|
+  next unless Object.const_defined?(const_name)
+  klass = Object.const_get(const_name)
+  next unless klass.const_defined?(:IGNORE_PAYLOAD_NAMES, false)
+  klass.send(:remove_const, :IGNORE_PAYLOAD_NAMES)
+  klass.const_set(:IGNORE_PAYLOAD_NAMES, ["EXPLAIN"].freeze)
+end
 
 module SchemaSpecHelper
   def schema_define(&block)
