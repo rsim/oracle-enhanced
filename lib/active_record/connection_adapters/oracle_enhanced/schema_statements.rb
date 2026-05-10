@@ -562,6 +562,85 @@ module ActiveRecord
           clear_table_caches(table_name)
         end
 
+        # Commands the bulk dispatcher knows how to combine into Oracle's
+        # ADD/MODIFY/DROP buckets. Anything else raises `NotImplementedError`
+        # *before* any DDL fires, so `change_table(bulk: true)` never
+        # half-applies a migration.
+        SUPPORTED_BULK_COMMANDS = %i[
+          add_column
+          change_column
+          remove_column
+          remove_columns
+        ].freeze
+        private_constant :SUPPORTED_BULK_COMMANDS
+
+        def bulk_change_table(table_name, operations) # :nodoc:
+          # Two ALTER buckets (ORA-12987 forbids mixing ADD/MODIFY with DROP).
+          # Invariant: never let a DROP sit pending while we queue an ADD/MODIFY,
+          # and vice versa — flushing the *other* bucket at every kind switch
+          # preserves the user's operation order across the two ALTER statements.
+          unsupported = operations.map(&:first).reject { |c| SUPPORTED_BULK_COMMANDS.include?(c) }
+          if unsupported.any?
+            raise NotImplementedError,
+              "bulk_change_table only supports #{SUPPORTED_BULK_COMMANDS.inspect} " \
+              "(got #{unsupported.first.inspect}); use change_table(bulk: false)"
+          end
+
+          add_buf = []
+          modify_buf = []
+          drop_buf = []
+          add_pending = [] # column names queued in add_buf — see :change_column branch
+
+          operations.each do |command, args|
+            args = args.dup
+            args.shift # remove table_name
+
+            case command
+            when :add_column
+              column_name, type, options = args[0], args[1], (args[2] || {})
+              if requires_full_command?(:add_column, type, options)
+                flush_bulk_buffers(table_name, add_buf, modify_buf, drop_buf)
+                add_pending.clear
+                add_column(table_name, column_name, type, **options)
+              else
+                flush_bulk_drops(table_name, drop_buf)
+                add_buf << add_column_for_alter(table_name, *args)
+                add_pending << column_name.to_s
+              end
+            when :change_column
+              column_name, type, options = args[0], args[1], (args[2] || {})
+              if requires_full_command?(:change_column, type, options)
+                flush_bulk_buffers(table_name, add_buf, modify_buf, drop_buf)
+                add_pending.clear
+                change_column(table_name, column_name, type, **options)
+              else
+                flush_bulk_drops(table_name, drop_buf)
+                # `change_column_for_alter` -> `column_for` reads the live
+                # catalog, so a same-block ADD must commit first.
+                if add_pending.any? { |c| c.casecmp?(column_name.to_s) }
+                  flush_bulk_add_modify(table_name, add_buf, modify_buf)
+                  add_pending.clear
+                end
+                modify_buf << change_column_for_alter(table_name, *args)
+              end
+            when :remove_column
+              flush_bulk_add_modify(table_name, add_buf, modify_buf)
+              add_pending.clear
+              drop_buf << args[0] # column_name
+            when :remove_columns
+              flush_bulk_add_modify(table_name, add_buf, modify_buf)
+              add_pending.clear
+              drop_buf.concat(args.reject { |a| a.is_a?(Hash) })
+            else
+              raise "missing dispatch branch for #{command.inspect}; update both SUPPORTED_BULK_COMMANDS and the case statement"
+            end
+          end
+
+          flush_bulk_buffers(table_name, add_buf, modify_buf, drop_buf)
+        ensure
+          clear_table_caches(table_name)
+        end
+
         def change_table_comment(table_name, comment_or_changes)
           clear_cache!
           execute change_table_comment_sql(table_name, comment_or_changes)
@@ -822,9 +901,12 @@ module ActiveRecord
         end
 
         def add_timestamps(table_name, **options)
-          fragments = add_timestamps_for_alter(table_name, **options)
-          fragments.each do |fragment|
-            execute "ALTER TABLE #{quote_table_name(table_name)} #{fragment}"
+          options[:null] = false if options[:null].nil?
+          options[:precision] = 6 if !options.key?(:precision) && supports_datetime_with_precision?
+          column_options = options.except(:comment)
+          change_table(table_name, bulk: true) do |t|
+            t.column :created_at, :datetime, **column_options
+            t.column :updated_at, :datetime, **column_options
           end
           apply_column_comments(table_name, :created_at, :updated_at, comment: options[:comment]) if options.key?(:comment)
         end
@@ -885,6 +967,91 @@ module ActiveRecord
             column_names.each do |column_name|
               change_column_comment(table_name, column_name, comment)
             end
+          end
+
+          def add_column_for_alter(table_name, column_name, type, **options)
+            if options[:identity]
+              raise ArgumentError,
+                "`identity: true` is not supported on `add_column`. Recreate the table with `create_table ..., identity: true` instead."
+            end
+            if options[:primary_key_trigger] && type.to_s.to_sym != :primary_key
+              raise ArgumentError,
+                "`primary_key_trigger: true` on `add_column` requires the column type to be `:primary_key`; got type: #{type.inspect}."
+            end
+            type = aliased_types(type.to_s, type)
+            td = create_table_definition(table_name)
+            cd = td.new_column_definition(column_name, type, **options)
+            schema_creation.accept(cd)
+          end
+
+          def change_column_for_alter(table_name, column_name, type, **options)
+            column = column_for(table_name, column_name)
+            if options.has_key?(:null) && options[:null] == column.null
+              options[:null] = nil
+            end
+            if type.to_sym == :virtual
+              type = options[:type]
+            end
+            td = create_table_definition(table_name)
+            cd = td.new_column_definition(column.name, type, **options)
+            schema_creation.accept(cd)
+          end
+
+          def remove_column_for_alter(table_name, column_name, type = nil, **options)
+            quote_column_name(column_name)
+          end
+
+          # Returns true when the op needs the full `add_column` /
+          # `change_column` path (not the bulk fragment) because those
+          # methods issue extra SQL after the ALTER TABLE that the
+          # column-only `*_for_alter` fragments do not reproduce:
+          # - `comment:` -> a follow-up `COMMENT ON COLUMN`
+          # - `:primary_key` type -> the `<table>_seq` sequence and, when
+          #   `primary_key_trigger:` is true, the BEFORE INSERT trigger
+          # - LOB types (text/ntext/binary/clob/nclob/blob) and any type
+          #   with an explicit `tablespace:` option or a configured
+          #   `default_tablespaces[type]` — `tablespace_for(...)` appends
+          #   a TABLESPACE / LOB STORE clause that the bare column-fragment
+          #   does not carry.
+          def requires_full_command?(command, type, options)
+            return true if options.key?(:comment)
+            return true if command == :add_column && type.to_s.to_sym == :primary_key
+            return true if needs_tablespace_clause?(type, options)
+            false
+          end
+
+          LOB_TYPE_SYMBOLS = %i[text ntext binary clob nclob blob].freeze
+          private_constant :LOB_TYPE_SYMBOLS
+
+          def needs_tablespace_clause?(type, options)
+            return true if options.key?(:tablespace)
+            return false if type.nil?
+            type_sym = type.to_s.to_sym
+            return true if LOB_TYPE_SYMBOLS.include?(type_sym)
+            return true if default_tablespaces.key?(type_sym)
+            sql_type_sym = (type_to_sql(type).downcase.to_sym rescue nil)
+            sql_type_sym && default_tablespaces.key?(sql_type_sym)
+          end
+
+          def flush_bulk_add_modify(table_name, add_buf, modify_buf)
+            return if add_buf.empty? && modify_buf.empty?
+            clauses = []
+            clauses << "ADD (#{add_buf.join(', ')})" if add_buf.any?
+            clauses << "MODIFY (#{modify_buf.join(', ')})" if modify_buf.any?
+            execute "ALTER TABLE #{quote_table_name(table_name)} #{clauses.join(' ')}"
+            add_buf.clear
+            modify_buf.clear
+          end
+
+          def flush_bulk_drops(table_name, drop_buf)
+            return if drop_buf.empty?
+            remove_columns(table_name, *drop_buf)
+            drop_buf.clear
+          end
+
+          def flush_bulk_buffers(table_name, add_buf, modify_buf, drop_buf)
+            flush_bulk_add_modify(table_name, add_buf, modify_buf)
+            flush_bulk_drops(table_name, drop_buf)
           end
 
           # Per-object-kind "does not exist" ORA codes used by `drop_if_exists`.
