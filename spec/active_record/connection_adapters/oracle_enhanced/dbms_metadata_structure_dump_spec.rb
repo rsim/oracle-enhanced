@@ -164,6 +164,8 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
         stmt.match?(/\ACREATE\s+(?:UNIQUE\s+)?INDEX\s+"?IX_DBMS_META_INV_UNIQ"?/i)
       end
       expect(standalone).to be_empty
+    ensure
+      schema_define { drop_table :test_dbms_meta_inv_uniq, if_exists: true }
     end
 
     it "emits referential constraints as ALTER TABLE … ADD CONSTRAINT after the tables" do
