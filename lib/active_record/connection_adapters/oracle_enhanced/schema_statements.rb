@@ -533,7 +533,7 @@ module ActiveRecord
           td = create_table_definition(table_name)
           cd = td.new_column_definition(column.name, type, **options)
           change_column_stmt = schema_creation.accept cd
-          change_column_stmt << tablespace_for((type_to_sql(type).downcase.to_sym), nil, options[:table_name], options[:column_name]) if type
+          change_column_stmt << tablespace_for((type_to_sql(type).downcase.to_sym), nil, table_name, column_name) if type
           change_column_sql = "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{change_column_stmt}"
           execute(change_column_sql)
 
