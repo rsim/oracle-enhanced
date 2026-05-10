@@ -26,6 +26,12 @@ end
 
 require "active_record"
 
+# Suppress "Created database 'X'" / "Dropped database 'X'" announcements
+# from `ActiveRecord::Tasks::DatabaseTasks` during specs that exercise
+# the create/drop flows. Allow callers to opt back in by passing
+# `VERBOSE=true` on the command line.
+ENV["VERBOSE"] ||= "false"
+
 require "active_support/core_ext/module/attribute_accessors"
 require "active_support/core_ext/class/attribute_accessors"
 
