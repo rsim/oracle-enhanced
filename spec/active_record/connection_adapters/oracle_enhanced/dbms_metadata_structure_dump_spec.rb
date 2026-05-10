@@ -230,7 +230,14 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
         create_table :test_dbms_metadata_posts, force: true do |t|
           t.string :email
         end
-        add_index :test_dbms_metadata_posts, :email, unique: true, name: "ix_test_dbms_metadata_email"
+      end
+      # Use the legacy implicit-constraint path so this Oracle 12.1+
+      # DBMS_METADATA path test exercises the "unique index backed by a
+      # same-name UNIQUE constraint" scenario it was written for.
+      with_implicit_unique_constraint_enabled do
+        schema_define do
+          add_index :test_dbms_metadata_posts, :email, unique: true, name: "ix_test_dbms_metadata_email"
+        end
       end
       dump = @conn.structure_dump
       stmts = dump.split("\n\n/\n\n")

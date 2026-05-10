@@ -147,6 +147,21 @@ module SchemaSpecHelper
   end
 end
 
+# Wraps a block with the Phase 1 / pre-Phase 2 implicit-constraint
+# behavior of `add_index :col, unique: true`. Use this only in specs that
+# explicitly exercise the legacy implicit-constraint code path (#2702
+# Phase 3 will delete both this helper and the global flag together).
+module ImplicitUniqueConstraintHelper
+  def with_implicit_unique_constraint_enabled
+    adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
+    previous = adapter.add_index_unique_creates_constraint
+    adapter.add_index_unique_creates_constraint = true
+    yield
+  ensure
+    adapter.add_index_unique_creates_constraint = previous
+  end
+end
+
 module SchemaDumpingHelper
   def dump_table_schema(table, connection = ActiveRecord::Base.lease_connection)
     old_ignore_tables = ActiveRecord::SchemaDumper.ignore_tables
@@ -274,6 +289,8 @@ RSpec.configure do |config|
   config.disable_monkey_patching!
   config.order = :random
   Kernel.srand config.seed
+
+  config.include ImplicitUniqueConstraintHelper
 
   # In CI, fail any example that lets a DEPRECATION WARNING leak to
   # stderr — i.e. one that triggered a deprecation but did not consume

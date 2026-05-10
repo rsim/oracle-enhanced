@@ -1069,9 +1069,11 @@ end
       expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
     end
 
-    it "drops a unique index together with its implicit constraint" do
-      schema_define do
-        add_index :test_employees, :first_name, unique: true, name: :uniq_test_employees_first_name
+    it "drops both the index and the same-name implicit constraint when add_index unique: true created them (legacy implicit-constraint path)" do
+      with_implicit_unique_constraint_enabled do
+        schema_define do
+          add_index :test_employees, :first_name, unique: true, name: :uniq_test_employees_first_name
+        end
       end
 
       sqls = capture_sql do
@@ -1117,15 +1119,14 @@ end
       expect(drop_index).not_to be_nil
     end
 
-    it "skips DROP CONSTRAINT after the implicit constraint was manually dropped" do
+    it "skips DROP CONSTRAINT for a unique index without a backing constraint" do
       schema_define do
-        add_index :test_employees, :first_name, unique: true, name: :uniq_manual_drop
+        add_index :test_employees, :first_name, unique: true, name: :uniq_no_constraint
       end
-      @conn.execute "ALTER TABLE test_employees DROP CONSTRAINT uniq_manual_drop"
 
       sqls = capture_sql do
         schema_define do
-          remove_index :test_employees, name: :uniq_manual_drop
+          remove_index :test_employees, name: :uniq_no_constraint
         end
       end
 
@@ -1852,11 +1853,6 @@ end
     it "allows attaching a unique constraint to an existing index via :using_index" do
       schema_define do
         add_index :test_sections, :position, unique: true, name: :idx_existing_unique
-      end
-      # The trailing constraint added by add_index already shares the index name; drop it
-      # so we can re-attach a constraint with a different name pointing at the same index.
-      @conn.execute "ALTER TABLE test_sections DROP CONSTRAINT idx_existing_unique"
-      schema_define do
         add_unique_constraint :test_sections, name: "uniq_via_idx", using_index: :idx_existing_unique
       end
       uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_via_idx" }
@@ -1993,9 +1989,6 @@ end
     it "preserves divergent constraint and index names on round-trip" do
       schema_define do
         add_index :test_sections, :position, unique: true, name: :idx_div
-      end
-      @conn.execute "ALTER TABLE test_sections DROP CONSTRAINT idx_div"
-      schema_define do
         add_unique_constraint :test_sections, name: "uniq_div", using_index: :idx_div
       end
       uc = @conn.unique_constraints(:test_sections).detect { |u| u.name == "uniq_div" }
@@ -2721,9 +2714,11 @@ end
       expect(@would_execute_sql).not_to include("ADD CONSTRAINT")
     end
 
-    it "should add unique constraint only to the index where it was defined" do
-      schema_define do
-        add_index :keyboards, ["name"], unique: true, name: :this_index
+    it "should add unique constraint only to the index where it was defined (legacy implicit-constraint path)" do
+      with_implicit_unique_constraint_enabled do
+        schema_define do
+          add_index :keyboards, ["name"], unique: true, name: :this_index
+        end
       end
       # Match anywhere in the captured SQL rather than asserting on
       # `lines.last`. `schema_define` calls `ActiveRecord::Schema.define`,
@@ -2735,11 +2730,13 @@ end
       expect(@would_execute_sql).to match(/ALTER +TABLE .* ADD CONSTRAINT .* UNIQUE \(.*\) USING INDEX "THIS_INDEX";/)
     end
 
-    it "should emit CREATE UNIQUE INDEX and ADD CONSTRAINT for inline t.index unique: true" do
-      schema_define do
-        create_table :test_inline_index_posts, force: true do |t|
-          t.string :title
-          t.index :title, unique: true, name: :uniq_inline_title
+    it "should emit CREATE UNIQUE INDEX and ADD CONSTRAINT for inline t.index unique: true (legacy implicit-constraint path)" do
+      with_implicit_unique_constraint_enabled do
+        schema_define do
+          create_table :test_inline_index_posts, force: true do |t|
+            t.string :title
+            t.index :title, unique: true, name: :uniq_inline_title
+          end
         end
       end
       expect(@would_execute_sql).to match(/CREATE UNIQUE INDEX "UNIQ_INLINE_TITLE" ON "TEST_INLINE_INDEX_POSTS" \("TITLE"\)/)
@@ -2778,28 +2775,30 @@ end
       expect(@would_execute_sql).to match(/CREATE INDEX "IDX_INLINE_TITLE_TS" ON "TEST_INLINE_INDEX_POSTS" \("TITLE"\) TABLESPACE bogus/)
     end
 
-    it "produces the same SQL whether unique index is defined inline or via explicit add_index" do
-      schema_define do
-        create_table :test_explicit_idx_posts, force: true do |t|
-          t.string :title
+    it "produces the same SQL whether unique index is defined inline or via explicit add_index (legacy implicit-constraint path)" do
+      with_implicit_unique_constraint_enabled do
+        schema_define do
+          create_table :test_explicit_idx_posts, force: true do |t|
+            t.string :title
+          end
+          add_index :test_explicit_idx_posts, :title, unique: true, name: :uniq_title
         end
-        add_index :test_explicit_idx_posts, :title, unique: true, name: :uniq_title
-      end
-      explicit_sql = @would_execute_sql.dup
+        explicit_sql = @would_execute_sql.dup
 
-      @would_execute_sql.replace("")
-      schema_define do
-        drop_table :test_explicit_idx_posts, if_exists: true
-        create_table :test_explicit_idx_posts, force: true do |t|
-          t.string :title
-          t.index :title, unique: true, name: :uniq_title
+        @would_execute_sql.replace("")
+        schema_define do
+          drop_table :test_explicit_idx_posts, if_exists: true
+          create_table :test_explicit_idx_posts, force: true do |t|
+            t.string :title
+            t.index :title, unique: true, name: :uniq_title
+          end
         end
-      end
-      inline_sql = @would_execute_sql
+        inline_sql = @would_execute_sql
 
-      [/CREATE TABLE "TEST_EXPLICIT_IDX_POSTS"/, /CREATE UNIQUE INDEX "UNIQ_TITLE"/, /ALTER +TABLE "TEST_EXPLICIT_IDX_POSTS" ADD CONSTRAINT "UNIQ_TITLE" UNIQUE \("TITLE"\) USING INDEX "UNIQ_TITLE"/].each do |pattern|
-        expect(explicit_sql).to match(pattern)
-        expect(inline_sql).to match(pattern)
+        [/CREATE TABLE "TEST_EXPLICIT_IDX_POSTS"/, /CREATE UNIQUE INDEX "UNIQ_TITLE"/, /ALTER +TABLE "TEST_EXPLICIT_IDX_POSTS" ADD CONSTRAINT "UNIQ_TITLE" UNIQUE \("TITLE"\) USING INDEX "UNIQ_TITLE"/].each do |pattern|
+          expect(explicit_sql).to match(pattern)
+          expect(inline_sql).to match(pattern)
+        end
       end
     end
   end

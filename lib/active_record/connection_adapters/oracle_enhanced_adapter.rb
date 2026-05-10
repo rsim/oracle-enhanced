@@ -50,6 +50,7 @@ require "active_record/connection_adapters/oracle_enhanced/database_limits"
 require "active_record/connection_adapters/oracle_enhanced/dbms_output"
 require "active_record/connection_adapters/oracle_enhanced/type_metadata"
 require "active_record/connection_adapters/oracle_enhanced/structure_dump"
+require "active_record/connection_adapters/oracle_enhanced/migration_compatibility"
 require "active_record/connection_adapters/oracle_enhanced/structure_dump/dbms_metadata"
 require "active_record/connection_adapters/oracle_enhanced/structure_dump/dispatcher"
 require "active_record/connection_adapters/oracle_enhanced/lob"
@@ -244,15 +245,22 @@ module ActiveRecord
       # behavior was introduced so that Oracle-specific FK targetability worked
       # with Rails-standard <tt>add_index unique: true</tt> migrations, but the
       # explicit <tt>add_unique_constraint</tt> DSL is now the recommended path
-      # for callers who actually need a constraint. Defaults to +true+ for
-      # backward compatibility; will flip to +false+ in a future release.
+      # for callers who actually need a constraint.
       #
-      # Set to +false+ in an initializer to opt out of the implicit-constraint
-      # behavior (and silence the deprecation warning) immediately:
+      # Phase 2 default: +false+. <tt>Migration[8.2]+</tt> migrations,
+      # <tt>Schema.define</tt> blocks, and direct adapter calls all default
+      # to "create the unique index only". <tt>Migration[8.1]</tt> and earlier
+      # migrations opt back into the legacy implicit-constraint behavior via
+      # the +MigrationCompatibility+ module so existing migrations keep
+      # working unchanged.
       #
-      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = false
+      # Set to +true+ explicitly to force the legacy implicit-constraint
+      # behavior project-wide (e.g. when migrating a long-running multi-DB
+      # application that depends on it):
+      #
+      #   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = true
       cattr_accessor :add_index_unique_creates_constraint
-      self.add_index_unique_creates_constraint = true
+      self.add_index_unique_creates_constraint = false
 
       ##
       # :singleton-method:
@@ -545,6 +553,10 @@ module ActiveRecord
 
       def supports_views?
         true
+      end
+
+      def migration_compatibility_module_for(migration_class) # :nodoc:
+        OracleEnhanced::MigrationCompatibility.module_for(migration_class)
       end
 
       def supports_fetch_first_n_rows_and_offset?
