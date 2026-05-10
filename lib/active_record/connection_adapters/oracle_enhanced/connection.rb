@@ -33,7 +33,7 @@ module ActiveRecord
       # ORA-03113 end-of-file on communication channel
       # ORA-03114 not connected to ORACLE
       # ORA-03135 connection lost contact
-      LOST_CONNECTION_ERROR_CODES = [28, 31, 1012, 3113, 3114, 3135] # :nodoc:
+      LOST_CONNECTION_ERROR_CODES = [28, 31, 1012, 3113, 3114, 3135].freeze # :nodoc:
 
       class ConnectionException < StandardError # :nodoc:
       end

@@ -656,13 +656,13 @@ module ActiveRecord
         nls_timestamp_tz_format: nil,
         nls_time_format: nil,
         nls_time_tz_format: nil
-      }
+      }.freeze
 
       # :stopdoc:
       FIXED_NLS_PARAMETERS = {
         nls_date_format: "YYYY-MM-DD HH24:MI:SS",
         nls_timestamp_format: "YYYY-MM-DD HH24:MI:SS:FF6"
-      }
+      }.freeze
 
       # :stopdoc:
       NATIVE_DATABASE_TYPES = {
@@ -684,11 +684,11 @@ module ActiveRecord
         boolean: { name: "NUMBER", limit: 1 },
         raw: { name: "RAW", limit: 2000 },
         bigint: { name: "NUMBER", limit: 19 }
-      }
+      }.freeze
       # if emulate_booleans_from_strings then store booleans in VARCHAR2
       NATIVE_DATABASE_TYPES_BOOLEAN_STRINGS = NATIVE_DATABASE_TYPES.dup.merge(
         boolean: { name: "VARCHAR2", limit: 1 }
-      )
+      ).freeze
       # :startdoc:
 
       def native_database_types # :nodoc:
