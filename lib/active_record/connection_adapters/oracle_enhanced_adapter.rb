@@ -485,6 +485,18 @@ module ActiveRecord
         true
       end
 
+      # Oracle's ALTER TABLE accepts combined `ADD (...)` and `MODIFY (...)`
+      # clauses in a single statement, which `bulk_change_table` uses to
+      # collapse contiguous `add_column` / `change_column` operations.
+      # `DROP (...)` cannot be combined with any other ALTER clause
+      # (ORA-12987: cannot combine drop column with other operations) so
+      # it is issued as its own statement.
+      # See the Oracle 19c SQL Language Reference, ALTER TABLE:
+      # https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/ALTER-TABLE.html
+      def supports_bulk_alter? # :nodoc:
+        true
+      end
+
       def supports_transaction_isolation? # :nodoc:
         true
       end

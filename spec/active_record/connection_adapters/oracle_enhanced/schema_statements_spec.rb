@@ -779,6 +779,247 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       @conn.rename_index("test_employees", original_name, "new_index_name")
     end.not_to raise_error
   end
+
+  describe "bulk_change_table (Phase 1: add / change / remove column)" do
+    before(:each) do
+      schema_define do
+        drop_table :test_bulk, if_exists: true
+        create_table :test_bulk, force: true do |t|
+          t.string :name
+          t.integer :qty
+          t.string :doomed
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define { drop_table :test_bulk, if_exists: true }
+    end
+
+    it "reports supports_bulk_alter? as true" do
+      expect(@conn.supports_bulk_alter?).to be(true)
+    end
+
+    it "combines multiple add_column ops into a single ALTER TABLE ADD (...)" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.string :added1
+          t.integer :added2
+          t.string :added3
+        end
+      end
+      add_alters = sqls.grep(/ALTER TABLE.*\bADD\b/i)
+      expect(add_alters.size).to eq(1)
+      expect(add_alters.first).to match(/ADD \(.*ADDED1.*ADDED2.*ADDED3.*\)/im)
+
+      cols = @conn.columns(:test_bulk).map(&:name)
+      expect(cols).to include("added1", "added2", "added3")
+    end
+
+    it "combines add + change into ADD (...) MODIFY (...) in one ALTER" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.string :added_col
+          t.change :qty, :decimal, precision: 10, scale: 2
+        end
+      end
+      expect(sqls.size).to eq(1)
+      # Lock in the exact clause shape: one ALTER TABLE that opens with
+      # `ADD (...)` and is immediately followed by `MODIFY (...)` (no
+      # trailing/leading clauses), so a regression that breaks the clauses
+      # apart or reorders them shows up here rather than as a runtime ORA error.
+      expect(sqls.first).to match(/\AALTER TABLE "?TEST_BULK"? ADD \(.+"?ADDED_COL"?.+\) MODIFY \(.+"?QTY"?.+\)\z/i)
+    end
+
+    it "preserves NOT NULL when bulk-changing a column" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.change :qty, :integer, null: false
+        end
+      end
+      expect(sqls.size).to eq(1)
+      expect(sqls.first).to match(/MODIFY \(.*"?QTY"?.*NOT NULL.*\)/i)
+
+      qty = @conn.columns(:test_bulk).detect { |c| c.name == "qty" }
+      expect(qty.null).to be(false)
+    end
+
+    it "issues DROP COLUMN as a separate ALTER TABLE (Oracle ORA-12987)" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.string :added_after_drop
+          t.remove :doomed
+        end
+      end
+      add_alters = sqls.grep(/ALTER TABLE.*\bADD\b/i)
+      drop_alters = sqls.grep(/ALTER TABLE.*\bDROP\b/i)
+      expect(add_alters.size).to eq(1)
+      expect(drop_alters.size).to eq(1)
+      # The two clauses must NOT appear together; that would raise ORA-12987.
+      expect(sqls).to all(satisfy { |s| !(s.match?(/\bADD\b/i) && s.match?(/\bDROP\b/i)) })
+
+      cols = @conn.columns(:test_bulk).map(&:name)
+      expect(cols).to include("added_after_drop")
+      expect(cols).not_to include("doomed")
+    end
+
+    it "applies all three operations on the live table" do
+      @conn.change_table :test_bulk, bulk: true do |t|
+        t.string :note
+        t.change :qty, :decimal, precision: 8, scale: 2
+        t.remove :doomed
+      end
+
+      cols = @conn.columns(:test_bulk).index_by(&:name)
+      expect(cols.keys).to include("note")
+      expect(cols.keys).not_to include("doomed")
+      expect(cols["qty"].sql_type).to match(/NUMBER\(8,\s*2\)/i)
+    end
+
+    # `t.remove :foo` followed by `t.string :foo` re-uses the same column
+    # name. Oracle requires the DROP to land before the ADD or the second
+    # ALTER fails because `foo` is still defined on the table.
+    it "preserves migration order when remove precedes add of the same column" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.remove :doomed
+          t.string :doomed, limit: 50
+        end
+      end
+
+      expect(sqls.size).to eq(2)
+      expect(sqls.first).to match(/\bDROP\b/i)
+      expect(sqls.last).to match(/\bADD\b/i)
+
+      doomed = @conn.columns(:test_bulk).detect { |c| c.name == "doomed" }
+      expect(doomed).not_to be_nil
+      expect(doomed.sql_type).to match(/VARCHAR2\(50\)/i)
+    end
+
+    it "issues an interleaved drop+add+drop block as three separate ALTERs in order" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.remove :doomed
+          t.string :note
+          t.remove :qty
+        end
+      end
+
+      expect(sqls.size).to eq(3)
+      expect(sqls[0]).to match(/\bDROP\b.*"?DOOMED"?/i)
+      expect(sqls[1]).to match(/\bADD\b.*"?NOTE"?/i)
+      expect(sqls[2]).to match(/\bDROP\b.*"?QTY"?/i)
+    end
+
+    # `comment:` requires a follow-up `COMMENT ON COLUMN` statement that
+    # the column-only `add_column_for_alter` fragment does not include.
+    # Falls back to `add_column` so the comment is applied.
+    it "falls back to add_column when the column carries a comment" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql] }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.string :commented, comment: "audit"
+        end
+      end
+
+      expect(sqls.any? { |s| s.match?(/COMMENT ON COLUMN.*COMMENTED/i) }).to be(true)
+      expect(@conn.column_comment("test_bulk", "commented")).to eq("audit")
+    end
+
+    # `:primary_key` columns trigger sequence + trigger setup that the
+    # column-only fragment does not reproduce; fall back to the full
+    # `add_column` path which performs those statements.
+    it "falls back to add_column for a :primary_key column type" do
+      schema_define do
+        drop_table :test_bulk_pk, if_exists: true
+        create_table :test_bulk_pk, force: true, id: false do |t|
+          t.string :name
+        end
+      end
+
+      begin
+        @conn.change_table :test_bulk_pk, bulk: true do |t|
+          t.column :id, :primary_key
+        end
+
+        seq_exists = @conn.select_value(<<~SQL.squish) == 1
+          SELECT COUNT(*) FROM all_sequences
+          WHERE sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
+            AND sequence_name = 'TEST_BULK_PK_SEQ'
+        SQL
+        expect(seq_exists).to be(true)
+      ensure
+        schema_define { drop_table :test_bulk_pk, if_exists: true }
+      end
+    end
+
+    it "raises NotImplementedError for ops outside Phase 1 scope (e.g. t.rename)" do
+      expect {
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.rename :doomed, :renamed
+        end
+      }.to raise_error(NotImplementedError, /bulk_change_table.*:rename_column.*bulk: false/)
+    end
+
+    # Pre-scan guard: an unsupported op must raise BEFORE any ALTER fires,
+    # otherwise an early `t.string` would commit and leave the schema in a
+    # half-applied state when the rename later raised.
+    it "rejects unsupported ops up front so no DDL is issued" do
+      sqls = []
+      expect {
+        ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+          @conn.change_table :test_bulk, bulk: true do |t|
+            t.string :added_first
+            t.rename :doomed, :renamed
+          end
+        end
+      }.to raise_error(NotImplementedError)
+
+      cols = @conn.columns(:test_bulk).map(&:name)
+      expect(cols).not_to include("added_first")
+      expect(sqls).to be_empty
+    end
+
+    it "batches multiple t.remove calls into a single DROP (...) clause" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.remove :doomed
+          t.remove :qty
+        end
+      end
+      drops = sqls.grep(/ALTER TABLE.*\bDROP\b/i)
+      expect(drops.size).to eq(1)
+      expect(drops.first).to match(/DROP \(.*doomed.*qty.*\)/i)
+
+      cols = @conn.columns(:test_bulk).map(&:name)
+      expect(cols).not_to include("doomed", "qty")
+    end
+
+    it "flushes the queued ADD when a bulk block changes the column it just added" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.string :late_arrival
+          t.change :late_arrival, :string, limit: 8, null: false
+        end
+      end
+      add_alters = sqls.grep(/ALTER TABLE.*\bADD\b/i)
+      modify_alters = sqls.grep(/ALTER TABLE.*\bMODIFY\b/i)
+      expect(add_alters.size).to eq(1)
+      expect(modify_alters.size).to eq(1)
+
+      col = @conn.columns(:test_bulk).find { |c| c.name == "late_arrival" }
+      expect(col.sql_type).to match(/VARCHAR2\(8\)/i)
+      expect(col.null).to be(false)
+    end
+  end
 end
 
   describe "remove index" do
