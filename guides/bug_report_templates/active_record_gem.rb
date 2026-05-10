@@ -36,7 +36,7 @@ CONNECTION_PARAMS = {
   port: DATABASE_PORT,
   username: DATABASE_USER,
   password: DATABASE_PASSWORD
-}
+}.freeze
 
 ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
 

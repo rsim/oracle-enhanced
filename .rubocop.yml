@@ -139,6 +139,10 @@ Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: always
 
+Style/MutableConstant:
+  Enabled: true
+  EnforcedStyle: literals
+
 Style/MapToHash:
   Enabled: true
 

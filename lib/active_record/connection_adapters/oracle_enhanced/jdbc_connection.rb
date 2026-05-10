@@ -578,7 +578,7 @@ module ActiveRecord
         # not return true for it (doing so would discard a live session).
         # Cursor#close tolerates 17009 separately as a cursor-local
         # concern.
-        JDBC_LOST_CONNECTION_ERROR_CODES = [17002, 17008]
+        JDBC_LOST_CONNECTION_ERROR_CODES = [17002, 17008].freeze
 
         # Fallback for older ojdbc that surfaces disconnects with
         # SQLException#getErrorCode == 0 and no ORA-NNNNN prefix in the

@@ -63,7 +63,7 @@ module LoggerSpecHelper
   end
 
   class MockLogger
-    LEVELS = %i[debug info warn error fatal unknown]
+    LEVELS = %i[debug info warn error fatal unknown].freeze
 
     attr_reader :flush_count
 
@@ -175,7 +175,7 @@ DATABASE_PASSWORD     = config["database"]["password"]     || ENV["DATABASE_PASS
 DATABASE_SCHEMA       = config["database"]["schema"]       || ENV["DATABASE_SCHEMA"]       || "oracle_enhanced_schema"
 DATABASE_SYS_PASSWORD = config["database"]["sys_password"] || ENV["DATABASE_SYS_PASSWORD"] || "admin"
 
-CONNECTION_PARAMS = {
+connection_params = {
   adapter: "oracle_enhanced",
   database: DATABASE_NAME,
   host: DATABASE_HOST,
@@ -185,9 +185,11 @@ CONNECTION_PARAMS = {
 }
 
 if ENV["ORACLE_ENHANCED_PREPARED_STATEMENTS_FALSE"]
-  CONNECTION_PARAMS[:prepared_statements] = false
+  connection_params[:prepared_statements] = false
   puts "==> Forcing prepared_statements: false via ORACLE_ENHANCED_PREPARED_STATEMENTS_FALSE"
 end
+
+CONNECTION_PARAMS = connection_params.freeze
 
 CONNECTION_WITH_SCHEMA_PARAMS = {
   adapter: "oracle_enhanced",
@@ -197,7 +199,7 @@ CONNECTION_WITH_SCHEMA_PARAMS = {
   username: DATABASE_USER,
   password: DATABASE_PASSWORD,
   schema: DATABASE_SCHEMA
-}
+}.freeze
 
 CONNECTION_WITH_TIMEZONE_PARAMS = {
   adapter: "oracle_enhanced",
@@ -207,7 +209,7 @@ CONNECTION_WITH_TIMEZONE_PARAMS = {
   username: DATABASE_USER,
   password: DATABASE_PASSWORD,
   time_zone: "Europe/Riga"
-}
+}.freeze
 
 SYS_CONNECTION_PARAMS = {
   adapter: "oracle_enhanced",
@@ -217,7 +219,7 @@ SYS_CONNECTION_PARAMS = {
   username: "sys",
   password: DATABASE_SYS_PASSWORD,
   privilege: "SYSDBA"
-}
+}.freeze
 
 SYSTEM_CONNECTION_PARAMS = {
   adapter: "oracle_enhanced",
@@ -226,7 +228,7 @@ SYSTEM_CONNECTION_PARAMS = {
   port: DATABASE_PORT,
   username: "system",
   password: DATABASE_SYS_PASSWORD
-}
+}.freeze
 
 SERVICE_NAME_CONNECTION_PARAMS = {
   adapter: "oracle_enhanced",
@@ -235,7 +237,7 @@ SERVICE_NAME_CONNECTION_PARAMS = {
   port: DATABASE_PORT,
   username: DATABASE_USER,
   password: DATABASE_PASSWORD
-}
+}.freeze
 
 DATABASE_REMOTE_USER     = config["database"]["remote_user"]     || ENV["DATABASE_REMOTE_USER"]     || "oracle_enhanced_remote"
 DATABASE_REMOTE_PASSWORD = config["database"]["remote_password"] || ENV["DATABASE_REMOTE_PASSWORD"] || "oracle_enhanced_remote"
@@ -247,7 +249,7 @@ REMOTE_CONNECTION_PARAMS = {
   port: DATABASE_PORT,
   username: DATABASE_REMOTE_USER,
   password: DATABASE_REMOTE_PASSWORD
-}
+}.freeze
 
 DATABASE_NON_DEFAULT_TABLESPACE = config["database"]["non_default_tablespace"] || ENV["DATABASE_NON_DEFAULT_TABLESPACE"] || "SYSTEM"
 
