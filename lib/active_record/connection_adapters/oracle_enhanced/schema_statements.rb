@@ -568,11 +568,13 @@ module ActiveRecord
         # half-applies a migration.
         SUPPORTED_BULK_COMMANDS = %i[
           add_column
+          add_timestamps
           change_column
           change_column_default
           change_column_null
           remove_column
           remove_columns
+          remove_timestamps
         ].freeze
         private_constant :SUPPORTED_BULK_COMMANDS
 
@@ -587,6 +589,14 @@ module ActiveRecord
               "bulk_change_table only supports #{SUPPORTED_BULK_COMMANDS.inspect} " \
               "(got #{unsupported.first.inspect}); use change_table(bulk: false)"
           end
+
+          # Collect comments from `:add_timestamps` ops *before* expansion so
+          # the synthesised `:add_column` ops can drop `:comment` and stay on
+          # the bulk fragment path. The comments fire after the bulk ALTER
+          # via `apply_column_comments`, matching the non-bulk
+          # `add_timestamps` flow (1 combined ADD + N COMMENT ON COLUMN).
+          pending_timestamps_comments = collect_timestamps_comments(operations)
+          operations = expand_bulk_timestamps(operations)
 
           add_buf = []
           modify_buf = []
@@ -606,7 +616,7 @@ module ActiveRecord
                 add_column(table_name, column_name, type, **options)
               else
                 flush_bulk_drops(table_name, drop_buf)
-                add_buf << add_column_for_alter(table_name, *args)
+                add_buf << add_column_for_alter(table_name, column_name, type, **options)
                 add_pending << quote_column_name(column_name)
               end
             when :change_column
@@ -621,7 +631,7 @@ module ActiveRecord
                   flush_bulk_add_modify(table_name, add_buf, modify_buf)
                   add_pending.clear
                 end
-                modify_buf << change_column_for_alter(table_name, *args)
+                modify_buf << change_column_for_alter(table_name, column_name, type, **options)
               end
             when :change_column_default
               column_name = args[0]
@@ -662,6 +672,10 @@ module ActiveRecord
           end
 
           flush_bulk_buffers(table_name, add_buf, modify_buf, drop_buf)
+
+          pending_timestamps_comments.each do |comment|
+            apply_column_comments(table_name, :created_at, :updated_at, comment: comment)
+          end
         ensure
           clear_table_caches(table_name)
         end
@@ -1112,6 +1126,49 @@ module ActiveRecord
             return true if column_in_modify_buf?(modify_buf, column_name)
             return true if add_buf.any? && modify_buf.any?
             false
+          end
+
+          # Pre-expand `:add_timestamps` / `:remove_timestamps` into the
+          # underlying `:add_column` / `:remove_column` operations so the
+          # streaming dispatcher folds them into the same `ADD (...)` /
+          # `DROP (...)` buckets as ordinary column changes. Mirrors the
+          # defaults `AbstractAdapter#add_timestamps` would have applied
+          # (`null: false`, `precision: 6` when supported).
+          def expand_bulk_timestamps(operations)
+            operations.flat_map do |operation|
+              command, args, block = operation
+              case command
+              when :add_timestamps
+                table_name = args[0]
+                # Strip `:comment` here — it is applied after the bulk
+                # flush via `apply_column_comments` (Oracle has no inline
+                # `COMMENT` in ADD); see #2739 for the non-bulk equivalent.
+                options = args[1].is_a?(Hash) ? args[1].except(:comment) : {}
+                options[:null] = false if options[:null].nil?
+                options[:precision] = 6 if !options.key?(:precision) && supports_datetime_with_precision?
+                [
+                  [:add_column, [table_name, :created_at, :datetime, options], block],
+                  [:add_column, [table_name, :updated_at, :datetime, options], block],
+                ]
+              when :remove_timestamps
+                table_name = args[0]
+                [
+                  [:remove_column, [table_name, :updated_at], block],
+                  [:remove_column, [table_name, :created_at], block],
+                ]
+              else
+                [operation]
+              end
+            end
+          end
+
+          def collect_timestamps_comments(operations)
+            operations.each_with_object([]) do |(command, args, _block), acc|
+              next unless command == :add_timestamps
+              options = args[1]
+              next unless options.is_a?(Hash) && options.key?(:comment)
+              acc << options[:comment]
+            end
           end
 
           def flush_bulk_add_modify(table_name, add_buf, modify_buf)

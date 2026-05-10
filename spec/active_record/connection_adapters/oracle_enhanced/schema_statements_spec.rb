@@ -1200,6 +1200,122 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
         schema_define { drop_table :test_bulk_clear, if_exists: true }
       end
     end
+
+    it "expands t.timestamps inside a bulk block into a single ALTER TABLE ADD (...)" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.timestamps
+        end
+      end
+      expect(sqls.size).to eq(1)
+      expect(sqls.first).to match(/ADD \(.*created_at.*updated_at.*\)/i)
+      expect(sqls.first).to match(/NOT NULL/i)
+
+      cols = @conn.columns(:test_bulk).index_by(&:name)
+      expect(cols).to include("created_at", "updated_at")
+      expect(cols["created_at"].null).to be(false)
+      expect(cols["updated_at"].null).to be(false)
+    end
+
+    it "propagates t.timestamps options (null:, precision:) through the expansion" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.timestamps null: true, precision: 3
+        end
+      end
+      expect(sqls.size).to eq(1)
+      expect(sqls.first).to match(/TIMESTAMP\(3\)/i)
+      expect(sqls.first).not_to match(/NOT NULL/i)
+
+      cols = @conn.columns(:test_bulk).index_by(&:name)
+      expect(cols["created_at"].null).to be(true)
+      expect(cols["updated_at"].null).to be(true)
+    end
+
+    it "fuses t.timestamps with t.string into a single ADD (...)" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.string :note
+          t.timestamps
+        end
+      end
+      expect(sqls.size).to eq(1)
+      expect(sqls.first).to match(/ADD \(.*note.*created_at.*updated_at.*\)/i)
+
+      cols = @conn.columns(:test_bulk).map(&:name)
+      expect(cols).to include("note", "created_at", "updated_at")
+    end
+
+    it "applies t.timestamps comment as separate COMMENT ON COLUMN after the bulk ADD" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql] }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.timestamps comment: "audit"
+        end
+      end
+
+      add_alters = sqls.grep(/ALTER TABLE.*\bADD\b/i)
+      comment_stmts = sqls.grep(/^COMMENT ON COLUMN/i)
+      # `:comment` is stripped before expansion so the ADD stays combined;
+      # the comment fires as separate COMMENT ON COLUMN statements (mirrors
+      # the non-bulk `add_timestamps` flow added in #2739).
+      expect(add_alters.size).to eq(1)
+      expect(add_alters.first).to match(/ADD \(.*created_at.*updated_at.*\)/i)
+      expect(comment_stmts.size).to eq(2)
+      expect(@conn.column_comment("test_bulk", "created_at")).to eq("audit")
+      expect(@conn.column_comment("test_bulk", "updated_at")).to eq("audit")
+    end
+
+    it "fires COMMENT ON COLUMN ... IS '' when t.timestamps comment: nil is passed in a bulk block" do
+      sqls = []
+      ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql] }, "sql.active_record") do
+        @conn.change_table :test_bulk, bulk: true do |t|
+          t.timestamps comment: nil
+        end
+      end
+
+      add_alters = sqls.grep(/ALTER TABLE.*\bADD\b/i)
+      comment_stmts = sqls.grep(/^COMMENT ON COLUMN/i)
+      # `comment: nil` is the explicit-clear form that #2739's non-bulk
+      # `add_timestamps` translates into `COMMENT ON COLUMN ... IS ''`.
+      # The bulk path must keep the same parity — collect_timestamps_comments
+      # must not silently drop the nil sentinel.
+      expect(add_alters.size).to eq(1)
+      expect(comment_stmts.size).to eq(2)
+      expect(comment_stmts).to all(match(/IS\s+''/))
+      expect(@conn.column_comment("test_bulk", "created_at")).to be_nil
+      expect(@conn.column_comment("test_bulk", "updated_at")).to be_nil
+    end
+
+    it "expands t.remove_timestamps inside a bulk block into a single DROP (...)" do
+      schema_define do
+        drop_table :test_bulk_rm_ts, if_exists: true
+        create_table :test_bulk_rm_ts, force: true do |t|
+          t.string :name
+          t.timestamps
+        end
+      end
+
+      begin
+        sqls = []
+        ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql]&.include?("ALTER TABLE") }, "sql.active_record") do
+          @conn.change_table :test_bulk_rm_ts, bulk: true do |t|
+            t.remove_timestamps
+          end
+        end
+        drops = sqls.grep(/ALTER TABLE.*\bDROP\b/i)
+        expect(drops.size).to eq(1)
+        expect(drops.first).to match(/DROP \(.*updated_at.*created_at.*\)/i)
+
+        cols = @conn.columns(:test_bulk_rm_ts).map(&:name)
+        expect(cols).not_to include("created_at", "updated_at")
+      ensure
+        schema_define { drop_table :test_bulk_rm_ts, if_exists: true }
+      end
+    end
   end
 end
 
