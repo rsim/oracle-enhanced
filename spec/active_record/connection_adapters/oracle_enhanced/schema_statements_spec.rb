@@ -1132,6 +1132,44 @@ end
       expect(TestEmployee.columns_hash["created_at"]).not_to be_nil
       expect(TestEmployee.columns_hash["updated_at"]).not_to be_nil
     end
+
+    it "applies :comment to created_at and updated_at" do
+      @conn.add_timestamps("test_employees", comment: "audit")
+
+      expect(@conn.column_comment("test_employees", "created_at")).to eq("audit")
+      expect(@conn.column_comment("test_employees", "updated_at")).to eq("audit")
+    end
+  end
+
+  describe "add_column / change_column comment handling" do
+    before(:each) do
+      schema_define do
+        create_table :test_employees, force: true
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_employees, if_exists: true
+      end
+    end
+
+    it "applies :comment to a newly added column" do
+      @conn.add_column :test_employees, :note, :string, comment: "audit"
+
+      expect(@conn.column_comment("test_employees", "note")).to eq("audit")
+    end
+
+    # Passing `comment: nil` is the canonical way to clear an existing
+    # column comment (`change_column_comment_sql` emits
+    # `COMMENT ON COLUMN ... IS ''` when the value is nil).
+    it "clears the existing comment when add_column is called with comment: nil" do
+      @conn.add_column :test_employees, :note, :string, comment: "audit"
+      expect(@conn.column_comment("test_employees", "note")).to eq("audit")
+
+      @conn.change_column :test_employees, :note, :string, comment: nil
+      expect(@conn.column_comment("test_employees", "note")).to be_nil
+    end
   end
 
   describe "ignore options for LOB columns" do
