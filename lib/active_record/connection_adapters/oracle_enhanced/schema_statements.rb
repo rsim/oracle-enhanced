@@ -997,10 +997,6 @@ module ActiveRecord
             schema_creation.accept(cd)
           end
 
-          def remove_column_for_alter(table_name, column_name, type = nil, **options)
-            quote_column_name(column_name)
-          end
-
           # Returns true when the op needs the full `add_column` /
           # `change_column` path (not the bulk fragment) because those
           # methods issue extra SQL after the ALTER TABLE that the
