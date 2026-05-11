@@ -568,7 +568,7 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        return false unless @raw_connection
+        return false unless _connection
         database_version >= "12"
       end
 
@@ -1092,7 +1092,7 @@ module ActiveRecord
       end
 
       def get_database_version # :nodoc:
-        _connection.database_version
+        with_raw_connection { |conn| conn.database_version }
       end
 
       def check_version # :nodoc:
@@ -1103,7 +1103,7 @@ module ActiveRecord
       end
 
       private def _connection
-        @unconfigured_connection || @raw_connection
+        @raw_connection
       end
 
       private def connect
@@ -1381,7 +1381,7 @@ module ActiveRecord
         end
 
         def resolved_arel_visitor_mode
-          return :rownum unless @raw_connection
+          return :rownum unless _connection
 
           mode = configured_arel_visitor_mode
 
