@@ -62,7 +62,7 @@ module ActiveRecord
           log(intent) do
             cached = false
             cursor = nil
-            with_raw_connection do |raw_connection|
+            with_raw_connection(allow_retry: true) do |raw_connection|
               with_retry do
                 if binds.nil? || binds.empty?
                   cursor = raw_connection.prepare(sql)
@@ -260,7 +260,7 @@ module ActiveRecord
                 raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
               end
               lob = lob_record[col.name]
-              with_raw_connection do |conn|
+              with_raw_connection(allow_retry: false) do |conn|
                 conn.write_lob(lob, value.to_s, col.type == :binary)
               end
             end
