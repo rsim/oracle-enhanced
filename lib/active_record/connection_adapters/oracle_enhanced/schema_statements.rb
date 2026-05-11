@@ -1529,7 +1529,9 @@ module ActiveRecord
               name: "SCHEMA",
               connection: self,
             ) do
-              _connection.name_resolve(real_name)
+              with_raw_connection do |conn|
+                conn.name_resolve(real_name)
+              end
             end
           rescue OracleEnhanced::ConnectionException, ArgumentError
             raise

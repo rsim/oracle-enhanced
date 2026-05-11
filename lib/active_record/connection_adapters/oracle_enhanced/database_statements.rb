@@ -62,46 +62,50 @@ module ActiveRecord
           log(intent) do
             cached = false
             cursor = nil
-            with_retry do
-              if binds.nil? || binds.empty?
-                cursor = _connection.prepare(sql)
-              else
-                if prepared_statements?
-                  @statements[sql] ||= _connection.prepare(sql)
-                  cursor = @statements[sql]
-                  cached = true
+            with_raw_connection do |raw_connection|
+              with_retry do
+                if binds.nil? || binds.empty?
+                  cursor = raw_connection.prepare(sql)
                 else
-                  cursor = _connection.prepare(sql)
+                  if prepared_statements?
+                    @statements[sql] ||= raw_connection.prepare(sql)
+                    cursor = @statements[sql]
+                    cached = true
+                  else
+                    cursor = raw_connection.prepare(sql)
+                  end
+
+                  cursor.bind_params(type_casted_binds)
+
+                  bind_specs.each do |position, klass|
+                    cursor.bind_returning_param(position, klass)
+                  end
                 end
 
-                cursor.bind_params(type_casted_binds)
+                cursor.exec_update
+              rescue
+                (cursor.close rescue nil) if cursor && !cached
+                raise
+              end
 
-                bind_specs.each do |position, klass|
-                  cursor.bind_returning_param(position, klass)
+              rows = []
+              unless bind_specs.empty?
+                values = bind_specs.map do |position, klass|
+                  value = cursor.get_returning_param(position, klass)
+                  klass == Integer ? value.to_i : value
                 end
+                rows << values
               end
-
-              cursor.exec_update
-            rescue
-              (cursor.close rescue nil) if cursor && !cached
-              raise
+              cursor.close unless cached
+              build_result(columns: [], rows: rows)
             end
-
-            rows = []
-            unless bind_specs.empty?
-              values = bind_specs.map do |position, klass|
-                value = cursor.get_returning_param(position, klass)
-                klass == Integer ? value.to_i : value
-              end
-              rows << values
-            end
-            cursor.close unless cached
-            build_result(columns: [], rows: rows)
           end
         end
 
         def begin_db_transaction # :nodoc:
-          _connection.autocommit = false
+          with_raw_connection(allow_retry: true, materialize_transactions: false) do |conn|
+            conn.autocommit = false
+          end
         end
 
         def transaction_isolation_levels
@@ -120,15 +124,19 @@ module ActiveRecord
         end
 
         def commit_db_transaction # :nodoc:
-          _connection.commit
-        ensure
-          _connection.autocommit = true
+          with_raw_connection(allow_retry: false, materialize_transactions: true) do |conn|
+            conn.commit
+          ensure
+            conn.autocommit = true
+          end
         end
 
         def exec_rollback_db_transaction # :nodoc:
-          _connection.rollback
-        ensure
-          _connection.autocommit = true
+          with_raw_connection(allow_retry: false, materialize_transactions: true) do |conn|
+            conn.rollback
+          ensure
+            conn.autocommit = true
+          end
         end
 
         def create_savepoint(name = current_savepoint_name) # :nodoc:
@@ -252,7 +260,9 @@ module ActiveRecord
                 raise ActiveRecord::RecordNotFound, "statement #{sql} returned no rows"
               end
               lob = lob_record[col.name]
-              _connection.write_lob(lob, value.to_s, col.type == :binary)
+              with_raw_connection do |conn|
+                conn.write_lob(lob, value.to_s, col.type == :binary)
+              end
             end
           end
         end
