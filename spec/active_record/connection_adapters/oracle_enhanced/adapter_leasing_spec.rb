@@ -49,3 +49,16 @@ RSpec.describe "OracleEnhancedAdapter#raw_connection" do
     expect(@adapter.transaction_manager.lazy_transactions_enabled?).to be(false)
   end
 end
+
+RSpec.describe "OracleEnhancedAdapter#discard!" do
+  before(:each) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @adapter = ActiveRecord::Base.lease_connection
+  end
+
+  it "clears @raw_connection so the adapter reports as disconnected" do
+    expect(@adapter.connected?).to be(true)
+    @adapter.discard!
+    expect(@adapter.connected?).to be(false)
+  end
+end
