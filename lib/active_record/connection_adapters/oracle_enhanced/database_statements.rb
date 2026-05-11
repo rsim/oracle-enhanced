@@ -477,15 +477,8 @@ module ActiveRecord
             sql = +"MERGE INTO #{target} t\nUSING (#{using_select}) s\nON (#{on_clause})\n"
 
             if insert.update_duplicates?
-              on_set = on_columns.map { |c| c.to_s.downcase }.to_set
-              updatable = keys.reject { |k| on_set.include?(k.to_s.downcase) }
-              unless updatable.empty?
-                update_pairs = updatable.map { |k|
-                  q = quote_column_name(k)
-                  "t.#{q} = s.#{q}"
-                }.join(", ")
-                sql << "WHEN MATCHED THEN UPDATE SET #{update_pairs}\n"
-              end
+              update_pairs = merge_update_pairs(insert, on_columns)
+              sql << "WHEN MATCHED THEN UPDATE SET #{update_pairs}\n" unless update_pairs.empty?
             end
 
             insert_cols_csv = quoted_cols.join(", ")
@@ -497,6 +490,49 @@ module ActiveRecord
           def merge_on_columns(insert_all)
             cols = insert_all.unique_by ? Array(insert_all.unique_by.columns) : Array(insert_all.primary_keys)
             cols.map(&:to_s)
+          end
+
+          # Build the `WHEN MATCHED THEN UPDATE SET` clause. Auto-filled
+          # `updated_at`-style columns get a no-change CASE guard so idempotent
+          # upserts don't bump them — mirrors AR core's
+          # Builder#touch_model_timestamps_unless.
+          def merge_update_pairs(insert, on_columns)
+            on_set = on_columns.map { |c| c.to_s.downcase }.to_set
+            updatable = insert.keys_including_timestamps.reject { |k| on_set.include?(k.to_s.downcase) }
+            return "" if updatable.empty?
+
+            # `insert_all.updatable_columns` is `keys - readonly - unique_by` —
+            # user-supplied columns only, so auto-filled timestamps don't poison
+            # the no-change comparison.
+            user_updatable = insert.send(:insert_all).updatable_columns.map(&:to_s).reject { |k| on_set.include?(k.downcase) }
+            auto_filled_ts = auto_filled_update_timestamps(insert, updatable)
+            guard = no_change_predicate(user_updatable) unless user_updatable.empty?
+
+            updatable.map { |column|
+              q = quote_column_name(column)
+              if guard && auto_filled_ts.include?(column.to_s)
+                "t.#{q} = CASE WHEN #{guard} THEN t.#{q} ELSE s.#{q} END"
+              else
+                "t.#{q} = s.#{q}"
+              end
+            }.join(", ")
+          end
+
+          # AND-joined per-column NULL-safe equality between target (`t`) and
+          # source (`s`); drives the no-change CASE guard in merge_update_pairs.
+          def no_change_predicate(columns)
+            columns.map { |column|
+              q = quote_column_name(column)
+              "(t.#{q} = s.#{q} OR (t.#{q} IS NULL AND s.#{q} IS NULL))"
+            }.join(" AND ")
+          end
+
+          def auto_filled_update_timestamps(insert, updatable)
+            return [] unless insert.record_timestamps?
+
+            user_supplied = insert.keys.map(&:to_s).to_set
+            ts_cols = insert.model.timestamp_attributes_for_update_in_model.map(&:to_s).to_set
+            updatable.map(&:to_s).select { |k| ts_cols.include?(k) && !user_supplied.include?(k) }
           end
       end
     end
