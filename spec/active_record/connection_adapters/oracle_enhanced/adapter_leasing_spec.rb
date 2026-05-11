@@ -62,3 +62,49 @@ RSpec.describe "OracleEnhancedAdapter#discard!" do
     expect(@adapter.connected?).to be(false)
   end
 end
+
+RSpec.describe "OracleEnhancedAdapter transaction state changes" do
+  before(:each) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @adapter = ActiveRecord::Base.lease_connection
+  end
+
+  describe "#begin_db_transaction" do
+    after(:each) do
+      @adapter.exec_rollback_db_transaction
+    end
+
+    it "routes through with_raw_connection with allow_retry: true, materialize_transactions: false" do
+      allow(@adapter).to receive(:with_raw_connection).and_call_original
+      @adapter.begin_db_transaction
+      expect(@adapter).to have_received(:with_raw_connection)
+        .with(allow_retry: true, materialize_transactions: false)
+    end
+  end
+
+  describe "#commit_db_transaction" do
+    before(:each) do
+      @adapter.begin_db_transaction
+    end
+
+    it "routes through with_raw_connection with allow_retry: false, materialize_transactions: true" do
+      allow(@adapter).to receive(:with_raw_connection).and_call_original
+      @adapter.commit_db_transaction
+      expect(@adapter).to have_received(:with_raw_connection)
+        .with(allow_retry: false, materialize_transactions: true)
+    end
+  end
+
+  describe "#exec_rollback_db_transaction" do
+    before(:each) do
+      @adapter.begin_db_transaction
+    end
+
+    it "routes through with_raw_connection with allow_retry: false, materialize_transactions: true" do
+      allow(@adapter).to receive(:with_raw_connection).and_call_original
+      @adapter.exec_rollback_db_transaction
+      expect(@adapter).to have_received(:with_raw_connection)
+        .with(allow_retry: false, materialize_transactions: true)
+    end
+  end
+end
