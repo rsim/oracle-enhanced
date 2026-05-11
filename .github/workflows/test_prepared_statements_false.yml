@@ -80,6 +80,17 @@ jobs:
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
+      - name: Force client TZ data to match server (ORA_TZFILE workaround)
+        run: |
+          ORACLE_CONTAINER=$(docker ps --filter "ancestor=gvenzl/oracle-free" -q)
+          SRC=$(docker exec "$ORACLE_CONTAINER" bash -c 'ls $ORACLE_HOME/oracore/zoneinfo/timezlrg_*.dat 2>/dev/null | head -1')
+          echo "Server TZ file: $SRC"
+          DST_DIR="$ORACLE_HOME/oracore/zoneinfo"
+          sudo mkdir -p "$DST_DIR"
+          docker cp "$ORACLE_CONTAINER":"$SRC" /tmp/_server_tzfile.dat
+          sudo mv /tmp/_server_tzfile.dat "$DST_DIR/$(basename "$SRC")"
+          ls -l "$DST_DIR"
+          echo "ORA_TZFILE=$DST_DIR/$(basename "$SRC")" >> $GITHUB_ENV
       - name: Bundle install
         run: |
           bundle install --jobs 4 --retry 3
