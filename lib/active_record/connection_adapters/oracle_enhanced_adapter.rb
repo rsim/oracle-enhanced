@@ -551,6 +551,10 @@ module ActiveRecord
         true
       end
 
+      def supports_materialized_views?
+        true
+      end
+
       def supports_fetch_first_n_rows_and_offset?
         return false unless @raw_connection
         database_version >= "12"

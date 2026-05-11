@@ -2902,6 +2902,10 @@ end
       end
     end
 
+    it "reports supports_materialized_views? as true" do
+      expect(@conn.supports_materialized_views?).to be(true)
+    end
+
     it "tables should not return materialized views" do
       expect(@conn.tables).not_to include("sum_test_employees")
     end
