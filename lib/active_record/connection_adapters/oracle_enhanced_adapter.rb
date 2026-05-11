@@ -776,7 +776,7 @@ module ActiveRecord
 
       def discard!
         super
-        _connection = nil
+        @raw_connection = nil
       end
 
       # use in set_sequence_name to avoid fetching primary key value from sequence
