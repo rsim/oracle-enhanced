@@ -108,3 +108,75 @@ RSpec.describe "OracleEnhancedAdapter transaction state changes" do
     end
   end
 end
+
+RSpec.describe "OracleEnhancedAdapter#_exec_insert" do
+  before(:each) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @adapter = ActiveRecord::Base.lease_connection
+    @adapter.create_table(:test_allow_retry_inserts, force: true) do |t|
+      t.string :name
+    end
+    @model_class = Class.new(ActiveRecord::Base) do
+      self.table_name = "test_allow_retry_inserts"
+    end
+  end
+
+  after(:each) do
+    @adapter.drop_table(:test_allow_retry_inserts, if_exists: true)
+  end
+
+  it "routes the INSERT cursor through with_raw_connection with allow_retry: true" do
+    allow(@adapter).to receive(:with_raw_connection).and_call_original
+    @model_class.create!(name: "x")
+    expect(@adapter).to have_received(:with_raw_connection).with(allow_retry: true).at_least(:once)
+  end
+end
+
+RSpec.describe "OracleEnhancedAdapter#resolve_data_source_name" do
+  before(:each) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @adapter = ActiveRecord::Base.lease_connection
+    @adapter.create_table(:test_allow_retry_describe, force: true) { |t| t.string :name }
+  end
+
+  after(:each) do
+    @adapter.drop_table(:test_allow_retry_describe, if_exists: true)
+  end
+
+  it "routes DBMS_UTILITY.NAME_RESOLVE through with_raw_connection with allow_retry: true" do
+    allow(@adapter).to receive(:with_raw_connection).and_call_original
+    @adapter.data_source_exists?(:test_allow_retry_describe)
+    expect(@adapter).to have_received(:with_raw_connection).with(allow_retry: true).at_least(:once)
+  end
+end
+
+RSpec.describe "OracleEnhancedAdapter#write_lobs" do
+  before(:each) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @adapter = ActiveRecord::Base.lease_connection
+    @adapter.create_table(:test_allow_retry_lobs, force: true) do |t|
+      t.text :body
+    end
+    @old_prepared_statements = @adapter.prepared_statements
+    @adapter.instance_variable_set(:@prepared_statements, false)
+    @model_class = Class.new(ActiveRecord::Base) do
+      self.table_name = "test_allow_retry_lobs"
+    end
+    @model_class.create!(body: "x" * 5000)
+  end
+
+  after(:each) do
+    @adapter.instance_variable_set(:@prepared_statements, @old_prepared_statements)
+    @adapter.drop_table(:test_allow_retry_lobs, if_exists: true)
+  end
+
+  # The LOB locator from the preceding SELECT ... FOR UPDATE is tied to the
+  # OCI session, so a reconnect-and-retry would either be a no-op (the
+  # surrounding transaction is already dirty) or fail with ORA-22275 /
+  # ORA-22920 on the new session. Pin the flag explicitly to false.
+  it "routes the LOB write through with_raw_connection with allow_retry: false" do
+    allow(@adapter).to receive(:with_raw_connection).and_call_original
+    @model_class.last.update!(body: "y" * 5000)
+    expect(@adapter).to have_received(:with_raw_connection).with(allow_retry: false).at_least(:once)
+  end
+end

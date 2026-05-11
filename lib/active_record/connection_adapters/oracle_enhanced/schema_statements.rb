@@ -1529,7 +1529,7 @@ module ActiveRecord
               name: "SCHEMA",
               connection: self,
             ) do
-              with_raw_connection do |conn|
+              with_raw_connection(allow_retry: true) do |conn|
                 conn.name_resolve(real_name)
               end
             end
