@@ -497,6 +497,10 @@ module ActiveRecord
         true
       end
 
+      def supports_lazy_transactions? # :nodoc:
+        true
+      end
+
       def supports_transaction_isolation? # :nodoc:
         true
       end
