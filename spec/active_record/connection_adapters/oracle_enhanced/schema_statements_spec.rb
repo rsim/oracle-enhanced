@@ -2574,6 +2574,7 @@ end
 
   describe "prepared statement cache eviction on DDL" do
     before(:each) do
+      skip "requires prepared_statements: true" unless @conn.prepared_statements
       schema_define do
         create_table :test_evict, force: true do |t|
           t.string :name
