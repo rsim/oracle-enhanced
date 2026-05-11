@@ -539,6 +539,18 @@ module ActiveRecord
         true
       end
 
+      def supports_insert_on_duplicate_skip?
+        true
+      end
+
+      def supports_insert_on_duplicate_update?
+        true
+      end
+
+      def supports_insert_conflict_target?
+        true
+      end
+
       def supports_optimizer_hints?
         true
       end

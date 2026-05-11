@@ -222,11 +222,7 @@ module ActiveRecord
         end
 
         def build_insert_sql(insert) # :nodoc:
-          if insert.skip_duplicates? || insert.update_duplicates?
-            raise NotImplementedError,
-                  "Oracle insert_all does not yet support :on_duplicate (skip/update). " \
-                  "Use a MERGE statement directly until upsert_all support lands (tracked in #2733)."
-          end
+          return build_merge_sql(insert) if insert.skip_duplicates? || insert.update_duplicates?
 
           # INSERT ALL cannot carry RETURNING; `insert.returning` is dropped and `result.rows` is empty.
           rows_sql = compile_per_row_values(insert).map do |row_values|
@@ -404,15 +400,27 @@ module ActiveRecord
           # ActiveRecord::InsertAll::Builder#values_list applies before bundling
           # rows into a single `VALUES (...), (...)` fragment.
           def compile_per_row_values(insert)
+            rows = compile_per_row_coerced_values(insert)
+            rows.map { |row| visitor.compile(Arel::Nodes::ValuesList.new([row])) }
+          end
+
+          # Shared coercion used by both INSERT ALL (compile_per_row_values) and
+          # MERGE (compile_per_row_select_aliases). Returns Array<Array> where each
+          # inner array is a row of pre-quoting coerced values aligned with
+          # `keys_including_timestamps`.
+          def compile_per_row_coerced_values(insert)
             insert_all = insert.send(:insert_all)
-            keys = insert.send(:keys_including_timestamps)
-            # Delegate to AR core's check so unknown attributes raise
-            # `ActiveModel::UnknownAttributeError` locally rather than slipping
-            # through to Oracle as ORA-00904.
-            types = insert.send(:extract_types_for, keys)
+            keys = insert.keys_including_timestamps
+            # Raise early on unknown columns so callers get
+            # ActiveModel::UnknownAttributeError instead of ORA-00904. Mirrors
+            # the guard inside AR core's private Builder#extract_types_for.
+            unknown_column = (keys - insert.model.columns_hash.keys).first
+            raise ActiveModel::UnknownAttributeError.new(insert.model.new, unknown_column) if unknown_column
+
+            types = keys.index_with { |key| insert.model.type_for_attribute(key) }
             primary_keys = insert_all.primary_keys.to_set
 
-            rows = insert_all.send(:map_key_with_value) do |key, value|
+            insert_all.map_key_with_value do |key, value|
               if Arel::Nodes::SqlLiteral === value
                 value
               elsif primary_keys.include?(key) && value.nil?
@@ -422,8 +430,73 @@ module ActiveRecord
                 ActiveModel::Type::SerializeCastValue.serialize(type, type.cast(value))
               end
             end
+          end
 
-            rows.map { |row| visitor.compile(Arel::Nodes::ValuesList.new([row])) }
+          # Compile each insert row to `SELECT v1 AS col1, v2 AS col2 FROM DUAL`,
+          # the per-row shape Oracle MERGE's `USING (...) s` source needs. Combined
+          # with `UNION ALL` between rows in build_merge_sql.
+          def compile_per_row_select_aliases(insert)
+            aliases = insert.keys_including_timestamps.map { |k| quote_column_name(k) }
+            compile_per_row_coerced_values(insert).map do |row|
+              pairs = row.zip(aliases).map do |value, col_alias|
+                sql_value = Arel::Nodes::SqlLiteral === value ? visitor.compile(value) : quote(value)
+                "#{sql_value} AS #{col_alias}"
+              end
+              "SELECT #{pairs.join(", ")} FROM DUAL"
+            end
+          end
+
+          # Bridge AR's :skip / :update on_duplicate semantics to Oracle MERGE.
+          # `unique_by:` drives the ON clause; if omitted, falls back to the
+          # table's primary key (matches AR core's Builder#conflict_target for
+          # :update, and extends the same fallback to :skip — Oracle has no
+          # equivalent to PG's bare `ON CONFLICT DO NOTHING`). ON-clause columns
+          # are excluded from `WHEN MATCHED THEN UPDATE SET` (ORA-38104).
+          # RETURNING is not emitted (Oracle MERGE does not carry it in standard
+          # SQL); `result.rows` is empty, mirroring the existing INSERT ALL path.
+          def build_merge_sql(insert)
+            insert_all = insert.send(:insert_all)
+            on_columns = merge_on_columns(insert_all)
+
+            if on_columns.empty?
+              raise ArgumentError,
+                    "Oracle MERGE-based insert_all/upsert_all requires :unique_by or " \
+                    "a primary key to drive the ON clause; neither is available on " \
+                    "#{insert_all.model.name}."
+            end
+
+            target = insert_all.model.quoted_table_name
+            keys = insert.keys_including_timestamps
+            quoted_cols = keys.map { |k| quote_column_name(k) }
+            using_select = compile_per_row_select_aliases(insert).join(" UNION ALL ")
+            on_clause = on_columns.map { |c|
+              q = quote_column_name(c)
+              "t.#{q} = s.#{q}"
+            }.join(" AND ")
+
+            sql = +"MERGE INTO #{target} t\nUSING (#{using_select}) s\nON (#{on_clause})\n"
+
+            if insert.update_duplicates?
+              on_set = on_columns.map { |c| c.to_s.downcase }.to_set
+              updatable = keys.reject { |k| on_set.include?(k.to_s.downcase) }
+              unless updatable.empty?
+                update_pairs = updatable.map { |k|
+                  q = quote_column_name(k)
+                  "t.#{q} = s.#{q}"
+                }.join(", ")
+                sql << "WHEN MATCHED THEN UPDATE SET #{update_pairs}\n"
+              end
+            end
+
+            insert_cols_csv = quoted_cols.join(", ")
+            insert_vals_csv = quoted_cols.map { |c| "s.#{c}" }.join(", ")
+            sql << "WHEN NOT MATCHED THEN INSERT (#{insert_cols_csv}) VALUES (#{insert_vals_csv})"
+            sql
+          end
+
+          def merge_on_columns(insert_all)
+            cols = insert_all.unique_by ? Array(insert_all.unique_by.columns) : Array(insert_all.primary_keys)
+            cols.map(&:to_s)
           end
       end
     end

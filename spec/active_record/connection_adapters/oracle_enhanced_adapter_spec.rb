@@ -453,11 +453,88 @@ RSpec.describe "OracleEnhancedAdapter" do
       include_examples "insert_all! basics"
     end
 
-    it "raises NotImplementedError when build_insert_sql is reached with on_duplicate" do
-      insert = double(skip_duplicates?: true, update_duplicates?: false)
-      expect {
-        ActiveRecord::Base.lease_connection.build_insert_sql(insert)
-      }.to raise_error(NotImplementedError, /on_duplicate/)
+    describe "on_duplicate via Oracle MERGE" do
+      before(:all) do
+        schema_define do
+          create_table :test_merge_items, force: true do |t|
+            t.string :name
+            t.integer :qty
+          end
+        end
+        class ::TestMergeItem < ActiveRecord::Base
+        end
+      end
+
+      after(:all) do
+        schema_define do
+          drop_table :test_merge_items, if_exists: true
+        end
+        Object.send(:remove_const, "TestMergeItem") if defined?(TestMergeItem)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      after(:each) { TestMergeItem.delete_all }
+
+      it "reports the three on_duplicate capability flags as true" do
+        conn = ActiveRecord::Base.lease_connection
+        expect(conn.supports_insert_on_duplicate_skip?).to be(true)
+        expect(conn.supports_insert_on_duplicate_update?).to be(true)
+        expect(conn.supports_insert_conflict_target?).to be(true)
+      end
+
+      it "skips rows whose unique_by conflicts with existing ones (insert_all default)" do
+        TestMergeItem.insert_all!([{ id: 100, name: "anchor", qty: 5 }])
+        TestMergeItem.insert_all(
+          [{ id: 100, name: "skip-this", qty: 99 }, { id: 101, name: "new", qty: 1 }],
+          unique_by: :id,
+        )
+        expect(TestMergeItem.find(100).name).to eq("anchor")
+        expect(TestMergeItem.find(100).qty).to eq(5)
+        expect(TestMergeItem.find(101).name).to eq("new")
+      end
+
+      it "updates matched rows and inserts the rest (upsert_all)" do
+        TestMergeItem.insert_all!([{ id: 200, name: "anchor", qty: 5 }])
+        TestMergeItem.upsert_all(
+          [{ id: 200, name: "updated", qty: 99 }, { id: 201, name: "fresh", qty: 1 }],
+          unique_by: :id,
+        )
+        expect(TestMergeItem.find(200).name).to eq("updated")
+        expect(TestMergeItem.find(200).qty).to eq(99)
+        expect(TestMergeItem.find(201).name).to eq("fresh")
+      end
+
+      # ORA-38104: a MERGE that lists an ON-clause column in WHEN MATCHED UPDATE
+      # SET is rejected by Oracle. Confirm the builder strips the unique_by
+      # column(s) from the UPDATE SET clause.
+      it "excludes the unique_by column from WHEN MATCHED THEN UPDATE SET" do
+        TestMergeItem.insert_all!([{ id: 300, name: "anchor", qty: 5 }])
+        expect {
+          TestMergeItem.upsert_all(
+            [{ id: 300, name: "renamed", qty: 50 }],
+            unique_by: :id,
+          )
+        }.not_to raise_error
+        expect(TestMergeItem.find(300).name).to eq("renamed")
+      end
+
+      it "falls back to the primary key when unique_by is omitted" do
+        TestMergeItem.insert_all!([{ id: 400, name: "anchor", qty: 5 }])
+        TestMergeItem.upsert_all([{ id: 400, name: "updated", qty: 50 }])
+        expect(TestMergeItem.find(400).name).to eq("updated")
+      end
+
+      it "preserves values containing parens and embedded single quotes" do
+        TestMergeItem.upsert_all(
+          [
+            { id: 500, name: "Hello (world)", qty: 10 },
+            { id: 501, name: "O'Reilly's", qty: 20 },
+          ],
+          unique_by: :id,
+        )
+        names = TestMergeItem.where(id: [500, 501]).order(:id).pluck(:name)
+        expect(names).to eq(["Hello (world)", "O'Reilly's"])
+      end
     end
 
     # Unit-level coverage of the helper that bridges AR core's bundled
