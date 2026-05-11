@@ -1,0 +1,51 @@
+# frozen_string_literal: true
+
+require "spec_helper"
+
+# Ported from activerecord/test/cases/connection_adapters/adapter_leasing_test.rb.
+RSpec.describe "OracleEnhancedAdapter leasing" do
+  before(:each) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(CONNECTION_PARAMS)
+  end
+
+  it "starts out not in use and is in use after lease" do
+    expect(@adapter.in_use?).to be_falsey
+    @adapter.lease
+    expect(@adapter).to be_in_use
+  end
+
+  it "raises ActiveRecordError when leased twice without an intervening expire" do
+    @adapter.lease
+    expect { @adapter.lease }.to raise_error(ActiveRecord::ActiveRecordError)
+  end
+
+  it "clears in_use? after expire" do
+    @adapter.lease
+    expect(@adapter).to be_in_use
+    @adapter.expire
+    expect(@adapter.in_use?).to be_falsey
+  end
+end
+
+RSpec.describe "OracleEnhancedAdapter#raw_connection" do
+  before(:each) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @adapter = ActiveRecord::Base.lease_connection
+  end
+
+  it "routes through AR core's with_raw_connection wrapper" do
+    expect(@adapter).to receive(:with_raw_connection).and_call_original
+    @adapter.raw_connection
+  end
+
+  it "returns the bare OCI8 / JDBC driver, not the OracleEnhanced::Connection wrapper" do
+    raw = @adapter.raw_connection
+    expect(raw).not_to be_a(ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection)
+  end
+
+  it "disables lazy transactions for the rest of the checkout" do
+    @adapter.raw_connection
+    expect(@adapter.transaction_manager.lazy_transactions_enabled?).to be(false)
+  end
+end
