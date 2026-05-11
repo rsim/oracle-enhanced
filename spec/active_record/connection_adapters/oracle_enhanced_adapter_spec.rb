@@ -537,6 +537,58 @@ RSpec.describe "OracleEnhancedAdapter" do
       end
     end
 
+    # Mirrors AR core PG/MySQL's `Builder#touch_model_timestamps_unless`:
+    # `updated_at` is only bumped when a user-supplied column actually changes.
+    # See #2755 for the implementation rationale.
+    describe "on_duplicate via Oracle MERGE with timestamps" do
+      before(:all) do
+        schema_define do
+          create_table :test_merge_ts_items, force: true do |t|
+            t.string :name
+            t.integer :qty
+            t.timestamps
+          end
+        end
+        class ::TestMergeTsItem < ActiveRecord::Base
+        end
+      end
+
+      after(:all) do
+        schema_define do
+          drop_table :test_merge_ts_items, if_exists: true
+        end
+        Object.send(:remove_const, "TestMergeTsItem") if defined?(TestMergeTsItem)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      after(:each) { TestMergeTsItem.delete_all }
+
+      it "keeps updated_at stable on an idempotent upsert_all" do
+        TestMergeTsItem.upsert_all([{ id: 1, name: "alpha", qty: 1 }], unique_by: :id)
+        before_ts = TestMergeTsItem.find(1).updated_at
+        sleep 0.1  # advance wall clock past TIMESTAMP precision
+        TestMergeTsItem.upsert_all([{ id: 1, name: "alpha", qty: 1 }], unique_by: :id)
+        expect(TestMergeTsItem.find(1).updated_at).to eq(before_ts)
+      end
+
+      it "bumps updated_at when a non-key column changes" do
+        TestMergeTsItem.upsert_all([{ id: 2, name: "alpha", qty: 1 }], unique_by: :id)
+        before_ts = TestMergeTsItem.find(2).updated_at
+        sleep 0.1
+        TestMergeTsItem.upsert_all([{ id: 2, name: "beta", qty: 2 }], unique_by: :id)
+        expect(TestMergeTsItem.find(2).updated_at).to be > before_ts
+      end
+
+      it "respects an explicit updated_at value supplied by the caller" do
+        explicit = Time.utc(2020, 1, 1, 12, 0, 0)
+        TestMergeTsItem.upsert_all(
+          [{ id: 3, name: "alpha", qty: 1, updated_at: explicit }],
+          unique_by: :id,
+        )
+        expect(TestMergeTsItem.find(3).updated_at.utc).to eq(explicit)
+      end
+    end
+
     # Unit-level coverage of the helper that bridges AR core's bundled
     # values_list to Oracle's per-row INSERT ALL form. Locks in the per-row
     # split shape and the value-quoting behavior so a regression in either
