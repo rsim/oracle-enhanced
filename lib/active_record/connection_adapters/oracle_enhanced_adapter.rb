@@ -713,8 +713,11 @@ module ActiveRecord
 
       # return raw OCI8 or JDBC connection
       def raw_connection
-        verify!
-        _connection.raw_connection
+        with_raw_connection do |conn|
+          disable_lazy_transactions!
+          @raw_connection_dirty = true
+          conn.raw_connection
+        end
       end
 
       # Returns true if the connection is active.
