@@ -837,6 +837,18 @@ RSpec.describe "OracleEnhancedConnection" do
       expect { ActiveRecord::Base.lease_connection.execute("SELECT * FROM dual") }.to raise_error(ActiveRecord::ConnectionFailed)
     end
 
+    # `resolve_data_source_name` routes the `DBMS_UTILITY.NAME_RESOLVE`
+    # call-out through `with_raw_connection(allow_retry: true)` in
+    # `schema_statements.rb`. Pin that AR-layer retry recovers it after
+    # a session kill — the SELECT-side counterparts above cover the
+    # `perform_query` path, this covers the schema-introspection path.
+    it "resolve_data_source_name recovers from a killed session via AR retry" do
+      # Warm the connection so the killed session is the one we just used.
+      ActiveRecord::Base.lease_connection.send(:resolve_data_source_name, "POSTS")
+      kill_current_session
+      expect(ActiveRecord::Base.lease_connection.send(:resolve_data_source_name, "POSTS")).not_to be_nil
+    end
+
     it "raises NotImplementedError when the removed auto_retry accessor is used" do
       expect { ActiveRecord::Base.lease_connection.auto_retry = true }.to raise_error(NotImplementedError, /connection_retries:/)
       expect { ActiveRecord::Base.lease_connection.auto_retry }.to raise_error(NotImplementedError, /connection_retries:/)
