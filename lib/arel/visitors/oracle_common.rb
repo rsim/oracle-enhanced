@@ -145,6 +145,18 @@ module Arel # :nodoc: all
           collector
         end
 
+        def visit_Arel_Nodes_UpdateStatement(o, collector)
+          # Oracle does not allow ORDER BY/LIMIT in UPDATEs.
+          if o.orders.any? && o.limit.nil?
+            # However, there is no harm in silently eating the ORDER BY clause if no LIMIT has been provided,
+            # otherwise let the user deal with the error
+            o = o.dup
+            o.orders = []
+          end
+
+          super
+        end
+
         def visit_Arel_Nodes_In(o, collector)
           attr, values = o.left, o.right
           return super unless values.is_a?(Array)
