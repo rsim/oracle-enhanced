@@ -1120,7 +1120,7 @@ module ActiveRecord
       end
 
       private def reconnect
-        _connection.reset
+        _connection.reset!
       rescue OracleEnhanced::ConnectionException
         connect
       end
