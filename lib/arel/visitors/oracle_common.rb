@@ -70,6 +70,7 @@ module Arel # :nodoc: all
               string
             end
           end.flatten
+          o = o.dup
           o.orders = []
           orders.each_with_index do |order, i|
             parts = ["alias_#{i}__"]
