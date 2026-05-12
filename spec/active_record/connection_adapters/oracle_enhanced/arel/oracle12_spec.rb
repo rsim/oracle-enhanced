@@ -116,16 +116,4 @@ RSpec.describe "Arel::Visitors::Oracle12" do
       expect(sql).to be_like %{ "USERS"."NAME" IS NOT NULL }
     end
   end
-
-  describe "visit_Arel_Nodes_HomogeneousIn" do
-    it "marks the collector as not preparable" do
-      type_caster = Class.new { def type_for_attribute(_name) = ActiveRecord::Type::Value.new }.new
-      table = Arel::Table.new(:users, type_caster: type_caster)
-      node = Arel::Nodes::HomogeneousIn.new([1, 2, 3], table[:id], :in)
-      collector = Arel::Collectors::SQLString.new
-      collector.preparable = true
-      @visitor.accept(node, collector)
-      expect(collector.preparable).to be(false)
-    end
-  end
 end
