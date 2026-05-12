@@ -339,17 +339,17 @@ module ActiveRecord
               contains_node = Arel::Nodes::NamedFunction.new(
                 "CONTAINS",
                 [
-                  Arel::Nodes::SqlLiteral.new(quoted_column),
+                  Arel::Nodes::SqlLiteral.new(quoted_column, retryable: true),
                   Arel::Nodes::BindParam.new(query),
-                  Arel::Nodes::SqlLiteral.new(score_label.to_s)
+                  Arel::Nodes::SqlLiteral.new(score_label.to_s, retryable: true)
                 ]
               )
 
               # Create comparison node: CONTAINS(...) > 0
-              condition = Arel::Nodes::GreaterThan.new(contains_node, Arel::Nodes::SqlLiteral.new("0"))
+              condition = Arel::Nodes::GreaterThan.new(contains_node, Arel::Nodes::SqlLiteral.new("0", retryable: true))
 
               # Create the where clause and order by score
-              where(condition).order(Arel.sql("SCORE(#{score_label}) DESC"))
+              where(condition).order(Arel.sql("SCORE(#{score_label}) DESC", retryable: true))
             end
           end
       end

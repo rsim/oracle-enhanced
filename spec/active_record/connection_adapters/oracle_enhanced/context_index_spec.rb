@@ -181,6 +181,15 @@ RSpec.describe "OracleEnhancedAdapter context index" do
       end
       @conn.remove_context_index :posts, :title
     end
+
+    it "leaves collector.retryable true so AR retry covers Model.contains queries" do
+      relation = Post.contains(:title, "anything")
+      collector = Arel::Collectors::SQLString.new
+      collector.retryable = true
+      visitor = ActiveRecord::Base.lease_connection.send(:arel_visitor)
+      visitor.accept(relation.arel.ast, collector)
+      expect(collector.retryable).to be(true)
+    end
   end
 
   describe "on multiple tables" do
