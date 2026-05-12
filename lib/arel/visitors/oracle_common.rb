@@ -26,6 +26,7 @@ module Arel # :nodoc: all
 
         def visit_Arel_Nodes_Matches(o, collector)
           if !o.case_sensitive && o.left && o.right
+            o = o.dup
             o.left = Arel::Nodes::NamedFunction.new("UPPER", [o.left])
             o.right = Arel::Nodes::NamedFunction.new("UPPER", [o.right])
           end
