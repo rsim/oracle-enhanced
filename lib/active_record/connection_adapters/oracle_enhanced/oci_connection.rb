@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "delegate"
-
 begin
   require "oci8"
 rescue LoadError => e
@@ -27,8 +25,14 @@ module ActiveRecord
     # OCI database interface for MRI
     module OracleEnhanced
       class OCIConnection < OracleEnhanced::Connection # :nodoc:
+        attr_accessor :active
+        alias :active? :active
+
         def initialize(config)
-          @raw_connection = OCI8EnhancedAutoRecover.new(config, OracleEnhancedOCIFactory)
+          @config = config
+          @factory = OracleEnhancedOCIFactory
+          @raw_connection = @factory.new_connection(@config)
+          @active = true
           # default schema owner
           @owner = config[:schema]
           @owner ||= config[:username]
@@ -36,18 +40,12 @@ module ActiveRecord
         end
 
         def raw_oci_connection
-          if @raw_connection.is_a? OCI8
-            @raw_connection
-          # ActiveRecord Oracle enhanced adapter puts OCI8EnhancedAutoRecover wrapper around OCI8
-          # in this case we need to pass original OCI8 connection
-          else
-            @raw_connection.instance_variable_get(:@raw_connection)
-          end
+          @raw_connection
         end
 
         def logoff
           @raw_connection.logoff
-          @raw_connection.active = false
+          @active = false
         end
 
         def commit
@@ -70,22 +68,24 @@ module ActiveRecord
         # checks the connection, while #active? simply returns the last
         # known state.
         def ping
-          @raw_connection.ping
+          @raw_connection.exec("select 1 from dual") { |r| nil }
+          @active = true
         rescue OCIException => e
+          @active = false
           raise OracleEnhanced::ConnectionException, e.message
         end
 
-        def active?
-          @raw_connection.active?
-        end
-
         def reset
-          @raw_connection.reset
+          reset!
         end
 
+        # Resets connection, by logging off and creating a new connection.
         def reset!
-          @raw_connection.reset!
+          logoff rescue nil
+          @raw_connection = @factory.new_connection(@config)
+          @active = true
         rescue OCIException => e
+          @active = false
           raise OracleEnhanced::ConnectionException, e.message
         end
 
@@ -390,51 +390,3 @@ module ActiveRecord
     end
   end
 end
-
-# OCI8EnhancedAutoRecover wraps the bare OCI8 connection to track its
-# liveness (`@active` / `ping`) and to recreate it on `reset!`. AR core's
-# `with_raw_connection(allow_retry: true)` drives the reconnect-and-retry
-# loop on top of those primitives.
-# :stopdoc:
-class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
-  attr_accessor :active # :nodoc:
-  alias :active? :active # :nodoc:
-
-  def initialize(config, factory) # :nodoc:
-    @active = true
-    @config = config
-    @factory = factory
-    @raw_connection = @factory.new_connection @config
-    super @raw_connection
-  end
-
-  # Checks connection, returns true if active. Note that ping actively
-  # checks the connection, while #active? simply returns the last
-  # known state.
-  def ping # :nodoc:
-    @raw_connection.exec("select 1 from dual") { |r| nil }
-    @active = true
-  rescue
-    @active = false
-    raise
-  end
-
-  def reset
-    # tentative
-    reset!
-  end
-
-  # Resets connection, by logging off and creating a new connection.
-  def reset! # :nodoc:
-    logoff rescue nil
-    begin
-      @raw_connection = @factory.new_connection @config
-      __setobj__ @raw_connection
-      @active = true
-    rescue
-      @active = false
-      raise
-    end
-  end
-end
-# :startdoc:
