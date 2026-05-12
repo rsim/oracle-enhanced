@@ -76,7 +76,7 @@ module Arel # :nodoc: all
             if (nulls_match = order.match(/\bNULLS\s+(FIRST|LAST)\b/i))
               parts << "NULLS #{nulls_match[1].upcase}"
             end
-            o.orders << Arel::Nodes::SqlLiteral.new(parts.join(" "))
+            o.orders << Arel::Nodes::SqlLiteral.new(parts.join(" "), retryable: true)
           end
           o
         end
