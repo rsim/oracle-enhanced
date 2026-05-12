@@ -75,10 +75,6 @@ module ActiveRecord
           raise OracleEnhanced::ConnectionException, e.message
         end
 
-        def reset
-          reset!
-        end
-
         # Resets connection, by logging off and creating a new connection.
         def reset!
           logoff rescue nil

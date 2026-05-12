@@ -224,10 +224,6 @@ module ActiveRecord
         end
 
         # Resets connection, by logging off and creating a new connection.
-        def reset
-          reset!
-        end
-
         def reset!
           logoff rescue nil
           begin
