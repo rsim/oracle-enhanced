@@ -57,6 +57,17 @@ RSpec.describe "Arel::Visitors::Oracle" do
     }
   end
 
+  it "leaves collector.retryable true after the DISTINCT+FIRST_VALUE ORDER BY rewrite" do
+    select = "DISTINCT foo.id, FIRST_VALUE(projects.name) OVER (foo) AS alias_0__"
+    stmt = Arel::Nodes::SelectStatement.new
+    stmt.cores.first.projections << Arel::Nodes::SqlLiteral.new(select, retryable: true)
+    stmt.orders << Arel::Nodes::SqlLiteral.new("foo", retryable: true)
+    collector = Arel::Collectors::SQLString.new
+    collector.retryable = true
+    @visitor.accept(stmt, collector)
+    expect(collector.retryable).to be(true)
+  end
+
   describe "Nodes::SelectStatement" do
     describe "limit" do
       it "adds a rownum clause" do
