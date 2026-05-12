@@ -68,6 +68,56 @@ RSpec.describe "Arel::Visitors::Oracle" do
     expect(collector.retryable).to be(true)
   end
 
+  describe "order_hacks NULLS handling" do
+    let(:select) { "DISTINCT foo.id, FIRST_VALUE(projects.name) OVER (foo) AS alias_0__" }
+
+    def select_with_order(order_clause)
+      stmt = Arel::Nodes::SelectStatement.new
+      stmt.cores.first.projections << Arel::Nodes::SqlLiteral.new(select)
+      stmt.orders << Arel::Nodes::SqlLiteral.new(order_clause)
+      stmt
+    end
+
+    it "preserves NULLS FIRST on the rewritten alias" do
+      expect(compile(select_with_order("foo NULLS FIRST"))).to be_like %{
+        SELECT #{select} ORDER BY alias_0__ NULLS FIRST
+      }
+    end
+
+    it "preserves NULLS LAST on the rewritten alias" do
+      expect(compile(select_with_order("foo NULLS LAST"))).to be_like %{
+        SELECT #{select} ORDER BY alias_0__ NULLS LAST
+      }
+    end
+
+    it "preserves DESC combined with NULLS LAST on the rewritten alias" do
+      expect(compile(select_with_order("foo DESC NULLS LAST"))).to be_like %{
+        SELECT #{select} ORDER BY alias_0__ DESC NULLS LAST
+      }
+    end
+
+    it "upcases the NULLS keyword regardless of source casing" do
+      expect(compile(select_with_order("foo nulls first"))).to be_like %{
+        SELECT #{select} ORDER BY alias_0__ NULLS FIRST
+      }
+    end
+
+    it "leaves the ORDER BY untouched when no FIRST_VALUE projection is present" do
+      stmt = Arel::Nodes::SelectStatement.new
+      stmt.cores.first.projections << Arel::Nodes::SqlLiteral.new("foo.id")
+      stmt.orders << Arel::Nodes::SqlLiteral.new("foo NULLS FIRST")
+      expect(compile(stmt)).to be_like %{
+        SELECT foo.id ORDER BY foo NULLS FIRST
+      }
+    end
+
+    it "returns the SelectStatement unchanged when there are no orders" do
+      stmt = Arel::Nodes::SelectStatement.new
+      stmt.cores.first.projections << Arel::Nodes::SqlLiteral.new(select)
+      expect(compile(stmt)).to be_like %{ SELECT #{select} }
+    end
+  end
+
   describe "Nodes::SelectStatement" do
     describe "limit" do
       it "adds a rownum clause" do
