@@ -98,6 +98,53 @@ module Arel # :nodoc: all
           array
         end
 
+        # To avoid ORA-01795: maximum number of expressions in a list is 1000
+        # tell ActiveRecord to limit us to 1000 ids at a time
+        def visit_Arel_Nodes_HomogeneousIn(o, collector)
+          collector.preparable = false
+          in_clause_length = @connection.in_clause_length
+          values = o.casted_values.map { |v| @connection.quote(v) }
+          operator =
+            if o.type == :in
+              " IN ("
+            else
+              " NOT IN ("
+            end
+
+          if values.length <= in_clause_length
+            visit o.left, collector
+            collector << operator
+
+            expr =
+              if values.empty?
+                @connection.quote(nil)
+              else
+                values.join(",")
+              end
+
+            collector << expr
+            collector << ")"
+          else
+            separator =
+              if o.type == :in
+                " OR "
+              else
+                " AND "
+              end
+            collector << "("
+            values.each_slice(in_clause_length).each_with_index do |valuez, i|
+              collector << separator unless i == 0
+              visit o.left, collector
+              collector << operator
+              collector << valuez.join(",")
+              collector << ")"
+            end
+            collector << ")"
+          end
+
+          collector
+        end
+
         def visit_Arel_Nodes_In(o, collector)
           attr, values = o.left, o.right
           return super unless values.is_a?(Array)
