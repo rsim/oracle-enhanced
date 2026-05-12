@@ -8,9 +8,9 @@ module ActiveRecord
         #
         # see: abstract/database_statements.rb
 
-        READ_QUERY = ActiveRecord::ConnectionAdapters::AbstractAdapter.build_read_query_regexp(
-          :close, :declare, :fetch, :move, :set, :show
-        ) # :nodoc:
+        # Custom regex (not AbstractAdapter.build_read_query_regexp) because Oracle
+        # BEGIN/DECLARE prefix PL/SQL anonymous blocks, not transaction control.
+        READ_QUERY = /\A(?:[(\s]|#{ActiveRecord::ConnectionAdapters::AbstractAdapter::COMMENT_REGEX})*(?:commit|explain|release|rollback|savepoint|select|with|set|show)/i # :nodoc:
         private_constant :READ_QUERY
 
         def write_query?(sql) # :nodoc:
