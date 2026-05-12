@@ -48,4 +48,11 @@ RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_UpdateStatement" d
     sql = compile(stmt, visitor: oracle)
     expect(sql).not_to match(/ORDER BY/i)
   end
+
+  it "is a no-op when the statement has no orders" do
+    stmt = build_update
+    sql = compile(stmt)
+    expect(sql).not_to match(/ORDER BY/i)
+    expect(stmt.orders).to eq([])
+  end
 end

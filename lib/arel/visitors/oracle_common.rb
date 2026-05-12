@@ -98,6 +98,18 @@ module Arel # :nodoc: all
           array
         end
 
+        # Oracle does not allow ORDER BY in UPDATE statements. Strip it
+        # when no LIMIT is present; with a LIMIT, pass through so super
+        # surfaces Oracle's own error (LIMIT in UPDATE is unsupported too).
+        def visit_Arel_Nodes_UpdateStatement(o, collector)
+          if o.orders.any? && o.limit.nil?
+            o = o.dup
+            o.orders = []
+          end
+
+          super
+        end
+
         # To avoid ORA-01795: maximum number of expressions in a list is 1000
         # tell ActiveRecord to limit us to 1000 ids at a time
         def visit_Arel_Nodes_HomogeneousIn(o, collector)
@@ -143,18 +155,6 @@ module Arel # :nodoc: all
           end
 
           collector
-        end
-
-        def visit_Arel_Nodes_UpdateStatement(o, collector)
-          # Oracle does not allow ORDER BY/LIMIT in UPDATEs.
-          if o.orders.any? && o.limit.nil?
-            # However, there is no harm in silently eating the ORDER BY clause if no LIMIT has been provided,
-            # otherwise let the user deal with the error
-            o = o.dup
-            o.orders = []
-          end
-
-          super
         end
 
         def visit_Arel_Nodes_In(o, collector)
