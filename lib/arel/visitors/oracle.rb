@@ -15,7 +15,7 @@ module Arel # :nodoc: all
           # then can use simple ROWNUM in WHERE clause
           if o.limit && o.orders.empty? && o.cores.first.groups.empty? && !o.offset && !o.cores.first.set_quantifier.class.to_s.include?("Distinct")
             o.cores.last.wheres.push Nodes::LessThanOrEqual.new(
-              Nodes::SqlLiteral.new("ROWNUM"), o.limit.expr
+              Nodes::SqlLiteral.new("ROWNUM", retryable: true), o.limit.expr
             )
             return super
           end

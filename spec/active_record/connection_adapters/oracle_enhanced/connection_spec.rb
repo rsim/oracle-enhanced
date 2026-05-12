@@ -866,16 +866,22 @@ RSpec.describe "OracleEnhancedConnection" do
       expect(Post.take).not_to be_nil
     end
 
-    it "should not reconnect and execute query if connection is lost and auto retry is disabled" do
-      # On Oracle 23ai, `SELECT ... FETCH FIRST n ROWS ONLY` (emitted by
-      # Arel::Visitors::Oracle12) is transparently recovered by the server
-      # after `ALTER SYSTEM KILL SESSION`, so the adapter never sees an
-      # OCIError and the expected StatementInvalid is never raised.
-      skip "Oracle 23ai transparently recovers FETCH FIRST queries after session kill" if ActiveRecord::Base.connection.database_version >= "23"
+    # `auto_retry =` originally controlled the only retry path on this
+    # adapter (driver-level `OCI8EnhancedAutoRecover#with_retry` /
+    # `JDBCConnection#with_retry`), so setting it to false used to
+    # propagate the OCI/JDBC error and surface as `StatementInvalid`.
+    # Once AR core gained `with_raw_connection(allow_retry: true)` and
+    # oracle-enhanced routed Arel-built SELECTs through it, retry started
+    # happening at the AR layer regardless of `auto_retry =`, as long as
+    # the collector keeps `retryable` true (now the case for both
+    # Oracle12's FETCH FIRST and the pre-12c ROWNUM visitor). The expected
+    # outcome shifted accordingly — `Post.take` after a session kill now
+    # recovers via the AR layer even with `auto_retry = false`.
+    it "still recovers a killed-session SELECT via AR retry even when auto_retry is disabled" do
       Post.create!
       ActiveRecord::Base.lease_connection.auto_retry = false
       kill_current_session
-      expect { Post.take }.to raise_error(ActiveRecord::StatementInvalid)
+      expect(Post.take).not_to be_nil
     end
 
     # `lost_connection?` is the single source of truth for connection-loss
