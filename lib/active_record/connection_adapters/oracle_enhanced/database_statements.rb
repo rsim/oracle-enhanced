@@ -63,7 +63,7 @@ module ActiveRecord
             cached = false
             cursor = nil
             with_raw_connection(allow_retry: true) do |raw_connection|
-              with_retry do
+              begin
                 if binds.nil? || binds.empty?
                   cursor = raw_connection.prepare(sql)
                 else
@@ -345,7 +345,7 @@ module ActiveRecord
 
             cursor = nil
             cached = false
-            with_retry do
+            begin
               if binds.nil? || binds.empty?
                 cursor = raw_connection.prepare(sql)
               else
@@ -384,15 +384,6 @@ module ActiveRecord
             intent.notification_payload[:row_count] = rows.length
 
             { columns: columns, rows: rows, affected_rows_count: affected_rows_count }
-          end
-
-          def with_retry
-            _connection.with_retry do
-              yield
-            rescue
-              @statements.clear if prepared_statements?
-              raise
-            end
           end
 
           def handle_warnings(raw_result, sql)
