@@ -720,15 +720,24 @@ module ActiveRecord
       # CONNECTION MANAGEMENT ====================================
       #
 
-      # If SQL statement fails due to lost connection then reconnect
-      # and retry SQL statement if autocommit mode is enabled.
-      # By default this functionality is disabled.
-      attr_reader :auto_retry # :nodoc:
-      @auto_retry = false
+      # The oracle-enhanced-specific `auto_retry` toggle has been removed
+      # in favor of AR core's standard `connection_retries:` setting; the
+      # accessors are kept only to surface a clear migration path. Both
+      # raise to tell callers exactly what to change.
+      def auto_retry # :nodoc:
+        raise NotImplementedError,
+              "OracleEnhancedAdapter#auto_retry has been removed. " \
+              "Set `connection_retries:` in database.yml (or your connection " \
+              "configuration) to use AR core's retry instead. " \
+              "See https://github.com/rsim/oracle-enhanced/issues/2760."
+      end
 
-      def auto_retry=(value) # :nodoc:
-        @auto_retry = value
-        _connection.auto_retry = value if _connection
+      def auto_retry=(_value) # :nodoc:
+        raise NotImplementedError,
+              "OracleEnhancedAdapter#auto_retry= has been removed. " \
+              "Set `connection_retries:` in database.yml (or your connection " \
+              "configuration) to use AR core's retry instead. " \
+              "See https://github.com/rsim/oracle-enhanced/issues/2760."
       end
 
       # return raw OCI8 or JDBC connection

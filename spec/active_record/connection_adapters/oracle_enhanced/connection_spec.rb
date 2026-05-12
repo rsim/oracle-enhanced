@@ -123,8 +123,7 @@ RSpec.describe "OracleEnhancedAdapter establish connection" do
     skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_VERSION"] == "11.2.0.2"
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REJECTED" }))
-      conn = ActiveRecord::Base.lease_connection.send(:_connection)
-      expect(conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 0 }])
+      expect(ActiveRecord::Base.lease_connection.select_all("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'").to_a).to eq([{ "records" => 0 }])
     end
   end
 
@@ -132,8 +131,7 @@ RSpec.describe "OracleEnhancedAdapter establish connection" do
     skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_VERSION"] == "11.2.0.2"
     if ORACLE_ENHANCED_CONNECTION == :jdbc
       ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REQUESTED" }))
-      conn = ActiveRecord::Base.lease_connection.send(:_connection)
-      expect(conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 1 }])
+      expect(ActiveRecord::Base.lease_connection.select_all("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'").to_a).to eq([{ "records" => 1 }])
     end
   end
 
@@ -803,93 +801,52 @@ RSpec.describe "OracleEnhancedConnection" do
           WHERE  audsid = '#{audsid}'").first["sid_serial"]
     end
 
-    it "should reconnect and execute SQL statement if connection is lost and auto retry is enabled" do
-      # @conn.auto_retry = true
-      ActiveRecord::Base.lease_connection.auto_retry = true
-      kill_current_session
-      expect(@conn.exec("SELECT * FROM dual")).not_to be_nil
-    end
-
-    it "should reconnect and execute SQL statement if connection is lost and allow_retry is passed" do
-      kill_current_session
-      expect(@conn.exec("SELECT * FROM dual", allow_retry: true)).not_to be_nil
-    end
-
     # Regression test ported from rails/rails#46273, which only covers
     # Mysql2 and PostgreSQL in the Rails repository.
     it "adapter #execute is retryable when allow_retry: true is passed" do
-      previous_auto_retry = ActiveRecord::Base.lease_connection.auto_retry
-      ActiveRecord::Base.lease_connection.auto_retry = false
-      begin
-        initial_connection_id = connection_id_from_server(@conn)
-        kill_current_session
-        expect { ActiveRecord::Base.lease_connection.execute("SELECT 1 FROM dual", allow_retry: true) }.not_to raise_error
-        expect(connection_id_from_server(@conn)).not_to eq(initial_connection_id)
-      ensure
-        ActiveRecord::Base.lease_connection.auto_retry = previous_auto_retry
-      end
-    end
-
-    it "should not reconnect and execute SQL statement if connection is lost and auto retry is disabled" do
-      # @conn.auto_retry = false
-      ActiveRecord::Base.lease_connection.auto_retry = false
+      initial_connection_id = connection_id_from_server(@conn)
       kill_current_session
-      if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
-        expect { @conn.exec("SELECT * FROM dual") }.to raise_error(Java::JavaSql::SQLRecoverableException)
-      else
-        expect { @conn.exec("SELECT * FROM dual") }.to raise_error(OCIError)
-      end
+      expect { ActiveRecord::Base.lease_connection.execute("SELECT 1 FROM dual", allow_retry: true) }.not_to raise_error
+      expect(connection_id_from_server(@conn)).not_to eq(initial_connection_id)
     end
 
-    it "should reconnect and execute SQL select if connection is lost and auto retry is enabled" do
-      # @conn.auto_retry = true
-      ActiveRecord::Base.lease_connection.auto_retry = true
-      kill_current_session
-      expect(@conn.select("SELECT * FROM dual")).to eq([{ "dummy" => "X" }])
-    end
-
-    it "should not reconnect and execute SQL select if connection is lost and auto retry is disabled" do
-      # @conn.auto_retry = false
-      ActiveRecord::Base.lease_connection.auto_retry = false
-      kill_current_session
-      if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
-        expect { @conn.select("SELECT * FROM dual") }.to raise_error(Java::JavaSql::SQLRecoverableException)
-      else
-        expect { @conn.select("SELECT * FROM dual") }.to raise_error(OCIError)
-      end
-    end
-
-    it "should reconnect and execute query if connection is lost and auto retry is enabled" do
+    # Arel-built SELECTs route through `with_raw_connection(allow_retry: true)`
+    # in `database_statements.rb` and the collector keeps `retryable` true on
+    # both Oracle12 (FETCH FIRST) and the pre-12c ROWNUM visitor, so a session
+    # kill is transparently recovered at the AR layer.
+    it "recovers a killed-session SELECT via AR retry" do
       Post.create!
-      ActiveRecord::Base.lease_connection.auto_retry = true
       kill_current_session
       expect(Post.take).not_to be_nil
     end
 
-    # `auto_retry =` originally controlled the only retry path on this
-    # adapter (driver-level `OCI8EnhancedAutoRecover#with_retry` /
-    # `JDBCConnection#with_retry`), so setting it to false used to
-    # propagate the OCI/JDBC error and surface as `StatementInvalid`.
-    # Once AR core gained `with_raw_connection(allow_retry: true)` and
-    # oracle-enhanced routed Arel-built SELECTs through it, retry started
-    # happening at the AR layer regardless of `auto_retry =`, as long as
-    # the collector keeps `retryable` true (now the case for both
-    # Oracle12's FETCH FIRST and the pre-12c ROWNUM visitor). The expected
-    # outcome shifted accordingly — `Post.take` after a session kill now
-    # recovers via the AR layer even with `auto_retry = false`.
-    it "still recovers a killed-session SELECT via AR retry even when auto_retry is disabled" do
-      Post.create!
-      ActiveRecord::Base.lease_connection.auto_retry = false
+    # Direct `select_all` call exercises the same `perform_query` →
+    # `with_raw_connection(allow_retry: true)` path the Arel-built SELECTs
+    # rely on, without going through Arel / record materialisation.
+    it "adapter #select_all recovers a killed-session SELECT via AR retry" do
       kill_current_session
-      expect(Post.take).not_to be_nil
+      expect(ActiveRecord::Base.lease_connection.select_all("SELECT * FROM dual", allow_retry: true).to_a).to eq([{ "dummy" => "X" }])
+    end
+
+    # Inverse of the rails/rails#46273 port above: `execute` defaults to
+    # `allow_retry: false`, which is the right semantics for DDL/DML that
+    # cannot be safely re-run. A killed session must surface as
+    # `ActiveRecord::ConnectionFailed` rather than retry transparently.
+    it "adapter #execute does not retry when allow_retry is not passed" do
+      kill_current_session
+      expect { ActiveRecord::Base.lease_connection.execute("SELECT * FROM dual") }.to raise_error(ActiveRecord::ConnectionFailed)
+    end
+
+    it "raises NotImplementedError when the removed auto_retry accessor is used" do
+      expect { ActiveRecord::Base.lease_connection.auto_retry = true }.to raise_error(NotImplementedError, /connection_retries:/)
+      expect { ActiveRecord::Base.lease_connection.auto_retry }.to raise_error(NotImplementedError, /connection_retries:/)
     end
 
     # `lost_connection?` is the single source of truth for connection-loss
-    # detection, consumed by both the driver-level `with_retry` and the
-    # adapter-level `translate_exception` (→ `ConnectionFailed` →
-    # `with_raw_connection(allow_retry:)`). Pin every code/message in the
-    # contract so changes to either retry layer can rely on equivalent
-    # classification accuracy.
+    # detection, consumed by the adapter-level `translate_exception` (→
+    # `ConnectionFailed` → `with_raw_connection(allow_retry:)`). Pin every
+    # code/message in the contract so changes to the retry layer can rely
+    # on stable classification accuracy.
     describe "#lost_connection? coverage" do
       ActiveRecord::ConnectionAdapters::OracleEnhanced::LOST_CONNECTION_ERROR_CODES.each do |code|
         # ORA-00028 (session killed) and ORA-00031 (session marked for kill)
