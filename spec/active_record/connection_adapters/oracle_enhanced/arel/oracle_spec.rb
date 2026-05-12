@@ -66,6 +66,15 @@ RSpec.describe "Arel::Visitors::Oracle" do
         expect(compile(stmt)).to be_like %{ SELECT WHERE ROWNUM <= 10 }
       end
 
+      it "leaves collector.retryable true so the SELECT is retryable end-to-end" do
+        stmt = Arel::Nodes::SelectStatement.new
+        stmt.limit = Arel::Nodes::Limit.new(10)
+        collector = Arel::Collectors::SQLString.new
+        collector.retryable = true
+        @visitor.accept(stmt, collector)
+        expect(collector.retryable).to be(true)
+      end
+
       it "is idempotent" do
         stmt = Arel::Nodes::SelectStatement.new
         stmt.orders << Arel::Nodes::SqlLiteral.new("foo")
