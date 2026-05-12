@@ -45,14 +45,6 @@ module ActiveRecord
           end
         end
 
-        def auto_retry
-          @raw_connection.auto_retry if @raw_connection
-        end
-
-        def auto_retry=(value)
-          @raw_connection.auto_retry = value if @raw_connection
-        end
-
         def logoff
           @raw_connection.logoff
           @raw_connection.active = false
@@ -97,12 +89,8 @@ module ActiveRecord
           raise OracleEnhanced::ConnectionException, e.message
         end
 
-        def exec(sql, *bindvars, allow_retry: false, &block)
-          with_retry(allow_retry: allow_retry) { @raw_connection.exec(sql, *bindvars, &block) }
-        end
-
-        def with_retry(allow_retry: false, &block)
-          @raw_connection.with_retry(allow_retry: allow_retry, &block)
+        def exec(sql, *bindvars, &block)
+          @raw_connection.exec(sql, *bindvars, &block)
         end
 
         def prepare(sql)
@@ -114,28 +102,26 @@ module ActiveRecord
         # public synonyms are chased server-side, and Oracle raises ORA-00980
         # ("synonym translation is no longer valid") natively on a looping chain.
         def name_resolve(name)
-          with_retry do
-            # l_part2 / l_dblink / l_type / l_obj_num are required by NAME_RESOLVE's signature but unused here.
-            cursor = @raw_connection.parse(<<~PLSQL)
-              DECLARE
-                l_part2   VARCHAR2(128);
-                l_dblink  VARCHAR2(128);
-                l_type    NUMBER;
-                l_obj_num NUMBER;
-              BEGIN
-                DBMS_UTILITY.NAME_RESOLVE(:name, 0, :out_schema, :out_name,
-                                          l_part2, l_dblink, l_type, l_obj_num);
-              END;
-            PLSQL
-            begin
-              cursor.bind_param(":name", name)
-              cursor.bind_param(":out_schema", nil, String, 128)
-              cursor.bind_param(":out_name", nil, String, 128)
-              cursor.exec
-              [cursor[":out_schema"], cursor[":out_name"]]
-            ensure
-              cursor&.close
-            end
+          # l_part2 / l_dblink / l_type / l_obj_num are required by NAME_RESOLVE's signature but unused here.
+          cursor = @raw_connection.parse(<<~PLSQL)
+            DECLARE
+              l_part2   VARCHAR2(128);
+              l_dblink  VARCHAR2(128);
+              l_type    NUMBER;
+              l_obj_num NUMBER;
+            BEGIN
+              DBMS_UTILITY.NAME_RESOLVE(:name, 0, :out_schema, :out_name,
+                                        l_part2, l_dblink, l_type, l_obj_num);
+            END;
+          PLSQL
+          begin
+            cursor.bind_param(":name", name)
+            cursor.bind_param(":out_schema", nil, String, 128)
+            cursor.bind_param(":out_name", nil, String, 128)
+            cursor.exec
+            [cursor[":out_schema"], cursor[":out_name"]]
+          ensure
+            cursor&.close
           end
         end
 
@@ -225,7 +211,7 @@ module ActiveRecord
           end
         end
 
-        def select(sql, name = nil, return_column_names = false)
+        def select(sql, name = nil, return_column_names = false) # :nodoc:
           cursor = @raw_connection.exec(sql)
           cols = []
           # Ignore raw_rnum_ which is used to simulate LIMIT and OFFSET
@@ -405,23 +391,14 @@ module ActiveRecord
   end
 end
 
-# The OCI8AutoRecover class enhances the OCI8 driver with auto-recover and
-# reset functionality. If a call to #exec fails, and autocommit is turned on
-# (ie., we're not in the middle of a longer transaction), it will
-# automatically reconnect and try again. If autocommit is turned off,
-# this would be dangerous (as the earlier part of the implied transaction
-# may have failed silently if the connection died) -- so instead the
-# connection is marked as dead, to be reconnected on it's next use.
+# OCI8EnhancedAutoRecover wraps the bare OCI8 connection to track its
+# liveness (`@active` / `ping`) and to recreate it on `reset!`. AR core's
+# `with_raw_connection(allow_retry: true)` drives the reconnect-and-retry
+# loop on top of those primitives.
 # :stopdoc:
 class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
   attr_accessor :active # :nodoc:
   alias :active? :active # :nodoc:
-
-  cattr_accessor :auto_retry
-  class << self
-    alias :auto_retry? :auto_retry # :nodoc:
-  end
-  @@auto_retry = false
 
   def initialize(config, factory) # :nodoc:
     @active = true
@@ -458,26 +435,6 @@ class OCI8EnhancedAutoRecover < DelegateClass(OCI8) # :nodoc:
       @active = false
       raise
     end
-  end
-
-  # Adds auto-recovery functionality.
-  def with_retry(allow_retry: false) # :nodoc:
-    should_retry = (allow_retry || self.class.auto_retry?) && autocommit?
-
-    begin
-      yield
-    rescue OCIException => e
-      raise unless e.is_a?(OCIError) && ActiveRecord::ConnectionAdapters::OracleEnhanced::LOST_CONNECTION_ERROR_CODES.include?(e.code)
-      @active = false
-      raise unless should_retry
-      should_retry = false
-      reset! rescue nil
-      retry
-    end
-  end
-
-  def exec(sql, *bindvars, &block) # :nodoc:
-    with_retry { @raw_connection.exec(sql, *bindvars, &block) }
   end
 end
 # :startdoc:

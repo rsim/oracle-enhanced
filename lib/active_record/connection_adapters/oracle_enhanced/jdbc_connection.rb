@@ -57,10 +57,6 @@ module ActiveRecord
         attr_accessor :active
         alias :active? :active
 
-        attr_accessor :auto_retry
-        alias :auto_retry? :auto_retry
-        @auto_retry = false
-
         attr_reader :session_time_zone
 
         def initialize(config)
@@ -243,29 +239,12 @@ module ActiveRecord
           end
         end
 
-        # mark connection as dead if connection lost
-        def with_retry(allow_retry: false, &block)
-          should_retry = (allow_retry || auto_retry?) && autocommit?
-          begin
-            yield if block_given?
-          rescue Java::JavaSql::SQLException => e
-            raise unless lost_connection?(e)
-            @active = false
-            raise unless should_retry
-            should_retry = false
-            reset! rescue nil
-            retry
-          end
-        end
-
-        def exec(sql, *bindvars, allow_retry: false)
+        def exec(sql, *bindvars)
           # The signature mirrors the OCI implementation for polymorphic
           # callers, but the JDBC path here has no bindvar handling. Fail
           # loudly rather than silently dropping values on the floor.
           raise ArgumentError, "JDBC exec does not support bindvars" unless bindvars.empty?
-          with_retry(allow_retry: allow_retry) do
-            exec_no_retry(sql)
-          end
+          exec_no_retry(sql)
         end
 
         def exec_no_retry(sql)
@@ -330,22 +309,20 @@ module ActiveRecord
         # public synonyms are chased server-side, and Oracle raises ORA-00980
         # ("synonym translation is no longer valid") natively on a looping chain.
         def name_resolve(name)
-          with_retry do
-            # Parameters 4-7 are required by NAME_RESOLVE's signature but unused here.
-            cs = @raw_connection.prepareCall("BEGIN DBMS_UTILITY.NAME_RESOLVE(?, 0, ?, ?, ?, ?, ?, ?); END;")
-            begin
-              cs.setString(1, name)
-              cs.registerOutParameter(2, java.sql.Types::VARCHAR) # schema
-              cs.registerOutParameter(3, java.sql.Types::VARCHAR) # part1 (object name)
-              cs.registerOutParameter(4, java.sql.Types::VARCHAR) # part2
-              cs.registerOutParameter(5, java.sql.Types::VARCHAR) # dblink
-              cs.registerOutParameter(6, java.sql.Types::NUMERIC) # part1_type
-              cs.registerOutParameter(7, java.sql.Types::NUMERIC) # object_number
-              cs.execute
-              [cs.getString(2), cs.getString(3)]
-            ensure
-              cs&.close
-            end
+          # Parameters 4-7 are required by NAME_RESOLVE's signature but unused here.
+          cs = @raw_connection.prepareCall("BEGIN DBMS_UTILITY.NAME_RESOLVE(?, 0, ?, ?, ?, ?, ?, ?); END;")
+          begin
+            cs.setString(1, name)
+            cs.registerOutParameter(2, java.sql.Types::VARCHAR) # schema
+            cs.registerOutParameter(3, java.sql.Types::VARCHAR) # part1 (object name)
+            cs.registerOutParameter(4, java.sql.Types::VARCHAR) # part2
+            cs.registerOutParameter(5, java.sql.Types::VARCHAR) # dblink
+            cs.registerOutParameter(6, java.sql.Types::NUMERIC) # part1_type
+            cs.registerOutParameter(7, java.sql.Types::NUMERIC) # object_number
+            cs.execute
+            [cs.getString(2), cs.getString(3)]
+          ensure
+            cs&.close
           end
         end
 
@@ -488,9 +465,9 @@ module ActiveRecord
             @raw_statement.close
           rescue Java::JavaSql::SQLException => e
             # Tolerate closing a statement whose underlying connection or
-            # statement has already been torn down (typical after with_retry
-            # has reset the connection). Re-raise anything else so genuine
-            # driver/resource bugs surface.
+            # statement has already been torn down (typical after AR's
+            # with_raw_connection(allow_retry: true) reset the connection).
+            # Re-raise anything else so genuine driver/resource bugs surface.
             #
             #   ORA-17002 / ORA-17008 — connection already gone
             #     (see JDBC_LOST_CONNECTION_ERROR_CODES).
@@ -504,10 +481,8 @@ module ActiveRecord
           end
         end
 
-        def select(sql, name = nil, return_column_names = false)
-          with_retry do
-            select_no_retry(sql, name, return_column_names)
-          end
+        def select(sql, name = nil, return_column_names = false) # :nodoc:
+          select_no_retry(sql, name, return_column_names)
         end
 
         def select_no_retry(sql, name = nil, return_column_names = false)
