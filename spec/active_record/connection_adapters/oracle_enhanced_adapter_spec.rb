@@ -1185,6 +1185,30 @@ RSpec.describe "OracleEnhancedAdapter" do
       }.to raise_error(ActiveRecord::Deadlocked)
     end
 
+    it "Raises SerializationFailure when a serializable transaction cannot be serialized (ORA-08177)" do
+      post = TestPost.create!(title: "seed")
+      barrier = Concurrent::CyclicBarrier.new(2)
+
+      thread = Thread.new do
+        TestPost.transaction(isolation: :serializable) do
+          TestPost.find(post.id)
+          barrier.wait
+          barrier.wait
+          TestPost.find(post.id).update!(title: "second")
+        end
+      end
+
+      expect {
+        begin
+          barrier.wait
+          TestPost.transaction { post.update!(title: "first") }
+          barrier.wait
+        ensure
+          thread.join
+        end
+      }.to raise_error(ActiveRecord::SerializationFailure, /ORA-08177/)
+    end
+
     it "restarts the parent transaction on nested rollback without issuing a SAVEPOINT" do
       TestPost.transaction do
         TestPost.transaction(requires_new: true) do
