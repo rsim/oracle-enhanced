@@ -2108,6 +2108,15 @@ end
       end
       expect(@conn.check_constraints(:test_products).detect { |c| c.name == "ct_validate_bare" }.validate?).to be(true)
     end
+
+    it "raises ActiveRecord::CheckViolation when a check constraint is violated (ORA-02290)" do
+      schema_define do
+        add_check_constraint :test_products, "price > 0", name: "violation_check"
+      end
+      expect do
+        @conn.execute "INSERT INTO test_products (id, price) VALUES (1, -1)"
+      end.to raise_error(ActiveRecord::CheckViolation, /ORA-02290/)
+    end
   end
 
   describe "unique constraints" do
