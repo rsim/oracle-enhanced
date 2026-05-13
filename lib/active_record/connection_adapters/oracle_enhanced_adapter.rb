@@ -1442,6 +1442,8 @@ module ActiveRecord
             ActiveRecord::StatementInvalid.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 1400
             ActiveRecord::NotNullViolation.new(message, sql: sql, binds: binds, connection_pool: @pool)
+          when 2290
+            ActiveRecord::CheckViolation.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 2291, 2292
             InvalidForeignKey.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 12899
