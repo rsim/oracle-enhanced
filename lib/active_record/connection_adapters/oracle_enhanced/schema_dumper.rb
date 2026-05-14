@@ -27,7 +27,7 @@ module ActiveRecord # :nodoc:
             # add foreign keys if table has them
             sorted_tables.each do |tbl|
               next if ignored? tbl
-              foreign_keys(tbl, stream)
+              foreign_keys(tbl, stream) if @connection.use_foreign_keys?
               divergent_unique_constraints(tbl, stream)
             end
 

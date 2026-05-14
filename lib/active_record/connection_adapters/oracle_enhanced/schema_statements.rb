@@ -735,6 +735,7 @@ module ActiveRecord
         end
 
         def add_foreign_key(from_table, to_table, **options)
+          return unless use_foreign_keys?
           assert_valid_deferrable(options[:deferrable])
 
           super
