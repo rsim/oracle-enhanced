@@ -80,6 +80,37 @@ module ActiveRecord # :nodoc:
             end
           end
 
+          # Remove once Rails main's SchemaDumper#foreign_keys emits `enforced:`.
+          def foreign_keys(table, stream)
+            if (foreign_keys = @connection.foreign_keys(table)).any?
+              add_foreign_key_statements = foreign_keys.map do |foreign_key|
+                parts = [
+                  relation_name(remove_prefix_and_suffix(foreign_key.from_table)).inspect,
+                  relation_name(remove_prefix_and_suffix(foreign_key.to_table)).inspect,
+                ]
+
+                if foreign_key.column != @connection.foreign_key_column_for(foreign_key.to_table, "id")
+                  parts << "column: #{foreign_key.column.inspect}"
+                end
+
+                if foreign_key.custom_primary_key?
+                  parts << "primary_key: #{foreign_key.primary_key.inspect}"
+                end
+
+                parts << "name: #{foreign_key.name.inspect}" if foreign_key.export_name_on_schema_dump?
+                parts << "on_update: #{foreign_key.on_update.inspect}" if foreign_key.on_update
+                parts << "on_delete: #{foreign_key.on_delete.inspect}" if foreign_key.on_delete
+                parts << "deferrable: #{foreign_key.deferrable.inspect}" if foreign_key.deferrable
+                parts << "validate: #{foreign_key.validate?.inspect}" unless foreign_key.validate?
+                parts << "enforced: #{foreign_key.options[:enforced].inspect}" if foreign_key.options.key?(:enforced)
+
+                "  add_foreign_key #{parts.join(', ')}"
+              end
+
+              stream.puts add_foreign_key_statements.sort.join("\n")
+            end
+          end
+
           def indexes_in_create(table, stream)
             if (indexes = @connection.indexes(table)).any?
               indexes = reject_unique_constraint_indexes(table, indexes)
