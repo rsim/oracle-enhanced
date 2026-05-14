@@ -527,6 +527,10 @@ module ActiveRecord
         true
       end
 
+      def supports_enforced_foreign_keys?
+        true
+      end
+
       def supports_expression_index?
         true
       end

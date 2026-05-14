@@ -1950,6 +1950,120 @@ end
       expect(fk).not_to be_nil
       expect(fk.options.key?(:validate)).to be(false)
     end
+
+    it "creates DISABLE VALIDATE when enforced: false is given (validate defaults to true)" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options.key?(:validate)).to be(false)
+      expect do
+        TestComment.create(body: "test", test_post_id: 1)
+      end.to raise_error(/ORA-25128/)
+    end
+
+    it "creates DISABLE NOVALIDATE when both enforced: false and validate: false are given (closest to PG NOT ENFORCED)" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false, validate: false
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options[:validate]).to be(false)
+      expect do
+        TestComment.create(body: "test", test_post_id: 1)
+      end.not_to raise_error
+    end
+
+    it "leaves both :enforced and :validate absent when the foreign key is ENABLE VALIDATE" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options.key?(:enforced)).to be(false)
+      expect(fk.options.key?(:validate)).to be(false)
+    end
+
+    it "enables a DISABLEd foreign key via change_foreign_key" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false, validate: false
+        change_foreign_key :test_comments, :test_posts, enforced: true
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options.key?(:enforced)).to be(false)
+      expect(fk.options.key?(:validate)).to be(false)
+      expect do
+        TestComment.create(body: "test", test_post_id: 1)
+      end.to raise_error(/ORA-02291/)
+    end
+
+    it "disables an ENFORCED foreign key via change_foreign_key" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+        change_foreign_key :test_comments, :test_posts, enforced: false
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options[:validate]).to be(false)
+      expect do
+        TestComment.create(body: "test", test_post_id: 1)
+      end.not_to raise_error
+    end
+
+    it "raises ArgumentError when change_foreign_key is called without :enforced" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      expect do
+        ActiveRecord::Base.lease_connection.change_foreign_key :test_comments, :test_posts
+      end.to raise_error(ArgumentError, /change_foreign_key requires at least one option/)
+    end
+
+    it "toggles enforced via change_foreign_key identified by name:" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, name: "comments_posts_fk"
+        change_foreign_key :test_comments, name: "comments_posts_fk", enforced: false
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+    end
+
+    it "honors enforced: false on add_reference foreign_key option hash" do
+      schema_define do
+        drop_table :test_comments, if_exists: true
+        create_table :test_comments, force: true do |t|
+          t.string :body, limit: 4000
+        end
+        add_reference :test_comments, :test_post, foreign_key: { enforced: false, validate: false }
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options[:validate]).to be(false)
+    end
+
+    it "honors enforced: false on inline t.foreign_key inside create_table" do
+      schema_define do
+        drop_table :test_comments, if_exists: true
+        create_table :test_comments, force: true do |t|
+          t.string :body, limit: 4000
+          t.references :test_post
+          t.foreign_key :test_posts, enforced: false, validate: false
+        end
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options[:validate]).to be(false)
+    end
+
+    it "round-trips enforced: false combined with deferrable: :deferred" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false, validate: false, deferrable: :deferred
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options[:validate]).to be(false)
+      expect(fk.options[:deferrable]).to eq(:deferred)
+    end
   end
 
   describe "check constraints" do
