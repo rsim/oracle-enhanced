@@ -453,7 +453,7 @@ RSpec.describe "primary_key_trigger" do
     end
   end
 
-  describe "auto_populated? on the primary key column" do
+  describe "auto_populated_on_insert? on the primary key column" do
     it "reports true for a trigger-backed primary key" do
       schema_define do
         create_table :test_pk_triggers, primary_key_trigger: true do |t|
@@ -462,7 +462,7 @@ RSpec.describe "primary_key_trigger" do
       end
 
       pk_column = @conn.columns(:test_pk_triggers).find { |c| c.name == "id" }
-      expect(pk_column.auto_populated?).to be true
+      expect(pk_column.auto_populated_on_insert?).to be true
     end
 
     it "reports false for a plain sequence-backed primary key" do
@@ -473,7 +473,7 @@ RSpec.describe "primary_key_trigger" do
       end
 
       pk_column = @conn.columns(:test_pk_triggers).find { |c| c.name == "id" }
-      expect(pk_column.auto_populated?).to be false
+      expect(pk_column.auto_populated_on_insert?).to be false
     end
 
     it "reports false when only an unrelated BEFORE INSERT trigger exists" do
@@ -493,7 +493,7 @@ RSpec.describe "primary_key_trigger" do
       SQL
 
       pk_column = @conn.columns(:test_pk_triggers).find { |c| c.name == "id" }
-      expect(pk_column.auto_populated?).to be false
+      expect(pk_column.auto_populated_on_insert?).to be false
     end
 
     it "drives _returning_columns_for_insert for trigger-backed tables" do

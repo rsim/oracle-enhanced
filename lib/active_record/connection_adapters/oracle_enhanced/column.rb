@@ -32,7 +32,7 @@ module ActiveRecord
           @identity
         end
 
-        def auto_populated?
+        def auto_populated_on_insert?
           super || @trigger_assigned
         end
 

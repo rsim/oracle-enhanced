@@ -1304,7 +1304,7 @@ module ActiveRecord
           pk_col = primary_key_column_from_schema_cache(table_name)
           # Propagate false (cache says no-prefetch) and nil (caller must fall back) as-is.
           return pk_col unless pk_col.is_a?(OracleEnhanced::Column)
-          !(pk_col.auto_incremented_by_db? || pk_col.auto_populated?)
+          !(pk_col.auto_incremented_by_db? || pk_col.auto_populated_on_insert?)
         end
 
         def primary_key_column_from_schema_cache(table_name)

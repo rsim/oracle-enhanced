@@ -163,7 +163,7 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
       expect(restored.instance_variable_get(:@identity)).to eq(original.instance_variable_get(:@identity))
       expect(restored.instance_variable_get(:@trigger_assigned)).to eq(original.instance_variable_get(:@trigger_assigned))
       expect(restored.auto_incremented_by_db?).to eq(original.auto_incremented_by_db?)
-      expect(restored.auto_populated?).to eq(original.auto_populated?)
+      expect(restored.auto_populated_on_insert?).to eq(original.auto_populated_on_insert?)
     end
 
     it "leaves @identity and @trigger_assigned undefined when YAML predates these keys" do
@@ -213,10 +213,10 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
 
       it "carries trigger_assigned = true through the YAML round trip" do
         original = schema_cache.columns("test_schema_cache_legacy_posts").find { |c| c.name == "id" }
-        expect(original.auto_populated?).to be true
+        expect(original.auto_populated_on_insert?).to be true
 
         restored = YAML.safe_load(YAML.dump(original), permitted_classes: PERMITTED_YAML_CLASSES, aliases: true)
-        expect(restored.auto_populated?).to be true
+        expect(restored.auto_populated_on_insert?).to be true
         expect(restored.instance_variable_get(:@trigger_assigned)).to be true
       end
     end
