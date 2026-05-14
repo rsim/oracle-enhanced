@@ -1950,6 +1950,72 @@ end
       expect(fk).not_to be_nil
       expect(fk.options.key?(:validate)).to be(false)
     end
+
+    # `enforced:` and `validate:` are independent options mapping to Oracle's
+    # 4-state constraint model. See the matrix in
+    # OracleEnhanced::SchemaCreation#visit_ForeignKeyDefinition.
+
+    it "creates DISABLE VALIDATE when enforced: false is given (validate defaults to true)" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options.key?(:validate)).to be(false)
+      # DISABLE VALIDATE blocks DML on the table (ORA-25128). Users who want
+      # PostgreSQL-NOT-ENFORCED semantics must pass `validate: false` as well.
+      expect do
+        TestComment.create(body: "test", test_post_id: 1)
+      end.to raise_error(/ORA-25128/)
+    end
+
+    it "creates DISABLE NOVALIDATE when both enforced: false and validate: false are given (closest to PG NOT ENFORCED)" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false, validate: false
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options[:validate]).to be(false)
+      expect do
+        TestComment.create(body: "test", test_post_id: 1)
+      end.not_to raise_error
+    end
+
+    it "leaves both :enforced and :validate absent when the foreign key is ENABLE VALIDATE" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options.key?(:enforced)).to be(false)
+      expect(fk.options.key?(:validate)).to be(false)
+    end
+
+    it "enables a DISABLEd foreign key via change_foreign_key" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false, validate: false
+        change_foreign_key :test_comments, :test_posts, enforced: true
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options.key?(:enforced)).to be(false)
+      expect do
+        TestComment.create(body: "test", test_post_id: 1)
+      end.to raise_error(/ORA-02291/)
+    end
+
+    it "disables an ENFORCED foreign key via change_foreign_key" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+        change_foreign_key :test_comments, :test_posts, enforced: false
+      end
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk.options[:enforced]).to be(false)
+      # ALTER ... MODIFY CONSTRAINT name DISABLE drops the VALIDATED state too,
+      # so introspection reports validate: false alongside enforced: false.
+      expect(fk.options[:validate]).to be(false)
+      expect do
+        TestComment.create(body: "test", test_post_id: 1)
+      end.not_to raise_error
+    end
   end
 
   describe "check constraints" do

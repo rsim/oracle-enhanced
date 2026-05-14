@@ -85,10 +85,29 @@ module ActiveRecord
             end
           end
 
+          # `enforced:` and `validate:` map to Oracle's 4-state constraint model.
+          # Both defaults are `true`; the options are independent.
+          #
+          # | enforced | validate | Oracle state      | DML on the child table        |
+          # |----------|----------|-------------------|-------------------------------|
+          # | true     | true     | ENABLE VALIDATE   | enforced, existing data valid |
+          # | true     | false    | ENABLE NOVALIDATE | enforced for new DML only     |
+          # | false    | true     | DISABLE VALIDATE  | blocked (ORA-25128)           |
+          # | false    | false    | DISABLE NOVALIDATE| not enforced (~ PG NOT ENFORCED) |
+          #
+          # Oracle's bare `DISABLE` clause defaults to `NOVALIDATE`, so when
+          # `enforced: false` and `validate: true` (the Rails default), `VALIDATE`
+          # is emitted explicitly to preserve the user's intent.
           def visit_ForeignKeyDefinition(o)
             super.dup.tap do |sql|
               sql << " DEFERRABLE INITIALLY #{o.deferrable.to_s.upcase}" if o.deferrable
-              sql << " NOVALIDATE" unless o.validate?
+              enforced = o.options.fetch(:enforced, true)
+              sql << " DISABLE" unless enforced
+              if !o.validate?
+                sql << " NOVALIDATE"
+              elsif !enforced
+                sql << " VALIDATE"
+              end
             end
           end
 

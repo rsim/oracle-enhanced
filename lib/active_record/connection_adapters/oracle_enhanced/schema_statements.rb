@@ -753,6 +753,7 @@ module ActiveRecord
                   ,c.deferrable
                   ,c.deferred
                   ,c.validated
+                  ,c.status
               FROM all_constraints c, all_cons_columns cc,
                    all_constraints r, all_cons_columns rc
              WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -776,6 +777,7 @@ module ActiveRecord
             }
             options[:on_delete] = extract_foreign_key_action(row["delete_rule"])
             options[:deferrable] = extract_foreign_key_deferrable(row["deferrable"], row["deferred"])
+            options[:enforced] = false if row["status"] == "DISABLED"
             options[:validate] = false if row["validated"] == "NOT VALIDATED"
             ActiveRecord::ConnectionAdapters::ForeignKeyDefinition.new(oracle_downcase(table_name), oracle_downcase(row["to_table"]), options)
           end
@@ -819,6 +821,12 @@ module ActiveRecord
         def validate_foreign_key(from_table, to_table = nil, **options) # :nodoc:
           fk_name_to_validate = foreign_key_for!(from_table, to_table: to_table, **options).name
           validate_constraint(from_table, fk_name_to_validate)
+        end
+
+        def change_foreign_key(from_table, to_table = nil, **options) # :nodoc:
+          enforced = options[:enforced]
+          fk_name = foreign_key_for!(from_table, to_table: to_table, **options.except(:enforced)).name
+          execute "ALTER TABLE #{quote_table_name(from_table)} MODIFY CONSTRAINT #{quote_column_name(fk_name)} #{enforced ? 'ENABLE' : 'DISABLE'}"
         end
 
         # Returns an array of unique constraints for the given table.
