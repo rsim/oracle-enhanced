@@ -440,6 +440,84 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "with use_foreign_keys? returning false (foreign_keys: false in database.yml)" do
+    before(:each) do
+      schema_define do
+        drop_table :test_comments, if_exists: true
+        drop_table :test_posts, if_exists: true
+        create_table :test_posts, force: true do |t|
+          t.string :title
+        end
+        create_table :test_comments, force: true do |t|
+          t.string :body, limit: 4000
+          t.references :test_post
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        remove_foreign_key :test_comments, :test_posts, if_exists: true
+        drop_table :test_comments, if_exists: true
+        drop_table :test_posts, if_exists: true
+      end
+    end
+
+    it "schema dump omits add_foreign_key statements" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts
+      end
+      allow(@conn).to receive(:use_foreign_keys?).and_return(false)
+      expect(standard_dump).not_to match(/add_foreign_key/)
+    end
+
+    it "add_foreign_key is a silent no-op" do
+      allow(@conn).to receive(:use_foreign_keys?).and_return(false)
+      expect {
+        schema_define do
+          add_foreign_key :test_comments, :test_posts
+        end
+      }.not_to raise_error
+      expect(@conn.foreign_keys("test_comments")).to be_empty
+    end
+
+    it "add_foreign_key skips deferrable validation" do
+      allow(@conn).to receive(:use_foreign_keys?).and_return(false)
+      expect {
+        schema_define do
+          add_foreign_key :test_comments, :test_posts, deferrable: :always
+        end
+      }.not_to raise_error
+      expect(@conn.foreign_keys("test_comments")).to be_empty
+    end
+
+    it "create_table with inline t.references foreign_key: true does not create the FK" do
+      allow(@conn).to receive(:use_foreign_keys?).and_return(false)
+      schema_define do
+        drop_table :test_comments, if_exists: true
+        create_table :test_comments, force: true do |t|
+          t.string :body, limit: 4000
+          t.references :test_post, foreign_key: true
+        end
+      end
+      expect(@conn.foreign_keys("test_comments")).to be_empty
+    end
+
+    it "create_table inline t.references with an Oracle-invalid deferrable does not raise" do
+      allow(@conn).to receive(:use_foreign_keys?).and_return(false)
+      expect {
+        schema_define do
+          drop_table :test_comments, if_exists: true
+          create_table :test_comments, force: true do |t|
+            t.string :body, limit: 4000
+            t.references :test_post, foreign_key: { deferrable: :always }
+          end
+        end
+      }.not_to raise_error
+      expect(@conn.foreign_keys("test_comments")).to be_empty
+    end
+  end
+
   describe "synonyms" do
     after(:each) do
       schema_define do
