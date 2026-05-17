@@ -38,6 +38,7 @@ require "active_record/connection_adapters/statement_pool"
 require "active_record/connection_adapters/oracle_enhanced/deprecator"
 require "active_record/connection_adapters/oracle_enhanced/connection"
 require "active_record/connection_adapters/oracle_enhanced/database_statements"
+require "active_record/connection_adapters/oracle_enhanced/migration_compatibility"
 require "active_record/connection_adapters/oracle_enhanced/schema_creation"
 require "active_record/connection_adapters/oracle_enhanced/schema_definitions"
 require "active_record/connection_adapters/oracle_enhanced/schema_dumper"
@@ -617,6 +618,10 @@ module ActiveRecord
       # check; +:data_dictionary+ remains explicitly selectable on 12.1+.
       def use_dbms_metadata_dump? # :nodoc:
         database_version >= "12.1"
+      end
+
+      def migration_compatibility_module_for(migration_class) # :nodoc:
+        OracleEnhanced::MigrationCompatibility.module_for(migration_class)
       end
 
       def supports_json?
