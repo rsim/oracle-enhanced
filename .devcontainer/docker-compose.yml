@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ../..:/workspaces:cached
+      - ..:/workspaces/oracle-enhanced:cached
     command: sleep infinity
     network_mode: service:oracle
 
