@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ..:/workspaces/oracle-enhanced:cached
+      - ./tzdata:/opt/tzdata:ro
     command: sleep infinity
     network_mode: service:oracle
 

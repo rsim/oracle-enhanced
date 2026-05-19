@@ -15,7 +15,7 @@
       ]
     }
   },
-  "initializeCommand": "docker pull gvenzl/oracle-free:latest",
+  "initializeCommand": "bash .devcontainer/initializeCommand.sh",
   "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
   "remoteEnv": {
     "DATABASE_NAME": "FREEPDB1",

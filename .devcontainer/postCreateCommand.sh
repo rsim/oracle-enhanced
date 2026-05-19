@@ -5,6 +5,18 @@ set -e
 gem update --system
 bundle install
 
+# Match Instant Client TZ data to the Oracle server's to avoid ORA-01805.
+# The file is extracted from the gvenzl image into .devcontainer/tzdata/ by
+# initializeCommand.sh and bind-mounted read-only at /opt/tzdata.
+TZ_FILE=$(ls /opt/tzdata/timezlrg_*.dat 2>/dev/null | head -1)
+if [ -n "$TZ_FILE" ]; then
+  echo "Using $TZ_FILE for Instant Client TZ data."
+  export ORA_TZFILE="$TZ_FILE"
+  echo "export ORA_TZFILE=$TZ_FILE" | sudo tee /etc/profile.d/ora-tzfile.sh > /dev/null
+else
+  echo "Warning: no timezlrg_*.dat found under /opt/tzdata; skipping ORA_TZFILE setup." >&2
+fi
+
 echo "Waiting for Oracle to be ready..."
 oracle_ready=false
 for i in $(seq 1 30); do
