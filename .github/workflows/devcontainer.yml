@@ -25,5 +25,5 @@ jobs:
             uname -a
             lsb_release -a
             ruby --version
-            bundle exec rake spec
+            SPEC_OPTS="--format documentation" bundle exec rake spec
             bundle exec rubocop
