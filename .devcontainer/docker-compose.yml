@@ -6,6 +6,7 @@ services:
     volumes:
       - ..:/workspaces/oracle-enhanced:cached
       - ./tzdata:/opt/tzdata:ro
+      - ${GIT_COMMON_DIR}:${GIT_COMMON_DIR}:cached
     command: sleep infinity
     network_mode: service:oracle
 
