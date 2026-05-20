@@ -388,6 +388,57 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
       expect(fk.options[:validate]).to be(false)
     end
 
+    it "dumps enforced: false for DISABLEd foreign keys" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false
+      end
+      output = dump_table_schema "test_comments"
+      expect(output).to match(/add_foreign_key "test_comments", "test_posts".*enforced: false/)
+    end
+
+    it "round-trips enforced: false alone (DISABLE VALIDATE) through dump and load" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false
+      end
+
+      dumped = dump_table_schema "test_comments"
+      expect(dumped).to match(/add_foreign_key "test_comments", "test_posts".*enforced: false/)
+      expect(dumped).not_to match(/validate: /)
+
+      schema_define do
+        remove_foreign_key :test_comments, :test_posts, if_exists: true
+      end
+
+      body = dumped[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { instance_eval(body) }
+
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk).not_to be_nil
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options.key?(:validate)).to be(false)
+    end
+
+    it "round-trips enforced: false, validate: false (DISABLE NOVALIDATE) through dump and load" do
+      schema_define do
+        add_foreign_key :test_comments, :test_posts, enforced: false, validate: false
+      end
+
+      dumped = dump_table_schema "test_comments"
+      expect(dumped).to match(/add_foreign_key "test_comments", "test_posts".*validate: false.*enforced: false/)
+
+      schema_define do
+        remove_foreign_key :test_comments, :test_posts, if_exists: true
+      end
+
+      body = dumped[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { instance_eval(body) }
+
+      fk = ActiveRecord::Base.lease_connection.foreign_keys(:test_comments).first
+      expect(fk).not_to be_nil
+      expect(fk.options[:enforced]).to be(false)
+      expect(fk.options[:validate]).to be(false)
+    end
+
     it "should not include foreign keys on ignored table regexes in schema dump" do
       schema_define do
         add_foreign_key :test_comments, :test_posts
