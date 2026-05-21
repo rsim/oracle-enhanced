@@ -29,6 +29,34 @@ complete development environment with Oracle Database and all required
 dependencies pre-configured. It supports both x64 and ARM64 hosts, and
 is the recommended way to work on the adapter.
 
+### GitHub Codespaces
+
+You can also work on the adapter without installing Docker or VS Code by
+launching a [GitHub Codespace](https://github.com/features/codespaces),
+which uses the same devcontainer configuration:
+
+1. On the repository page on GitHub, click **Code → Codespaces → Create
+   codespace on master** (or on your fork's topic branch).
+2. Pick a machine type with **at least 4 cores and 8 GB RAM** — Oracle
+   Database Free will not run reliably on the 2-core / 4 GB default.
+   The Codespaces "Create" picker honours the `hostRequirements` declared
+   in `.devcontainer/devcontainer.json`, so 4-core / 8 GB is the default
+   suggestion.
+3. Wait for the Codespace to finish building. The same
+   `initializeCommand` and `postCreateCommand` scripts run as for local
+   Dev Containers: Oracle Free starts, the timezone file is synced to
+   the Instant Client, and `ci/setup_accounts.sh` provisions the
+   `oracle_enhanced` user and schema.
+4. Once setup completes, run the suite the same way as locally:
+
+   ```sh
+   bundle exec rspec
+   ```
+
+The first-time build takes several minutes (Oracle image pull + Instant
+Client download + `bundle install`). Subsequent starts of the same
+Codespace are much faster.
+
 ### Prerequisites
 
 - [Docker](https://www.docker.com/get-started) installed and running
