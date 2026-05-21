@@ -3,6 +3,11 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspaces/oracle-enhanced",
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  },
   "features": {
     "ghcr.io/rails/devcontainer/features/ruby:2": {
       "version": "4.0.4"
