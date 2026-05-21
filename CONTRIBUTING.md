@@ -57,6 +57,38 @@ The first-time build takes several minutes (Oracle image pull + Instant
 Client download + `bundle install`). Subsequent starts of the same
 Codespace are much faster.
 
+#### Stopping and restarting your Codespace
+
+Codespaces are billed for compute time while they are running, and for
+storage while they are stopped. Stop your Codespace when you take a
+break so you are not billed for an idle machine; your files, installed
+gems, and Oracle Database state are preserved across stop/start. See
+GitHub's documentation on [stopping and starting a codespace](https://docs.github.com/en/codespaces/developing-in-a-codespace/stopping-and-starting-a-codespace)
+for full details.
+
+Ways to stop a Codespace:
+
+- **From the GitHub web UI** — go to <https://github.com/codespaces>,
+  click the **⋯** menu next to the Codespace, and choose **Stop
+  codespace**.
+- **From the VS Code Command Palette** (browser or desktop, while
+  connected to the Codespace) — run **Codespaces: Stop Current
+  Codespace**.
+- **From the `gh` CLI** — `gh codespace stop` (interactive picker) or
+  `gh codespace stop -c <codespace-name>`. List your Codespaces with
+  `gh codespace list`.
+
+Codespaces also stop automatically after a period of inactivity (30
+minutes by default). You can change the timeout under
+[Codespaces settings](https://github.com/settings/codespaces).
+
+To resume work, open the Codespace again from
+<https://github.com/codespaces> or with `gh codespace code`; the
+environment, the Oracle Database container, and any uncommitted changes
+come back as you left them. When you no longer need the Codespace,
+delete it from the same UI or with `gh codespace delete` to stop being
+billed for storage.
+
 ### Prerequisites
 
 - [Docker](https://www.docker.com/get-started) installed and running
