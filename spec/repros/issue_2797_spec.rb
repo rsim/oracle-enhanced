@@ -80,39 +80,30 @@ RSpec.describe "Issue #2797: Solid Cache Arel::BindError on IN (...) query" do
       .gsub("1111, 2222", Array.new(key_count, "?").join(", "))
   end
 
-  it "documents that oracle-enhanced emits 'IN (1111,2222)' with no space" do
+  it "emits 'IN (1111, 2222)' with comma+space (parity with other adapters)" do
     sql = TestIssue2797Entry
       .where(key_hash: [1111, 2222])
       .select(:key, :value)
       .to_sql
 
-    # This is the root cause: Solid Cache's gsub looks for "1111, 2222"
-    # (comma + space), but oracle-enhanced emits no space.
-    expect(sql).to include("(1111,2222)")
-    expect(sql).not_to include("(1111, 2222)")
+    # Post-fix: oracle-enhanced joins IN values with ", " (comma+space)
+    # like every other AR adapter, so Solid Cache's literal-string gsub
+    # against "1111, 2222" matches.
+    expect(sql).to include("(1111, 2222)")
+    expect(sql).not_to include("(1111,2222)")
   end
 
-  it "raises Arel::BindError on the Solid Cache read_multi code path [BUG]" do
-    # This block mirrors SolidCache::Entry.read_multi:
-    #   query = Arel.sql(select_sql(keys_batch), *key_hashes_for(keys_batch))
-    #   connection.select_all(query, "...")
+  it "does not raise Arel::BindError on the Solid Cache read_multi path" do
     key_hashes = [1111]
     sql = solid_cache_select_sql(key_hashes.length)
 
-    # Sanity: the placeholder substitution was a no-op because of the
-    # no-space rendering above. So the SQL has 0 placeholders but the
-    # caller still passes 1 bind value -- the exact mismatch the issue
-    # reports.
-    expect(sql.scan("?").length).to eq(0)
+    # With the spacing fix, the gsub now succeeds and the template has
+    # exactly one '?' placeholder for the one bound value.
+    expect(sql.scan("?").length).to eq(key_hashes.length)
 
-    # The BindError raises eagerly inside `Arel.sql` on Rails 8.x+
-    # (BoundSqlLiteral validates the placeholder/bind count in its
-    # constructor). On older AR versions the same error surfaces at
-    # select_all time. Wrap both calls so the assertion holds across
-    # versions.
     expect {
       query = Arel.sql(sql, *key_hashes)
       ActiveRecord::Base.lease_connection.select_all(query, "Issue2797 Test Load")
-    }.to raise_error(Arel::BindError, /wrong number of bind variables \(1 for 0\)/)
+    }.not_to raise_error
   end
 end
