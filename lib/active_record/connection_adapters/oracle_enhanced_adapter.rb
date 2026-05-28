@@ -904,7 +904,7 @@ module ActiveRecord
 
         if primary_key && sequence_name
           new_start_value = select_value(<<~SQL.squish, "SCHEMA")
-            SELECT NVL(max(#{quote_column_name(primary_key)}),0) + 1 FROM #{quote_table_name(table_name)}
+            SELECT NVL(MAX(#{quote_column_name(primary_key)}),0) + 1 FROM #{quote_table_name(table_name)}
           SQL
 
           execute "DROP SEQUENCE #{quote_table_name(sequence_name)}"
@@ -1019,7 +1019,7 @@ module ActiveRecord
           SELECT us.sequence_name
           FROM all_sequences us
           WHERE us.sequence_owner = :owner
-          AND us.sequence_name = upper(:sequence_name)
+          AND us.sequence_name = UPPER(:sequence_name)
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
