@@ -1,0 +1,55 @@
+[sqlfluff]
+dialect = oracle
+
+# Enabled subset of sqlfluff's core rule set. The five core rules below
+# are intentionally OMITTED:
+#
+#   AL03  Column expression without alias. Flags simple column references
+#         (e.g. `i.parameters`) in a SELECT list that otherwise uses
+#         aliases. Adapter queries mix aliased calc columns with plain
+#         column passthroughs — forcing `AS` on every passthrough adds
+#         noise without value.
+#   CP02  Identifier capitalisation. Oracle SQL routinely mixes upper
+#         (dictionary view names like `TEST_POSTS`) and lower (Rails
+#         convention like `test_posts`) identifiers. No single policy
+#         fits the codebase. Tracked separately: see GitHub issue.
+#   JJ01  Jinja templating padding. We do not use Jinja in heredocs;
+#         rule is inert.
+#   LT05  Line too long. Most heredocs are `.squish`ed before execution,
+#         so the SQL sent to Oracle is one line regardless. The line
+#         length in the Ruby source is constrained by RuboCop instead.
+#   RF01  References from. Triggers false positives when an alias is
+#         used only inside a `#{...}` interpolation, which we replace
+#         with an opaque placeholder before linting.
+rules = AL04,AL06,AL08,AL09,AL10,AM01,AM02,AM06,CP04,CP05,CV03,CV04,CV05,LT06,LT07,LT08,LT10,LT11,LT12,ST03,ST08
+
+# Match the surrounding Ruby code style: this project indents with two
+# spaces, so SQL inside heredocs reads naturally when sqlfluff expects
+# the same unit. sqlfluff's default is four spaces.
+[sqlfluff:indentation]
+indent_unit = space
+tab_space_size = 2
+
+# Keywords: enforce upper case (`SELECT`, `FROM`, `WHERE`, `JOIN`...).
+# Oracle docs and dictionary views use upper case, and the explicit
+# policy avoids the "consistent" loophole that lets a fully lowercase
+# heredoc pass.
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+# Functions: enforce upper case (`UPPER`, `DECODE`, `NVL`, `MAX`).
+# Same reasoning as keywords. Note: CP03 uses the `extended_` variant
+# of the policy key — the plain `capitalisation_policy` is silently
+# ignored and the rule falls back to `consistent`.
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = upper
+
+# Boolean/NULL literals: enforce upper case (`NULL`, `TRUE`, `FALSE`).
+# Without an explicit policy CP04 falls back to `consistent`.
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = upper
+
+# Datatypes: enforce upper case (`NUMBER`, `VARCHAR2`, `DATE`...).
+# CP05, like CP03, requires the `extended_` policy key.
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = upper

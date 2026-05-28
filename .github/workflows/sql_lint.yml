@@ -1,0 +1,23 @@
+name: SQL Lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  sql-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install sqlfluff
+        run: pip install sqlfluff
+      - name: Run SQL lint
+        run: ruby script/sql_lint

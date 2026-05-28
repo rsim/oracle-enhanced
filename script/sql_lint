@@ -1,0 +1,398 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# script/sql_lint -- lint SQL inside <<~SQL heredocs with sqlfluff.
+#
+# Extracts each <<~SQL heredoc body via Prism, replaces Ruby
+# interpolations with opaque placeholders, runs sqlfluff (Oracle
+# dialect) on a temp file, and reports violations mapped back to the
+# original Ruby source lines.
+#
+# Disabling rules per heredoc:
+#   The disable marker must appear on the SAME line as the heredoc
+#   opener (the line containing `<<~SQL`) as a trailing comment.
+#   Markers on preceding or following lines are NOT recognized.
+#
+#   # sql_lint:disable           -- skip all rules for this heredoc
+#   # sql_lint:disable=LT02      -- skip only LT02 for this heredoc
+#   # sql_lint:disable=AL05,LT02 -- skip multiple rules (no spaces)
+#
+# The marker is validated strictly. The run aborts (exit 2) when the
+# rule list is empty (e.g. `=` with nothing after it), contains
+# whitespace (e.g. `=LT02, AL05`), or uses a malformed code. Rule codes
+# are case-insensitive (normalized to upper before matching).
+#
+# A disable that names a rule not in the `.sqlfluff` `rules = ...` line
+# produces a stderr warning but does not abort — typos surface alongside
+# the still-firing violation, and intentionally disabling a rule we did
+# not enable (e.g. `=CP02`) stays a harmless no-op.
+#
+# Fixing violations:
+#   Most violations include an inline `[fix: ...]` hint showing the
+#   exact replacement text sqlfluff suggests. Apply it to the heredoc
+#   manually.
+#
+#   For multi-edit fixes (typical for LT02 indentation), run
+#     ruby script/sql_lint --fix-preview
+#   to see a unified diff of what sqlfluff would change per heredoc.
+#   The diff cannot be applied automatically because the wrapper
+#   replaces `#{...}` with placeholders before linting — copy the
+#   suggested SQL into the heredoc by hand.
+#
+# Exit codes:
+#   0  no violations
+#   1  lint violations found
+#   2  wrapper or sqlfluff invocation failed (crash, not findings)
+
+require "json"
+require "prism"
+require "shellwords"
+require "tempfile"
+
+SQLFLUFF_CMD = ENV.fetch("SQLFLUFF_CMD", "sqlfluff")
+PROJECT_ROOT = File.expand_path("..", __dir__)
+SQLFLUFF_CONFIG = File.join(PROJECT_ROOT, ".sqlfluff")
+
+# Sqlfluff rule codes that indicate the wrapper handed in something
+# sqlfluff could not parse (interpolation placeholders, Oracle-specific
+# DDL, or templating false positives). They are not actionable lint
+# findings against the Ruby source, so we report them only under
+# --verbose.
+PARSE_ERROR_CODES = %w[PRS LXR TMP].freeze
+
+PLSQL_PATTERN = %r{
+  \bCREATE\s+(?:OR\s+REPLACE\s+)?(?:PROCEDURE|FUNCTION|PACKAGE)\b |
+  \bDECLARE\b.*\bBEGIN\b |
+  \bBEGIN\b.*\bEND\s*;
+}mix
+
+# Match `# sql_lint:disable[=...]` only when it forms a trailing comment
+# on the opener line (optionally followed by ` -- reason`). The marker
+# must reach end-of-line (with optional trailing whitespace), so embedded
+# occurrences inside string literals do not trigger. The `=` form
+# captures non-space chars only — spaces in the rule list are caught at
+# validation time below rather than letting the regex match too eagerly.
+DISABLE_MARKER = /\#\s*sql_lint:disable(=\S*)?(?:\s+--.*)?\s*\Z/
+
+# Strict rule-list format after `=`: non-empty CSV of alphanumeric rule
+# codes with no spaces.
+RULE_LIST = /\A[A-Za-z][A-Za-z0-9]*(?:,[A-Za-z][A-Za-z0-9]*)*\z/
+
+# Exit 2 for wrapper/sqlfluff failures so CI can distinguish them from
+# exit 1 (lint findings).
+def crash(message)
+  warn message
+  exit 2
+end
+
+def load_enabled_rules
+  return Set.new unless File.exist?(SQLFLUFF_CONFIG)
+  in_sqlfluff_section = false
+  File.foreach(SQLFLUFF_CONFIG) do |line|
+    stripped = line.strip
+    if stripped.start_with?("[") && stripped.end_with?("]")
+      in_sqlfluff_section = (stripped == "[sqlfluff]")
+      next
+    end
+    next unless in_sqlfluff_section
+    match = stripped.match(/\Arules\s*=\s*(.+)\z/)
+    next unless match
+    # Strip trailing `# ...` or `; ...` comment so a future
+    # `rules = AL02,AL04 # default set` does not poison the parser.
+    value = match[1].split(/[#;]/, 2).first.to_s.strip
+    return value.split(",").map { |s| s.strip.upcase }.reject(&:empty?).to_set
+  end
+  Set.new
+end
+
+ENABLED_RULES = load_enabled_rules.freeze
+
+def find_ruby_files
+  %w[lib spec].flat_map do |dir|
+    Dir.glob(File.join(PROJECT_ROOT, dir, "**", "*.rb")).sort
+  end
+end
+
+def extract_sql_heredocs(file_path)
+  source = File.read(file_path)
+  source_lines = source.lines
+  result = Prism.parse(source)
+  heredocs = []
+  walk_ast(result.value, source_lines, heredocs)
+  heredocs
+end
+
+def walk_ast(node, source_lines, heredocs)
+  return unless node.is_a?(Prism::Node)
+
+  if (node.is_a?(Prism::InterpolatedStringNode) || node.is_a?(Prism::StringNode)) && sql_heredoc?(node)
+    sql, start_line = if node.is_a?(Prism::InterpolatedStringNode)
+      reconstruct_sql(node)
+    else
+      [node.unescaped, node.content_loc.start_line]
+    end
+    if sql && start_line
+      opening_line = source_lines[node.opening_loc.start_line - 1]
+      heredocs << { sql: sql, start_line: start_line, opening_line: opening_line }
+    end
+  end
+
+  node.child_nodes.compact.each { |child| walk_ast(child, source_lines, heredocs) }
+end
+
+# Returns :all, a Set of rule codes, or nil. Aborts on malformed markers.
+# Called from the main loop AFTER the PL/SQL skip check so that a
+# malformed marker on a PL/SQL heredoc — which the wrapper would not
+# lint anyway — does not crash the entire run.
+def parse_disable(opening_line)
+  match = opening_line.match(DISABLE_MARKER)
+  if match.nil?
+    # The marker is present in the line but didn't parse as a valid
+    # trailing comment — surface a warning rather than silently ignoring
+    # it. Common cause: spaces in the rule list (e.g. `=LT02, AL05`).
+    if opening_line.match?(/\#\s*sql_lint:disable/)
+      warn "Note: 'sql_lint:disable' on opener did not parse as a valid marker " \
+           "(format: `# sql_lint:disable[=RULE,...] [-- reason]`, no spaces in rule list)\n" \
+           "  Line: #{opening_line.strip}"
+    end
+    return nil
+  end
+  return :all if match[1].nil?
+
+  # match[1] is `=` followed by zero or more non-space chars. Strip the
+  # leading `=` and any trailing whitespace the regex tolerated.
+  spec = match[1][1..].rstrip
+
+  unless spec.match?(RULE_LIST)
+    crash "Invalid sql_lint:disable form #{("=" + spec).inspect}: " \
+          "expected non-empty comma-separated codes like =LT02,AL05 (no spaces) " \
+          "(line: #{opening_line.strip})"
+  end
+
+  rules = spec.upcase.split(",").to_set
+
+  # Warn (not crash) when a disabled rule isn't in our enabled list.
+  # Typos (e.g. =LT2 for LT02) surface as a warning *and* the original
+  # violation still fires, making the mistake obvious. Deliberately
+  # disabling a rule we did not enable (e.g. =CP02) is a harmless no-op
+  # so should not break the run. Skip the check entirely when
+  # ENABLED_RULES is empty (e.g. running without .sqlfluff) — otherwise
+  # every existing marker would fail.
+  unless ENABLED_RULES.empty?
+    unknown = rules - ENABLED_RULES
+    unless unknown.empty?
+      warn "Note: sql_lint:disable references rule(s) not enabled in .sqlfluff: " \
+           "#{unknown.to_a.sort.inspect} (no-op)\n" \
+           "  Line: #{opening_line.strip}"
+    end
+  end
+
+  rules
+end
+
+def sql_heredoc?(node)
+  return false unless node.respond_to?(:opening_loc) && node.opening_loc
+  node.opening_loc.slice.match?(/<<~SQL\b/)
+end
+
+def reconstruct_sql(node)
+  sql = +""
+  start_line = nil
+  placeholder_id = 0
+
+  node.parts.each do |part|
+    case part
+    when Prism::StringNode
+      start_line ||= part.content_loc.start_line
+      sql << part.unescaped
+    when Prism::EmbeddedStatementsNode, Prism::EmbeddedVariableNode
+      sql << "placeholder_#{placeholder_id}"
+      placeholder_id += 1
+    end
+  end
+
+  [sql, start_line]
+end
+
+def plsql?(sql)
+  PLSQL_PATTERN.match?(sql)
+end
+
+def check_sqlfluff_available!
+  return if system("#{SQLFLUFF_CMD.shellescape} --version > /dev/null 2>&1")
+  crash "sqlfluff command not found: #{SQLFLUFF_CMD} (set SQLFLUFF_CMD or install sqlfluff)"
+end
+
+def run_sqlfluff(sql)
+  Tempfile.create(["sql_lint", ".sql"]) do |f|
+    f.write(sql)
+    f.flush
+
+    cmd = [SQLFLUFF_CMD, "lint", "--format", "json"]
+    cmd += ["--config", SQLFLUFF_CONFIG] if File.exist?(SQLFLUFF_CONFIG)
+    cmd << f.path
+
+    output = `#{cmd.shelljoin} 2>/dev/null`
+    status = $?.exitstatus
+
+    # sqlfluff exit codes: 0 = clean, 1 = lint violations, others = errors.
+    # We treat 0/1 as success. Anything else (including nil from signals,
+    # 127 from missing binary that slipped past check_sqlfluff_available!,
+    # 2 from internal sqlfluff errors) is a hard failure.
+    if status.nil? || status > 1
+      crash "sqlfluff invocation failed (exit #{status.inspect}): #{cmd.shelljoin}"
+    end
+
+    return [] if output.strip.empty?
+
+    results = begin
+      JSON.parse(output)
+    rescue JSON::ParserError => e
+      crash "sqlfluff returned invalid JSON (#{e.message}): #{output[0, 200]}"
+    end
+
+    return [] if results.empty?
+    results[0].fetch("violations", [])
+  end
+end
+
+# Returns the SQL after `sqlfluff fix` has applied every fixable rule,
+# or the original SQL if sqlfluff did not change anything. Used by
+# --fix-preview.
+def fix_sql(sql)
+  Tempfile.create(["sql_lint_fix", ".sql"]) do |f|
+    f.write(sql)
+    f.flush
+
+    cmd = [SQLFLUFF_CMD, "fix"]
+    cmd += ["--config", SQLFLUFF_CONFIG] if File.exist?(SQLFLUFF_CONFIG)
+    cmd << f.path
+
+    `#{cmd.shelljoin} > /dev/null 2>&1`
+    File.read(f.path)
+  end
+end
+
+# Single-line summary of the first fix attached to a violation, for
+# inline display alongside the rule message. LT02 (indentation) tends
+# to carry multi-edit fixes — we print "(multi-edit)" rather than try
+# to summarise them line-by-line; users wanting the full picture run
+# --fix-preview.
+def fix_hint(violation)
+  fixes = violation["fixes"]
+  return nil if fixes.nil? || fixes.empty?
+  return "[fix: multi-edit]" if fixes.size > 1
+
+  fix = fixes.first
+  edit = fix["edit"].to_s
+  edit = edit.length > 40 ? "#{edit[0, 40]}…" : edit
+  edit_repr = edit.inspect # quoted, escapes whitespace
+
+  case fix["type"]
+  when "replace"    then "[fix: replace with #{edit_repr}]"
+  when "create_before", "create_after" then "[fix: insert #{edit_repr}]"
+  when "delete"     then "[fix: delete]"
+  else "[fix: #{fix["type"]}]"
+  end
+end
+
+def unified_diff(before, after, label)
+  Tempfile.create(["before"]) do |a|
+    Tempfile.create(["after"]) do |b|
+      a.write(before); a.flush
+      b.write(after);  b.flush
+      before_label = "#{label} (before)".shellescape
+      after_label = "#{label} (fixed)".shellescape
+      `diff -u --label #{before_label} --label #{after_label} #{a.path.shellescape} #{b.path.shellescape}`
+    end
+  end
+end
+
+verbose = ARGV.include?("--verbose")
+fix_preview = ARGV.include?("--fix-preview")
+
+check_sqlfluff_available!
+
+total_violations = 0
+total_parse_warnings = 0
+total_files = 0
+total_heredocs = 0
+skipped_plsql = 0
+skipped_disabled = 0
+
+files = find_ruby_files
+
+files.each do |file_path|
+  heredocs = extract_sql_heredocs(file_path)
+  next if heredocs.empty?
+
+  total_files += 1
+
+  heredocs.each do |heredoc|
+    total_heredocs += 1
+
+    if plsql?(heredoc[:sql])
+      skipped_plsql += 1
+      next
+    end
+
+    disabled = parse_disable(heredoc[:opening_line])
+    if disabled == :all
+      skipped_disabled += 1
+      next
+    end
+    disabled ||= Set.new
+
+    violations = run_sqlfluff(heredoc[:sql])
+    next if violations.empty?
+
+    rel_path = file_path.delete_prefix("#{PROJECT_ROOT}/")
+    heredoc_had_violation = false
+
+    violations.each do |v|
+      source_line = heredoc[:start_line] + v["start_line_no"] - 1
+      col = v["start_line_pos"]
+      code = v["code"]
+      desc = v["description"]
+
+      if PARSE_ERROR_CODES.include?(code)
+        total_parse_warnings += 1
+        if verbose
+          warn "#{rel_path}:#{source_line}:#{col}: #{code} #{desc} (parse warning, ignored)"
+        end
+        next
+      end
+
+      next if disabled.include?(code)
+
+      total_violations += 1
+      heredoc_had_violation = true
+      hint = fix_hint(v)
+      line = "#{rel_path}:#{source_line}:#{col}: #{code} #{desc}"
+      line += " #{hint}" if hint
+      puts line
+    end
+
+    if fix_preview && heredoc_had_violation
+      fixed = fix_sql(heredoc[:sql])
+      if fixed && fixed != heredoc[:sql]
+        diff = unified_diff(heredoc[:sql], fixed, "#{rel_path}:#{heredoc[:start_line]}")
+        puts diff unless diff.empty?
+      end
+    end
+  end
+end
+
+puts
+summary = "#{total_files} files, #{total_heredocs} SQL heredocs (#{skipped_plsql} PL/SQL skipped"
+summary += ", #{skipped_disabled} disabled" if skipped_disabled > 0
+summary += "), #{total_violations} violation(s)"
+summary += ", #{total_parse_warnings} parse warning(s)" if total_parse_warnings > 0
+puts summary
+
+if total_violations > 0 && !fix_preview
+  puts
+  puts "Rerun with --fix-preview to see sqlfluff's suggested fix for each heredoc as a unified diff."
+end
+
+exit(total_violations > 0 ? 1 : 0)
