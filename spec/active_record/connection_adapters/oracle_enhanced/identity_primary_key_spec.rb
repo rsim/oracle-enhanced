@@ -28,8 +28,9 @@ RSpec.describe "identity primary keys" do
     return false unless @conn.supports_identity_columns?
     @conn.select_value(<<~SQL.squish, "SCHEMA").present?
       SELECT 1 FROM user_tab_identity_cols
-       WHERE table_name = '#{table_name.to_s.upcase}'
-         AND column_name = '#{column_name.to_s.upcase}'
+      WHERE
+        table_name = '#{table_name.to_s.upcase}'
+        AND column_name = '#{column_name.to_s.upcase}'
     SQL
   end
 

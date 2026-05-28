@@ -255,9 +255,10 @@ module ActiveRecord # :nodoc:
             column_name = column.name
             @connection.select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase), bind_string("column_name", column_name.upcase)]).inspect
               SELECT data_default FROM all_tab_columns
-              WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-              AND table_name = :table_name
-              AND column_name = :column_name
+              WHERE
+                owner = SYS_CONTEXT('userenv', 'current_schema')
+                AND table_name = :table_name
+                AND column_name = :column_name
             SQL
           end
 

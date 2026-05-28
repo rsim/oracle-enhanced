@@ -25,7 +25,7 @@ RSpec.describe "OracleEnhancedAdapter integer type detection based on attribute 
     conn.execute "DROP SEQUENCE test2_employees_seq" rescue nil
     conn.execute <<~SQL
       CREATE SEQUENCE test2_employees_seq MINVALUE 1
-        INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
+      INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
 

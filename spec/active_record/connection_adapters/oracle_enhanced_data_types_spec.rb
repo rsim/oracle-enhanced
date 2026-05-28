@@ -24,7 +24,7 @@ RSpec.describe "OracleEnhancedAdapter date and datetime type detection based on 
     SQL
     @conn.execute <<~SQL
       CREATE SEQUENCE test_employees_seq MINVALUE 1
-        INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
+      INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
 

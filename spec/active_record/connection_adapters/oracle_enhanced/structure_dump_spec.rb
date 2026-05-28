@@ -223,7 +223,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     it "should dump unique keys" do
       @conn.execute <<~SQL
         ALTER TABLE test_posts
-          ADD CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
+        ADD CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
       dump = ActiveRecord::Base.lease_connection.structure_dump_unique_keys("test_posts")
       expect(dump).to eq([%(ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "UK_FOO_FOO_ID" UNIQUE ("FOO","FOO_ID"))])
@@ -240,7 +240,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
 
       @conn.execute <<~SQL
         ALTER TABLE test_posts
-          ADD CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
+        ADD CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
 
       dump = ActiveRecord::Base.lease_connection.structure_dump

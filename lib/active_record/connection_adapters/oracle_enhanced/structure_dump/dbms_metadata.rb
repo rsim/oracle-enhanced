@@ -108,19 +108,23 @@ module ActiveRecord # :nodoc:
               # MV / MV log surface as TABLE in all_objects.
               mview_filter = if non_mview_only
                 <<~SQL.squish
-                  AND NOT EXISTS (SELECT 1 FROM all_mviews mv
-                                  WHERE mv.owner = o.owner AND mv.mview_name = o.object_name)
-                  AND NOT EXISTS (SELECT 1 FROM all_mview_logs mvl
-                                  WHERE mvl.log_owner = o.owner AND mvl.log_table = o.object_name)
+                  AND NOT EXISTS (
+                    SELECT 1 FROM all_mviews mv
+                    WHERE mv.owner = o.owner AND mv.mview_name = o.object_name)
+                  AND NOT EXISTS (
+                    SELECT 1 FROM all_mview_logs mvl
+                    WHERE mvl.log_owner = o.owner AND mvl.log_table = o.object_name)
                 SQL
               else
                 ""
               end
-              select_values(<<~SQL.squish, "SCHEMA", binds)
-                SELECT object_name FROM all_objects o
-                WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-                AND object_type = :object_type
-                AND object_name NOT LIKE 'BIN$%'
+              select_values(<<~SQL.squish, "SCHEMA", binds) # sql_lint:disable=AL05 -- alias o used by mview_filter interpolation
+                SELECT object_name
+                FROM all_objects o
+                WHERE
+                  owner = SYS_CONTEXT('userenv', 'current_schema')
+                  AND object_type = :object_type
+                  AND object_name NOT LIKE 'BIN$%'
                 #{mview_filter}
                 ORDER BY object_name
               SQL
@@ -130,9 +134,10 @@ module ActiveRecord # :nodoc:
             def constraint_backed_index_names
               select_values(<<~SQL.squish, "SCHEMA").map(&:upcase).to_set
                 SELECT index_name FROM all_constraints
-                WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-                AND constraint_type IN ('P', 'U')
-                AND index_name IS NOT NULL
+                WHERE
+                  owner = SYS_CONTEXT('userenv', 'current_schema')
+                  AND constraint_type IN ('P', 'U')
+                  AND index_name IS NOT NULL
               SQL
             end
 
@@ -146,8 +151,9 @@ module ActiveRecord # :nodoc:
               return Set.new unless supports_disabling_indexes?
               select_values(<<~SQL.squish, "SCHEMA").map(&:upcase).to_set
                 SELECT index_name FROM all_indexes
-                WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-                AND visibility = 'INVISIBLE'
+                WHERE
+                  owner = SYS_CONTEXT('userenv', 'current_schema')
+                  AND visibility = 'INVISIBLE'
               SQL
             end
 
@@ -167,8 +173,10 @@ module ActiveRecord # :nodoc:
               comments = []
               columns = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
                 SELECT column_name FROM all_tab_columns
-                WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-                AND table_name = :table_name ORDER BY column_id
+                WHERE
+                  owner = SYS_CONTEXT('userenv', 'current_schema')
+                  AND table_name = :table_name
+                ORDER BY column_id
               SQL
               columns.each do |column|
                 comment = column_comment(table_name, column)

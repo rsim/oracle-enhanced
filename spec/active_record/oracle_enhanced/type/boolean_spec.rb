@@ -27,7 +27,7 @@ RSpec.describe "OracleEnhancedAdapter boolean type detection based on string col
     SQL
     @conn.execute <<~SQL
       CREATE SEQUENCE test3_employees_seq MINVALUE 1
-        INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
+      INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end
 

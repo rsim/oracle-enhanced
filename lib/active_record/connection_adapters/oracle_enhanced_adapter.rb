@@ -827,13 +827,16 @@ module ActiveRecord
           SELECT 1
           FROM all_tab_identity_cols itc
           JOIN all_cons_columns cc
-            ON cc.owner = itc.owner
-           AND cc.table_name = itc.table_name
-           AND cc.column_name = itc.column_name
+            ON
+              cc.owner = itc.owner
+              AND cc.table_name = itc.table_name
+              AND cc.column_name = itc.column_name
           JOIN all_constraints c
-            ON c.owner = cc.owner
-           AND c.constraint_name = cc.constraint_name
-          WHERE itc.owner = :owner
+            ON
+              c.owner = cc.owner
+              AND c.constraint_name = cc.constraint_name
+          WHERE
+            itc.owner = :owner
             AND itc.table_name = :table_name
             AND c.constraint_type = 'P'
         SQL
@@ -849,16 +852,19 @@ module ActiveRecord
         select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)]).any?
           SELECT 1
           FROM all_triggers t
-          WHERE t.owner = :owner
+          WHERE
+            t.owner = :owner
             AND t.table_name = :table_name
             AND t.trigger_type = 'BEFORE EACH ROW'
             AND t.triggering_event = 'INSERT'
             AND EXISTS (
-              SELECT 1 FROM all_source s
-               WHERE s.owner = t.owner
-                 AND s.name = t.trigger_name
-                 AND s.type = 'TRIGGER'
-                 AND UPPER(s.text) LIKE '%NEXTVAL INTO :NEW%'
+              SELECT 1
+              FROM all_source s
+              WHERE
+                s.owner = t.owner
+                AND s.name = t.trigger_name
+                AND s.type = 'TRIGGER'
+                AND UPPER(s.text) LIKE '%NEXTVAL INTO :NEW%'
             )
         SQL
       end
@@ -867,15 +873,18 @@ module ActiveRecord
         rows = select_all(<<~SQL.squish, "SCHEMA")
           SELECT t.table_name, t.trigger_name
           FROM all_triggers t
-          WHERE t.owner = SYS_CONTEXT('userenv', 'current_schema')
+          WHERE
+            t.owner = SYS_CONTEXT('userenv', 'current_schema')
             AND t.trigger_type = 'BEFORE EACH ROW'
             AND t.triggering_event = 'INSERT'
             AND EXISTS (
-              SELECT 1 FROM all_source s
-               WHERE s.owner = t.owner
-                 AND s.name = t.trigger_name
-                 AND s.type = 'TRIGGER'
-                 AND UPPER(s.text) LIKE '%NEXTVAL INTO :NEW%'
+              SELECT 1
+              FROM all_source s
+              WHERE
+                s.owner = t.owner
+                AND s.name = t.trigger_name
+                AND s.type = 'TRIGGER'
+                AND UPPER(s.text) LIKE '%NEXTVAL INTO :NEW%'
             )
         SQL
         rows.each_with_object({}) do |row, hash|
@@ -957,27 +966,33 @@ module ActiveRecord
         #   https://docs.oracle.com/en/database/oracle/oracle-database/23/refrn/ALL_TAB_IDENTITY_COLS.html
         identity_column_expr = supports_identity_columns? ? "cols.identity_column" : "'NO' AS identity_column"
 
-        select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
-          SELECT cols.column_name AS name, cols.data_type AS sql_type,
-                 cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
-                 #{identity_column_expr},
-                 cols.data_type_owner AS sql_type_owner,
-                 DECODE(cols.data_type, 'NUMBER', data_precision,
-                                   'FLOAT', data_precision,
-                                   'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
-                                   'RAW', DECODE(char_used, 'C', char_length, data_length),
-                                   'CHAR', DECODE(char_used, 'C', char_length, data_length),
-                                    NULL) AS limit,
-                 DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
-                 comments.comments as column_comment
-            FROM all_tab_cols cols, all_col_comments comments
-           WHERE cols.owner      = :owner
-             AND cols.table_name = :table_name
-             AND cols.hidden_column = 'NO'
-             AND cols.owner = comments.owner
-             AND cols.table_name = comments.table_name
-             AND cols.column_name = comments.column_name
-           ORDER BY cols.column_id
+        select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)]) # sql_lint:disable=LT02 -- sqlfluff parses 'limit' as reserved word
+          SELECT
+            cols.column_name AS name, cols.data_type AS sql_type,
+            cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
+            #{identity_column_expr},
+            cols.data_type_owner AS sql_type_owner,
+            DECODE(
+              cols.data_type, 'NUMBER', data_precision,
+              'FLOAT', data_precision,
+              'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
+              'RAW', DECODE(char_used, 'C', char_length, data_length),
+              'CHAR', DECODE(char_used, 'C', char_length, data_length),
+              NULL
+            ) AS limit,
+            DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
+            comments.comments as column_comment
+          FROM
+            all_tab_cols cols,
+            all_col_comments comments
+          WHERE
+            cols.owner      = :owner
+            AND cols.table_name = :table_name
+            AND cols.hidden_column = 'NO'
+            AND cols.owner = comments.owner
+            AND cols.table_name = comments.table_name
+            AND cols.column_name = comments.column_name
+          ORDER BY cols.column_id
         SQL
       end
 
@@ -1018,19 +1033,23 @@ module ActiveRecord
         seqs = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name, nil))])
           SELECT us.sequence_name
           FROM all_sequences us
-          WHERE us.sequence_owner = :owner
-          AND us.sequence_name = UPPER(:sequence_name)
+          WHERE
+            us.sequence_owner = :owner
+            AND us.sequence_name = UPPER(:sequence_name)
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
         pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
-            FROM all_constraints c, all_cons_columns cc
-           WHERE c.owner = :owner
-             AND c.table_name = :table_name
-             AND c.constraint_type = 'P'
-             AND cc.owner = c.owner
-             AND cc.constraint_name = c.constraint_name
+          FROM
+            all_constraints c,
+            all_cons_columns cc
+          WHERE
+            c.owner = :owner
+            AND c.table_name = :table_name
+            AND c.constraint_type = 'P'
+            AND cc.owner = c.owner
+            AND cc.constraint_name = c.constraint_name
         SQL
 
         case pks.size
@@ -1044,13 +1063,16 @@ module ActiveRecord
 
         pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
           SELECT cc.column_name
-            FROM all_constraints c, all_cons_columns cc
-           WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
-             AND c.table_name = :table_name
-             AND c.constraint_type = 'P'
-             AND cc.owner = c.owner
-             AND cc.constraint_name = c.constraint_name
-             ORDER BY cc.position
+          FROM
+            all_constraints c,
+            all_cons_columns cc
+          WHERE
+            c.owner = SYS_CONTEXT('userenv', 'current_schema')
+            AND c.table_name = :table_name
+            AND c.constraint_type = 'P'
+            AND cc.owner = c.owner
+            AND cc.constraint_name = c.constraint_name
+          ORDER BY cc.position
         SQL
         pks.map { |pk| oracle_downcase(pk) }
       end
@@ -1074,8 +1096,11 @@ module ActiveRecord
 
       def temporary_table?(table_name) # :nodoc:
         select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
-          SELECT
-          temporary FROM all_tables WHERE table_name = :table_name AND owner = SYS_CONTEXT('userenv', 'current_schema')
+          SELECT temporary
+          FROM all_tables
+          WHERE
+            table_name = :table_name
+            AND owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
       end
 

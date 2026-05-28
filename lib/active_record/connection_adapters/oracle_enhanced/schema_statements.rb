@@ -13,10 +13,11 @@ module ActiveRecord
         def tables # :nodoc:
           select_values(<<~SQL.squish, "SCHEMA")
             SELECT
-            DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
+              DECODE(table_name, UPPER(table_name), LOWER(table_name), table_name)
             FROM all_tables
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-            AND secondary = 'N'
+            WHERE
+              owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND secondary = 'N'
             MINUS
             SELECT DECODE(mview_name, UPPER(mview_name), LOWER(mview_name), mview_name)
             FROM all_mviews
@@ -47,8 +48,9 @@ module ActiveRecord
           select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", table_owner), bind_string("table_name", table_name)]).any?
             SELECT owner, table_name
             FROM all_tables
-            WHERE owner = :owner
-            AND table_name = :table_name
+            WHERE
+              owner = :owner
+              AND table_name = :table_name
           SQL
         end
 
@@ -64,14 +66,16 @@ module ActiveRecord
         def views # :nodoc:
           select_values(<<~SQL.squish, "SCHEMA")
             SELECT
-            LOWER(view_name) FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+              LOWER(view_name)
+            FROM all_views WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
         def materialized_views # :nodoc:
           select_values(<<~SQL.squish, "SCHEMA")
             SELECT
-            LOWER(mview_name) FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+              LOWER(mview_name)
+            FROM all_mviews WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
@@ -97,22 +101,40 @@ module ActiveRecord
           # 'VISIBLE' so the rest of the reader works unchanged.
           visibility_column = supports_disabling_indexes? ? "i.visibility" : "'VISIBLE' AS visibility"
           result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
-            SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
+            SELECT
+              LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
               i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
               LOWER(i.tablespace_name) AS tablespace_name, #{visibility_column},
               LOWER(c.column_name) AS column_name, c.descend, e.column_expression,
               atc.virtual_column
             FROM all_indexes i
-              JOIN all_ind_columns c ON c.index_name = i.index_name AND c.index_owner = i.owner
-              LEFT OUTER JOIN all_ind_expressions e ON e.index_name = i.index_name AND
-                e.index_owner = i.owner AND e.column_position = c.column_position
-              LEFT OUTER JOIN all_tab_cols atc ON i.table_name = atc.table_name AND
-                c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
-            WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND i.table_name = :table_name
-               AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
-                WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
+            JOIN all_ind_columns c
+              ON
+                c.index_name = i.index_name
+                AND c.index_owner = i.owner
+            LEFT OUTER JOIN all_ind_expressions e
+              ON
+                e.index_name = i.index_name
+                AND e.index_owner = i.owner
+                AND e.column_position = c.column_position
+            LEFT OUTER JOIN all_tab_cols atc
+              ON
+                i.table_name = atc.table_name
+                AND c.column_name = atc.column_name
+                AND i.owner = atc.owner
+                AND atc.hidden_column = 'NO'
+            WHERE
+              i.owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND i.table_name = :table_name
+              AND NOT EXISTS (
+                SELECT uc.index_name
+                FROM all_constraints uc
+                WHERE
+                  uc.index_name = i.index_name
+                  AND uc.owner = i.owner
+                  AND uc.constraint_type = 'P'
+              )
             ORDER BY i.index_name, c.column_position
           SQL
 
@@ -129,7 +151,8 @@ module ActiveRecord
                 source = select_values(<<~SQL.squish, "SCHEMA", [bind_string("procedure_name", procedure_name.upcase)]).join
                   SELECT text
                   FROM all_source
-                  WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+                  WHERE
+                    owner = SYS_CONTEXT('userenv', 'current_schema')
                     AND name = :procedure_name
                   ORDER BY line
                 SQL
@@ -404,10 +427,11 @@ module ActiveRecord
           (_owner, table_name) = resolve_data_source_name(table_name)
           result = select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("index_name", index_name.to_s.upcase)])
             SELECT 1 FROM all_indexes i
-            WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND i.table_name = :table_name
-               AND i.index_name = :index_name
+            WHERE
+              i.owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND i.table_name = :table_name
+              AND i.index_name = :index_name
           SQL
           result == 1
         end
@@ -695,7 +719,8 @@ module ActiveRecord
           (_owner, table_name) = resolve_data_source_name(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
             SELECT comments FROM all_tab_comments
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE
+              owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
           SQL
         end
@@ -711,7 +736,8 @@ module ActiveRecord
           (_owner, table_name) = resolve_data_source_name(table_name)
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
             SELECT comments FROM all_col_comments
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE
+              owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
               AND column_name = :column_name
           SQL
@@ -729,8 +755,9 @@ module ActiveRecord
           select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.to_s.upcase)])
             SELECT tablespace_name
             FROM all_tables
-            WHERE table_name = :table_name
-            AND owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE
+              table_name = :table_name
+              AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
         end
 
@@ -746,27 +773,32 @@ module ActiveRecord
           (_owner, desc_table_name) = resolve_data_source_name(table_name)
 
           fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
-            SELECT r.table_name AS to_table,
-                   rc.column_name AS references_column,
-                   cc.column_name,
-                   c.constraint_name AS name,
-                   c.delete_rule,
-                   c.deferrable,
-                   c.deferred,
-                   c.validated,
-                   c.status
-              FROM all_constraints c, all_cons_columns cc,
-                   all_constraints r, all_cons_columns rc
-             WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND c.table_name = :desc_table_name
-               AND c.constraint_type = 'R'
-               AND cc.owner = c.owner
-               AND cc.constraint_name = c.constraint_name
-               AND r.constraint_name = c.r_constraint_name
-               AND r.owner = c.owner
-               AND rc.owner = r.owner
-               AND rc.constraint_name = r.constraint_name
-               AND rc.position = cc.position
+            SELECT
+              r.table_name AS to_table,
+              rc.column_name AS references_column,
+              cc.column_name,
+              c.constraint_name AS name,
+              c.delete_rule,
+              c.deferrable,
+              c.deferred,
+              c.validated,
+              c.status
+            FROM
+              all_constraints c,
+              all_cons_columns cc,
+              all_constraints r,
+              all_cons_columns rc
+            WHERE
+              c.owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND c.table_name = :desc_table_name
+              AND c.constraint_type = 'R'
+              AND cc.owner = c.owner
+              AND cc.constraint_name = c.constraint_name
+              AND r.constraint_name = c.r_constraint_name
+              AND r.owner = c.owner
+              AND rc.owner = r.owner
+              AND rc.constraint_name = r.constraint_name
+              AND rc.position = cc.position
             ORDER BY name, to_table, column_name, references_column
           SQL
 
@@ -791,12 +823,13 @@ module ActiveRecord
           # `search_condition` is LONG; cannot appear in WHERE (ORA-00997).
           rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
             SELECT constraint_name AS name, search_condition, validated
-              FROM all_constraints
-             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND table_name = :desc_table_name
-               AND constraint_type = 'C'
-               AND generated = 'USER NAME'
-             ORDER BY constraint_name
+            FROM all_constraints
+            WHERE
+              owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND table_name = :desc_table_name
+              AND constraint_type = 'C'
+              AND generated = 'USER NAME'
+            ORDER BY constraint_name
           SQL
 
           rows.filter_map do |row|
@@ -844,20 +877,23 @@ module ActiveRecord
           (_owner, desc_table_name) = resolve_data_source_name(table_name)
 
           rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
-            SELECT c.constraint_name AS name,
-                   c.index_name,
-                   c.deferrable,
-                   c.deferred,
-                   cc.column_name,
-                   cc.position
-              FROM all_constraints c
-              JOIN all_cons_columns cc
-                ON cc.owner = c.owner
-               AND cc.constraint_name = c.constraint_name
-             WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND c.table_name = :desc_table_name
-               AND c.constraint_type = 'U'
-             ORDER BY c.constraint_name, cc.position
+            SELECT
+              c.constraint_name AS name,
+              c.index_name,
+              c.deferrable,
+              c.deferred,
+              cc.column_name,
+              cc.position
+            FROM all_constraints c
+            JOIN all_cons_columns cc
+              ON
+                cc.owner = c.owner
+                AND cc.constraint_name = c.constraint_name
+            WHERE
+              c.owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND c.table_name = :desc_table_name
+              AND c.constraint_type = 'U'
+            ORDER BY c.constraint_name, cc.position
           SQL
 
           grouped = rows.group_by { |row| row["name"] }
@@ -939,8 +975,9 @@ module ActiveRecord
         def disable_referential_integrity(&block) # :nodoc:
           old_constraints = select_all(<<~SQL.squish, "SCHEMA")
             SELECT constraint_name, owner, table_name
-              FROM all_constraints
-              WHERE constraint_type = 'R'
+            FROM all_constraints
+            WHERE
+              constraint_type = 'R'
               AND status = 'ENABLED'
               AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
@@ -1518,9 +1555,10 @@ module ActiveRecord
 
             index_name = select_value(<<~SQL.squish, "Index name for primary key",  [bind_string("table_name", table_name.upcase)])
               SELECT index_name FROM all_constraints
-                  WHERE table_name = :table_name
-                  AND constraint_type = 'P'
-                  AND owner = SYS_CONTEXT('userenv', 'current_schema')
+              WHERE
+                table_name = :table_name
+                AND constraint_type = 'P'
+                AND owner = SYS_CONTEXT('userenv', 'current_schema')
             SQL
 
             return unless index_name

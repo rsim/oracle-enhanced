@@ -10,9 +10,10 @@ module ActiveRecord # :nodoc:
         def structure_dump # :nodoc:
           sequences = select_all(<<~SQL.squish, "SCHEMA")
             SELECT
-            sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
+              sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
             FROM all_sequences
-            WHERE sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE
+              sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
               AND sequence_name NOT LIKE 'ISEQ$$\\_%' ESCAPE '\\'
             ORDER BY 1
           SQL
@@ -22,23 +23,30 @@ module ActiveRecord # :nodoc:
           end
           tables = select_values(<<~SQL.squish, "SCHEMA")
             SELECT table_name FROM all_tables t
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
-            AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv
-                            WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
-            AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl
-                            WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
+            WHERE
+              owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
+              AND NOT EXISTS (
+                SELECT mv.mview_name FROM all_mviews mv
+                WHERE mv.owner = t.owner AND mv.mview_name = t.table_name
+              )
+              AND NOT EXISTS (
+                SELECT mvl.log_table FROM all_mview_logs mvl
+                WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name
+              )
             ORDER BY 1
           SQL
           identity_column_expr = supports_identity_columns? ? "atc.identity_column" : "'NO' AS identity_column"
           tables.each do |table_name|
             virtual_columns = virtual_columns_for(table_name) if supports_virtual_columns?
             ddl = +"CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
-            columns = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
-              SELECT column_name, data_type, data_length, char_used, char_length,
-              data_precision, data_scale, data_default, nullable, #{identity_column_expr}
+            columns = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)]) # sql_lint:disable=AL05 -- atc alias used by identity_column_expr interpolation
+              SELECT
+                column_name, data_type, data_length, char_used, char_length,
+                data_precision, data_scale, data_default, nullable, #{identity_column_expr}
               FROM all_tab_columns atc
-              WHERE table_name = :table_name
-              AND owner = SYS_CONTEXT('userenv', 'current_schema')
+              WHERE
+                table_name = :table_name
+                AND owner = SYS_CONTEXT('userenv', 'current_schema')
               ORDER BY column_id
             SQL
             cols = columns.map do |row|
@@ -104,13 +112,14 @@ module ActiveRecord # :nodoc:
           opts = { name: "", cols: [] }
           pks = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])
             SELECT a.constraint_name, a.column_name, a.position
-              FROM all_cons_columns a
-              JOIN all_constraints c
-                ON a.constraint_name = c.constraint_name
-             WHERE c.table_name = :table_name
-               AND c.constraint_type = 'P'
-               AND a.owner = c.owner
-               AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
+            FROM all_cons_columns a
+            JOIN all_constraints c
+              ON a.constraint_name = c.constraint_name
+            WHERE
+              c.table_name = :table_name
+              AND c.constraint_type = 'P'
+              AND a.owner = c.owner
+              AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           pks.each do |row|
             opts[:name] = row["constraint_name"]
@@ -131,15 +140,17 @@ module ActiveRecord # :nodoc:
           keys = {}
           metadata = {}
           uks = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])
-            SELECT a.constraint_name, a.column_name, a.position,
-                   c.index_name, c.deferrable, c.deferred
-              FROM all_cons_columns a
-              JOIN all_constraints c
-                ON a.constraint_name = c.constraint_name
-             WHERE c.table_name = :table_name
-               AND c.constraint_type = 'U'
-               AND a.owner = c.owner
-               AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
+            SELECT
+              a.constraint_name, a.column_name, a.position,
+              c.index_name, c.deferrable, c.deferred
+            FROM all_cons_columns a
+            JOIN all_constraints c
+              ON a.constraint_name = c.constraint_name
+            WHERE
+              c.table_name = :table_name
+              AND c.constraint_type = 'U'
+              AND a.owner = c.owner
+              AND c.owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           uks.each do |uk|
             keys[uk["constraint_name"]] ||= []
@@ -196,7 +207,8 @@ module ActiveRecord # :nodoc:
           check_constraints = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)])
             SELECT constraint_name, search_condition, validated
             FROM all_constraints
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE
+              owner = SYS_CONTEXT('userenv', 'current_schema')
               AND table_name = :table_name
               AND constraint_type = 'C'
               AND generated = 'USER NAME'
@@ -226,8 +238,10 @@ module ActiveRecord # :nodoc:
           comments = []
           columns = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
             SELECT column_name FROM all_tab_columns
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-            AND table_name = :table_name ORDER BY column_id
+            WHERE
+              owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND table_name = :table_name
+            ORDER BY column_id
           SQL
 
           columns.each do |column|
@@ -264,18 +278,21 @@ module ActiveRecord # :nodoc:
           all_source = select_all(<<~SQL.squish, "SCHEMA")
             SELECT DISTINCT name, type
             FROM all_source
-            WHERE type IN ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
-            AND name NOT LIKE 'BIN$%'
-            AND owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY type
+            WHERE
+              type IN ('PROCEDURE', 'PACKAGE', 'PACKAGE BODY', 'FUNCTION', 'TRIGGER', 'TYPE')
+              AND name NOT LIKE 'BIN$%'
+              AND owner = SYS_CONTEXT('userenv', 'current_schema')
+            ORDER BY type
           SQL
           all_source.each do |source|
             ddl = +"CREATE OR REPLACE   \n"
             texts = select_all(<<~SQL.squish, "all source at structure dump", [bind_string("source_name", source["name"]), bind_string("source_type", source["type"])])
               SELECT text
               FROM all_source
-              WHERE name = :source_name
-              AND type = :source_type
-              AND owner = SYS_CONTEXT('userenv', 'current_schema')
+              WHERE
+                name = :source_name
+                AND type = :source_type
+                AND owner = SYS_CONTEXT('userenv', 'current_schema')
               ORDER BY line
             SQL
             texts.each do |row|
@@ -319,7 +336,8 @@ module ActiveRecord # :nodoc:
         def structure_drop # :nodoc:
           sequences = select_values(<<~SQL.squish, "SCHEMA")
             SELECT sequence_name FROM all_sequences
-            WHERE sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE
+              sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
               AND sequence_name NOT LIKE 'ISEQ$$\\_%' ESCAPE '\\'
             ORDER BY 1
           SQL
@@ -328,11 +346,16 @@ module ActiveRecord # :nodoc:
           end
           tables = select_values(<<~SQL.squish, "SCHEMA")
             SELECT table_name FROM all_tables t
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
-            AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv
-                            WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
-            AND NOT EXISTS (SELECT mvl.log_table FROM all_mview_logs mvl
-                            WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name)
+            WHERE
+              owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
+              AND NOT EXISTS (
+                SELECT mv.mview_name FROM all_mviews mv
+                WHERE mv.owner = t.owner AND mv.mview_name = t.table_name
+              )
+              AND NOT EXISTS (
+                SELECT mvl.log_table FROM all_mview_logs mvl
+                WHERE mvl.log_owner = t.owner AND mvl.log_table = t.table_name
+              )
             ORDER BY 1
           SQL
           tables.each do |table|
@@ -344,8 +367,10 @@ module ActiveRecord # :nodoc:
         def temp_table_drop # :nodoc:
           temporary_tables = select_values(<<~SQL.squish, "SCHEMA")
             SELECT table_name FROM all_tables
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-            AND secondary = 'N' AND temporary = 'Y' ORDER BY 1
+            WHERE
+              owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND secondary = 'N' AND temporary = 'Y'
+            ORDER BY 1
           SQL
           statements = temporary_tables.map do |table|
             "DROP TABLE \"#{table}\" CASCADE CONSTRAINTS"
@@ -379,9 +404,10 @@ module ActiveRecord # :nodoc:
           select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])
             SELECT column_name, data_default
             FROM all_tab_cols
-            WHERE virtual_column = 'YES'
-            AND owner = SYS_CONTEXT('userenv', 'current_schema')
-            AND table_name = :table_name
+            WHERE
+              virtual_column = 'YES'
+              AND owner = SYS_CONTEXT('userenv', 'current_schema')
+              AND table_name = :table_name
           SQL
         end
 

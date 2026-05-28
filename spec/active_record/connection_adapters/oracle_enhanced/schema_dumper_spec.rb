@@ -141,8 +141,9 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
       schema_define { instance_eval(body) }
       expr = ActiveRecord::Base.lease_connection.select_value(<<~SQL.squish)
         SELECT column_expression FROM all_ind_expressions
-         WHERE index_owner = SYS_CONTEXT('userenv', 'current_schema')
-           AND index_name = 'IX_RT_EXPR'
+        WHERE
+          index_owner = SYS_CONTEXT('userenv', 'current_schema')
+          AND index_name = 'IX_RT_EXPR'
       SQL
       expect(expr).to match(/LOWER\("?NAME"?\)/i)
     end
@@ -186,9 +187,10 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
       schema_define { instance_eval(body) }
       desc_count = ActiveRecord::Base.lease_connection.select_value(<<~SQL.squish)
         SELECT COUNT(*) FROM all_ind_columns
-         WHERE index_owner = SYS_CONTEXT('userenv', 'current_schema')
-           AND index_name = 'IX_RT_SORT'
-           AND descend = 'DESC'
+        WHERE
+          index_owner = SYS_CONTEXT('userenv', 'current_schema')
+          AND index_name = 'IX_RT_SORT'
+          AND descend = 'DESC'
       SQL
       expect(desc_count).to eq(1)
     end
@@ -255,8 +257,9 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
       schema_define { instance_eval(body) }
       visibility = ActiveRecord::Base.lease_connection.select_value(<<~SQL.squish)
         SELECT visibility FROM all_indexes
-         WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-           AND index_name = 'IX_RT_INVISIBLE'
+        WHERE
+          owner = SYS_CONTEXT('userenv', 'current_schema')
+          AND index_name = 'IX_RT_INVISIBLE'
       SQL
       expect(visibility).to eq("INVISIBLE")
     end

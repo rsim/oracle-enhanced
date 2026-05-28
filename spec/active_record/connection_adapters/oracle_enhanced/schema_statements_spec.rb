@@ -568,14 +568,16 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       end
       idx_count = @conn.select_value(<<~SQL.squish)
         SELECT COUNT(*) FROM all_indexes
-         WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-           AND index_name = 'IX_EXPR_LOWER_NAME'
+        WHERE
+          owner = SYS_CONTEXT('userenv', 'current_schema')
+          AND index_name = 'IX_EXPR_LOWER_NAME'
       SQL
       expect(idx_count).to eq(1)
       expr = @conn.select_value(<<~SQL.squish)
         SELECT column_expression FROM all_ind_expressions
-         WHERE index_owner = SYS_CONTEXT('userenv', 'current_schema')
-           AND index_name = 'IX_EXPR_LOWER_NAME'
+        WHERE
+          index_owner = SYS_CONTEXT('userenv', 'current_schema')
+          AND index_name = 'IX_EXPR_LOWER_NAME'
       SQL
       expect(expr).to match(/LOWER\("?NAME"?\)/i)
     ensure
@@ -598,9 +600,10 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       end
       desc_count = @conn.select_value(<<~SQL.squish)
         SELECT COUNT(*) FROM all_ind_columns
-         WHERE index_owner = SYS_CONTEXT('userenv', 'current_schema')
-           AND index_name = 'IX_SORT_ORDER'
-           AND descend = 'DESC'
+        WHERE
+          index_owner = SYS_CONTEXT('userenv', 'current_schema')
+          AND index_name = 'IX_SORT_ORDER'
+          AND descend = 'DESC'
       SQL
       expect(desc_count).to eq(1)
     ensure
@@ -677,8 +680,9 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
         # Querying all_indexes directly confirms Oracle sees a UNIQUE INVISIBLE index.
         row = @conn.select_one(<<~SQL.squish)
           SELECT uniqueness, visibility FROM all_indexes
-           WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-             AND index_name = 'IX_UNIQ_INVISIBLE'
+          WHERE
+            owner = SYS_CONTEXT('userenv', 'current_schema')
+            AND index_name = 'IX_UNIQ_INVISIBLE'
         SQL
         expect(row["uniqueness"]).to eq("UNIQUE")
         expect(row["visibility"]).to eq("INVISIBLE")
@@ -950,7 +954,8 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
 
         seq_exists = @conn.select_value(<<~SQL.squish) == 1
           SELECT COUNT(*) FROM all_sequences
-          WHERE sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
+          WHERE
+            sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
             AND sequence_name = 'TEST_BULK_PK_SEQ'
         SQL
         expect(seq_exists).to be(true)
