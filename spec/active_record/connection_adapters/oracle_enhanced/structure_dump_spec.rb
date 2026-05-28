@@ -56,14 +56,14 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
 
     it "should dump composite primary keys" do
       pk = @conn.send(:select_one, <<~SQL)
-        select constraint_name from user_constraints where table_name = 'TEST_POSTS' and constraint_type='P'
+        SELECT constraint_name FROM user_constraints WHERE table_name = 'TEST_POSTS' AND constraint_type='P'
       SQL
       @conn.execute <<~SQL
-        alter table test_posts drop constraint #{pk["constraint_name"]}
+        ALTER TABLE test_posts DROP CONSTRAINT #{pk["constraint_name"]}
       SQL
       @conn.execute <<~SQL
         ALTER TABLE TEST_POSTS
-        add CONSTRAINT pk_id_title PRIMARY KEY (id, title)
+        ADD CONSTRAINT pk_id_title PRIMARY KEY (id, title)
       SQL
       dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump).to match(/CONSTRAINT (.+) PRIMARY KEY \("ID","TITLE"\)\n/)
@@ -169,7 +169,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
 
     it "should dump types" do
       @conn.execute <<~SQL
-        create or replace TYPE TEST_TYPE AS TABLE OF VARCHAR2(10);
+        CREATE OR REPLACE TYPE TEST_TYPE AS TABLE OF VARCHAR2(10);
       SQL
       dump = ActiveRecord::Base.lease_connection.structure_dump_db_stored_code.gsub(/\n|\s+/, " ")
       expect(dump).to match(/CREATE OR REPLACE TYPE TEST_TYPE/)
@@ -223,7 +223,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     it "should dump unique keys" do
       @conn.execute <<~SQL
         ALTER TABLE test_posts
-          add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
+          ADD CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
       dump = ActiveRecord::Base.lease_connection.structure_dump_unique_keys("test_posts")
       expect(dump).to eq([%(ALTER TABLE "TEST_POSTS" ADD CONSTRAINT "UK_FOO_FOO_ID" UNIQUE ("FOO","FOO_ID"))])
@@ -240,7 +240,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
 
       @conn.execute <<~SQL
         ALTER TABLE test_posts
-          add CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
+          ADD CONSTRAINT uk_foo_foo_id UNIQUE (foo, foo_id)
       SQL
 
       dump = ActiveRecord::Base.lease_connection.structure_dump
@@ -571,11 +571,11 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
       end
       # view
       @conn.execute <<~SQL
-        create or replace view full_drop_test_view (foo) as select id as "foo" from full_drop_test
+        CREATE OR REPLACE VIEW full_drop_test_view (foo) AS SELECT id AS "foo" FROM full_drop_test
       SQL
       # materialized view
       @conn.execute <<~SQL
-        create materialized view full_drop_test_mview (foo) as select id as "foo" from full_drop_test
+        CREATE MATERIALIZED VIEW full_drop_test_mview (foo) AS SELECT id AS "foo" FROM full_drop_test
       SQL
       # package
       @conn.execute <<~SQL
@@ -613,11 +613,11 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
       SQL
       # synonym
       @conn.execute <<~SQL
-        create or replace synonym full_drop_test_synonym for full_drop_test
+        CREATE OR REPLACE SYNONYM full_drop_test_synonym FOR full_drop_test
       SQL
       # type
       @conn.execute <<~SQL
-        create or replace type full_drop_test_type as table of number
+        CREATE OR REPLACE TYPE full_drop_test_type AS TABLE OF NUMBER
       SQL
     end
 

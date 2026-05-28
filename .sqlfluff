@@ -21,7 +21,7 @@ dialect = oracle
 #   RF01  References from. Triggers false positives when an alias is
 #         used only inside a `#{...}` interpolation, which we replace
 #         with an opaque placeholder before linting.
-rules = AL04,AL06,AL08,AL09,AL10,AM01,AM02,AM06,CP04,CP05,CV03,CV04,CV05,LT06,LT07,LT08,LT10,LT11,LT12,ST03,ST08
+rules = AL04,AL06,AL08,AL09,AL10,AM01,AM02,AM06,CP01,CP04,CP05,CV03,CV04,CV05,LT06,LT07,LT08,LT10,LT11,LT12,ST03,ST08
 
 # Match the surrounding Ruby code style: this project indents with two
 # spaces, so SQL inside heredocs reads naturally when sqlfluff expects

@@ -12,7 +12,7 @@ module ActiveRecord # :nodoc:
             SELECT
             sequence_name, min_value, max_value, increment_by, order_flag, cycle_flag
             FROM all_sequences
-            where sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE sequence_owner = SYS_CONTEXT('userenv', 'current_schema')
               AND sequence_name NOT LIKE 'ISEQ$$\\_%' ESCAPE '\\'
             ORDER BY 1
           SQL
@@ -327,7 +327,7 @@ module ActiveRecord # :nodoc:
             "DROP SEQUENCE \"#{seq}\""
           end
           tables = select_values(<<~SQL.squish, "SCHEMA")
-            SELECT table_name from all_tables t
+            SELECT table_name FROM all_tables t
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') AND secondary = 'N'
             AND NOT EXISTS (SELECT mv.mview_name FROM all_mviews mv
                             WHERE mv.owner = t.owner AND mv.mview_name = t.table_name)
@@ -389,7 +389,7 @@ module ActiveRecord # :nodoc:
           short_type = type == "materialized view" ? "mview" : type
           features = select_values(<<~SQL.squish, "SCHEMA")
             SELECT #{short_type}_name FROM all_#{short_type.tableize}
-            where owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           statements = features.map do |name|
             "DROP #{type.upcase} \"#{name}\""
@@ -400,7 +400,7 @@ module ActiveRecord # :nodoc:
         def drop_sql_for_object(type)
           objects = select_values(<<~SQL.squish, "SCHEMA", [bind_string("object_type", type.upcase)])
             SELECT object_name FROM all_objects
-            WHERE object_type = :object_type and owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE object_type = :object_type AND owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
           statements = objects.map do |name|
             "DROP #{type.upcase} \"#{name}\""

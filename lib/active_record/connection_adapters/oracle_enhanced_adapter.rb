@@ -904,7 +904,7 @@ module ActiveRecord
 
         if primary_key && sequence_name
           new_start_value = select_value(<<~SQL.squish, "SCHEMA")
-            select NVL(max(#{quote_column_name(primary_key)}),0) + 1 from #{quote_table_name(table_name)}
+            SELECT NVL(max(#{quote_column_name(primary_key)}),0) + 1 FROM #{quote_table_name(table_name)}
           SQL
 
           execute "DROP SEQUENCE #{quote_table_name(sequence_name)}"
@@ -1016,10 +1016,10 @@ module ActiveRecord
         (owner, desc_table_name) = resolve_data_source_name(table_name)
 
         seqs = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name, nil))])
-          select us.sequence_name
-          from all_sequences us
-          where us.sequence_owner = :owner
-          and us.sequence_name = upper(:sequence_name)
+          SELECT us.sequence_name
+          FROM all_sequences us
+          WHERE us.sequence_owner = :owner
+          AND us.sequence_name = upper(:sequence_name)
         SQL
 
         # changed back from user_constraints to all_constraints for consistency
@@ -1050,7 +1050,7 @@ module ActiveRecord
              AND c.constraint_type = 'P'
              AND cc.owner = c.owner
              AND cc.constraint_name = c.constraint_name
-             order by cc.position
+             ORDER BY cc.position
         SQL
         pks.map { |pk| oracle_downcase(pk) }
       end
@@ -1075,7 +1075,7 @@ module ActiveRecord
       def temporary_table?(table_name) # :nodoc:
         select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name.upcase)]) == "Y"
           SELECT
-          temporary FROM all_tables WHERE table_name = :table_name and owner = SYS_CONTEXT('userenv', 'current_schema')
+          temporary FROM all_tables WHERE table_name = :table_name AND owner = SYS_CONTEXT('userenv', 'current_schema')
         SQL
       end
 

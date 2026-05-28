@@ -17,7 +17,7 @@ module ActiveRecord
             FROM all_tables
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
             AND secondary = 'N'
-            minus
+            MINUS
             SELECT DECODE(mview_name, UPPER(mview_name), LOWER(mview_name), mview_name)
             FROM all_mviews
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
@@ -79,7 +79,7 @@ module ActiveRecord
         def synonyms
           result = select_all(<<~SQL.squish, "SCHEMA")
             SELECT synonym_name, table_owner, table_name
-            FROM all_synonyms where owner = SYS_CONTEXT('userenv', 'current_schema')
+            FROM all_synonyms WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
           SQL
 
           result.collect do |row|
