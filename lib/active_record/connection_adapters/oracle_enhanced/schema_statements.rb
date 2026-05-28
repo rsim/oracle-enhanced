@@ -746,10 +746,10 @@ module ActiveRecord
           (_owner, desc_table_name) = resolve_data_source_name(table_name)
 
           fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
-            SELECT r.table_name to_table
-                  ,rc.column_name references_column
+            SELECT r.table_name AS to_table
+                  ,rc.column_name AS references_column
                   ,cc.column_name
-                  ,c.constraint_name name
+                  ,c.constraint_name AS name
                   ,c.delete_rule
                   ,c.deferrable
                   ,c.deferred
