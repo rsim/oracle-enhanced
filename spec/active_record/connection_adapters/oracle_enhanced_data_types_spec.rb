@@ -7,23 +7,23 @@ RSpec.describe "OracleEnhancedAdapter date and datetime type detection based on 
     @conn.drop_table "test_employees", if_exists: true
     @conn.execute <<~SQL
       CREATE TABLE test_employees (
-        employee_id   NUMBER(6,0) PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        email         VARCHAR2(25),
-        phone_number  VARCHAR2(20),
-        hire_date     DATE,
-        job_id        NUMBER(6,0),
-        salary        NUMBER(8,2),
-        commission_pct  NUMBER(2,2),
-        manager_id    NUMBER(6,0),
-        department_id NUMBER(4,0),
-        created_at    DATE,
-        updated_at    DATE
+        employee_id NUMBER(6, 0) PRIMARY KEY,
+        first_name VARCHAR2(20),
+        last_name VARCHAR2(25),
+        email VARCHAR2(25),
+        phone_number VARCHAR2(20),
+        hire_date DATE,
+        job_id NUMBER(6, 0),
+        salary NUMBER(8, 2),
+        commission_pct NUMBER(2, 2),
+        manager_id NUMBER(6, 0),
+        department_id NUMBER(4, 0),
+        created_at DATE,
+        updated_at DATE
       )
     SQL
     @conn.execute <<~SQL
-      CREATE SEQUENCE test_employees_seq  MINVALUE 1
+      CREATE SEQUENCE test_employees_seq MINVALUE 1
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end

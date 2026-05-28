@@ -856,8 +856,8 @@ module ActiveRecord
             AND EXISTS (
               SELECT 1 FROM all_source s
                WHERE s.owner = t.owner
-                 AND s.name  = t.trigger_name
-                 AND s.type  = 'TRIGGER'
+                 AND s.name = t.trigger_name
+                 AND s.type = 'TRIGGER'
                  AND UPPER(s.text) LIKE '%NEXTVAL INTO :NEW%'
             )
         SQL
@@ -873,8 +873,8 @@ module ActiveRecord
             AND EXISTS (
               SELECT 1 FROM all_source s
                WHERE s.owner = t.owner
-                 AND s.name  = t.trigger_name
-                 AND s.type  = 'TRIGGER'
+                 AND s.name = t.trigger_name
+                 AND s.type = 'TRIGGER'
                  AND UPPER(s.text) LIKE '%NEXTVAL INTO :NEW%'
             )
         SQL
@@ -904,7 +904,7 @@ module ActiveRecord
 
         if primary_key && sequence_name
           new_start_value = select_value(<<~SQL.squish, "SCHEMA")
-            SELECT NVL(MAX(#{quote_column_name(primary_key)}),0) + 1 FROM #{quote_table_name(table_name)}
+            SELECT NVL(MAX(#{quote_column_name(primary_key)}), 0) + 1 FROM #{quote_table_name(table_name)}
           SQL
 
           execute "DROP SEQUENCE #{quote_table_name(sequence_name)}"

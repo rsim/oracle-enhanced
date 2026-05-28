@@ -746,15 +746,15 @@ module ActiveRecord
           (_owner, desc_table_name) = resolve_data_source_name(table_name)
 
           fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
-            SELECT r.table_name AS to_table
-                  ,rc.column_name AS references_column
-                  ,cc.column_name
-                  ,c.constraint_name AS name
-                  ,c.delete_rule
-                  ,c.deferrable
-                  ,c.deferred
-                  ,c.validated
-                  ,c.status
+            SELECT r.table_name AS to_table,
+                   rc.column_name AS references_column,
+                   cc.column_name,
+                   c.constraint_name AS name,
+                   c.delete_rule,
+                   c.deferrable,
+                   c.deferred,
+                   c.validated,
+                   c.status
               FROM all_constraints c, all_cons_columns cc,
                    all_constraints r, all_cons_columns rc
              WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')

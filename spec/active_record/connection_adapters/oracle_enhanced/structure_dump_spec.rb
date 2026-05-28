@@ -56,7 +56,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
 
     it "should dump composite primary keys" do
       pk = @conn.send(:select_one, <<~SQL)
-        SELECT constraint_name FROM user_constraints WHERE table_name = 'TEST_POSTS' AND constraint_type='P'
+        SELECT constraint_name FROM user_constraints WHERE table_name = 'TEST_POSTS' AND constraint_type = 'P'
       SQL
       @conn.execute <<~SQL
         ALTER TABLE test_posts DROP CONSTRAINT #{pk["constraint_name"]}
@@ -72,7 +72,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     it "should dump foreign keys" do
       @conn.execute <<~SQL
         ALTER TABLE TEST_POSTS
-        ADD CONSTRAINT fk_test_post_foo FOREIGN KEY (foo_id) REFERENCES foos(id)
+        ADD CONSTRAINT fk_test_post_foo FOREIGN KEY (foo_id) REFERENCES foos (id)
       SQL
       dump = ActiveRecord::Base.lease_connection.structure_dump
       expect(dump.split('\n').length).to eq(1)
@@ -91,7 +91,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
 
       @conn.execute <<~SQL
         ALTER TABLE TEST_POSTS
-        ADD CONSTRAINT fk_test_post_baz FOREIGN KEY (baz_id) REFERENCES foos(baz_id)
+        ADD CONSTRAINT fk_test_post_baz FOREIGN KEY (baz_id) REFERENCES foos (baz_id)
       SQL
 
       dump = ActiveRecord::Base.lease_connection.structure_dump
@@ -211,8 +211,8 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     it "should dump NCLOB columns" do
       @conn.execute <<~SQL
         CREATE TABLE bars (
-          id          NUMBER(38,0) NOT NULL,
-          nclob_text  NCLOB,
+          id NUMBER(38, 0) NOT NULL,
+          nclob_text NCLOB,
           PRIMARY KEY (ID)
         )
       SQL
@@ -264,8 +264,8 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     it "should dump RAW columns" do
       @conn.execute <<~SQL
         CREATE TABLE bars (
-          id          NUMBER(38,0) NOT NULL,
-          super       RAW(255),
+          id NUMBER(38, 0) NOT NULL,
+          super RAW(255),
           PRIMARY KEY (ID)
         )
       SQL
@@ -384,7 +384,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     before(:all) do
       @conn.execute <<~SQL
         CREATE TABLE nvarchartable (
-          unq_nvarchar  NVARCHAR2(255) DEFAULT NULL
+          unq_nvarchar NVARCHAR2(255) DEFAULT NULL
         )
       SQL
     end

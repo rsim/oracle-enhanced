@@ -6,8 +6,8 @@ RSpec.describe "OracleEnhancedAdapter processing CHAR column" do
     @conn = ActiveRecord::Base.lease_connection
     @conn.execute <<~SQL
       CREATE TABLE test_items (
-        id       NUMBER(6,0) PRIMARY KEY,
-        padded   CHAR(10)
+        id NUMBER(6, 0) PRIMARY KEY,
+        padded CHAR(10)
       )
     SQL
     @conn.execute "CREATE SEQUENCE test_items_seq"

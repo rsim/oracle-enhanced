@@ -483,7 +483,7 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
 
       @conn.execute <<~SQL
         ALTER TABLE TEST_COMMENTS
-        ADD CONSTRAINT TEST_COMMENTS_BAZ_ID_FK FOREIGN KEY (baz_id) REFERENCES test_posts(baz_id)
+        ADD CONSTRAINT TEST_COMMENTS_BAZ_ID_FK FOREIGN KEY (baz_id) REFERENCES test_posts (baz_id)
       SQL
 
       output = dump_table_schema "test_comments"

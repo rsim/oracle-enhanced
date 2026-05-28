@@ -6,27 +6,27 @@ RSpec.describe "OracleEnhancedAdapter boolean type detection based on string col
     @conn = ActiveRecord::Base.lease_connection
     @conn.execute <<~SQL
       CREATE TABLE test3_employees (
-        id            NUMBER PRIMARY KEY,
-        first_name    VARCHAR2(20),
-        last_name     VARCHAR2(25),
-        email         VARCHAR2(25),
-        phone_number  VARCHAR2(20),
-        hire_date     DATE,
-        job_id        NUMBER,
-        salary        NUMBER,
-        commission_pct  NUMBER(2,2),
-        manager_id    NUMBER(6),
-        department_id NUMBER(4,0),
-        created_at    DATE,
-        has_email     CHAR(1),
-        has_phone     VARCHAR2(1) DEFAULT 'Y',
-        active_flag   VARCHAR2(2),
-        manager_yn    VARCHAR2(3) DEFAULT 'N',
-        test_boolean  VARCHAR2(3)
+        id NUMBER PRIMARY KEY,
+        first_name VARCHAR2(20),
+        last_name VARCHAR2(25),
+        email VARCHAR2(25),
+        phone_number VARCHAR2(20),
+        hire_date DATE,
+        job_id NUMBER,
+        salary NUMBER,
+        commission_pct NUMBER(2, 2),
+        manager_id NUMBER(6),
+        department_id NUMBER(4, 0),
+        created_at DATE,
+        has_email CHAR(1),
+        has_phone VARCHAR2(1) DEFAULT 'Y',
+        active_flag VARCHAR2(2),
+        manager_yn VARCHAR2(3) DEFAULT 'N',
+        test_boolean VARCHAR2(3)
       )
     SQL
     @conn.execute <<~SQL
-      CREATE SEQUENCE test3_employees_seq  MINVALUE 1
+      CREATE SEQUENCE test3_employees_seq MINVALUE 1
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
     SQL
   end

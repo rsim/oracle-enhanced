@@ -6,11 +6,11 @@ RSpec.describe "OracleEnhancedAdapter quoting of NCHAR and NVARCHAR2 columns" do
     @conn = ActiveRecord::Base.lease_connection
     @conn.execute <<~SQL
       CREATE TABLE test_items (
-        id                  NUMBER(6,0) PRIMARY KEY,
-        nchar_column        NCHAR(20),
-        nvarchar2_column    NVARCHAR2(20),
-        char_column         CHAR(20),
-        varchar2_column     VARCHAR2(20)
+        id NUMBER(6, 0) PRIMARY KEY,
+        nchar_column NCHAR(20),
+        nvarchar2_column NVARCHAR2(20),
+        char_column CHAR(20),
+        varchar2_column VARCHAR2(20)
       )
     SQL
     @conn.execute "CREATE SEQUENCE test_items_seq"
