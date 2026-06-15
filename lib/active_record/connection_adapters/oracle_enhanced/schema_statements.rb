@@ -231,6 +231,8 @@ module ActiveRecord
             raise ArgumentError, "Options `:force` and `:if_not_exists` cannot be used simultaneously."
           end
 
+          implicit_unique_constraint = options.delete(:_implicit_unique_constraint)
+
           identity = options[:identity]
           validate_identity_options!(identity, id, primary_key)
           validate_primary_key_trigger_options!(options[:primary_key_trigger], identity, id, primary_key)
@@ -250,7 +252,7 @@ module ActiveRecord
             yield td if block_given?
           end
 
-          add_inline_unique_constraints(table_name, captured_td)
+          add_inline_unique_constraints(table_name, captured_td, implicit_unique_constraint)
 
           create_pk_sequence(table_name, options) if should_create_sequence?(captured_td, id, identity)
           create_pk_trigger(table_name, primary_key, options) if options[:primary_key_trigger]
@@ -309,13 +311,14 @@ module ActiveRecord
         end
 
         def add_index(table_name, column_name, **options) # :nodoc:
+          implicit_unique_constraint = options.delete(:_implicit_unique_constraint)
           create_index = build_create_index_definition(table_name, column_name, **options)
           return unless create_index
 
           execute schema_creation.accept(create_index)
 
           index = create_index.index
-          if needs_unique_constraint?(index.unique, index.columns) && OracleEnhancedAdapter.add_index_unique_creates_constraint
+          if needs_unique_constraint?(index.unique, index.columns) && implicit_unique_constraint_active?(implicit_unique_constraint)
             warn_implicit_unique_constraint_deprecation
             execute add_unique_constraint_sql(index.table, index.columns, index.name)
           end
@@ -1263,14 +1266,30 @@ module ActiveRecord
             "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(index_name)} UNIQUE (#{quoted_cols}) USING INDEX #{quote_column_name(index_name)}"
           end
 
-          def add_inline_unique_constraints(table_name, td)
+          def add_inline_unique_constraints(table_name, td, implicit_unique_constraint = false)
             td.indexes.each do |column_name, index_options|
               next unless needs_unique_constraint?(index_options[:unique], column_name)
-              next unless OracleEnhancedAdapter.add_index_unique_creates_constraint
+              next unless implicit_unique_constraint_active?(implicit_unique_constraint)
               warn_implicit_unique_constraint_deprecation
               inline_index_name = index_options[:name]&.to_s || index_name(table_name, column: index_column_names(column_name))
               execute add_unique_constraint_sql(table_name, column_name, inline_index_name)
             end
+          end
+
+          # Implicit UNIQUE CONSTRAINT creation for `add_index unique: true`
+          # is gated by:
+          #
+          # * the global flag `add_index_unique_creates_constraint` (explicit
+          #   user opt-in), OR
+          # * the `_implicit_unique_constraint` flag set by the V8_1
+          #   compatibility strategy while a Migration[8.1] or earlier
+          #   migration is running (legacy default preserved).
+          #
+          # In Phase 2, the global flag defaults to `false`, so callers
+          # outside the V8_1 path (Migration[8.2]+, Schema.define, direct
+          # adapter calls) skip the implicit constraint by default.
+          def implicit_unique_constraint_active?(flag)
+            OracleEnhancedAdapter.add_index_unique_creates_constraint || flag == true
           end
 
           def warn_implicit_unique_constraint_deprecation

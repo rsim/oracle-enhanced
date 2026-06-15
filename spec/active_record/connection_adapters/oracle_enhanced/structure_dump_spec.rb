@@ -145,7 +145,7 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     it "appends NOVALIDATE for foreign keys added with validate: false" do
       schema_define do
         add_column :test_posts, :foo_uniq, :integer
-        add_index :test_posts, :foo_uniq, unique: true, name: "ix_test_posts_foo_uniq"
+        add_unique_constraint :test_posts, :foo_uniq, name: "ix_test_posts_foo_uniq"
         add_foreign_key :test_posts, :test_posts, column: :foo_id, primary_key: :foo_uniq, name: "fk_novalidate_baz", validate: false
       end
       dump = ActiveRecord::Base.lease_connection.structure_dump
