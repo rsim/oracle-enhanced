@@ -263,8 +263,11 @@ module ActiveRecord
           end
           schema_cache.clear_data_source_cache!(table_name.to_s)
           schema_cache.clear_data_source_cache!(new_name.to_s)
+          identity_pk = identity_pk?(table_name)
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
-          execute "RENAME #{default_sequence_name(table_name, nil)} TO #{default_sequence_name(new_name, nil)}" rescue nil
+          unless identity_pk
+            execute "RENAME #{default_sequence_name(table_name, nil)} TO #{default_sequence_name(new_name, nil)}" rescue nil
+          end
           rename_pk_trigger(table_name, new_name)
           clear_table_caches(table_name)
           clear_table_caches(new_name)
@@ -281,10 +284,13 @@ module ActiveRecord
 
           table_names.each do |table_name|
             schema_cache.clear_data_source_cache!(table_name.to_s)
-            seq_name = custom_sequence_name || default_sequence_name(table_name, nil)
+            # Identity-backed tables never carry a default `<table>_seq`, so
+            # skip the sequence drop entirely on those. `identity_pk?` must
+            # run before the table drop, while the table is still present.
+            seq_name = custom_sequence_name || (identity_pk?(table_name) ? nil : default_sequence_name(table_name, nil))
 
             drop_if_exists("TABLE", table_name, cascade_constraints: cascade, if_exists: if_exists)
-            drop_if_exists("SEQUENCE", seq_name, if_exists: true)
+            drop_if_exists("SEQUENCE", seq_name, if_exists: true) if seq_name
           ensure
             clear_table_caches(table_name)
           end
@@ -1229,6 +1235,18 @@ module ActiveRecord
           def missing_object_ora_code?(message, object_type)
             code = MISSING_OBJECT_ORA_CODES[object_type.to_s.upcase]
             code && message.include?(code)
+          end
+
+          # True when +table_name+ exists and its primary key column is an Oracle
+          # identity column. Returns false when the table is not present (e.g.
+          # +drop_table if_exists:+ for a missing table) or when the database does
+          # not support identity columns.
+          def identity_pk?(table_name)
+            return false unless supports_identity_columns?
+            owner, desc_table_name = resolve_data_source_name(table_name)
+            identity_primary_key?(owner, desc_table_name)
+          rescue OracleEnhanced::ConnectionException
+            false
           end
 
           def index_column_names(column_names) # :nodoc:
