@@ -199,7 +199,6 @@ RSpec.describe "migration compatibility for identity primary keys" do
   end
 end
 
-
 RSpec.describe "OracleEnhanced::CompatibilityStrategy for add_index unique: true" do
   include SchemaSpecHelper
 
