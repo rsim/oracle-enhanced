@@ -7,7 +7,7 @@ RSpec.describe "Arel::Visitors::OracleCommon#order_hacks preserves the input Sel
 
   before(:each) do
     @visitor = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
-    @table = Arel::Table.new(:users)
+    @table = Arel::Table.new(name: :users)
   end
 
   def compile(node, visitor: @visitor)

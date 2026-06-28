@@ -7,7 +7,7 @@ RSpec.describe "Arel::Visitors::Oracle literal limit/offset via value_before_typ
 
   before(:each) do
     @visitor = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
-    @table = Arel::Table.new(:users)
+    @table = Arel::Table.new(name: :users)
   end
 
   def compile(node)

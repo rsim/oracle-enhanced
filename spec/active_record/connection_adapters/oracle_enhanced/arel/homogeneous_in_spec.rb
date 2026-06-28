@@ -8,7 +8,7 @@ RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_HomogeneousIn" do
   before(:each) do
     @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
     type_caster = Class.new { def type_for_attribute(_name) = ActiveRecord::Type::Value.new }.new
-    @table = Arel::Table.new(:users, type_caster: type_caster)
+    @table = Arel::Table.new(name: :users, type_caster: type_caster)
   end
 
   def compile(node, visitor: @visitor)

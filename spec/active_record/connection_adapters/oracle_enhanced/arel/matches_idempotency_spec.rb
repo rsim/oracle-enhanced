@@ -7,7 +7,7 @@ RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_Matches preserves 
 
   before(:each) do
     @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
-    @table = Arel::Table.new(:users)
+    @table = Arel::Table.new(name: :users)
   end
 
   def compile(node, visitor: @visitor)

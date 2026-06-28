@@ -25,7 +25,7 @@ RSpec.describe "Arel::Visitors::OracleCommon" do
 
   before(:each) do
     @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
-    @table = Arel::Table.new(:test_oracle_common_lobs)
+    @table = Arel::Table.new(name: :test_oracle_common_lobs)
   end
 
   def compile(node)
@@ -51,7 +51,7 @@ RSpec.describe "Arel::Visitors::OracleCommon" do
     end
 
     it "falls through to plain `=` when the table is not in the schema cache" do
-      unknown_table = Arel::Table.new(:test_oracle_common_no_such_table)
+      unknown_table = Arel::Table.new(name: :test_oracle_common_no_such_table)
       node = Arel::Nodes::Equality.new(unknown_table[:any], Arel::Nodes::Casted.new("x", unknown_table[:any]))
       expect(compile(node)).not_to match(/DBMS_LOB/)
     end

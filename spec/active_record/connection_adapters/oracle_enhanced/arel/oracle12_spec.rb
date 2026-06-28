@@ -7,7 +7,7 @@ RSpec.describe "Arel::Visitors::Oracle12" do
 
   before(:each) do
     @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
-    @table = Arel::Table.new(:users)
+    @table = Arel::Table.new(name: :users)
   end
 
   def compile(node)
