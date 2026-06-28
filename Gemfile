@@ -6,12 +6,12 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 group :development do
   gem "rspec"
-  gem "rdoc"
   gem "rake"
   gem "activerecord",   github: "rails/rails", branch: "main"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
+    gem "rdoc"
     gem "ruby-oci8",    github: "kubo/ruby-oci8"
     gem "debug", require: false
   end
