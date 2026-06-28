@@ -57,7 +57,7 @@ RSpec.describe "OracleEnhancedAdapter#columns_for_distinct" do
   end
 
   it "strips DESC NULLS LAST from an Arel ordering node" do
-    order_node = Arel::Table.new(:posts)[:created_at].desc.nulls_last
+    order_node = Arel::Table.new(name: :posts)[:created_at].desc.nulls_last
     sql = @conn.columns_for_distinct(["posts.id"], [order_node])
     expect(sql).to match(/FIRST_VALUE\("POSTS"\."CREATED_AT"\)/i)
     expect(sql).not_to match(/\bDESC\b/i)
@@ -80,7 +80,7 @@ RSpec.describe "OracleEnhancedAdapter#columns_for_distinct" do
     end
 
     it "preserves DESC NULLS LAST in the outer ORDER BY for an Arel ordering node" do
-      order_node = Arel::Table.new(:posts)[:created_at].desc.nulls_last
+      order_node = Arel::Table.new(name: :posts)[:created_at].desc.nulls_last
       sql = compile_distinct_order(["posts.id"], order_node)
       expect(sql).to include("ORDER BY alias_0__ DESC NULLS LAST")
     end
