@@ -17,6 +17,7 @@ group :development do
   end
 
   platforms :jruby do
+    gem "rbs", ">= 4.1.0.pre.2" # Use the java-platform gem so JRuby does not build the C extension
     gem "pry"
     gem "pry-nav"
   end
