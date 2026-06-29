@@ -49,6 +49,12 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v7
+      - name: Set up Java
+        if: startsWith(matrix.ruby, 'jruby')
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:

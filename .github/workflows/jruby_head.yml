@@ -36,6 +36,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
