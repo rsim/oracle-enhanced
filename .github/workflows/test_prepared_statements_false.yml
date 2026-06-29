@@ -46,7 +46,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Set up Java
         if: startsWith(matrix.ruby, 'jruby')
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
