@@ -157,6 +157,19 @@ module ArelVisitorSpecHelper
   end
 end
 
+# Forces the implicit UNIQUE CONSTRAINT behind `add_index :col, unique: true`
+# on for the block, whatever the migration version.
+module ImplicitUniqueConstraintHelper
+  def with_implicit_unique_constraint_enabled
+    adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
+    previous = adapter.add_index_unique_creates_constraint
+    adapter.add_index_unique_creates_constraint = true
+    yield
+  ensure
+    adapter.add_index_unique_creates_constraint = previous
+  end
+end
+
 module SchemaDumpingHelper
   def dump_table_schema(table, connection = ActiveRecord::Base.lease_connection)
     old_ignore_tables = ActiveRecord.schema_ignored_tables
@@ -287,6 +300,8 @@ RSpec.configure do |config|
   config.disable_monkey_patching!
   config.order = :random
   Kernel.srand config.seed
+
+  config.include ImplicitUniqueConstraintHelper
 
   # In CI, fail any example that lets a DEPRECATION WARNING leak to
   # stderr — i.e. one that triggered a deprecation but did not consume

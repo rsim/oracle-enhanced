@@ -375,3 +375,422 @@ RSpec.describe "migration compatibility for identity primary keys" do
     end
   end
 end
+
+RSpec.describe "OracleEnhanced::CompatibilityBehavior for add_index unique: true" do
+  include SchemaSpecHelper
+
+  before(:all) do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    @conn = ActiveRecord::Base.lease_connection
+  end
+
+  before(:each) do
+    schema_define do
+      create_table :test_compat_warn, force: true do |t|
+        t.string :first_name
+      end
+    end
+  end
+
+  after(:each) do
+    schema_define do
+      drop_table :test_compat_warn, if_exists: true
+    end
+  end
+
+  def migrate_up(migration_class, &body)
+    klass = Class.new(migration_class) do
+      define_method(:change, &body)
+    end
+    klass.migrate(:up)
+  end
+
+  describe "Migration[8.2] (current default — Phase 2)" do
+    it "does not create an implicit UNIQUE constraint and does not warn" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.2]) do
+          add_index :test_compat_warn, :first_name, unique: true, name: :uniq_v82
+        end
+      }.not_to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_compat_warn).map(&:name)).to include("uniq_v82")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).not_to include("uniq_v82")
+    end
+
+    it "does not create the implicit constraint for inline t.index :col, unique: true" do
+      migrate_up(ActiveRecord::Migration[8.2]) do
+        create_table :test_v82_inline, force: true do |t|
+          t.string :name
+          t.index :name, unique: true, name: :uniq_v82_inline
+        end
+      end
+
+      expect(@conn.indexes(:test_v82_inline).map(&:name)).to include("uniq_v82_inline")
+      expect(@conn.unique_constraints(:test_v82_inline).map(&:name)).not_to include("uniq_v82_inline")
+    ensure
+      schema_define { drop_table :test_v82_inline, if_exists: true }
+    end
+
+    it "does not create the implicit constraint for inline t.index inside change_table" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.2]) do
+          change_table :test_compat_warn do |t|
+            t.index :first_name, unique: true, name: :uniq_v82_chg
+          end
+        end
+      }.not_to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_compat_warn).map(&:name)).to include("uniq_v82_chg")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).not_to include("uniq_v82_chg")
+    end
+
+    it "does not create the implicit constraint for add_reference index: { unique: true }" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.2]) do
+          add_reference :test_compat_warn, :author, index: { unique: true, name: :uniq_v82_ref }
+        end
+      }.not_to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_compat_warn).map(&:name)).to include("uniq_v82_ref")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).not_to include("uniq_v82_ref")
+    end
+  end
+
+  describe "Migration[8.1] (pre-8.2 — V8_1 behavior preserves the implicit-constraint default)" do
+    it "creates the implicit UNIQUE constraint and emits the deprecation warning" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.1]) do
+          add_index :test_compat_warn, :first_name, unique: true, name: :uniq_v81
+        end
+      }.to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_compat_warn).map(&:name)).to include("uniq_v81")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).to include("uniq_v81")
+    end
+
+    it "creates the implicit constraint for inline t.index :col, unique: true" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.1]) do
+          create_table :test_v81_inline, force: true do |t|
+            t.string :name
+            t.index :name, unique: true, name: :uniq_v81_inline
+          end
+        end
+      }.to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_v81_inline).map(&:name)).to include("uniq_v81_inline")
+      expect(@conn.unique_constraints(:test_v81_inline).map(&:name)).to include("uniq_v81_inline")
+    ensure
+      schema_define { drop_table :test_v81_inline, if_exists: true }
+    end
+
+    it "creates the implicit constraint for inline t.index inside change_table" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.1]) do
+          change_table :test_compat_warn do |t|
+            t.index :first_name, unique: true, name: :uniq_v81_chg
+          end
+        end
+      }.to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_compat_warn).map(&:name)).to include("uniq_v81_chg")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).to include("uniq_v81_chg")
+    end
+
+    it "creates the implicit constraint for add_reference index: { unique: true }" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.1]) do
+          add_reference :test_compat_warn, :author, index: { unique: true, name: :uniq_v81_ref }
+        end
+      }.to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_compat_warn).map(&:name)).to include("uniq_v81_ref")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).to include("uniq_v81_ref")
+    end
+
+    it "creates the implicit constraint for t.references index: { unique: true } inside change_table" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.1]) do
+          change_table :test_compat_warn do |t|
+            t.references :editor, index: { unique: true, name: :uniq_v81_chg_ref }
+          end
+        end
+      }.to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_compat_warn).map(&:name)).to include("uniq_v81_chg_ref")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).to include("uniq_v81_chg_ref")
+    end
+
+    it "creates the implicit constraint for inline t.index inside create_join_table" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.1]) do
+          create_join_table :apples, :pears do |t|
+            t.index :apple_id, unique: true, name: :uniq_v81_join
+          end
+        end
+      }.to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:apples_pears).map(&:name)).to include("uniq_v81_join")
+      expect(@conn.unique_constraints(:apples_pears).map(&:name)).to include("uniq_v81_join")
+    ensure
+      schema_define { drop_table :apples_pears, if_exists: true }
+    end
+
+    it "reverts a change migration cleanly (the flag reaches remove_index/drop_table via inversion)" do
+      migration = Class.new(ActiveRecord::Migration[8.1]) do
+        def change
+          create_table :test_v81_revert, force: true do |t|
+            t.string :name
+          end
+          add_index :test_v81_revert, :name, unique: true, name: :uniq_v81_revert
+        end
+      end
+
+      deprecator = ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator
+      deprecator.silence { migration.migrate(:up) }
+      expect(@conn.unique_constraints(:test_v81_revert).map(&:name)).to include("uniq_v81_revert")
+
+      expect {
+        deprecator.silence { migration.migrate(:down) }
+      }.not_to raise_error
+      expect(@conn.table_exists?(:test_v81_revert)).to be false
+    ensure
+      schema_define { drop_table :test_v81_revert, if_exists: true }
+    end
+  end
+
+  describe "Migration[7.0] (resolves to the V8_1 behavior, below the 8.1 boundary)" do
+    it "creates the implicit UNIQUE constraint and emits the deprecation warning" do
+      expect {
+        migrate_up(ActiveRecord::Migration[7.0]) do
+          add_index :test_compat_warn, :first_name, unique: true, name: :uniq_v70
+        end
+      }.to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_compat_warn).map(&:name)).to include("uniq_v70")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).to include("uniq_v70")
+    end
+  end
+
+  describe "the add_index_unique_creates_constraint setting" do
+    around(:each) do |example|
+      adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter
+      previous = adapter.add_index_unique_creates_constraint
+      example.run
+    ensure
+      adapter.add_index_unique_creates_constraint = previous
+    end
+
+    it "creates the implicit constraint when the flag is true even under Migration[8.2]" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = true
+
+      expect {
+        migrate_up(ActiveRecord::Migration[8.2]) do
+          add_index :test_compat_warn, :first_name, unique: true, name: :uniq_flag_override
+        end
+      }.to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).to include("uniq_flag_override")
+    end
+
+    it "creates no constraint and does not warn when the setting is false, even under Migration[8.1]" do
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = false
+
+      expect {
+        migrate_up(ActiveRecord::Migration[8.1]) do
+          add_index :test_compat_warn, :first_name, unique: true, name: :uniq_flag_off
+        end
+      }.not_to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_compat_warn).map(&:name)).to include("uniq_flag_off")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).not_to include("uniq_flag_off")
+    end
+  end
+
+  describe "Migration[8.1] on the remaining create and change forms" do
+    # These examples check the constraint, not the warning that comes with it.
+    around(:each) do |example|
+      ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence { example.run }
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_cw, if_exists: true
+        drop_table :test_cw_join, if_exists: true
+      end
+    end
+
+    it "names the constraint after the index when add_index has no name" do
+      migrate_up(ActiveRecord::Migration[8.1]) do
+        add_index :test_compat_warn, :first_name, unique: true
+      end
+
+      index_name = @conn.indexes(:test_compat_warn).detect(&:unique).name
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).to include(index_name)
+    end
+
+    it "creates the constraint for t.references index: { unique: true } inside create_table" do
+      migrate_up(ActiveRecord::Migration[8.1]) do
+        create_table :test_cw do |t|
+          t.references :author, index: { unique: true }
+        end
+      end
+
+      index_name = @conn.indexes(:test_cw).detect(&:unique).name
+      expect(@conn.unique_constraints(:test_cw).map(&:name)).to include(index_name)
+    end
+
+    it "uses the Rails index name for a polymorphic add_reference" do
+      migrate_up(ActiveRecord::Migration[8.1]) do
+        create_table :test_cw
+        add_reference :test_cw, :author, polymorphic: true, index: { unique: true }
+      end
+
+      expect(@conn.indexes(:test_cw).map(&:name)).to include("index_test_cw_on_author")
+      expect(@conn.unique_constraints(:test_cw).map(&:name)).to include("index_test_cw_on_author")
+    end
+
+    it "uses the Rails index name for a polymorphic t.references inside change_table" do
+      migrate_up(ActiveRecord::Migration[8.1]) do
+        create_table :test_cw
+        change_table :test_cw do |t|
+          t.references :owner, polymorphic: true, index: { unique: true }
+        end
+      end
+
+      expect(@conn.unique_constraints(:test_cw).map(&:name)).to include("index_test_cw_on_owner")
+    end
+
+    it "skips the constraint together with an existing index on add_index if_not_exists: true" do
+      migration = Class.new(ActiveRecord::Migration[8.1]) do
+        def change
+          add_index :test_compat_warn, :first_name, unique: true, name: :uniq_v81_ine, if_not_exists: true
+        end
+      end
+
+      ActiveRecord::Migration.suppress_messages { migration.migrate(:up) }
+      expect { ActiveRecord::Migration.suppress_messages { migration.migrate(:up) } }.not_to raise_error
+
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name).count("uniq_v81_ine")).to eq 1
+    end
+
+    it "leaves an existing table alone on create_table if_not_exists: true" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.1]) do
+          create_table :test_compat_warn, if_not_exists: true do |t|
+            t.string :extra
+            t.index :extra, unique: true, name: :uniq_v81_ine_tbl
+          end
+        end
+      }.not_to raise_error
+
+      expect(@conn.columns(:test_compat_warn).map(&:name)).not_to include("extra")
+      expect(@conn.unique_constraints(:test_compat_warn).map(&:name)).not_to include("uniq_v81_ine_tbl")
+    end
+
+    it "applies table_name_prefix to the constraint" do
+      ActiveRecord::Base.table_name_prefix = "pre_"
+      migrate_up(ActiveRecord::Migration[8.1]) do
+        create_table :cw_prefixed do |t|
+          t.string :code
+        end
+        add_index :cw_prefixed, :code, unique: true, name: :uniq_v81_pre
+      end
+
+      expect(@conn.unique_constraints("pre_cw_prefixed").map(&:name)).to include("uniq_v81_pre")
+    ensure
+      ActiveRecord::Base.table_name_prefix = ""
+      @conn.drop_table "pre_cw_prefixed", if_exists: true
+    end
+
+    it "migrates change_table { t.index } and { t.references } down again" do
+      migration = Class.new(ActiveRecord::Migration[8.1]) do
+        def change
+          create_table :test_cw do |t|
+            t.string :code
+          end
+          change_table :test_cw do |t|
+            t.index :code, unique: true, name: :uniq_v81_chg_down
+            t.references :author, index: { unique: true, name: :uniq_v81_ref_down }
+          end
+        end
+      end
+
+      ActiveRecord::Migration.suppress_messages { migration.migrate(:up) }
+      expect(@conn.unique_constraints(:test_cw).map(&:name)).to include("uniq_v81_chg_down", "uniq_v81_ref_down")
+
+      expect { ActiveRecord::Migration.suppress_messages { migration.migrate(:down) } }.not_to raise_error
+      expect(@conn.table_exists?(:test_cw)).to be false
+    end
+  end
+
+  describe "Migration[8.2] on the remaining create and change forms" do
+    after(:each) do
+      schema_define do
+        drop_table :test_cw, if_exists: true
+        drop_table :test_cw_join, if_exists: true
+      end
+    end
+
+    it "creates no constraint for inline t.index inside create_join_table" do
+      expect {
+        migrate_up(ActiveRecord::Migration[8.2]) do
+          create_join_table :cats, :dogs, table_name: :test_cw_join do |t|
+            t.index :cat_id, unique: true, name: :uniq_v82_join
+          end
+        end
+      }.not_to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.unique_constraints(:test_cw_join).map(&:name)).not_to include("uniq_v82_join")
+    end
+
+    it "creates no constraint for t.references index: { unique: true } inside change_table" do
+      migrate_up(ActiveRecord::Migration[8.2]) do
+        create_table :test_cw
+        change_table :test_cw do |t|
+          t.references :author, index: { unique: true, name: :uniq_v82_chg_ref }
+        end
+      end
+
+      expect(@conn.indexes(:test_cw).map(&:name)).to include("uniq_v82_chg_ref")
+      expect(@conn.unique_constraints(:test_cw).map(&:name)).not_to include("uniq_v82_chg_ref")
+    end
+  end
+
+  describe "schema loads" do
+    after(:each) do
+      schema_define { drop_table :test_cw, if_exists: true }
+    end
+
+    it "replays an ActiveRecord::Schema[8.1] file as written, with the constraint and the warning" do
+      expect {
+        ActiveRecord::Migration.suppress_messages do
+          ActiveRecord::Schema[8.1].define do
+            create_table :test_cw, force: true do |t|
+              t.string :code
+              t.index :code, unique: true, name: :uniq_s81
+            end
+          end
+        end
+      }.to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.unique_constraints(:test_cw).map(&:name)).to include("uniq_s81")
+    end
+
+    it "creates no constraint from an ActiveRecord::Schema[8.2] file" do
+      expect {
+        ActiveRecord::Migration.suppress_messages do
+          ActiveRecord::Schema[8.2].define do
+            create_table :test_cw, force: true do |t|
+              t.string :code
+              t.index :code, unique: true, name: :uniq_s82
+            end
+          end
+        end
+      }.not_to output(/implicit named UNIQUE constraint/).to_stderr
+
+      expect(@conn.indexes(:test_cw).map(&:name)).to include("uniq_s82")
+      expect(@conn.unique_constraints(:test_cw).map(&:name)).not_to include("uniq_s82")
+    end
+  end
+end
