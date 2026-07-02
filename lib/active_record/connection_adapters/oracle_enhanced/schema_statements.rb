@@ -231,6 +231,8 @@ module ActiveRecord
             raise ArgumentError, "Options `:force` and `:if_not_exists` cannot be used simultaneously."
           end
 
+          implicit_unique_constraint = options.delete(:_implicit_unique_constraint)
+
           identity = options[:identity]
           validate_identity_options!(identity, id, primary_key)
           validate_primary_key_trigger_options!(options[:primary_key_trigger], identity, id, primary_key)
@@ -250,7 +252,7 @@ module ActiveRecord
             yield td if block_given?
           end
 
-          add_inline_unique_constraints(table_name, captured_td)
+          add_inline_unique_constraints(table_name, captured_td, implicit_unique_constraint)
 
           create_pk_sequence(table_name, options) if should_create_sequence?(captured_td, id, identity)
           create_pk_trigger(table_name, primary_key, options) if options[:primary_key_trigger]
@@ -263,8 +265,11 @@ module ActiveRecord
           end
           schema_cache.clear_data_source_cache!(table_name.to_s)
           schema_cache.clear_data_source_cache!(new_name.to_s)
+          identity_pk = identity_pk?(table_name)
           execute "RENAME #{quote_table_name(table_name)} TO #{quote_table_name(new_name)}"
-          execute "RENAME #{default_sequence_name(table_name, nil)} TO #{default_sequence_name(new_name, nil)}" rescue nil
+          unless identity_pk
+            execute "RENAME #{default_sequence_name(table_name, nil)} TO #{default_sequence_name(new_name, nil)}" rescue nil
+          end
           rename_pk_trigger(table_name, new_name)
           clear_table_caches(table_name)
           clear_table_caches(new_name)
@@ -273,6 +278,8 @@ module ActiveRecord
         end
 
         def drop_table(*table_names, **options) # :nodoc:
+          # Arrives via CommandRecorder inversions of V8_1-flagged create_table calls.
+          options.delete(:_implicit_unique_constraint)
           # :sequence_name names a single sequence, so it cannot unambiguously
           # apply across multiple tables; honor it only for single-table drops.
           custom_sequence_name = table_names.size == 1 ? options[:sequence_name] : nil
@@ -281,10 +288,13 @@ module ActiveRecord
 
           table_names.each do |table_name|
             schema_cache.clear_data_source_cache!(table_name.to_s)
-            seq_name = custom_sequence_name || default_sequence_name(table_name, nil)
+            # Identity-backed tables never carry a default `<table>_seq`, so
+            # skip the sequence drop entirely on those. `identity_pk?` must
+            # run before the table drop, while the table is still present.
+            seq_name = custom_sequence_name || (identity_pk?(table_name) ? nil : default_sequence_name(table_name, nil))
 
             drop_if_exists("TABLE", table_name, cascade_constraints: cascade, if_exists: if_exists)
-            drop_if_exists("SEQUENCE", seq_name, if_exists: true)
+            drop_if_exists("SEQUENCE", seq_name, if_exists: true) if seq_name
           ensure
             clear_table_caches(table_name)
           end
@@ -303,13 +313,14 @@ module ActiveRecord
         end
 
         def add_index(table_name, column_name, **options) # :nodoc:
+          implicit_unique_constraint = options.delete(:_implicit_unique_constraint)
           create_index = build_create_index_definition(table_name, column_name, **options)
           return unless create_index
 
           execute schema_creation.accept(create_index)
 
           index = create_index.index
-          if needs_unique_constraint?(index.unique, index.columns) && OracleEnhancedAdapter.add_index_unique_creates_constraint
+          if needs_unique_constraint?(index.unique, index.columns) && implicit_unique_constraint_active?(implicit_unique_constraint)
             warn_implicit_unique_constraint_deprecation
             execute add_unique_constraint_sql(index.table, index.columns, index.name)
           end
@@ -355,6 +366,8 @@ module ActiveRecord
         # Remove the given index from the table.
         # Gives warning if index does not exist
         def remove_index(table_name, column_name = nil, **options) # :nodoc:
+          # Arrives via CommandRecorder inversions of V8_1-flagged add_index calls.
+          options.delete(:_implicit_unique_constraint)
           return if options[:if_exists] && !index_exists?(table_name, column_name, **options)
 
           index_name = index_name_for_remove(table_name, column_name, options).to_s
@@ -1231,6 +1244,18 @@ module ActiveRecord
             code && message.include?(code)
           end
 
+          # True when +table_name+ exists and its primary key column is an Oracle
+          # identity column. Returns false when the table is not present (e.g.
+          # +drop_table if_exists:+ for a missing table) or when the database does
+          # not support identity columns.
+          def identity_pk?(table_name)
+            return false unless supports_identity_columns?
+            owner, desc_table_name = resolve_data_source_name(table_name)
+            identity_primary_key?(owner, desc_table_name)
+          rescue OracleEnhanced::ConnectionException
+            false
+          end
+
           def index_column_names(column_names) # :nodoc:
             column_names.is_a?(Array) ? column_names : Array(column_names)
           end
@@ -1245,31 +1270,45 @@ module ActiveRecord
             "ALTER TABLE #{quote_table_name(table_name)} ADD CONSTRAINT #{quote_column_name(index_name)} UNIQUE (#{quoted_cols}) USING INDEX #{quote_column_name(index_name)}"
           end
 
-          def add_inline_unique_constraints(table_name, td)
+          def add_inline_unique_constraints(table_name, td, implicit_unique_constraint = false)
             td.indexes.each do |column_name, index_options|
               next unless needs_unique_constraint?(index_options[:unique], column_name)
-              next unless OracleEnhancedAdapter.add_index_unique_creates_constraint
+              next unless implicit_unique_constraint_active?(implicit_unique_constraint)
               warn_implicit_unique_constraint_deprecation
               inline_index_name = index_options[:name]&.to_s || index_name(table_name, column: index_column_names(column_name))
               execute add_unique_constraint_sql(table_name, column_name, inline_index_name)
             end
           end
 
+          # Implicit UNIQUE CONSTRAINT creation for `add_index unique: true`
+          # is gated by:
+          #
+          # * the global flag `add_index_unique_creates_constraint` (explicit
+          #   user opt-in), OR
+          # * the `_implicit_unique_constraint` flag set by the V8_1
+          #   compatibility behavior while a Migration[8.1] or earlier
+          #   migration is running (pre-Phase 2 default preserved).
+          #
+          # In Phase 2, the global flag defaults to `false`, so callers
+          # outside the V8_1 path (Migration[8.2]+, Schema.define, direct
+          # adapter calls) skip the implicit constraint by default.
+          def implicit_unique_constraint_active?(flag)
+            OracleEnhancedAdapter.add_index_unique_creates_constraint || flag == true
+          end
+
           def warn_implicit_unique_constraint_deprecation
             OracleEnhanced.deprecator.warn(<<~MSG)
               add_index :col, unique: true creates an implicit named UNIQUE constraint on Oracle,
-              in addition to the unique index. This implicit-constraint behavior will be removed
-              in a future oracle-enhanced release.
+              in addition to the unique index, because this migration replays the pre-8.2
+              behavior: it declares ActiveRecord::Migration[8.1] or earlier, or
+              `add_index_unique_creates_constraint` is enabled globally. This
+              implicit-constraint behavior will be removed in a future oracle-enhanced release.
 
-              To silence this warning, set the flag in an initializer:
-
-                ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = false
-
-              After setting the flag, choose the path that matches your intent:
+              Choose the path that matches your intent:
 
               * Unique INDEX only (typical when foreign keys reference primary keys):
-                no migration changes needed — add_index :col, unique: true keeps creating
-                the unique index, just without the extra UNIQUE CONSTRAINT.
+                declare the migration as ActiveRecord::Migration[8.2] or later —
+                add_index :col, unique: true then creates only the unique index.
 
               * Unique INDEX + UNIQUE CONSTRAINT (needed when this column is a non-PK
                 foreign-key target, which Oracle only allows against named constraints):
@@ -1277,6 +1316,12 @@ module ActiveRecord
                 its backing unique index in one call, e.g.
 
                   add_unique_constraint :sections, :position, name: :uniq_position
+
+              * If this warning comes from the global flag, remove
+
+                  ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = true
+
+                from your initializer.
             MSG
           end
 
