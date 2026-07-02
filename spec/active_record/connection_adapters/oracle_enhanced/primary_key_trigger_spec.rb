@@ -33,7 +33,7 @@ RSpec.describe "primary_key_trigger" do
   describe "without primary_key_trigger: option" do
     it "creates a sequence-backed primary key without a trigger" do
       schema_define do
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
         end
       end
@@ -153,7 +153,7 @@ RSpec.describe "primary_key_trigger" do
 
       schema_define do
         drop_table :test_pk_triggers
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
         end
       end
@@ -162,7 +162,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "is invalidated when a sequence-backed table is dropped and recreated as trigger-backed" do
       schema_define do
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
         end
       end
@@ -242,7 +242,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "does not emit primary_key_trigger: true for plain sequence-backed tables" do
       schema_define do
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
         end
       end
@@ -271,7 +271,7 @@ RSpec.describe "primary_key_trigger" do
       ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include('create_table "test_pk_triggers"')
-      expect(stream.string).to include("identity: true")
+      expect(stream.string).not_to include("identity:")
       expect(stream.string).not_to include("primary_key_trigger")
     end
 
@@ -437,7 +437,7 @@ RSpec.describe "primary_key_trigger" do
   describe "manual trigger creation via raw DDL" do
     it "accepts the PL/SQL block syntax for CREATE OR REPLACE TRIGGER" do
       schema_define do
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
         end
       end
@@ -472,7 +472,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "reports false for a plain sequence-backed primary key" do
       schema_define do
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
         end
       end
@@ -483,7 +483,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "reports false when only an unrelated BEFORE INSERT trigger exists" do
       schema_define do
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
           t.string :note
         end
@@ -516,7 +516,7 @@ RSpec.describe "primary_key_trigger" do
   describe "trigger_backed_primary_key? false-positive guard" do
     it "ignores BEFORE INSERT row triggers that do not fill the PK from a sequence" do
       schema_define do
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
           t.string :note
         end
@@ -535,7 +535,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "does not emit primary_key_trigger: in the schema dump for those tables" do
       schema_define do
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
           t.string :note
         end
@@ -622,7 +622,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "does not touch any trigger when the table has no primary_key_trigger" do
       schema_define do
-        create_table :test_pk_triggers do |t|
+        create_table :test_pk_triggers, identity: false do |t|
           t.string :name
         end
       end
