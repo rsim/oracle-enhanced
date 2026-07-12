@@ -7,7 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  gem "activerecord",   github: "rails/rails", branch: "main"
+  # rails/rails#58162 (branch per-adapter-migration-compatibility) adds
+  # compatibility_behavior_for; point at that branch until it lands on main
+  gem "activerecord",   github: "rails/rails", branch: "per-adapter-migration-compatibility"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
