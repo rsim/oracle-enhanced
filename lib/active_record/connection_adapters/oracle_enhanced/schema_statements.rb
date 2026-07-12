@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "openssl"
+require "active_record/connection_adapters/oracle_enhanced/compatibility_behavior"
 
 module ActiveRecord
   module ConnectionAdapters
@@ -9,6 +10,10 @@ module ActiveRecord
         # SCHEMA STATEMENTS ========================================
         #
         # see: abstract/schema_statements.rb
+
+        def compatibility_behavior_for(migration_class) # :nodoc:
+          OracleEnhanced::CompatibilityBehavior.for(migration_class)
+        end
 
         def tables # :nodoc:
           select_values(<<~SQL.squish, "SCHEMA")
