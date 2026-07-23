@@ -12,10 +12,10 @@ jobs:
       matrix:
         ruby: [
           '4.0',
-          'jruby-10.1.0.0',
+          'jruby-10.1.1.0',
         ]
         include:
-          - ruby: 'jruby-10.1.0.0'
+          - ruby: 'jruby-10.1.1.0'
             jruby_opts: '--dev'
     env:
       CI: true

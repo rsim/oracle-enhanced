@@ -37,7 +37,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 'jruby-10.1.0.0'
+          ruby-version: 'jruby-10.1.1.0'
           rubygems: latest
       - name: Build gem
         run: gem build activerecord-oracle_enhanced-adapter.gemspec
