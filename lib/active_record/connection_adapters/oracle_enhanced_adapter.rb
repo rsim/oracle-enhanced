@@ -848,7 +848,9 @@ module ActiveRecord
 end
 
 # Workaround for https://github.com/jruby/jruby/issues/6267
-if RUBY_ENGINE == "jruby"
+# JRuby implements ObjectSpace::WeakMap#values natively since 9.4, where the
+# internal `map` field this workaround reads does not exist anymore.
+if RUBY_ENGINE == "jruby" && !ObjectSpace::WeakMap.method_defined?(:values)
   require "jruby"
 
   class org.jruby::RubyObjectSpace::WeakMap
