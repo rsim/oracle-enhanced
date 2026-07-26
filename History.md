@@ -1,3 +1,11 @@
+## 7.2.1 / 2026-07-26
+
+* Changes and bug fixes
+  * Accept `allow_retry` keyword argument in JDBC connection `exec`
+  * Add `reset` method to JDBC connection
+  * Skip `ObjectSpace::WeakMap` workaround on JRuby that implements `#values`
+  * Run tests on JRuby 9.4.15.0
+
 ## 7.2.0 / 2025-06-23
 
 * Changes and bug fixes
