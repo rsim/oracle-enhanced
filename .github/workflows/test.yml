@@ -14,15 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         # Rails 7.2 requires Ruby 3.1 or higeher.
-        # CI pending the following matrix until JRuby 9.4 that supports Ruby 2.7 will be released.
-        # https://github.com/jruby/jruby/issues/6464
-        # - jruby,
-        # - jruby-head
         ruby: [
           '3.4',
           '3.3',
           '3.2',
           '3.1',
+          'jruby-9.4.15.0',
         ]
     env:
       ORACLE_HOME: /opt/oracle/instantclient_23_8
@@ -50,6 +47,12 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Java
+        if: startsWith(matrix.ruby, 'jruby')
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -68,10 +71,15 @@ jobs:
       - name: Install JDBC Driver
         run: |
           wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar
+          # the adapter looks the driver up in ./lib, in the load path and in PATH,
+          # so add ./lib to PATH to make it findable from other directories as well
+          echo "$PWD/lib" >> $GITHUB_PATH
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
       - name: Update RubyGems
+        # JRuby ships its own RubyGems version, do not replace it
+        if: ${{ !startsWith(matrix.ruby, 'jruby') }}
         run: |
           gem update --system
       - name: Bundle install
