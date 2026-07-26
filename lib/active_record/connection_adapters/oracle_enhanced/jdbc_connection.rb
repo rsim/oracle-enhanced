@@ -249,8 +249,8 @@ module ActiveRecord
         end
 
         # mark connection as dead if connection lost
-        def with_retry(&block)
-          should_retry = auto_retry? && autocommit?
+        def with_retry(allow_retry: false, &block)
+          should_retry = (allow_retry || auto_retry?) && autocommit?
           begin
             yield if block_given?
           rescue Java::JavaSql::SQLException => e
@@ -263,8 +263,8 @@ module ActiveRecord
           end
         end
 
-        def exec(sql)
-          with_retry do
+        def exec(sql, allow_retry: false)
+          with_retry(allow_retry: allow_retry) do
             exec_no_retry(sql)
           end
         end
