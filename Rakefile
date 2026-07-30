@@ -36,10 +36,10 @@ rescue LoadError
   # The Gemfile bundles rdoc only on platforms :ruby; skip the RDoc task without it
 else
   Rake::RDocTask.new do |rdoc|
-    version = File.exist?("VERSION") ? File.read("VERSION") : ""
+    spec = Bundler::GemHelper.gemspec
 
     rdoc.rdoc_dir = "doc"
-    rdoc.title = "activerecord-oracle_enhanced-adapter #{version}"
+    rdoc.title = "#{spec.name} #{spec.version}"
     rdoc.rdoc_files.include("README*")
     rdoc.rdoc_files.include("lib/**/*.rb")
   end
