@@ -30,12 +30,17 @@ task spec: :clear
 
 task default: :spec
 
-require "rdoc/task"
-Rake::RDocTask.new do |rdoc|
-  version = File.exist?("VERSION") ? File.read("VERSION") : ""
+begin
+  require "rdoc/task"
+rescue LoadError
+  # The Gemfile bundles rdoc only on platforms :ruby; skip the RDoc task without it
+else
+  Rake::RDocTask.new do |rdoc|
+    version = File.exist?("VERSION") ? File.read("VERSION") : ""
 
-  rdoc.rdoc_dir = "doc"
-  rdoc.title = "activerecord-oracle_enhanced-adapter #{version}"
-  rdoc.rdoc_files.include("README*")
-  rdoc.rdoc_files.include("lib/**/*.rb")
+    rdoc.rdoc_dir = "doc"
+    rdoc.title = "activerecord-oracle_enhanced-adapter #{version}"
+    rdoc.rdoc_files.include("README*")
+    rdoc.rdoc_files.include("lib/**/*.rb")
+  end
 end
