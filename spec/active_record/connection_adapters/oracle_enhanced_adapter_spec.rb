@@ -832,6 +832,12 @@ RSpec.describe "OracleEnhancedAdapter" do
       expect(explain.inspect).to include("Cost")
       expect(explain.inspect).to include("INDEX UNIQUE SCAN").or include("TABLE ACCESS FULL")
     end
+
+    # Arel input carries its binds in the AST; parity with rails/rails#58311.
+    it "should explain query built from Arel with binds in the AST" do
+      explain = ActiveRecord::Base.lease_connection.explain(TestPost.where(id: 1).arel)
+      expect(explain).to include("Cost")
+    end
   end
 
   describe "using offset and limit" do

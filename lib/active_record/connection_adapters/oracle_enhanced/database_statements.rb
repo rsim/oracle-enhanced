@@ -28,8 +28,9 @@ module ActiveRecord
           true
         end
 
-        def explain(arel, binds = [], options = []) # :nodoc:
-          sql = "EXPLAIN PLAN FOR #{to_sql(arel)}"
+        def explain(arel_or_sql, binds = [], options = []) # :nodoc:
+          sql, binds = to_sql_and_binds(arel_or_sql, binds)
+          sql = "EXPLAIN PLAN FOR #{sql}"
           return if sql.include?("FROM all_")
           if ORACLE_ENHANCED_CONNECTION == :jdbc
             exec_query(sql, "EXPLAIN", binds)
