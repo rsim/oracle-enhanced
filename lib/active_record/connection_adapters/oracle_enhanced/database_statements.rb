@@ -49,7 +49,15 @@ module ActiveRecord
           raw_sql = intent.raw_sql
           original_binds_count = intent.binds.size
           requested_cols = requested_returning_columns(raw_sql, returning)
-          sql, binds = sql_for_insert(raw_sql, intent.binds, returning)
+          # Binds compiled from `Arel.sql("... ?", value)` are plain values, not
+          # named attributes (rails/rails#58323), so no requested column can be
+          # echoed from them; every requested column goes through RETURNING.
+          echoable_cols = if intent.arel.is_a?(Arel::Nodes::BoundSqlLiteral)
+            []
+          else
+            requested_cols.select { |col| intent.binds.any? { |bind| bind.name == col } }
+          end
+          sql, binds = sql_for_insert(raw_sql, intent.binds, requested_cols - echoable_cols)
           intent.raw_sql = sql
           intent.binds = binds
 
@@ -99,7 +107,7 @@ module ActiveRecord
                   if returned.key?(col)
                     returned[col]
                   else
-                    index = binds[0...original_binds_count].index { |bind| bind.name == col }
+                    index = binds[0...original_binds_count].index { |bind| bind.name == col } if echoable_cols.include?(col)
                     index && type_casted_binds[index]
                   end
                 end
@@ -289,17 +297,18 @@ module ActiveRecord
             result[:affected_rows_count]
           end
 
-          def sql_for_insert(sql, binds, returning) # :nodoc:
+          # `returning_cols` is the resolved column list computed by `_exec_insert`
+          # (the requested RETURNING columns minus those it can echo from binds);
+          # nil keeps AbstractAdapter parity for direct callers and infers the pk.
+          def sql_for_insert(sql, binds, returning_cols) # :nodoc:
+            returning_cols = requested_returning_columns(sql, returning_cols) if returning_cols.nil?
             table_ref = extract_table_ref_from_insert_sql(sql)
-            # Skip RETURNING only for columns `_exec_insert` can echo from binds;
-            # literal-carried values (unprepared statements, DEFAULT) are fetched back via RETURNING.
-            cols = requested_returning_columns(sql, returning).reject { |col| binds.any? { |bind| bind.name == col } }
-            unless cols.empty?
-              quoted_cols = cols.map { |c| quote_column_name(c) }.join(", ")
-              placeholders = cols.map { |c| ":returning_#{c}" }.join(", ")
+            unless returning_cols.empty?
+              quoted_cols = returning_cols.map { |c| quote_column_name(c) }.join(", ")
+              placeholders = returning_cols.map { |c| ":returning_#{c}" }.join(", ")
               sql = "#{sql} RETURNING #{quoted_cols} INTO #{placeholders}"
               binds = binds.dup
-              cols.each do |col|
+              returning_cols.each do |col|
                 column = table_ref ? columns(table_ref).find { |c| c.name == col } : nil
                 type = column&.cast_type || Type::OracleEnhanced::Integer.new
                 binds << ActiveRecord::Relation::QueryAttribute.new("returning_#{col}", nil, type)
