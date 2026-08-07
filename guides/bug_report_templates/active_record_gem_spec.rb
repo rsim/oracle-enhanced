@@ -2,12 +2,23 @@
 
 require "bundler/inline"
 
+# Mirror the checkout's pinned Rails ref so the template exercises the same
+# Rails the specs are verified against; standalone copies fall back to main.
+oracle_enhanced_root = ENV["ORACLE_ENHANCED_PATH"] || File.expand_path("../..", __dir__)
+gemfile_path = File.join(oracle_enhanced_root, "Gemfile")
+rails_ref = File.exist?(gemfile_path) &&
+  File.read(gemfile_path)[/gem "activerecord",\s+github: "rails\/rails", ref: "(\h{40})"/, 1]
+
 gemfile(true) do
   source "https://rubygems.org"
 
   git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-  gem "activerecord", github: "rails/rails", branch: "main"
+  if rails_ref
+    gem "activerecord", github: "rails/rails", ref: rails_ref
+  else
+    gem "activerecord", github: "rails/rails", branch: "main"
+  end
   # CI sets ORACLE_ENHANCED_PATH to run the template against the checkout under test
   if ENV["ORACLE_ENHANCED_PATH"]
     gem "activerecord-oracle_enhanced-adapter", path: ENV["ORACLE_ENHANCED_PATH"]
