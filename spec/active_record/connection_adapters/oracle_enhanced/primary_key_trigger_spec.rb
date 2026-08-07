@@ -324,14 +324,14 @@ RSpec.describe "primary_key_trigger" do
     end
 
     it "returns the generated id from connection.insert" do
-      insert_id = Array(@conn.insert("INSERT INTO test_pk_triggers (name) VALUES ('alpha')", nil, "id")).first
+      insert_id = @conn.insert("INSERT INTO test_pk_triggers (name) VALUES ('alpha')", nil, returning: "id")
       expect(@conn.select_value("SELECT test_pk_triggers_seq.currval FROM dual")).to eq(insert_id)
     end
 
     it "does not raise NoMethodError for :returning_id Symbol when logging" do
       set_logger
       @conn.reconnect! unless @conn.active?
-      @conn.insert("INSERT INTO test_pk_triggers (name) VALUES ('alpha')", nil, "id")
+      @conn.insert("INSERT INTO test_pk_triggers (name) VALUES ('alpha')", nil, returning: "id")
       expect(@logger.output(:error)).not_to match(/Could not log .*NoMethodError.*returning_id/)
       clear_logger
     end

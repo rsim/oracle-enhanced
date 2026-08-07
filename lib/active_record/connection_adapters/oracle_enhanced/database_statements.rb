@@ -44,15 +44,11 @@ module ActiveRecord
           # https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/EXPLAIN-PLAN.html#GUID-FD540872-4ED3-4936-96A2-362539931BA0
         end
 
-        def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [], returning: nil)
-          pk = nil if id_value
-          Array(super || id_value)
-        end
-
-        def _exec_insert(intent, pk = nil, sequence_name = nil, returning: nil) # :nodoc:
+        def _exec_insert(intent, sequence_name = nil, returning: nil) # :nodoc:
           raw_sql = intent.raw_sql
           original_binds_count = intent.binds.size
-          sql, binds = sql_for_insert(raw_sql, pk, intent.binds, returning)
+          requested_cols = requested_returning_columns(raw_sql, returning)
+          sql, binds = sql_for_insert(raw_sql, intent.binds, returning)
           intent.raw_sql = sql
           intent.binds = binds
 
@@ -89,12 +85,24 @@ module ActiveRecord
               end
 
               rows = []
-              unless bind_specs.empty?
-                values = bind_specs.map do |position, klass|
+              unless requested_cols.empty?
+                returned = {}
+                bind_specs.each do |position, klass|
                   value = cursor.get_returning_param(position, klass)
-                  klass == Integer ? value.to_i : value
+                  col = binds[position - 1].name.delete_prefix("returning_")
+                  returned[col] = klass == Integer ? value.to_i : value
                 end
-                rows << values
+                # Align the row with the requested columns, echoing bound values
+                # for columns the INSERT already carries (e.g. the prefetched sequence PK).
+                row = requested_cols.map do |col|
+                  if returned.key?(col)
+                    returned[col]
+                  else
+                    index = binds[0...original_binds_count].index { |bind| bind.name == col }
+                    index && type_casted_binds[index]
+                  end
+                end
+                rows << row unless row.all?(&:nil?)
               end
               cursor.close unless cached
               build_result(columns: [], rows: rows)
@@ -280,14 +288,11 @@ module ActiveRecord
             result[:affected_rows_count]
           end
 
-          def sql_for_insert(sql, pk, binds, returning) # :nodoc:
+          def sql_for_insert(sql, binds, returning) # :nodoc:
             table_ref = extract_table_ref_from_insert_sql(sql)
-            # Mirror AbstractAdapter#sql_for_insert: when caller passes pk: nil,
-            # infer the primary key from the SQL via the schema cache so that
-            # generic `connection.exec_insert(sql, name, binds)` callers also
-            # benefit from RETURNING auto-fetch.
-            pk = schema_cache.primary_keys(table_ref) if pk.nil? && table_ref
-            cols = columns_for_returning_clause(sql, pk, binds, returning)
+            # Skip RETURNING only for columns `_exec_insert` can echo from binds;
+            # literal-carried values (unprepared statements, DEFAULT) are fetched back via RETURNING.
+            cols = requested_returning_columns(sql, returning).reject { |col| binds.any? { |bind| bind.name == col } }
             unless cols.empty?
               quoted_cols = cols.map { |c| quote_column_name(c) }.join(", ")
               placeholders = cols.map { |c| ":returning_#{c}" }.join(", ")
@@ -303,25 +308,14 @@ module ActiveRecord
             [sql, binds]
           end
 
-          def columns_for_returning_clause(sql, pk, binds, returning)
-            cols = if returning.is_a?(Array) && !returning.empty?
-              returning.map(&:to_s)
-            elsif pk.is_a?(Array)
-              pk.map(&:to_s)
-            elsif pk.is_a?(Symbol) || pk.is_a?(String)
-              [pk.to_s]
-            else
-              []
+          # Mirrors AbstractAdapter#sql_for_insert: infer the primary key from the
+          # SQL via the schema cache when the caller passes returning: nil.
+          def requested_returning_columns(sql, returning)
+            if returning.nil?
+              table_ref = extract_table_ref_from_insert_sql(sql)
+              returning = schema_cache.primary_keys(table_ref) if table_ref
             end
-            cols.reject do |col|
-              next true if binds.any? { |bind| bind.name == col }
-              # The all-defaults form (`VALUES (DEFAULT)` for single PK,
-              # `VALUES (DEFAULT, DEFAULT, ...)` for composite PK) needs RETURNING
-              # to read back the database-generated values, so do not let the
-              # column-list rejection below drop these columns from RETURNING.
-              next false if sql.match?(/VALUES\s*\(\s*DEFAULT(?:\s*,\s*DEFAULT)*\s*\)/i)
-              sql.include?(quote_column_name(col))
-            end
+            Array(returning).map(&:to_s)
           end
 
           # Identify the trailing binds appended by `sql_for_insert` by position, not by name,
@@ -332,10 +326,6 @@ module ActiveRecord
               klass = binds[i].type.is_a?(ActiveModel::Type::String) ? String : Integer
               [i + 1, klass]
             end
-          end
-
-          def returning_column_values(result)
-            result.rows.first
           end
 
           def perform_query(raw_connection, intent)

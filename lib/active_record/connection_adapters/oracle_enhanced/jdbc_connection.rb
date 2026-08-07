@@ -387,9 +387,8 @@ module ActiveRecord
           def bind_returning_param(position, bind_type)
             @returning_positions ||= []
             @returning_positions << position
-            if bind_type == Integer
-              @raw_statement.registerReturnParameter(position, java.sql.Types::BIGINT)
-            end
+            java_type = bind_type == Integer ? java.sql.Types::BIGINT : java.sql.Types::VARCHAR
+            @raw_statement.registerReturnParameter(position, java_type)
           end
 
           def exec
@@ -450,8 +449,8 @@ module ActiveRecord
             rs = @raw_statement.getReturnResultSet
             if rs.next
               # Assuming that primary key will not be larger as long max value
-              returning_id = rs.getLong(rs_position)
-              rs.wasNull ? nil : returning_id
+              value = type == Integer ? rs.getLong(rs_position) : rs.getString(rs_position)
+              rs.wasNull ? nil : value
             else
               nil
             end

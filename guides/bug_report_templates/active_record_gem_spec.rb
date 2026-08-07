@@ -8,7 +8,12 @@ gemfile(true) do
   git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
   gem "activerecord", github: "rails/rails", branch: "main"
-  gem "activerecord-oracle_enhanced-adapter",  github: "rsim/oracle-enhanced", branch: "master"
+  # CI sets ORACLE_ENHANCED_PATH to run the template against the checkout under test
+  if ENV["ORACLE_ENHANCED_PATH"]
+    gem "activerecord-oracle_enhanced-adapter", path: ENV["ORACLE_ENHANCED_PATH"]
+  else
+    gem "activerecord-oracle_enhanced-adapter", github: "rsim/oracle-enhanced", branch: "master"
+  end
   gem "rspec", require: "rspec/autorun"
 
   platforms :ruby do

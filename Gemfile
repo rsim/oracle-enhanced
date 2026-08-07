@@ -7,7 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  gem "activerecord",   github: "rails/rails", branch: "main"
+  # rails/rails@9b63a64d = merge of rails/rails#58296, the last of the INSERT
+  # reshape PRs this adapter version tracks; bump per follow-up Rails change
+  gem "activerecord",   github: "rails/rails", ref: "9b63a64daa9482111f583c37d1cdb39b0b37bb4a"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
