@@ -328,6 +328,11 @@ RSpec.describe "primary_key_trigger" do
       expect(@conn.select_value("SELECT test_pk_triggers_seq.currval FROM dual")).to eq(insert_id)
     end
 
+    it "returns the generated id when Arel.sql carries the binds" do
+      insert_id = @conn.insert(Arel.sql("INSERT INTO test_pk_triggers (name) VALUES (?)", "alpha"))
+      expect(@conn.select_value("SELECT test_pk_triggers_seq.currval FROM dual")).to eq(insert_id)
+    end
+
     it "does not raise NoMethodError for :returning_id Symbol when logging" do
       set_logger
       @conn.reconnect! unless @conn.active?
