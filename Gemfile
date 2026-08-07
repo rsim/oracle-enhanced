@@ -7,9 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  # rails/rails@d82d391e = merge of rails/rails#58310 (deprecate passing `binds`
-  # to `to_sql`); bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "d82d391e5a2a88fe561bde3ea21249db14368d12"
+  # rails/rails@e8310986 = merge of rails/rails#58311 (fix explain for Arel
+  # input with AST binds); bump per follow-up Rails change
+  gem "activerecord",   github: "rails/rails", ref: "e83109864e42f538ef1e4772d51d849df37cd7da"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
