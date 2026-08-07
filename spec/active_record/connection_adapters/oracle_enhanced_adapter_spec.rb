@@ -216,6 +216,7 @@ RSpec.describe "OracleEnhancedAdapter" do
       end
 
       it "binds the sequence-fetched id into the INSERT and does NOT emit RETURNING" do
+        skip "the bound-value echo needs prepared statements" unless ActiveRecord::Base.lease_connection.prepared_statements
         TestReturningSeqItem.create!(name: "alpha")
         insert_log = @logger.logged(:debug).find { |line| line.include?("INSERT INTO") && line.include?("TEST_RETURNING_SEQ_ITEMS") }
         expect(insert_log).not_to be_nil, "INSERT statement was not logged"
@@ -224,6 +225,19 @@ RSpec.describe "OracleEnhancedAdapter" do
         # a quoted column or `INTO :bind`; avoids false matches on the table
         # name (which contains the substring "RETURNING").
         expect(insert_log).not_to match(/\bRETURNING\b\s+(?:"|INTO\b)/i)
+      end
+
+      # Without prepared statements the sequence-fetched id is inlined into the
+      # SQL, so there is no bind to echo it from; it comes back via RETURNING.
+      it "emits RETURNING for the sequence-fetched id and still returns it when prepared_statements is false" do
+        record = ActiveRecord::Base.lease_connection.unprepared_statement do
+          TestReturningSeqItem.create!(name: "alpha")
+        end
+        expect(record.id).to be_a(Integer)
+        expect(record.id).to be > 0
+        insert_log = @logger.logged(:debug).find { |line| line.include?("INSERT INTO") && line.include?("TEST_RETURNING_SEQ_ITEMS") }
+        expect(insert_log).not_to be_nil, "INSERT statement was not logged"
+        expect(insert_log).to match(/\bRETURNING\b\s+"ID"\s+INTO\b/i)
       end
     end
   end
