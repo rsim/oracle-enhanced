@@ -7,9 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  # rails/rails@9b63a64d = merge of rails/rails#58296, the last of the INSERT
-  # reshape PRs this adapter version tracks; bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "9b63a64daa9482111f583c37d1cdb39b0b37bb4a"
+  # rails/rails@d82d391e = merge of rails/rails#58310 (deprecate passing `binds`
+  # to `to_sql`); bump per follow-up Rails change
+  gem "activerecord",   github: "rails/rails", ref: "d82d391e5a2a88fe561bde3ea21249db14368d12"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
