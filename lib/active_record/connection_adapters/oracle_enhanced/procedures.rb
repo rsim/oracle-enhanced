@@ -186,15 +186,7 @@ module ActiveRecord # :nodoc:
       end
 
       def log_custom_method(sql, name, &block)
-        connection = self.class.lease_connection
-        # Custom create/update/delete blocks call ruby-plsql directly, bypassing
-        # AR's exec path. Flush any buffered BEGIN here so the PL/SQL call lands
-        # inside the materialized transaction.
-        connection.materialize_transactions
-        intent = ActiveRecord::ConnectionAdapters::QueryIntent.new(
-          adapter: connection, raw_sql: sql, name: name, binds: []
-        )
-        connection.send(:log, intent, &block)
+        self.class.lease_connection.instrument_custom_method(sql, name, &block)
       end
 
       alias_method :update_record, :_update_record if private_method_defined?(:_update_record)
