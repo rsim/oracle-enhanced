@@ -7,9 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  # rails/rails@42274c88 = merge of rails/rails#58421 (schema readers answer for
-  # many tables at once); bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "42274c880590c8f05ee553709701ef97dfaa0860"
+  # rails/rails@a6e2d541 = merge of rails/rails#58494 (read the columns of many
+  # tables in one query); bump per follow-up Rails change
+  gem "activerecord",   github: "rails/rails", ref: "a6e2d541ba017ed55ed8e377978fd2678377ac36"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do

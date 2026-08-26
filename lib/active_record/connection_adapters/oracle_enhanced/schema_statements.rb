@@ -94,12 +94,11 @@ module ActiveRecord
         end
 
         def columns(table_name)
-          table_name = table_name.to_s
-          if @columns_cache[table_name]
-            @columns_cache[table_name]
-          else
-            @columns_cache[table_name] = super(table_name)
-          end
+          tables = Array(table_name).map(&:to_s)
+          uncached = tables.reject { |table| @columns_cache[table] }
+          super(uncached).each { |table, columns| @columns_cache[table] = columns } unless uncached.empty?
+          result = tables.index_with { |table| @columns_cache[table] }
+          table_name.is_a?(Array) ? result : result[table_name.to_s]
         end
         # Additional options for +create_table+ method in migration files.
         #
