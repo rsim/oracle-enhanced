@@ -18,9 +18,9 @@ RSpec.describe "OracleEnhancedAdapter" do
           if ActiveRecord::Base.lease_connection.supports_virtual_columns?
             t.virtual :full_name, as: "(first_name || ' ' || last_name)"
           else
-            t.string  :full_name, limit: 46
+            t.string :full_name, limit: 46
           end
-          t.date    :hire_date
+          t.date :hire_date
         end
       end
       schema_define do
@@ -291,7 +291,7 @@ RSpec.describe "OracleEnhancedAdapter" do
     before(:all) do
       schema_define do
         create_table :test_posts do |t|
-          t.string      :title
+          t.string :title
         end
         create_table :test_comments do |t|
           t.integer     :test_post_id
@@ -330,7 +330,7 @@ RSpec.describe "OracleEnhancedAdapter" do
     before(:all) do
       schema_define do
         create_table :test_posts do |t|
-          t.string      :title
+          t.string :title
         end
         create_table :test_comments do |t|
           t.integer     :test_post_id
