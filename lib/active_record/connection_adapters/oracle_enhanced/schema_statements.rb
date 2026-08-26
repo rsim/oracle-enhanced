@@ -89,101 +89,8 @@ module ActiveRecord
         end
 
         def indexes(table_name) # :nodoc:
-          (_owner, table_name) = resolve_data_source_name(table_name)
-          default_tablespace_name = default_tablespace
-
-          # `all_indexes.visibility` was introduced in Oracle 11g R1. Pre-11g
-          # connections do not have the column, so substitute a literal
-          # 'VISIBLE' so the rest of the reader works unchanged.
-          visibility_column = supports_disabling_indexes? ? "i.visibility" : "'VISIBLE' AS visibility"
-          result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
-            SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
-              i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
-              LOWER(i.tablespace_name) AS tablespace_name, #{visibility_column},
-              LOWER(c.column_name) AS column_name, c.descend, e.column_expression,
-              atc.virtual_column
-            FROM all_indexes i
-              JOIN all_ind_columns c ON c.index_name = i.index_name AND c.index_owner = i.owner
-              LEFT OUTER JOIN all_ind_expressions e ON e.index_name = i.index_name AND
-                e.index_owner = i.owner AND e.column_position = c.column_position
-              LEFT OUTER JOIN all_tab_cols atc ON i.table_name = atc.table_name AND
-                c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
-            WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND i.table_name = :table_name
-               AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
-                WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
-            ORDER BY i.index_name, c.column_position
-          SQL
-
-          current_index = nil
-          all_schema_indexes = []
-
-          result.each do |row|
-            # have to keep track of indexes because above query returns dups
-            # there is probably a better query we could figure out
-            if current_index != row["index_name"]
-              statement_parameters = nil
-              if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
-                procedure_name = default_datastore_procedure(row["index_name"])
-                source = select_values(<<~SQL.squish, "SCHEMA", [bind_string("procedure_name", procedure_name.upcase)]).join
-                  SELECT text
-                  FROM all_source
-                  WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-                    AND name = :procedure_name
-                  ORDER BY line
-                SQL
-                if source =~ /-- add_context_index_parameters (.+)\n/
-                  statement_parameters = $1
-                end
-              end
-              all_schema_indexes << OracleEnhanced::IndexDefinition.new(
-                row["table_name"],
-                row["index_name"],
-                row["uniqueness"] == "UNIQUE",
-                [],
-                {},
-                type: row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
-                parameters: row["parameters"],
-                statement_parameters: statement_parameters,
-                enabled: row["visibility"] != "INVISIBLE",
-                tablespace: row["tablespace_name"] == default_tablespace_name ? nil : row["tablespace_name"])
-              current_index = row["index_name"]
-            end
-
-            expression = row["column_expression"]
-            user_defined_virtual_column = row["virtual_column"] == "YES"
-            column = if user_defined_virtual_column || expression.nil?
-              # Plain column or user-defined virtual column. Re-creating a
-              # virtual-column index as an expression (instead of using the
-              # virtual column's name) results in ORA-54018, so use the
-              # column name in both cases.
-              row["column_name"].downcase
-            elsif row["descend"] == "DESC" && expression =~ /\A"([^"]+)"\z/ # quoted-bare-identifier ("LAST_NAME"); function expressions like LOWER("NAME") fail to match
-              # Oracle implements `(col DESC)` via a system-generated virtual
-              # column whose column_expression is the quoted user column
-              # name. Peel that off so the orders hash keys off the bare name.
-              # Example: column_name = SYS_NC00003$, column_expression = "LAST_NAME"
-              # -> column = "last_name", orders["last_name"] = :desc.
-              $1.downcase
-            else
-              # Function-based expression (e.g. `LOWER("NAME")`).
-              expression
-            end
-            all_schema_indexes.last.columns << column
-            # Track DESC only for plain column names. A function-based DESC index
-            # (column = expression) would dump as `order: { LOWER("NAME"): :desc }`,
-            # which AR core's hash formatter emits in symbol-shorthand form and
-            # produces invalid Ruby. Plain columns / DESC-marker virtuals are safe
-            # because `column` is downcased and identifier-like.
-            if row["descend"] == "DESC" && column != expression
-              all_schema_indexes.last.orders[column] = :desc
-            end
-          end
-
-          # Return the indexes just for the requested table, since AR is structured that way
-          table_name = table_name.downcase
-          all_schema_indexes.select { |i| i.table == table_name }
+          result = fetch_indexes(Array(table_name).map(&:to_s))
+          table_name.is_a?(Array) ? result : result[table_name.to_s]
         end
 
         def columns(table_name)
@@ -746,68 +653,13 @@ module ActiveRecord
 
         # get table foreign keys for schema dump
         def foreign_keys(table_name) # :nodoc:
-          (_owner, desc_table_name) = resolve_data_source_name(table_name)
-
-          fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
-            SELECT r.table_name to_table
-                  ,rc.column_name references_column
-                  ,cc.column_name
-                  ,c.constraint_name name
-                  ,c.delete_rule
-                  ,c.deferrable
-                  ,c.deferred
-                  ,c.validated
-                  ,c.status
-              FROM all_constraints c, all_cons_columns cc,
-                   all_constraints r, all_cons_columns rc
-             WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND c.table_name = :desc_table_name
-               AND c.constraint_type = 'R'
-               AND cc.owner = c.owner
-               AND cc.constraint_name = c.constraint_name
-               AND r.constraint_name = c.r_constraint_name
-               AND r.owner = c.owner
-               AND rc.owner = r.owner
-               AND rc.constraint_name = r.constraint_name
-               AND rc.position = cc.position
-            ORDER BY name, to_table, column_name, references_column
-          SQL
-
-          fk_info.map do |row|
-            options = {
-              column: oracle_downcase(row["column_name"]),
-              name: oracle_downcase(row["name"]),
-              primary_key: oracle_downcase(row["references_column"])
-            }
-            options[:on_delete] = extract_foreign_key_action(row["delete_rule"])
-            options[:deferrable] = extract_foreign_key_deferrable(row["deferrable"], row["deferred"])
-            options[:enforced] = false if row["status"] == "DISABLED"
-            options[:validate] = false if row["validated"] == "NOT VALIDATED"
-            ActiveRecord::ConnectionAdapters::ForeignKeyDefinition.new(oracle_downcase(table_name), oracle_downcase(row["to_table"]), options)
-          end
+          result = fetch_foreign_keys(Array(table_name).map(&:to_s))
+          table_name.is_a?(Array) ? result : result[table_name.to_s]
         end
 
-        # `generated = 'USER NAME'` skips implicit NOT NULL checks (system-named, type 'C').
         def check_constraints(table_name) # :nodoc:
-          (_owner, desc_table_name) = resolve_data_source_name(table_name)
-
-          # `search_condition` is LONG; cannot appear in WHERE (ORA-00997).
-          rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
-            SELECT constraint_name AS name, search_condition, validated
-              FROM all_constraints
-             WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND table_name = :desc_table_name
-               AND constraint_type = 'C'
-               AND generated = 'USER NAME'
-             ORDER BY constraint_name
-          SQL
-
-          rows.filter_map do |row|
-            next if row["search_condition"].nil?
-            options = { name: oracle_downcase(row["name"]) }
-            options[:validate] = false if row["validated"] == "NOT VALIDATED"
-            CheckConstraintDefinition.new(oracle_downcase(table_name), row["search_condition"], options)
-          end
+          result = fetch_check_constraints(Array(table_name).map(&:to_s))
+          table_name.is_a?(Array) ? result : result[table_name.to_s]
         end
 
         def validate_constraint(table_name, constraint_name) # :nodoc:
@@ -841,43 +693,11 @@ module ActiveRecord
           execute "ALTER TABLE #{quote_table_name(from_table)} MODIFY CONSTRAINT #{quote_column_name(fk_name)} #{enforced ? 'ENABLE' : 'DISABLE'}"
         end
 
-        # Returns an array of unique constraints for the given table.
-        # The unique constraints are represented as UniqueConstraintDefinition objects.
+        # Returns an array of unique constraints for the given table, or a Hash of
+        # them keyed by table name when given an Array of tables.
         def unique_constraints(table_name) # :nodoc:
-          (_owner, desc_table_name) = resolve_data_source_name(table_name)
-
-          rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
-            SELECT c.constraint_name AS name,
-                   c.index_name,
-                   c.deferrable,
-                   c.deferred,
-                   cc.column_name,
-                   cc.position
-              FROM all_constraints c
-              JOIN all_cons_columns cc
-                ON cc.owner = c.owner
-               AND cc.constraint_name = c.constraint_name
-             WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND c.table_name = :desc_table_name
-               AND c.constraint_type = 'U'
-             ORDER BY c.constraint_name, cc.position
-          SQL
-
-          grouped = rows.group_by { |row| row["name"] }
-          grouped.map do |name, group|
-            columns = group.sort_by { |r| r["position"] }.map { |r| oracle_downcase(r["column_name"]) }
-            sample = group.first
-            constraint_name = oracle_downcase(name)
-            index_name = oracle_downcase(sample["index_name"])
-
-            options = { name: constraint_name }
-            options[:deferrable] = extract_foreign_key_deferrable(sample["deferrable"], sample["deferred"])
-            if index_name && index_name != constraint_name
-              options[:using_index] = index_name
-            end
-
-            OracleEnhanced::UniqueConstraintDefinition.new(oracle_downcase(table_name), columns, options)
-          end
+          result = fetch_unique_constraints(Array(table_name).map(&:to_s))
+          table_name.is_a?(Array) ? result : result[table_name.to_s]
         end
 
         # Adds a new unique constraint to the table.
@@ -1011,6 +831,214 @@ module ActiveRecord
         end
 
         private
+          def fetch_indexes(tables)
+            tables.index_with do |table_name|
+              (_owner, table_name) = resolve_data_source_name(table_name)
+              default_tablespace_name = default_tablespace
+
+              # `all_indexes.visibility` was introduced in Oracle 11g R1. Pre-11g
+              # connections do not have the column, so substitute a literal
+              # 'VISIBLE' so the rest of the reader works unchanged.
+              visibility_column = supports_disabling_indexes? ? "i.visibility" : "'VISIBLE' AS visibility"
+              result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
+                SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
+                  i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
+                  LOWER(i.tablespace_name) AS tablespace_name, #{visibility_column},
+                  LOWER(c.column_name) AS column_name, c.descend, e.column_expression,
+                  atc.virtual_column
+                FROM all_indexes i
+                  JOIN all_ind_columns c ON c.index_name = i.index_name AND c.index_owner = i.owner
+                  LEFT OUTER JOIN all_ind_expressions e ON e.index_name = i.index_name AND
+                    e.index_owner = i.owner AND e.column_position = c.column_position
+                  LEFT OUTER JOIN all_tab_cols atc ON i.table_name = atc.table_name AND
+                    c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
+                WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
+                   AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
+                   AND i.table_name = :table_name
+                   AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
+                    WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
+                ORDER BY i.index_name, c.column_position
+              SQL
+
+              current_index = nil
+              all_schema_indexes = []
+
+              result.each do |row|
+                # have to keep track of indexes because above query returns dups
+                # there is probably a better query we could figure out
+                if current_index != row["index_name"]
+                  statement_parameters = nil
+                  if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
+                    procedure_name = default_datastore_procedure(row["index_name"])
+                    source = select_values(<<~SQL.squish, "SCHEMA", [bind_string("procedure_name", procedure_name.upcase)]).join
+                      SELECT text
+                      FROM all_source
+                      WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+                        AND name = :procedure_name
+                      ORDER BY line
+                    SQL
+                    if source =~ /-- add_context_index_parameters (.+)\n/
+                      statement_parameters = $1
+                    end
+                  end
+                  all_schema_indexes << OracleEnhanced::IndexDefinition.new(
+                    row["table_name"],
+                    row["index_name"],
+                    row["uniqueness"] == "UNIQUE",
+                    [],
+                    {},
+                    type: row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
+                    parameters: row["parameters"],
+                    statement_parameters: statement_parameters,
+                    enabled: row["visibility"] != "INVISIBLE",
+                    tablespace: row["tablespace_name"] == default_tablespace_name ? nil : row["tablespace_name"])
+                  current_index = row["index_name"]
+                end
+
+                expression = row["column_expression"]
+                user_defined_virtual_column = row["virtual_column"] == "YES"
+                column = if user_defined_virtual_column || expression.nil?
+                  # Plain column or user-defined virtual column. Re-creating a
+                  # virtual-column index as an expression (instead of using the
+                  # virtual column's name) results in ORA-54018, so use the
+                  # column name in both cases.
+                  row["column_name"].downcase
+                elsif row["descend"] == "DESC" && expression =~ /\A"([^"]+)"\z/ # quoted-bare-identifier ("LAST_NAME"); function expressions like LOWER("NAME") fail to match
+                  # Oracle implements `(col DESC)` via a system-generated virtual
+                  # column whose column_expression is the quoted user column
+                  # name. Peel that off so the orders hash keys off the bare name.
+                  # Example: column_name = SYS_NC00003$, column_expression = "LAST_NAME"
+                  # -> column = "last_name", orders["last_name"] = :desc.
+                  $1.downcase
+                else
+                  # Function-based expression (e.g. `LOWER("NAME")`).
+                  expression
+                end
+                all_schema_indexes.last.columns << column
+                # Track DESC only for plain column names. A function-based DESC index
+                # (column = expression) would dump as `order: { LOWER("NAME"): :desc }`,
+                # which AR core's hash formatter emits in symbol-shorthand form and
+                # produces invalid Ruby. Plain columns / DESC-marker virtuals are safe
+                # because `column` is downcased and identifier-like.
+                if row["descend"] == "DESC" && column != expression
+                  all_schema_indexes.last.orders[column] = :desc
+                end
+              end
+
+              # Return the indexes just for the requested table, since AR is structured that way
+              table_name = table_name.downcase
+              all_schema_indexes.select { |i| i.table == table_name }
+            end
+          end
+
+          def fetch_foreign_keys(tables)
+            tables.index_with do |table_name|
+              (_owner, desc_table_name) = resolve_data_source_name(table_name)
+
+              fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+                SELECT r.table_name to_table
+                      ,rc.column_name references_column
+                      ,cc.column_name
+                      ,c.constraint_name name
+                      ,c.delete_rule
+                      ,c.deferrable
+                      ,c.deferred
+                      ,c.validated
+                      ,c.status
+                  FROM all_constraints c, all_cons_columns cc,
+                       all_constraints r, all_cons_columns rc
+                 WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
+                   AND c.table_name = :desc_table_name
+                   AND c.constraint_type = 'R'
+                   AND cc.owner = c.owner
+                   AND cc.constraint_name = c.constraint_name
+                   AND r.constraint_name = c.r_constraint_name
+                   AND r.owner = c.owner
+                   AND rc.owner = r.owner
+                   AND rc.constraint_name = r.constraint_name
+                   AND rc.position = cc.position
+                ORDER BY name, to_table, column_name, references_column
+              SQL
+
+              fk_info.map do |row|
+                options = {
+                  column: oracle_downcase(row["column_name"]),
+                  name: oracle_downcase(row["name"]),
+                  primary_key: oracle_downcase(row["references_column"])
+                }
+                options[:on_delete] = extract_foreign_key_action(row["delete_rule"])
+                options[:deferrable] = extract_foreign_key_deferrable(row["deferrable"], row["deferred"])
+                options[:enforced] = false if row["status"] == "DISABLED"
+                options[:validate] = false if row["validated"] == "NOT VALIDATED"
+                ActiveRecord::ConnectionAdapters::ForeignKeyDefinition.new(oracle_downcase(table_name), oracle_downcase(row["to_table"]), options)
+              end
+            end
+          end
+
+          # `generated = 'USER NAME'` skips implicit NOT NULL checks (system-named, type 'C').
+          def fetch_check_constraints(tables)
+            tables.index_with do |table_name|
+              (_owner, desc_table_name) = resolve_data_source_name(table_name)
+
+              # `search_condition` is LONG; cannot appear in WHERE (ORA-00997).
+              rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+                SELECT constraint_name AS name, search_condition, validated
+                  FROM all_constraints
+                 WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+                   AND table_name = :desc_table_name
+                   AND constraint_type = 'C'
+                   AND generated = 'USER NAME'
+                 ORDER BY constraint_name
+              SQL
+
+              rows.filter_map do |row|
+                next if row["search_condition"].nil?
+                options = { name: oracle_downcase(row["name"]) }
+                options[:validate] = false if row["validated"] == "NOT VALIDATED"
+                CheckConstraintDefinition.new(oracle_downcase(table_name), row["search_condition"], options)
+              end
+            end
+          end
+
+          def fetch_unique_constraints(tables)
+            tables.index_with do |table_name|
+              (_owner, desc_table_name) = resolve_data_source_name(table_name)
+
+              rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+                SELECT c.constraint_name AS name,
+                       c.index_name,
+                       c.deferrable,
+                       c.deferred,
+                       cc.column_name,
+                       cc.position
+                  FROM all_constraints c
+                  JOIN all_cons_columns cc
+                    ON cc.owner = c.owner
+                   AND cc.constraint_name = c.constraint_name
+                 WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
+                   AND c.table_name = :desc_table_name
+                   AND c.constraint_type = 'U'
+                 ORDER BY c.constraint_name, cc.position
+              SQL
+
+              grouped = rows.group_by { |row| row["name"] }
+              grouped.map do |name, group|
+                columns = group.sort_by { |r| r["position"] }.map { |r| oracle_downcase(r["column_name"]) }
+                sample = group.first
+                constraint_name = oracle_downcase(name)
+                index_name = oracle_downcase(sample["index_name"])
+
+                options = { name: constraint_name }
+                options[:deferrable] = extract_foreign_key_deferrable(sample["deferrable"], sample["deferred"])
+                if index_name && index_name != constraint_name
+                  options[:using_index] = index_name
+                end
+
+                OracleEnhanced::UniqueConstraintDefinition.new(oracle_downcase(table_name), columns, options)
+              end
+            end
+          end
+
           # Oracle does not allow inline `COMMENT '...'` in `ALTER TABLE
           # ADD` / `MODIFY`, so column comments are issued as separate
           # `COMMENT ON COLUMN` statements after the column DDL is in

@@ -1040,19 +1040,8 @@ module ActiveRecord
       end
 
       def primary_keys(table_name) # :nodoc:
-        (_owner, desc_table_name) = resolve_data_source_name(table_name)
-
-        pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
-          SELECT cc.column_name
-            FROM all_constraints c, all_cons_columns cc
-           WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
-             AND c.table_name = :table_name
-             AND c.constraint_type = 'P'
-             AND cc.owner = c.owner
-             AND cc.constraint_name = c.constraint_name
-             order by cc.position
-        SQL
-        pks.map { |pk| oracle_downcase(pk) }
+        result = fetch_primary_keys(Array(table_name).map(&:to_s))
+        table_name.is_a?(Array) ? result : result[table_name.to_s]
       end
 
       def columns_for_distinct(columns, orders) # :nodoc:
@@ -1304,6 +1293,24 @@ module ActiveRecord
       ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
 
       private
+        def fetch_primary_keys(tables)
+          tables.index_with do |table_name|
+            (_owner, desc_table_name) = resolve_data_source_name(table_name)
+
+            pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
+              SELECT cc.column_name
+                FROM all_constraints c, all_cons_columns cc
+               WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
+                 AND c.table_name = :table_name
+                 AND c.constraint_type = 'P'
+                 AND cc.owner = c.owner
+                 AND cc.constraint_name = c.constraint_name
+                 order by cc.position
+            SQL
+            pks.map { |pk| oracle_downcase(pk) }
+          end
+        end
+
         def prefetch_primary_key_from_schema_cache(table_name)
           pk_col = primary_key_column_from_schema_cache(table_name)
           # Propagate false (cache says no-prefetch) and nil (caller must fall back) as-is.

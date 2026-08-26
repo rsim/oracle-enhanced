@@ -17,16 +17,16 @@ module ActiveRecord # :nodoc:
           def tables(stream)
             # do not include materialized views in schema dump - they should be created separately after schema creation
             sorted_tables = (@connection.tables - @connection.materialized_views).sort
+            not_ignored_tables = sorted_tables.reject { |table_name| ignored?(table_name) }
             @trigger_backed_tables = @connection.trigger_backed_table_names
-            sorted_tables.each do |tbl|
-              # add table prefix or suffix for schema_migrations
-              next if ignored? tbl
+            read_schema_metadata(not_ignored_tables)
+
+            not_ignored_tables.each do |tbl|
               table(tbl, stream)
             end
             # following table definitions
             # add foreign keys if table has them
-            sorted_tables.each do |tbl|
-              next if ignored? tbl
+            not_ignored_tables.each do |tbl|
               foreign_keys(tbl, stream) if @connection.use_foreign_keys?
               divergent_unique_constraints(tbl, stream)
             end
@@ -48,7 +48,7 @@ module ActiveRecord # :nodoc:
           end
 
           def _indexes(table, stream)
-            if (indexes = @connection.indexes(table)).any?
+            if (indexes = @indexes[table]).any?
               indexes = reject_unique_constraint_indexes(table, indexes)
 
               add_index_statements = indexes.filter_map do |index|
@@ -81,7 +81,7 @@ module ActiveRecord # :nodoc:
           end
 
           def indexes_in_create(table, stream)
-            if (indexes = @connection.indexes(table)).any?
+            if (indexes = @indexes[table]).any?
               indexes = reject_unique_constraint_indexes(table, indexes)
 
               index_statements = indexes.map do |index|
@@ -97,7 +97,7 @@ module ActiveRecord # :nodoc:
           def reject_unique_constraint_indexes(table, indexes)
             return indexes unless @connection.supports_unique_constraints?
 
-            unique_constraints = @connection.unique_constraints(table)
+            unique_constraints = @unique_constraints[table]
             return indexes if unique_constraints.empty?
 
             backing_index_names = unique_constraints.filter_map { |uc| uc.using_index ? nil : uc.name }
@@ -110,7 +110,7 @@ module ActiveRecord # :nodoc:
           def unique_constraints_in_create(table, stream)
             return unless @connection.supports_unique_constraints?
 
-            inline_ucs = @connection.unique_constraints(table).reject { |uc| uc.using_index }
+            inline_ucs = @unique_constraints[table].reject { |uc| uc.using_index }
             return if inline_ucs.empty?
 
             statements = inline_ucs.map do |uc|
@@ -126,7 +126,7 @@ module ActiveRecord # :nodoc:
           def divergent_unique_constraints(table, stream)
             return unless @connection.supports_unique_constraints?
 
-            ucs = @connection.unique_constraints(table).select { |uc| uc.using_index }
+            ucs = @unique_constraints[table].select { |uc| uc.using_index }
             return if ucs.empty?
 
             statements = ucs.map do |uc|
@@ -158,12 +158,8 @@ module ActiveRecord # :nodoc:
               tbl = StringIO.new
 
               # first dump primary key column
-              if @connection.respond_to?(:primary_keys)
-                pk = @connection.primary_keys(table)
-                pk = pk.first unless pk.size > 1
-              else
-                pk = @connection.primary_key(table)
-              end
+              pk = @primary_keys[table]
+              pk = pk.first unless pk.size > 1
 
               tbl.print "  create_table #{remove_prefix_and_suffix(table).inspect}"
 
