@@ -7,9 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  # rails/rails@e4bb4474 = merge of rails/rails#58323 (deprecate positional
-  # binds for #insert/#update/#delete); bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "e4bb447415e4e169a7c621d3f727dddc0ab9ae11"
+  # rails/rails@6a7dc137 = merge of rails/rails#58217 (remove unused Active Record
+  # internals incl. AbstractAdapter#build_result); bump per follow-up Rails change
+  gem "activerecord",   github: "rails/rails", ref: "6a7dc1378c045b15eb6f0460fd76cf672d775742"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do

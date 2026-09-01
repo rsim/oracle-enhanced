@@ -114,7 +114,7 @@ module ActiveRecord
                 rows << row unless row.all?(&:nil?)
               end
               cursor.close unless cached
-              build_result(columns: [], rows: rows)
+              ActiveRecord::Result.new([], rows)
             end
           end
         end
