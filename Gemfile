@@ -9,7 +9,7 @@ group :development do
   gem "rake"
   # rails/rails@a6e2d541 = merge of rails/rails#58494 (read the columns of many
   # tables in one query); bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "a6e2d541ba017ed55ed8e377978fd2678377ac36"
+  gem "activerecord",   github: "rails/rails", ref: "ae739c38542dc7f0522854d9b253d3814bfcc465"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do

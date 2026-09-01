@@ -99,6 +99,7 @@ RSpec.describe "OracleEnhancedAdapter" do
 
       it "should get sequence value at next time" do
         @conn.clear_table_caches(:test_employees)
+        TestEmployee.reset_column_information
         TestEmployee.create!
         expect(@logger.logged(:debug).first).not_to match(/SELECT "TEST_EMPLOYEES_SEQ".NEXTVAL FROM dual/im)
         @logger.clear(:debug)
