@@ -462,6 +462,7 @@ module ActiveRecord
         def add_reference(table_name, ref_name, **options)
           OracleEnhanced::ReferenceDefinition.new(ref_name, **options).add_to(update_table_definition(table_name, self))
         end
+        alias :add_belongs_to :add_reference
 
         def add_column(table_name, column_name, type, **options) # :nodoc:
           # Adding a `GENERATED ... AS IDENTITY` column with `ALTER TABLE` is

@@ -1706,6 +1706,27 @@ end
     end
   end
 
+  describe "add reference" do
+    before(:each) do
+      schema_define do
+        create_table :test_employees, force: true
+      end
+    end
+
+    after(:each) do
+      schema_define do
+        drop_table :test_employees, if_exists: true
+      end
+    end
+
+    it "creates the reference column as NUMBER(38) via add_belongs_to" do
+      @conn.add_belongs_to("test_employees", "test_post")
+
+      column = @conn.columns("test_employees").find { |c| c.name == "test_post_id" }
+      expect(column.sql_type).to match(/NUMBER\(38\)/i)
+    end
+  end
+
   describe "add_column / change_column comment handling" do
     before(:each) do
       schema_define do
