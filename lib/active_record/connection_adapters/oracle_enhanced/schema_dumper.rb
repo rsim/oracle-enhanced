@@ -190,7 +190,7 @@ module ActiveRecord # :nodoc:
                 tbl.print ", id: false"
               end
 
-              table_options = @connection.table_options(table)
+              table_options = @table_options[table]
               if table_options.present?
                 tbl.print ", #{format_options(table_options)}"
               end

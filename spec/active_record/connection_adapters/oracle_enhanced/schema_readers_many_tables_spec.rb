@@ -3,19 +3,19 @@
 require "spec_helper"
 
 # Ported from activerecord/test/cases/connection_adapters/schema_statements_test.rb
-# (rails/rails#58421, #58494): each schema reader also accepts an Array of table names
+# (rails/rails#58421, #58494, #58498): each schema reader also accepts an Array of table names
 # and answers with a Hash keyed by the names it was given.
 RSpec.describe "OracleEnhancedAdapter schema readers for many tables" do
   include SchemaSpecHelper
 
-  READERS = %i[columns primary_keys indexes foreign_keys check_constraints unique_constraints].freeze
+  READERS = %i[columns primary_keys indexes foreign_keys check_constraints unique_constraints table_options].freeze
   TABLES = %w[test_reader_parents test_reader_children].freeze
 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
     schema_define do
-      create_table :test_reader_parents, force: true do |t|
+      create_table :test_reader_parents, force: true, comment: "reader parents" do |t|
         t.string :code
         t.unique_constraint :code, name: "test_reader_parents_code_uq"
       end

@@ -609,12 +609,6 @@ module ActiveRecord
           SQL
         end
 
-        def table_options(table_name) # :nodoc:
-          if comment = table_comment(table_name)
-            { comment: comment }
-          end
-        end
-
         def column_comment(table_name, column_name) # :nodoc:
           # TODO: it  does not exist in Abstract adapter
           (_owner, table_name) = resolve_data_source_name(table_name)
@@ -830,6 +824,13 @@ module ActiveRecord
         end
 
         private
+          def fetch_table_options(tables)
+            tables.index_with do |table_name|
+              comment = table_comment(table_name)
+              { comment: comment } if comment
+            end
+          end
+
           def fetch_indexes(tables)
             tables.index_with do |table_name|
               (_owner, table_name) = resolve_data_source_name(table_name)
