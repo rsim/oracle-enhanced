@@ -151,7 +151,7 @@ module ActiveRecord # :nodoc:
           end
 
           def table(table, stream)
-            columns = @connection.columns(table)
+            columns = @columns[table]
             begin
               self.table_name = table
 

@@ -3,12 +3,12 @@
 require "spec_helper"
 
 # Ported from activerecord/test/cases/connection_adapters/schema_statements_test.rb
-# (rails/rails#58421): each schema reader also accepts an Array of table names
+# (rails/rails#58421, #58494): each schema reader also accepts an Array of table names
 # and answers with a Hash keyed by the names it was given.
 RSpec.describe "OracleEnhancedAdapter schema readers for many tables" do
   include SchemaSpecHelper
 
-  READERS = %i[primary_keys indexes foreign_keys check_constraints unique_constraints].freeze
+  READERS = %i[columns primary_keys indexes foreign_keys check_constraints unique_constraints].freeze
   TABLES = %w[test_reader_parents test_reader_children].freeze
 
   before(:all) do
@@ -51,6 +51,13 @@ RSpec.describe "OracleEnhancedAdapter schema readers for many tables" do
       TABLES.each do |table|
         expect(attributes(listed[table])).to eq(attributes(@conn.public_send(reader, table))), "#{reader} answered differently for #{table} in a list"
       end
+    end
+  end
+
+  it "a list reads columns in the same order as one table" do
+    listed = @conn.columns(TABLES)
+    TABLES.each do |table|
+      expect(listed[table].map(&:name)).to eq(@conn.columns(table).map(&:name))
     end
   end
 
