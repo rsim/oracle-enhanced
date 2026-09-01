@@ -604,13 +604,14 @@ module ActiveRecord
           drop_buf = []
           add_pending = [] # column names queued in add_buf — see :change_column branch
 
-          operations.each do |command, args|
+          operations.each do |command, args, kwargs|
             args = args.dup
             args.shift # remove table_name
 
             case command
             when :add_column
-              column_name, type, options = args[0], args[1], (args[2] || {})
+              column_name, type = args
+              options = kwargs
               if requires_full_command?(:add_column, type, options)
                 flush_bulk_buffers(table_name, add_buf, modify_buf, drop_buf)
                 add_pending.clear
@@ -621,7 +622,8 @@ module ActiveRecord
                 add_pending << quote_column_name(column_name)
               end
             when :change_column
-              column_name, type, options = args[0], args[1], (args[2] || {})
+              column_name, type = args
+              options = kwargs
               if requires_full_command?(:change_column, type, options)
                 flush_bulk_buffers(table_name, add_buf, modify_buf, drop_buf)
                 add_pending.clear
@@ -666,7 +668,7 @@ module ActiveRecord
             when :remove_columns
               flush_bulk_add_modify(table_name, add_buf, modify_buf)
               add_pending.clear
-              drop_buf.concat(args.reject { |a| a.is_a?(Hash) })
+              drop_buf.concat(args)
             else
               raise "missing dispatch branch for #{command.inspect}; update both SUPPORTED_BULK_COMMANDS and the case statement"
             end
@@ -1154,25 +1156,25 @@ module ActiveRecord
           # (`null: false`, `precision: 6` when supported).
           def expand_bulk_timestamps(operations)
             operations.flat_map do |operation|
-              command, args, block = operation
+              command, args, kwargs, block = operation
               case command
               when :add_timestamps
                 table_name = args[0]
                 # Strip `:comment` here — it is applied after the bulk
                 # flush via `apply_column_comments` (Oracle has no inline
                 # `COMMENT` in ADD); see #2739 for the non-bulk equivalent.
-                options = args[1].is_a?(Hash) ? args[1].except(:comment) : {}
+                options = kwargs.except(:comment)
                 options[:null] = false if options[:null].nil?
                 options[:precision] = 6 if !options.key?(:precision) && supports_datetime_with_precision?
                 [
-                  [:add_column, [table_name, :created_at, :datetime, options], block],
-                  [:add_column, [table_name, :updated_at, :datetime, options], block],
+                  [:add_column, [table_name, :created_at, :datetime], options, block],
+                  [:add_column, [table_name, :updated_at, :datetime], options, block],
                 ]
               when :remove_timestamps
                 table_name = args[0]
                 [
-                  [:remove_column, [table_name, :updated_at], block],
-                  [:remove_column, [table_name, :created_at], block],
+                  [:remove_column, [table_name, :updated_at], {}, block],
+                  [:remove_column, [table_name, :created_at], {}, block],
                 ]
               else
                 [operation]
@@ -1181,11 +1183,9 @@ module ActiveRecord
           end
 
           def collect_timestamps_comments(operations)
-            operations.each_with_object([]) do |(command, args, _block), acc|
-              next unless command == :add_timestamps
-              options = args[1]
-              next unless options.is_a?(Hash) && options.key?(:comment)
-              acc << options[:comment]
+            operations.each_with_object([]) do |(command, _args, kwargs), acc|
+              next unless command == :add_timestamps && kwargs.key?(:comment)
+              acc << kwargs[:comment]
             end
           end
 

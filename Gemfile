@@ -7,9 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  # rails/rails@6a7dc137 = merge of rails/rails#58217 (remove unused Active Record
-  # internals incl. AbstractAdapter#build_result); bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "6a7dc1378c045b15eb6f0460fd76cf672d775742"
+  # rails/rails@342dafc5 = merge of rails/rails#58239 (CommandRecorder stores
+  # args and kwargs separately); bump per follow-up Rails change
+  gem "activerecord",   github: "rails/rails", ref: "342dafc5351d9c9e303ee3c1e378c4dcf2277ffd"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
