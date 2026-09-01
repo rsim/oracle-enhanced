@@ -30,13 +30,13 @@ module ActiveRecord
           @enable_dbms_output
         end
 
-      private
-        def log(intent_or_sql, name = "SQL", binds = [], type_casted_binds = [], async: false, allow_retry: false, &block)
+        def execute_intent(intent) # :nodoc:
           super
         ensure
           log_dbms_output if dbms_output_enabled?
         end
 
+      private
         def set_dbms_output_plsql_connection
           raise OracleEnhanced::ConnectionException, "ruby-plsql gem is required for logging DBMS output" unless self.respond_to?(:plsql)
           # do not reset plsql connection if it is the same (as resetting will clear PL/SQL metadata cache)

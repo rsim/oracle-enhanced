@@ -125,10 +125,12 @@ RSpec.describe "OracleEnhancedAdapter#_exec_insert" do
     @adapter.drop_table(:test_allow_retry_inserts, if_exists: true)
   end
 
-  it "routes the INSERT cursor through with_raw_connection with allow_retry: true" do
-    allow(@adapter).to receive(:with_raw_connection).and_call_original
+  it "runs the INSERT through execute_intent as a non-retryable intent" do
+    allow(@adapter).to receive(:execute_intent).and_call_original
     @model_class.create!(name: "x")
-    expect(@adapter).to have_received(:with_raw_connection).with(allow_retry: true).at_least(:once)
+    expect(@adapter).to have_received(:execute_intent)
+      .with(satisfy { |intent| intent.raw_sql.match?(/\AINSERT INTO/i) && !intent.allow_retry })
+      .at_least(:once)
   end
 end
 

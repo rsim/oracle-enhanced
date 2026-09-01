@@ -3,6 +3,20 @@
 module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
+      class ReturningAttribute < ActiveRecord::Relation::QueryAttribute # :nodoc:
+        def initialize(column_name, type)
+          super("returning_#{column_name}", nil, type)
+        end
+
+        def column_name
+          name.delete_prefix("returning_")
+        end
+
+        def ruby_class
+          type.is_a?(ActiveModel::Type::String) ? String : Integer
+        end
+      end
+
       module DatabaseStatements
         # DATABASE STATEMENTS ======================================
         #
@@ -45,6 +59,22 @@ module ActiveRecord
           # https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/EXPLAIN-PLAN.html#GUID-FD540872-4ED3-4936-96A2-362539931BA0
         end
 
+        def instrument_custom_method(sql, name, &block) # :nodoc:
+          # Custom create/update/delete blocks call ruby-plsql directly, bypassing
+          # AR's exec path. Flush any buffered BEGIN here so the PL/SQL call lands
+          # inside the materialized transaction.
+          materialize_transactions
+          instrumenter.instrument(
+            "sql.active_record",
+            sql: sql, name: name, binds: [], type_casted_binds: [], async: false, allow_retry: false,
+            connection: self, transaction: current_transaction.user_transaction.presence,
+            affected_rows: 0, row_count: 0,
+            &block
+          )
+        ensure
+          log_dbms_output if dbms_output_enabled?
+        end
+
         def _exec_insert(intent, sequence_name = nil, returning: nil) # :nodoc:
           raw_sql = intent.raw_sql
           original_binds_count = intent.binds.size
@@ -61,62 +91,23 @@ module ActiveRecord
           intent.raw_sql = sql
           intent.binds = binds
 
+          intent.execute!
+          result = intent.cast_result
+          return result if requested_cols.empty?
+
+          returned = result.columns.zip(result.rows.first || []).to_h
           type_casted_binds = intent.type_casted_binds
-          bind_specs = returning_bind_specs(binds, original_binds_count)
-
-          log(intent) do
-            cached = false
-            cursor = nil
-            with_raw_connection(allow_retry: true) do |raw_connection|
-              begin
-                if binds.nil? || binds.empty?
-                  cursor = raw_connection.prepare(sql)
-                else
-                  if prepared_statements?
-                    @statements[sql] ||= raw_connection.prepare(sql)
-                    cursor = @statements[sql]
-                    cached = true
-                  else
-                    cursor = raw_connection.prepare(sql)
-                  end
-
-                  cursor.bind_params(type_casted_binds)
-
-                  bind_specs.each do |position, klass|
-                    cursor.bind_returning_param(position, klass)
-                  end
-                end
-
-                cursor.exec_update
-              rescue
-                (cursor.close rescue nil) if cursor && !cached
-                raise
-              end
-
-              rows = []
-              unless requested_cols.empty?
-                returned = {}
-                bind_specs.each do |position, klass|
-                  value = cursor.get_returning_param(position, klass)
-                  col = binds[position - 1].name.delete_prefix("returning_")
-                  returned[col] = klass == Integer ? value.to_i : value
-                end
-                # Align the row with the requested columns, echoing bound values
-                # for columns the INSERT already carries (e.g. the prefetched sequence PK).
-                row = requested_cols.map do |col|
-                  if returned.key?(col)
-                    returned[col]
-                  else
-                    index = binds[0...original_binds_count].index { |bind| bind.name == col } if echoable_cols.include?(col)
-                    index && type_casted_binds[index]
-                  end
-                end
-                rows << row unless row.all?(&:nil?)
-              end
-              cursor.close unless cached
-              ActiveRecord::Result.new([], rows)
+          # Align the row with the requested columns, echoing bound values
+          # for columns the INSERT already carries (e.g. the prefetched sequence PK).
+          row = requested_cols.map do |col|
+            if returned.key?(col)
+              returned[col]
+            else
+              index = binds[0...original_binds_count].index { |bind| bind.name == col } if echoable_cols.include?(col)
+              index && type_casted_binds[index]
             end
           end
+          ActiveRecord::Result.new([], row.all?(&:nil?) ? [] : [row])
         end
 
         def begin_db_transaction # :nodoc:
@@ -311,7 +302,7 @@ module ActiveRecord
               returning_cols.each do |col|
                 column = table_ref ? columns(table_ref).find { |c| c.name == col } : nil
                 type = column&.cast_type || Type::OracleEnhanced::Integer.new
-                binds << ActiveRecord::Relation::QueryAttribute.new("returning_#{col}", nil, type)
+                binds << OracleEnhanced::ReturningAttribute.new(col, type)
               end
             end
             # Skip super: AR's abstract appends PG-style `RETURNING col1, col2` which conflicts with Oracle's `RETURNING ... INTO :bind` form (ORA-00925).
@@ -328,14 +319,9 @@ module ActiveRecord
             Array(returning).map(&:to_s)
           end
 
-          # Identify the trailing binds appended by `sql_for_insert` by position, not by name,
-          # so a user column happening to share the placeholder name cannot collide.
-          def returning_bind_specs(binds, original_binds_count)
-            return [] if binds.size <= original_binds_count
-            (original_binds_count...binds.size).map do |i|
-              klass = binds[i].type.is_a?(ActiveModel::Type::String) ? String : Integer
-              [i + 1, klass]
-            end
+          def returning_binds(binds)
+            return [] if binds.nil?
+            binds.each_with_index.filter_map { |bind, index| [index + 1, bind] if bind.is_a?(OracleEnhanced::ReturningAttribute) }
           end
 
           def perform_query(raw_connection, intent)
@@ -343,6 +329,7 @@ module ActiveRecord
             binds = intent.binds
             type_casted_binds = intent.type_casted_binds
 
+            returning = returning_binds(binds)
             cursor = nil
             cached = false
             begin
@@ -358,23 +345,34 @@ module ActiveRecord
                 end
 
                 cursor.bind_params(type_casted_binds)
+                returning.each do |position, bind|
+                  cursor.bind_returning_param(position, bind.ruby_class)
+                end
               end
-              cursor.exec
+              returning.empty? ? cursor.exec : cursor.exec_update
             rescue
               (cursor.close rescue nil) if cursor && !cached
               raise
             end
 
-            columns = cursor.get_col_names.map do |col_name|
-              oracle_downcase(col_name)
-            end
-
-            rows = []
-            if cursor.select_statement?
-              fetch_options = { get_lob_value: (intent.name != "Writable Large Object") }
-              while row = cursor.fetch(fetch_options)
-                rows << row
+            if returning.empty?
+              columns = cursor.get_col_names.map do |col_name|
+                oracle_downcase(col_name)
               end
+
+              rows = []
+              if cursor.select_statement?
+                fetch_options = { get_lob_value: (intent.name != "Writable Large Object") }
+                while row = cursor.fetch(fetch_options)
+                  rows << row
+                end
+              end
+            else
+              columns = returning.map { |_position, bind| bind.column_name }
+              rows = [returning.map do |position, bind|
+                value = cursor.get_returning_param(position, bind.ruby_class)
+                bind.ruby_class == Integer ? value.to_i : value
+              end]
             end
 
             affected_rows_count = cursor.row_count
@@ -386,13 +384,9 @@ module ActiveRecord
             { columns: columns, rows: rows, affected_rows_count: affected_rows_count }
           end
 
-          def handle_warnings(raw_result, sql)
-            @notice_receiver_sql_warnings.each do |warning|
-              next if warning_ignored?(warning)
-
-              warning.sql = sql
-              ActiveRecord.db_warnings_action.call(warning)
-            end
+          def collect_warnings(_raw_result)
+            warnings, @notice_receiver_sql_warnings = @notice_receiver_sql_warnings, []
+            warnings
           end
 
           # Compile each insert row to `VALUES (...)` individually via Arel, so
