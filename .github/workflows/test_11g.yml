@@ -15,7 +15,6 @@ jobs:
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
 
     runs-on: ubuntu-latest
-    continue-on-error: ${{ startsWith(matrix.ruby, 'jruby') }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,11 +22,7 @@ jobs:
           '4.0',
           '3.4',
           '3.3',
-          'jruby-10.1.1.0',
         ]
-        include:
-          - ruby: 'jruby-10.1.1.0'
-            jruby_opts: '--dev'
     env:
       CI: true
       JRUBY_OPTS: ${{ matrix.jruby_opts }}
