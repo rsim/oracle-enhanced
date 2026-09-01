@@ -12,7 +12,7 @@ RSpec.describe "OracleEnhancedAdapter should support composite primary" do
       end
 
       create_table :test_books, force: true do |t|
-        t.string    :title,       limit: 20
+        t.string :title,       limit: 20
       end
 
       create_table :test_authors_test_books, primary_key: ["test_author_id", "test_book_id"], force: true do |t|

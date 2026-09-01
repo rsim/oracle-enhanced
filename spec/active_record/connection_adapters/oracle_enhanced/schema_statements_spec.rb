@@ -13,7 +13,7 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
     before do
       schema_define do
         create_table :keyboards, force: true, id: false do |t|
-          t.string      :name
+          t.string :name
         end
         add_column :keyboards, :id, :primary_key
       end
@@ -35,7 +35,7 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
           t.string      :name
         end
         create_table :id_keyboards, force: true do |t|
-          t.string      :name
+          t.string :name
         end
       end
       class ::Keyboard < ActiveRecord::Base
