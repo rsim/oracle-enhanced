@@ -315,9 +315,9 @@ RSpec.describe "identity primary keys" do
       end
 
       stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_identity_pks"]
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_identity_pks"]
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
-      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include('create_table "test_identity_pks"')
       expect(stream.string).to include("identity: true")
@@ -331,9 +331,9 @@ RSpec.describe "identity primary keys" do
       end
 
       stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_identity_pks"]
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_identity_pks"]
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
-      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include('create_table "test_identity_pks"')
       expect(stream.string).not_to include("identity: true")

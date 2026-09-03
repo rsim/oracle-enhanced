@@ -232,9 +232,9 @@ RSpec.describe "primary_key_trigger" do
       end
 
       stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_pk_triggers"]
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_pk_triggers"]
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
-      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include('create_table "test_pk_triggers"')
       expect(stream.string).to include("primary_key_trigger: true")
@@ -248,9 +248,9 @@ RSpec.describe "primary_key_trigger" do
       end
 
       stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_pk_triggers"]
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_pk_triggers"]
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
-      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include('create_table "test_pk_triggers"')
       expect(stream.string).not_to include("primary_key_trigger")
@@ -266,9 +266,9 @@ RSpec.describe "primary_key_trigger" do
       end
 
       stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_pk_triggers"]
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_pk_triggers"]
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
-      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include('create_table "test_pk_triggers"')
       expect(stream.string).to include("identity: true")
@@ -283,9 +283,9 @@ RSpec.describe "primary_key_trigger" do
       end
 
       stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_pk_triggers"]
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_pk_triggers"]
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
-      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include("primary_key_trigger: true")
       expect(stream.string).to include('trigger_name: "custom_pkt"')
@@ -299,9 +299,9 @@ RSpec.describe "primary_key_trigger" do
       end
 
       stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_pk_triggers"]
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_pk_triggers"]
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
-      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include("primary_key_trigger: true")
       expect(stream.string).not_to include("trigger_name:")
@@ -550,9 +550,9 @@ RSpec.describe "primary_key_trigger" do
       SQL
 
       stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_pk_triggers"]
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_pk_triggers"]
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
-      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include('create_table "test_pk_triggers"')
       expect(stream.string).not_to include("primary_key_trigger")
@@ -646,9 +646,9 @@ RSpec.describe "primary_key_trigger" do
       end
 
       stream = StringIO.new
-      ActiveRecord::SchemaDumper.ignore_tables = @conn.data_sources - ["test_pk_triggers_renamed"]
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_pk_triggers_renamed"]
       ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
-      ActiveRecord::SchemaDumper.ignore_tables = []
+      ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include("primary_key_trigger: true")
       # The default trigger name was renamed; no explicit :trigger_name should be needed.
