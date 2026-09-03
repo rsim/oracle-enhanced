@@ -149,13 +149,14 @@ end
 
 module SchemaDumpingHelper
   def dump_table_schema(table, connection = ActiveRecord::Base.lease_connection)
-    old_ignore_tables = ActiveRecord::SchemaDumper.ignore_tables
-    ActiveRecord::SchemaDumper.ignore_tables = connection.data_sources - [table]
+    old_ignore_tables = ActiveRecord.schema_ignored_tables
+    prefixed_table = "#{ActiveRecord::Base.table_name_prefix}#{table}#{ActiveRecord::Base.table_name_suffix}"
+    ActiveRecord.schema_ignored_tables = connection.data_sources - [prefixed_table]
     stream = StringIO.new
     ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
     stream.string
   ensure
-    ActiveRecord::SchemaDumper.ignore_tables = old_ignore_tables
+    ActiveRecord.schema_ignored_tables = old_ignore_tables
   end
 end
 

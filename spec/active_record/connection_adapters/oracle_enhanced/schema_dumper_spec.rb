@@ -11,9 +11,12 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
 
   def standard_dump(options = {})
     stream = StringIO.new
-    ActiveRecord::SchemaDumper.ignore_tables = options[:ignore_tables] || []
+    old_ignore_tables = ActiveRecord.schema_ignored_tables
+    ActiveRecord.schema_ignored_tables = options[:ignore_tables] || []
     ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
     stream.string
+  ensure
+    ActiveRecord.schema_ignored_tables = old_ignore_tables
   end
 
   def create_test_posts_table(options = {})
