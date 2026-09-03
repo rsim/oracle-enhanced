@@ -7,9 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  # rails/rails@0dd408e2 = merge of rails/rails#58578 (make model schema
-  # attribute state Ractor-safe); bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "0dd408e2d3fd86566b5aa1c325e23cf59eed16fe"
+  # rails/rails@4362885d = latest main (merge of rails/rails#58647); the swept
+  # window has no adapter-facing Active Record changes; bump per follow-up Rails change
+  gem "activerecord",   github: "rails/rails", ref: "4362885dac36a4aae6921bfeb7fec606cd4f06a3"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
