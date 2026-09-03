@@ -7,9 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  # rails/rails@38b1f04f = merge of rails/rails#58554 (add
-  # config.active_record.schema_ignored_tables); bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "38b1f04ffd98eaa1d4594b2f3ef82e9a6cd3f135"
+  # rails/rails@2ecdae99 = merge of rails/rails#58548 (add
+  # config.active_record.shuffle_unordered_selects); bump per follow-up Rails change
+  gem "activerecord",   github: "rails/rails", ref: "2ecdae997fb89463da54ce880023968d7743861d"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
