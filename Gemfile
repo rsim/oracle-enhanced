@@ -7,9 +7,9 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  # rails/rails@2ecdae99 = merge of rails/rails#58548 (add
-  # config.active_record.shuffle_unordered_selects); bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "2ecdae997fb89463da54ce880023968d7743861d"
+  # rails/rails@0dd408e2 = merge of rails/rails#58578 (make model schema
+  # attribute state Ractor-safe); bump per follow-up Rails change
+  gem "activerecord",   github: "rails/rails", ref: "0dd408e2d3fd86566b5aa1c325e23cf59eed16fe"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
