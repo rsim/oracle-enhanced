@@ -7,7 +7,6 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    continue-on-error: ${{ startsWith(matrix.ruby, 'jruby') }}
     strategy:
       fail-fast: false
       matrix:
