@@ -7,9 +7,7 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 group :development do
   gem "rspec"
   gem "rake"
-  # rails/rails@74bb87c5 = merge of rails/rails#58684 (load Active Support on
-  # JRuby without Ractor); bump per follow-up Rails change
-  gem "activerecord",   github: "rails/rails", ref: "74bb87c5888b3489fc519f048e6a0cd9cc615a5d"
+  gem "activerecord",   github: "yahonda/rails", branch: "per-adapter-migration-compatibility-v7"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
 
   platforms :ruby do
