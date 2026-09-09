@@ -14,7 +14,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '4.0'
+          ruby-version: 'ruby'
           rubygems: latest
       - name: Build gem
         run: gem build activerecord-oracle_enhanced-adapter.gemspec
@@ -37,7 +37,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 'jruby-10.1.1.0'
+          ruby-version: 'jruby'
           rubygems: latest
       - name: Build gem
         run: gem build activerecord-oracle_enhanced-adapter.gemspec
@@ -68,7 +68,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '4.0'
+          ruby-version: 'ruby'
           rubygems: latest
       - name: Configure RubyGems credentials
         uses: rubygems/configure-rubygems-credentials@main

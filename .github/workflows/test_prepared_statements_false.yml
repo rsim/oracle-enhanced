@@ -11,11 +11,11 @@ jobs:
       fail-fast: false
       matrix:
         ruby: [
-          '4.0',
-          'jruby-10.1.1.0',
+          'ruby',
+          'jruby',
         ]
         include:
-          - ruby: 'jruby-10.1.1.0'
+          - ruby: 'jruby'
             jruby_opts: '--dev'
     env:
       CI: true
