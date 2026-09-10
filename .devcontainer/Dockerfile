@@ -20,8 +20,8 @@ RUN mkdir -p /opt/oracle
 WORKDIR /tmp
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
-        IC_VERSION="23.26.1.0.0"; \
-        IC_PATH="2326100"; \
+        IC_VERSION="23.26.3.0.0"; \
+        IC_PATH="2326300"; \
         BASE_URL="https://download.oracle.com/otn_software/linux/instantclient/${IC_PATH}"; \
         BASIC="instantclient-basic-linux.arm64-${IC_VERSION}.zip"; \
         SDK="instantclient-sdk-linux.arm64-${IC_VERSION}.zip"; \
