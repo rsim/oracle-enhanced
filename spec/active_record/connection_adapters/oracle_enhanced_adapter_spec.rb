@@ -1119,10 +1119,10 @@ RSpec.describe "OracleEnhancedAdapter" do
     end
 
     it "should return array from indexes with bind usage" do
-       expect(@conn.indexes("TEST_POSTS").class).to eq Array
-       expect(@logger.logged(:debug).last).to match(/:table_name/)
-       expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
-     end
+      expect(@conn.indexes("TEST_POSTS").class).to eq Array
+      expect(@logger.logged(:debug).last).to match(/:table_name/)
+      expect(@logger.logged(:debug).last).to match(/\["table_name", "TEST_POSTS"\]/)
+    end
 
     it "should return content from columns witt bind usage" do
       expect(@conn.columns("TEST_POSTS").length).to be > 0

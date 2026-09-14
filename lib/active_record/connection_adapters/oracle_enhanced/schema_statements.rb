@@ -83,9 +83,9 @@ module ActiveRecord
           SQL
 
           result.collect do |row|
-             OracleEnhanced::SynonymDefinition.new(oracle_downcase(row["synonym_name"]),
-             oracle_downcase(row["table_owner"]), oracle_downcase(row["table_name"]))
-           end
+            OracleEnhanced::SynonymDefinition.new(oracle_downcase(row["synonym_name"]),
+            oracle_downcase(row["table_owner"]), oracle_downcase(row["table_name"]))
+          end
         end
 
         def indexes(table_name) # :nodoc:

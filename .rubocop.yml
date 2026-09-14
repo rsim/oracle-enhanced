@@ -17,6 +17,10 @@ Rails/IndexWith:
 Style/AndOr:
   Enabled: true
 
+# Align `end` with the line that starts the block.
+Layout/BlockAlignment:
+  Enabled: true
+
 # Align `when` with `case`.
 Layout/CaseIndentation:
   Enabled: true
