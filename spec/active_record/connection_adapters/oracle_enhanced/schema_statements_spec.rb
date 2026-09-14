@@ -759,52 +759,53 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "rename index" do
-  before(:each) do
-    schema_define do
-      create_table  :test_employees do |t|
-        t.string    :first_name
-        t.string    :last_name
+    before(:each) do
+      schema_define do
+        create_table  :test_employees do |t|
+          t.string    :first_name
+          t.string    :last_name
+        end
+        add_index :test_employees, :first_name
       end
-      add_index :test_employees, :first_name
+      class ::TestEmployee < ActiveRecord::Base; end
     end
-    class ::TestEmployee < ActiveRecord::Base; end
-  end
 
-  after(:each) do
-    schema_define do
-      drop_table :test_employees
+    after(:each) do
+      schema_define do
+        drop_table :test_employees
+      end
+      Object.send(:remove_const, "TestEmployee")
+      ActiveRecord::Base.clear_cache!
     end
-    Object.send(:remove_const, "TestEmployee")
-    ActiveRecord::Base.clear_cache!
-  end
 
-  it "should raise error when current index name and new index name are identical" do
-    original_name = @conn.index_name("test_employees", column: "first_name")
-    expect do
-      @conn.rename_index("test_employees", original_name, original_name)
-    end.to raise_error(ActiveRecord::StatementInvalid)
-  end
+    it "should raise error when current index name and new index name are identical" do
+      original_name = @conn.index_name("test_employees", column: "first_name")
+      expect do
+        @conn.rename_index("test_employees", original_name, original_name)
+      end.to raise_error(ActiveRecord::StatementInvalid)
+    end
 
-  it "should raise error when new index name length is too long" do
-    original_name = @conn.index_name("test_employees", column: "first_name")
-    too_long = "a" * (@conn.max_identifier_length + 1)
+    it "should raise error when new index name length is too long" do
+      original_name = @conn.index_name("test_employees", column: "first_name")
+      too_long = "a" * (@conn.max_identifier_length + 1)
 
-    expect do
-      @conn.rename_index("test_employees", original_name, too_long)
-    end.to raise_error(ArgumentError)
-  end
+      expect do
+        @conn.rename_index("test_employees", original_name, too_long)
+      end.to raise_error(ArgumentError)
+    end
 
-  it "should raise error when current index name does not exist" do
-    expect do
-      @conn.rename_index("test_employees", "nonexist_index_name", "new_index_name")
-    end.to raise_error(ActiveRecord::StatementInvalid)
-  end
+    it "should raise error when current index name does not exist" do
+      expect do
+        @conn.rename_index("test_employees", "nonexist_index_name", "new_index_name")
+      end.to raise_error(ActiveRecord::StatementInvalid)
+    end
 
-  it "should rename index name with new one" do
-    original_name = @conn.index_name("test_employees", column: "first_name")
-    expect do
-      @conn.rename_index("test_employees", original_name, "new_index_name")
-    end.not_to raise_error
+    it "should rename index name with new one" do
+      original_name = @conn.index_name("test_employees", column: "first_name")
+      expect do
+        @conn.rename_index("test_employees", original_name, "new_index_name")
+      end.not_to raise_error
+    end
   end
 
   describe "bulk_change_table (Phase 1: add / change / remove column)" do
@@ -1344,7 +1345,6 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       end
     end
   end
-end
 
   describe "remove index" do
     before(:each) do
