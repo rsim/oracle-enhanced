@@ -576,9 +576,14 @@ module ActiveRecord
         database_version >= "12"
       end
 
+      # Deprecated in step with Rails (rails/rails#58809). Every supported
+      # Oracle Database release stores sub-second precision in TIMESTAMP, so
+      # the check always returned true and no longer guards anything.
       def supports_datetime_with_precision?
         true
       end
+      deprecate supports_datetime_with_precision?: "every supported Oracle Database release has sub-second TIMESTAMP precision (see rails/rails#58809)",
+        deprecator: OracleEnhanced.deprecator
 
       def supports_comments?
         true

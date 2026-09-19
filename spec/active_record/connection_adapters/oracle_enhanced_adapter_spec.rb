@@ -244,6 +244,15 @@ RSpec.describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "supports_datetime_with_precision?" do
+    it "returns true with a deprecation warning" do
+      conn = ActiveRecord::Base.lease_connection
+      expect { expect(conn.supports_datetime_with_precision?).to be(true) }
+        .to output(/supports_datetime_with_precision\? is deprecated.*rails\/rails#58809/m)
+        .to_stderr
+    end
+  end
+
   describe "session information" do
     before(:all) do
       @conn = ActiveRecord::Base.lease_connection
