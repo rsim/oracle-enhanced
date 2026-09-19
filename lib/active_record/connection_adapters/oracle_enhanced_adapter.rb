@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# oracle_enhanced_adapter.rb -- ActiveRecord adapter for Oracle 10g, 11g and 12c
+# oracle_enhanced_adapter.rb -- ActiveRecord adapter for Oracle Database 11g Release 2 and later
 #
 # Authors or original oracle_adapter: Graham Jenkins, Michael Schoen
 #
@@ -72,7 +72,7 @@ module ActiveRecord
     # CRuby ruby-oci8 gem (which provides interface to Oracle OCI client)
     # or with JRuby and Oracle JDBC driver.
     #
-    # It should work with Oracle 10g, 11g and 12c databases.
+    # It requires Oracle Database 11g Release 2 (11.2) or later.
     #
     # Usage notes:
     # * Key generation assumes a "${table_name}_seq" sequence is available
@@ -1102,10 +1102,17 @@ module ActiveRecord
         with_raw_connection { |conn| conn.database_version }
       end
 
+      # The minimum supported Oracle Database version. Oracle 11g Release 2
+      # (11.2) is the oldest release exercised by CI (see
+      # <tt>.github/workflows/test_11g.yml</tt>).
+      MINIMUM_DATABASE_VERSION = "11.2"
+
       def check_version # :nodoc:
         version = get_database_version
-        if version < "10"
-          raise "Your version of Oracle (#{version}) is too old. Active Record Oracle enhanced adapter supports Oracle >= 10g."
+        if version < MINIMUM_DATABASE_VERSION
+          raise ActiveRecord::DatabaseVersionError,
+            "Your version of Oracle Database (#{version}) is too old. " \
+            "Active Record Oracle enhanced adapter supports Oracle Database >= #{MINIMUM_DATABASE_VERSION} (11g Release 2)."
         end
       end
 

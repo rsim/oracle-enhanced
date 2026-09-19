@@ -83,6 +83,41 @@ RSpec.describe "OracleEnhancedAdapter::Version" do
     end
   end
 
+  describe "check_version" do
+    let(:conn) { ActiveRecord::Base.connection }
+
+    def stub_database_version(conn, version_string, full_version_string)
+      allow(conn).to receive(:get_database_version)
+        .and_return(version_class.new(version_string, full_version_string))
+    end
+
+    it "declares 11.2 as the minimum supported Oracle Database version" do
+      expect(adapter_class::MINIMUM_DATABASE_VERSION).to eq("11.2")
+    end
+
+    it "passes for the connected database" do
+      expect { conn.check_version }.not_to raise_error
+    end
+
+    it "passes for Oracle 11.2 (11gR2)" do
+      stub_database_version(conn, "11.2", "11.2.0.4.0")
+      expect { conn.check_version }.not_to raise_error
+    end
+
+    it "raises DatabaseVersionError for Oracle 11.1 (11gR1)" do
+      stub_database_version(conn, "11.1", "11.1.0.7.0")
+      expect { conn.check_version }.to raise_error(
+        ActiveRecord::DatabaseVersionError,
+        /Your version of Oracle Database \(11\.1\) is too old.*>= 11\.2/
+      )
+    end
+
+    it "raises DatabaseVersionError for Oracle 10.2 (10gR2)" do
+      stub_database_version(conn, "10.2", "10.2.0.5.0")
+      expect { conn.check_version }.to raise_error(ActiveRecord::DatabaseVersionError)
+    end
+  end
+
   describe "deprecated Array-compat methods" do
     let(:version) { version_class.new("12.2", "12.2.0.1.0") }
     let(:deprecation_pattern) { /is deprecated/ }
