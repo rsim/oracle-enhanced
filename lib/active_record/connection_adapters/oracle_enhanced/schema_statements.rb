@@ -774,7 +774,7 @@ module ActiveRecord
 
         def add_timestamps(table_name, **options)
           options[:null] = false if options[:null].nil?
-          options[:precision] = 6 if !options.key?(:precision) && supports_datetime_with_precision?
+          options[:precision] = 6 unless options.key?(:precision)
           column_options = options.except(:comment)
           change_table(table_name, bulk: true) do |t|
             t.column :created_at, :datetime, **column_options
@@ -1193,7 +1193,7 @@ module ActiveRecord
                 # `COMMENT` in ADD); see #2739 for the non-bulk equivalent.
                 options = kwargs.except(:comment)
                 options[:null] = false if options[:null].nil?
-                options[:precision] = 6 if !options.key?(:precision) && supports_datetime_with_precision?
+                options[:precision] = 6 unless options.key?(:precision)
                 [
                   [:add_column, [table_name, :created_at, :datetime], options, block],
                   [:add_column, [table_name, :updated_at, :datetime], options, block],
