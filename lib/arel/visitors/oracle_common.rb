@@ -133,7 +133,7 @@ module Arel # :nodoc: all
               if values.empty?
                 @connection.quote(nil)
               else
-                values.join(",")
+                values.join(", ")
               end
 
             collector << expr
@@ -150,7 +150,7 @@ module Arel # :nodoc: all
               collector << separator unless i == 0
               visit o.left, collector
               collector << operator
-              collector << valuez.join(",")
+              collector << valuez.join(", ")
               collector << ")"
             end
             collector << ")"
