@@ -88,6 +88,30 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
     end
   end
 
+  describe "table with a String primary key given by a Hash :id option" do
+    # https://github.com/rsim/oracle-enhanced/issues/2340
+    after(:each) do
+      schema_define { drop_table :test_settings, if_exists: true }
+    end
+
+    it "dumps the :id option as a Hash that loads back" do
+      schema_define do
+        create_table :test_settings, primary_key: "name", id: { type: :string, limit: 191 }, force: :cascade do |t|
+          t.string :value
+        end
+      end
+      output = dump_table_schema "test_settings"
+      expect(output).to match(/create_table "test_settings", primary_key: "name", id: \{ type: :string, limit: 191 \}/)
+
+      # Extract the body inside ActiveRecord::Schema[...].define(version: ...) do ... end
+      # so loading does not insert the dumped version into schema_migrations.
+      body = output[/ActiveRecord::Schema\[.+?\]\.define\(version: \d+\) do\n(.+)\nend\s*\z/m, 1]
+      schema_define { drop_table :test_settings }
+      expect { schema_define { instance_eval(body) } }.not_to raise_error
+      expect(dump_table_schema("test_settings")).to eq(output)
+    end
+  end
+
   describe "table with ntext columns" do
     before :each do
       schema_define do
