@@ -242,6 +242,46 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
     end
   end
 
+  describe "create_table with a Hash :id option without :type" do
+    # https://github.com/rsim/oracle-enhanced/issues/2382
+    before(:each) do
+      schema_define do
+        create_table :test_account_users, id: { limit: 19, precision: 19 }, force: :cascade do |t|
+          t.integer :account_id, limit: 19, precision: 19, null: false
+        end
+      end
+    end
+
+    after(:each) do
+      schema_define { drop_table :test_account_users, if_exists: true }
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "creates the primary key column" do
+      expect(@conn.primary_key(:test_account_users)).to eq("id")
+      pk = @conn.columns(:test_account_users).find { |c| c.name == "id" }
+      expect(pk.type).to eq(:integer)
+      expect(pk.null).to be(false)
+    end
+
+    it "creates a sequence for the primary key" do
+      seq = @conn.select_value(<<~SQL.squish, "SCHEMA")
+        SELECT 1 FROM user_sequences WHERE sequence_name = 'TEST_ACCOUNT_USERS_SEQ'
+      SQL
+      expect(seq).not_to be_nil
+    end
+
+    it "assigns the primary key on insert" do
+      klass = Class.new(ActiveRecord::Base) do
+        self.table_name = "test_account_users"
+      end
+
+      record = klass.create!(account_id: 1)
+      expect(record.id).to be_a(Integer)
+      expect(klass.find(record.id).account_id).to eq(1)
+    end
+  end
+
   describe "primary key with null: true" do
     # Regression coverage for the contract introduced in
     # rails/rails#57204: `add_column` must reject `null: true` on a
