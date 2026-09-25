@@ -53,6 +53,18 @@ require "ruby-plsql"
 
 puts "==> Effective ActiveRecord version #{ActiveRecord::VERSION::STRING}"
 
+# rails/rails#58306 made database configs compare by value, so
+# `establish_connection` with the same config now keeps the existing pool.
+# Specs call `establish_connection` expecting a new pool (a new connection and
+# empty caches), so remove the current pool first, as before that change.
+module EstablishNewConnectionPool
+  def establish_connection(...)
+    remove_connection
+    super
+  end
+end
+ActiveRecord::Base.singleton_class.prepend(EstablishNewConnectionPool)
+
 module LoggerSpecHelper
   def set_logger
     @logger = MockLogger.new
