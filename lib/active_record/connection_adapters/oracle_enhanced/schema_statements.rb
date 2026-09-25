@@ -1345,6 +1345,7 @@ module ActiveRecord
             return false if identity
             numeric_pk_types = [:primary_key, :integer, :bigint, :decimal]
             if id
+              id = id.fetch(:type, :primary_key) if id.is_a?(Hash)
               numeric_pk_types.include?(id)
             else
               td.columns.any? do |column|
