@@ -65,16 +65,20 @@ describe "OracleEnhancedAdapter establish connection" do
   end
 
   it "should not encrypt JDBC network connection" do
+    skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_SERVER_AND_CLIENT_VERSION_DO_NOT_MATCH"] == "true"
     if ORACLE_ENHANCED_CONNECTION == :jdbc
-      @conn = ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REJECTED" }))
-      expect(@conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 0 }])
+      ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REJECTED" }))
+      conn = ActiveRecord::Base.connection.send(:_connection)
+      expect(conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 0 }])
     end
   end
 
   it "should encrypt JDBC network connection" do
+    skip "Oracle 11g XE does not support native network encryption" if ENV["DATABASE_SERVER_AND_CLIENT_VERSION_DO_NOT_MATCH"] == "true"
     if ORACLE_ENHANCED_CONNECTION == :jdbc
-      @conn = ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REQUESTED" }))
-      expect(@conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 1 }])
+      ActiveRecord::Base.establish_connection(SYSTEM_CONNECTION_PARAMS.merge(jdbc_connect_properties: { "oracle.net.encryption_client" => "REQUESTED" }))
+      conn = ActiveRecord::Base.connection.send(:_connection)
+      expect(conn.select("SELECT COUNT(*) Records FROM v$Session_Connect_Info WHERE SID=SYS_CONTEXT('USERENV', 'SID') AND Network_Service_Banner LIKE '%Encryption service adapter%'")).to eq([{ "records" => 1 }])
     end
   end
 
@@ -115,6 +119,13 @@ describe "OracleEnhancedConnection" do
 
     it "should be in autocommit mode after connection" do
       expect(@conn).to be_autocommit
+    end
+
+    it "should raise ArgumentError when JDBC exec is called with bindvars" do
+      skip unless ORACLE_ENHANCED_CONNECTION == :jdbc
+      expect {
+        @conn.exec("SELECT ? FROM dual", 1)
+      }.to raise_error(ArgumentError, /JDBC exec does not support bindvars/)
     end
   end
 
