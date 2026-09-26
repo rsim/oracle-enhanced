@@ -93,13 +93,6 @@ module ActiveRecord
           table_name.is_a?(Array) ? result : result[table_name.to_s]
         end
 
-        def columns(table_name)
-          tables = Array(table_name).map(&:to_s)
-          uncached = tables.reject { |table| @columns_cache[table] }
-          super(uncached).each { |table, columns| @columns_cache[table] = columns } unless uncached.empty?
-          result = tables.index_with { |table| @columns_cache[table] }
-          table_name.is_a?(Array) ? result : result[table_name.to_s]
-        end
         # Additional options for +create_table+ method in migration files.
         #
         # You can specify individual starting value in table creation migration file, e.g.:

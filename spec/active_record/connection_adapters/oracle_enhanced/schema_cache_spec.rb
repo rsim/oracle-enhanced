@@ -54,6 +54,25 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
     it "caches columns after first access" do
       schema_cache.columns("test_schema_cache_posts")
       expect(schema_cache.cached?("test_schema_cache_posts")).to be true
+
+      queries = []
+      callback = ->(*, payload) { queries << payload[:sql] }
+      ActiveSupport::Notifications.subscribed(callback, "sql.active_record") do
+        schema_cache.columns("test_schema_cache_posts")
+      end
+      expect(queries).to be_empty
+    end
+
+    it "reads columns from the database again after the schema cache is cleared" do
+      schema_cache.columns("test_schema_cache_posts")
+      ActiveRecord::Base.clear_cache!
+
+      queries = []
+      callback = ->(*, payload) { queries << payload[:sql] if payload[:sql].match?(/all_tab_cols/i) }
+      ActiveSupport::Notifications.subscribed(callback, "sql.active_record") do
+        schema_cache.columns("test_schema_cache_posts")
+      end
+      expect(queries).not_to be_empty
     end
   end
 
