@@ -17,6 +17,31 @@ module ActiveRecord
         end
 
         attr_reader :raw_connection, :owner
+
+        def active # :nodoc:
+          OracleEnhanced.deprecator.warn(
+            "OracleEnhanced::Connection#active is deprecated. " \
+            "To check the connection, call OracleEnhanced::Connection#ping, which raises " \
+            "OracleEnhanced::ConnectionException when the connection is not alive, " \
+            "or use ActiveRecord::Base.lease_connection.active?."
+          )
+          @active
+        end
+
+        def active? # :nodoc:
+          OracleEnhanced.deprecator.warn(
+            "OracleEnhanced::Connection#active? is deprecated. " \
+            "To check the connection, call OracleEnhanced::Connection#ping, which raises " \
+            "OracleEnhanced::ConnectionException when the connection is not alive, " \
+            "or use ActiveRecord::Base.lease_connection.active?."
+          )
+          @active
+        end
+
+        def active=(value) # :nodoc:
+          OracleEnhanced.deprecator.warn("OracleEnhanced::Connection#active= is deprecated.")
+          @active = value
+        end
       end
 
       # Returns an ActiveRecord::ConnectionAdapters::AbstractAdapter::Version

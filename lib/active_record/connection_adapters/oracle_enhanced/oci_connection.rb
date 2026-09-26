@@ -25,9 +25,6 @@ module ActiveRecord
     # OCI database interface for MRI
     module OracleEnhanced
       class OCIConnection < OracleEnhanced::Connection # :nodoc:
-        attr_accessor :active
-        alias :active? :active
-
         def initialize(config)
           @config = config
           @factory = OracleEnhancedOCIFactory
