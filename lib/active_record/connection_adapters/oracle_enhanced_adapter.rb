@@ -429,11 +429,8 @@ module ActiveRecord
         resolve_database_aliases
         validate_session_options
 
-        connect
         @enable_dbms_output = false
         @notice_receiver_sql_warnings = []
-
-        configure_connection
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -1048,6 +1045,8 @@ module ActiveRecord
 
       private def connect
         @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
+      rescue ActiveRecord::ConnectionNotEstablished => error
+        raise error.set_pool(@pool)
       end
 
       private def reconnect
