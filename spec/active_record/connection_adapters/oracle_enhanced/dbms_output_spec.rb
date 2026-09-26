@@ -31,11 +31,11 @@ RSpec.describe "OracleEnhancedAdapter logging dbms_output from plsql" do
 
   before(:each) do
     set_logger
-    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
   end
 
   after(:each) do
+    @conn.disable_dbms_output
     clear_logger
   end
 
