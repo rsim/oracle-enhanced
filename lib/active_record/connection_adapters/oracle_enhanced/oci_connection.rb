@@ -208,6 +208,10 @@ module ActiveRecord
         end
 
         def select(sql, name = nil, return_column_names = false) # :nodoc:
+          OracleEnhanced.deprecator.warn(
+            "OracleEnhanced::Connection#select is deprecated. " \
+            "Use ActiveRecord::Base.lease_connection.select_all (or select_one) instead."
+          )
           cursor = @raw_connection.exec(sql)
           cols = []
           # Ignore raw_rnum_ which is used to simulate LIMIT and OFFSET

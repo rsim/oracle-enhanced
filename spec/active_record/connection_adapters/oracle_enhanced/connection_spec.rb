@@ -689,12 +689,16 @@ RSpec.describe "OracleEnhancedConnection" do
       expect(@conn.exec("SELECT * FROM dual")).not_to be_nil
     end
 
-    it "should execute SQL select" do
-      expect(@conn.select("SELECT * FROM dual")).to eq([{ "dummy" => "X" }])
+    it "warns that #select is deprecated" do
+      expect {
+        expect(@conn.select("SELECT * FROM dual")).to eq([{ "dummy" => "X" }])
+      }.to output(/Connection#select is deprecated/).to_stderr
     end
 
-    it "should execute SQL select and return also columns" do
-      expect(@conn.select("SELECT * FROM dual", nil, true)).to eq([ [{ "dummy" => "X" }], ["dummy"] ])
+    it "warns that #select is deprecated when also returning columns" do
+      expect {
+        expect(@conn.select("SELECT * FROM dual", nil, true)).to eq([ [{ "dummy" => "X" }], ["dummy"] ])
+      }.to output(/Connection#select is deprecated/).to_stderr
     end
   end
 
@@ -786,19 +790,26 @@ RSpec.describe "OracleEnhancedConnection" do
       ActiveRecord::Base.lease_connection.reconnect!
     end
 
+    # Runs +sql+ on a driver-level connection and returns the first column
+    # of the first row. The SYS lookups cannot go through the AR adapter
+    # because it connects as the application user.
+    def select_value_from(conn, sql)
+      cursor = conn.prepare(sql)
+      cursor.exec
+      cursor.fetch&.first
+    ensure
+      cursor&.close
+    end
+
     def kill_current_session
-      audsid = @conn.select("SELECT userenv('sessionid') audsid FROM dual").first["audsid"]
-      sid_serial = @sys_conn.select("SELECT s.sid||','||s.serial# sid_serial
-          FROM   v$session s
-          WHERE  audsid = '#{audsid}'").first["sid_serial"]
-      @sys_conn.exec "ALTER SYSTEM KILL SESSION '#{sid_serial}' IMMEDIATE"
+      @sys_conn.exec "ALTER SYSTEM KILL SESSION '#{connection_id_from_server(@conn)}' IMMEDIATE"
     end
 
     def connection_id_from_server(conn)
-      audsid = conn.select("SELECT userenv('sessionid') audsid FROM dual").first["audsid"]
-      @sys_conn.select("SELECT s.sid||','||s.serial# sid_serial
+      audsid = select_value_from(conn, "SELECT TO_CHAR(userenv('sessionid')) FROM dual")
+      select_value_from(@sys_conn, "SELECT s.sid||','||s.serial# sid_serial
           FROM   v$session s
-          WHERE  audsid = '#{audsid}'").first["sid_serial"]
+          WHERE  audsid = '#{audsid}'")
     end
 
     # Regression test ported from rails/rails#46273, which only covers
