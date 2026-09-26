@@ -57,6 +57,7 @@ RSpec.describe "OracleEnhancedAdapter#discard!" do
   end
 
   it "clears @raw_connection so the adapter reports as disconnected" do
+    @adapter.connect!
     expect(@adapter.connected?).to be(true)
     @adapter.discard!
     expect(@adapter.connected?).to be(false)

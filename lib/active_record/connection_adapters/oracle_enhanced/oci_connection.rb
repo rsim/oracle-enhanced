@@ -254,7 +254,7 @@ module ActiveRecord
         end
 
         # Return OCIError error code
-        def error_code(exception)
+        def self.error_code(exception)
           case exception
           when OCIError
             exception.code
@@ -263,8 +263,16 @@ module ActiveRecord
           end
         end
 
-        def lost_connection?(exception)
+        def self.lost_connection?(exception)
           exception.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(exception.code)
+        end
+
+        def error_code(exception)
+          self.class.error_code(exception)
+        end
+
+        def lost_connection?(exception)
+          self.class.lost_connection?(exception)
         end
 
         def typecast_result_value(value, get_lob_value)

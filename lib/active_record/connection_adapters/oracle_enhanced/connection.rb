@@ -6,13 +6,19 @@ module ActiveRecord
     module OracleEnhanced
       class Connection # :nodoc:
         def self.create(config)
+          driver_class&.new(config)
+        end
+
+        # The driver-specific Connection subclass for the running Ruby engine.
+        # Error classification (+error_code+, +lost_connection?+) only looks at
+        # the exception, so the adapter calls it on this class and does not
+        # need a live connection to translate an error raised while connecting.
+        def self.driver_class
           case ORACLE_ENHANCED_CONNECTION
           when :oci
-            OracleEnhanced::OCIConnection.new(config)
+            OracleEnhanced::OCIConnection
           when :jdbc
-            OracleEnhanced::JDBCConnection.new(config)
-          else
-            nil
+            OracleEnhanced::JDBCConnection
           end
         end
 

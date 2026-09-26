@@ -528,7 +528,7 @@ module ActiveRecord
         end
 
         # Return java.sql.SQLException error code
-        def error_code(exception)
+        def self.error_code(exception)
           case exception
           when Java::JavaSql::SQLException
             exception.getErrorCode
@@ -560,12 +560,20 @@ module ActiveRecord
         # *_ERROR_CODES lists above.
         LOST_CONNECTION_MESSAGE = /\A(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
 
-        def lost_connection?(exception)
+        def self.lost_connection?(exception)
           return false unless exception.is_a?(Java::JavaSql::SQLException)
           code = exception.getErrorCode
           LOST_CONNECTION_ERROR_CODES.include?(code) ||
             JDBC_LOST_CONNECTION_ERROR_CODES.include?(code) ||
             LOST_CONNECTION_MESSAGE.match?(exception.message)
+        end
+
+        def error_code(exception)
+          self.class.error_code(exception)
+        end
+
+        def lost_connection?(exception)
+          self.class.lost_connection?(exception)
         end
 
         def get_ruby_value_from_result_set(rset, i, type_name, get_lob_value = true)

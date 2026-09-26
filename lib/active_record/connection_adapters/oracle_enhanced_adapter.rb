@@ -429,24 +429,21 @@ module ActiveRecord
         super(config_or_deprecated_connection, deprecated_logger, deprecated_connection_options, deprecated_config)
 
         resolve_database_aliases
+        validate_session_options
 
-        connect
         @enable_dbms_output = false
         @prefetch_primary_key_cache = {}
         @columns_cache = {}
         @trigger_assigned_pk_cache = {}
         @notice_receiver_sql_warnings = []
+      end
 
-        configure_connection
-
-        # AbstractAdapter#initialize ran `@visitor = arel_visitor` before
-        # `connect`, when `database_version` was unavailable. Reassign now that
-        # the connection is live so :auto sees the real server version. A lazy
-        # `visitor` override is not an option: AbstractAdapter exposes
-        # `attr_reader :visitor` and reads `@visitor` directly. Nothing in
-        # `configure_connection` compiles SQL, so the placeholder visitor set
-        # by super is never used before this reassignment.
-        @visitor = arel_visitor
+      # The Arel visitor depends on the server version (FETCH FIRST needs
+      # Oracle 12.1+), so it is resolved on first use instead of in
+      # AbstractAdapter#initialize, which runs before any connection exists.
+      # See #arel_visitor.
+      def visitor # :nodoc:
+        @visitor ||= resolve_arel_visitor
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -572,7 +569,6 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        return false unless _connection
         database_version >= "12"
       end
 
@@ -760,6 +756,8 @@ module ActiveRecord
 
       # Returns true if the connection is active.
       def active? # :nodoc:
+        return false unless connected?
+
         # Pings the connection to check if it's still good. Note that an
         # #active? method is also available, but that simply returns the
         # last known state, which isn't good enough if the connection has
@@ -788,8 +786,11 @@ module ActiveRecord
 
       # Disconnects from the database.
       def disconnect! # :nodoc:
-        super
-        _connection.logoff rescue nil
+        @lock.synchronize do
+          super
+          _connection&.logoff rescue nil
+          @raw_connection = nil
+        end
       end
 
       def discard!
@@ -1125,9 +1126,13 @@ module ActiveRecord
       end
 
       private def reconnect
-        _connection.reset!
-      rescue OracleEnhanced::ConnectionException
-        connect
+        begin
+          _connection&.reset!
+        rescue OracleEnhanced::ConnectionException
+          @raw_connection = nil
+        end
+
+        connect unless _connection
       end
 
       # Oracle's reference manual documents EXACT and FORCE only (SIMILAR was
@@ -1191,16 +1196,28 @@ module ActiveRecord
       end
       private :resolve_database_aliases
 
+      # Validates the options #configure_connection turns into ALTER SESSION
+      # statements. It runs from #initialize so a bad value raises
+      # ArgumentError up front, before the first (lazy) connection, rather
+      # than surfacing wrapped in StatementInvalid from #reconnect!.
+      private def validate_session_options
+        cursor_sharing = @config[:cursor_sharing]
+        unless cursor_sharing.nil? || cursor_sharing == :default || CURSOR_SHARING_VALUES.include?(cursor_sharing.to_s.upcase)
+          raise ArgumentError, "Invalid :cursor_sharing value #{cursor_sharing.inspect}; allowed: #{CURSOR_SHARING_VALUES.join(', ')} or :default"
+        end
+
+        schema = @config[:schema].to_s
+        unless schema.blank? || schema.match?(SCHEMA_IDENTIFIER_PATTERN)
+          raise ArgumentError, "Invalid :schema value #{schema.inspect}; must be an Oracle unquoted identifier"
+        end
+      end
+
       private def configure_connection
         super
 
         cursor_sharing = @config[:cursor_sharing]
         unless cursor_sharing.nil? || cursor_sharing == :default
-          cursor_sharing = cursor_sharing.to_s.upcase
-          unless CURSOR_SHARING_VALUES.include?(cursor_sharing)
-            raise ArgumentError, "Invalid :cursor_sharing value #{@config[:cursor_sharing].inspect}; allowed: #{CURSOR_SHARING_VALUES.join(', ')} or :default"
-          end
-          execute("alter session set cursor_sharing = #{cursor_sharing}", "SCHEMA")
+          execute("alter session set cursor_sharing = #{cursor_sharing.to_s.upcase}", "SCHEMA")
         end
 
         if ORACLE_ENHANCED_CONNECTION == :oci
@@ -1214,12 +1231,7 @@ module ActiveRecord
         end
 
         schema = @config[:schema].to_s
-        unless schema.blank?
-          unless schema.match?(SCHEMA_IDENTIFIER_PATTERN)
-            raise ArgumentError, "Invalid :schema value #{schema.inspect}; must be an Oracle unquoted identifier"
-          end
-          execute("alter session set current_schema = #{schema}", "SCHEMA")
-        end
+        execute("alter session set current_schema = #{schema}", "SCHEMA") unless schema.blank?
 
         DEFAULT_NLS_PARAMETERS.each do |key, default_value|
           value = @config[key] || ENV[key.to_s.upcase] || default_value
@@ -1403,7 +1415,16 @@ module ActiveRecord
           "#{symbols[0..-2].join(', ')}, or #{symbols.last}"
         end
 
+        # Called by AbstractAdapter#initialize before the adapter has connected.
+        # Validate the :arel_visitor option here so a bad value still fails
+        # fast, but return nil rather than opening a connection just to read
+        # the server version; #visitor resolves the real one lazily.
         def arel_visitor
+          configured_arel_visitor_mode
+          nil
+        end
+
+        def resolve_arel_visitor
           case resolved_arel_visitor_mode
           when :fetch_first
             Arel::Visitors::Oracle12.new(self)
@@ -1413,8 +1434,6 @@ module ActiveRecord
         end
 
         def resolved_arel_visitor_mode
-          return :rownum unless _connection
-
           mode = configured_arel_visitor_mode
 
           if mode == :fetch_first && !supports_fetch_first_n_rows_and_offset?
@@ -1454,9 +1473,10 @@ module ActiveRecord
         end
 
         def translate_exception(exception, message:, sql:, binds:)
-          return ActiveRecord::ConnectionFailed.new(message, sql: sql, binds: binds, connection_pool: @pool) if _connection.lost_connection?(exception)
+          driver = OracleEnhanced::Connection.driver_class
+          return ActiveRecord::ConnectionFailed.new(message, sql: sql, binds: binds, connection_pool: @pool) if driver.lost_connection?(exception)
 
-          case _connection.error_code(exception)
+          case driver.error_code(exception)
           when 1
             RecordNotUnique.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 60

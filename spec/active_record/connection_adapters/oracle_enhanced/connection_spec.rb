@@ -15,7 +15,7 @@ RSpec.describe "OracleEnhancedAdapter establish connection" do
 
   it "should be active after connection to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    expect(ActiveRecord::Base.lease_connection).to be_active
+    expect(ActiveRecord::Base.lease_connection.connect!).to be_active
   end
 
   it "should not be active after disconnection to database" do
@@ -194,7 +194,7 @@ RSpec.describe "OracleEnhancedConnection" do
     end
 
     it "should create new connection" do
-      expect(ActiveRecord::Base.lease_connection).to be_active
+      expect(ActiveRecord::Base.lease_connection.connect!).to be_active
     end
 
     it "should switch to specified schema" do
@@ -230,13 +230,13 @@ RSpec.describe "OracleEnhancedConnection" do
       service_name = config.delete(:database)
       config[:service_name] = service_name
       ActiveRecord::Base.establish_connection(config)
-      expect(ActiveRecord::Base.lease_connection).to be_active
+      expect(ActiveRecord::Base.lease_connection.connect!).to be_active
     end
 
     it "honors :service_name passed via DATABASE_URL query string" do
       url = "oracle-enhanced://#{DATABASE_USER}:#{DATABASE_PASSWORD}@#{DATABASE_HOST}:#{DATABASE_PORT}/?service_name=#{DATABASE_NAME}"
       ActiveRecord::Base.establish_connection(url)
-      expect(ActiveRecord::Base.lease_connection).to be_active
+      expect(ActiveRecord::Base.lease_connection.connect!).to be_active
     end
 
     it "raises ArgumentError when both :service_name and :database are set" do
@@ -270,14 +270,14 @@ RSpec.describe "OracleEnhancedConnection" do
       config.delete(:database)
       config[:sid] = DATABASE_NAME
       ActiveRecord::Base.establish_connection(config)
-      expect(ActiveRecord::Base.lease_connection).to be_active
+      expect(ActiveRecord::Base.lease_connection.connect!).to be_active
     end
 
     it "honors :sid passed via DATABASE_URL query string" do
       skip "SID-based connection requires a SID-registered instance (Oracle 11g XE)" unless DATABASE_NAME.casecmp?("XE")
       url = "oracle-enhanced://#{DATABASE_USER}:#{DATABASE_PASSWORD}@#{DATABASE_HOST}:#{DATABASE_PORT}/?sid=#{DATABASE_NAME}"
       ActiveRecord::Base.establish_connection(url)
-      expect(ActiveRecord::Base.lease_connection).to be_active
+      expect(ActiveRecord::Base.lease_connection.connect!).to be_active
     end
 
     it "raises ArgumentError when both :sid and :database are set" do
@@ -733,7 +733,7 @@ RSpec.describe "OracleEnhancedConnection" do
       ENV["NLS_NUMERIC_CHARACTERS"] = ", "
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       @conn_base = ActiveRecord::Base.lease_connection
-      @conn = @conn_base.send(:_connection)
+      @conn = @conn_base.send(:valid_raw_connection)
       @conn.exec "CREATE TABLE test_employees (age NUMBER(10,2))"
     end
 
@@ -766,7 +766,7 @@ RSpec.describe "OracleEnhancedConnection" do
 
     before(:all) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.lease_connection.send(:_connection)
+      @conn = ActiveRecord::Base.lease_connection.send(:valid_raw_connection)
       @sys_conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(SYS_CONNECTION_PARAMS)
       schema_define do
         create_table :posts, force: true
