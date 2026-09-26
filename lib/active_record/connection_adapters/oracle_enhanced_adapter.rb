@@ -1120,6 +1120,8 @@ module ActiveRecord
 
       private def connect
         @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
+      rescue ActiveRecord::ConnectionNotEstablished => error
+        raise error.set_pool(@pool)
       end
 
       private def reconnect

@@ -31,7 +31,15 @@ module ActiveRecord
         def initialize(config)
           @config = config
           @factory = OracleEnhancedOCIFactory
-          @raw_connection = @factory.new_connection(@config)
+          begin
+            @raw_connection = @factory.new_connection(@config)
+          rescue OCIException => error
+            # ORA-01017: invalid username/password; logon denied
+            if error.is_a?(OCIError) && error.code == 1017
+              raise ActiveRecord::DatabaseConnectionError.username_error(config[:username])
+            end
+            raise ActiveRecord::ConnectionNotEstablished, error.message
+          end
           @active = true
           # default schema owner
           @owner = config[:schema]

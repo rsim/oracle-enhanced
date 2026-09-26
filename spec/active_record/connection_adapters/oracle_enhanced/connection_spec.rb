@@ -24,6 +24,21 @@ RSpec.describe "OracleEnhancedAdapter establish connection" do
     expect(ActiveRecord::Base.lease_connection).not_to be_active
   end
 
+  it "raises DatabaseConnectionError for an invalid username or password" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(password: "#{CONNECTION_PARAMS[:password]}_wrong"))
+    expect { ActiveRecord::Base.lease_connection.connect! }
+      .to raise_error(ActiveRecord::DatabaseConnectionError, /username\/password, username: #{CONNECTION_PARAMS[:username]}/)
+  ensure
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+  end
+
+  it "raises ConnectionNotEstablished when the database cannot be reached" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(port: 1))
+    expect { ActiveRecord::Base.lease_connection.connect! }.to raise_error(ActiveRecord::ConnectionNotEstablished)
+  ensure
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+  end
+
   it "should not be connected after disconnection and reconnect on the next query" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     conn = ActiveRecord::Base.lease_connection
