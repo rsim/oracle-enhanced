@@ -24,6 +24,7 @@ RSpec.describe "Arel::Visitors::Oracle12" do
   end
 
   it "generates select options offset then limit" do
+    skip "FETCH FIRST requires Oracle 12.1+" unless ActiveRecord::Base.connection.supports_fetch_first_n_rows_and_offset?
     stmt = Arel::Nodes::SelectStatement.new
     stmt.offset = Arel::Nodes::Offset.new(1)
     stmt.limit = Arel::Nodes::Limit.new(10)

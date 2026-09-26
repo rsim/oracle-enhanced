@@ -372,7 +372,7 @@ production:
 
 Accepted values:
 
-* `auto` (default) — use `Arel::Visitors::Oracle12` on Oracle 12.1+, fall back to `Arel::Visitors::Oracle` (ROWNUM-based `LIMIT`/`OFFSET`) on earlier releases.
+* `auto` (default) — pick based on the connected database version: `FETCH FIRST` (as `Arel::Visitors::Oracle12` emits) on Oracle 12.1+, ROWNUM-based `LIMIT`/`OFFSET` (as `Arel::Visitors::Oracle` emits) on earlier releases.
 * `rownum` — force `Arel::Visitors::Oracle`.
 * `fetch_first` — force `Arel::Visitors::Oracle12`.
 
