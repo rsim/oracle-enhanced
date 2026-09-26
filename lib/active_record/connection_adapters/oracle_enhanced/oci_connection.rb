@@ -34,6 +34,12 @@ module ActiveRecord
           @owner = config[:schema]
           @owner ||= config[:username]
           @owner = @owner.to_s.upcase
+        rescue OCIException => error
+          # ORA-01017: invalid username/password; logon denied
+          if error.is_a?(OCIError) && error.code == 1017
+            raise ActiveRecord::DatabaseConnectionError.username_error(config[:username])
+          end
+          raise ActiveRecord::ConnectionNotEstablished, error.message
         end
 
         def logoff

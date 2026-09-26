@@ -60,6 +60,14 @@ module ActiveRecord
           @active = true
           @config = config
           new_connection(@config)
+        rescue Java::JavaSql::SQLException => error
+          # A SQLException raised after the driver connected comes from the session setup in new_connection.
+          raise if @raw_connection
+          # ORA-01017: invalid username/password; logon denied
+          if error.getErrorCode == 1017
+            raise ActiveRecord::DatabaseConnectionError.username_error(config[:username])
+          end
+          raise ActiveRecord::ConnectionNotEstablished, error.message
         end
 
         # modified method to support JNDI connections
