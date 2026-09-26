@@ -151,11 +151,13 @@ RSpec.describe "OracleEnhancedConnection" do
     end
 
     before(:each) do
-      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS) unless @conn.active?
+      @conn.ping
+    rescue ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException
+      @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
     end
 
     it "should create new connection" do
-      expect(@conn).to be_active
+      expect(@conn.ping).to be(true)
     end
 
     it "should ping active connection" do
@@ -167,9 +169,27 @@ RSpec.describe "OracleEnhancedConnection" do
       expect { @conn.ping }.to raise_error(ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException)
     end
 
+    it "warns that #active? is deprecated" do
+      expect {
+        expect(@conn.active?).to be(true)
+      }.to output(/Connection#active\? is deprecated/).to_stderr
+    end
+
+    it "warns that #active is deprecated" do
+      expect {
+        expect(@conn.active).to be(true)
+      }.to output(/Connection#active is deprecated/).to_stderr
+    end
+
+    it "warns that #active= is deprecated" do
+      expect {
+        @conn.active = true
+      }.to output(/Connection#active= is deprecated/).to_stderr
+    end
+
     it "should reset active connection" do
       @conn.reset!
-      expect(@conn).to be_active
+      expect(@conn.ping).to be(true)
     end
 
     it "should be in autocommit mode after connection" do
@@ -540,7 +560,7 @@ RSpec.describe "OracleEnhancedConnection" do
     end
 
     it "should create new connection" do
-      expect(@conn).to be_active
+      expect(@conn.ping).to be(true)
     end
   end
 
@@ -552,7 +572,7 @@ RSpec.describe "OracleEnhancedConnection" do
     end
 
     it "should create new connection" do
-      expect(@conn).to be_active
+      expect(@conn.ping).to be(true)
     end
   end
 
@@ -597,7 +617,7 @@ RSpec.describe "OracleEnhancedConnection" do
         expect(OCI8).to receive(:new).with(username, password, connection_string, nil).and_call_original
       end
       conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
-      expect(conn).to be_active
+      expect(conn.ping).to be(true)
     end
   end
 
@@ -611,7 +631,7 @@ RSpec.describe "OracleEnhancedConnection" do
         params[:host] = nil
         params[:database] = nil
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
-        expect(@conn).to be_active
+        expect(@conn.ping).to be(true)
       end
 
       it "should create new connection using :url and tnsnames alias" do
@@ -620,14 +640,14 @@ RSpec.describe "OracleEnhancedConnection" do
         params[:host] = nil
         params[:database] = nil
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
-        expect(@conn).to be_active
+        expect(@conn.ping).to be(true)
       end
 
       it "should create new connection using just tnsnames alias" do
         params = CONNECTION_PARAMS.dup
         params[:host] = nil
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
-        expect(@conn).to be_active
+        expect(@conn.ping).to be(true)
       end
 
       it "should create a new connection using JNDI" do
@@ -664,7 +684,7 @@ RSpec.describe "OracleEnhancedConnection" do
         params = {}
         params[:jndi] = "java:comp/env/jdbc/test"
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
-        expect(@conn).to be_active
+        expect(@conn.ping).to be(true)
       end
     end
 
@@ -675,7 +695,7 @@ RSpec.describe "OracleEnhancedConnection" do
       params[:database] = nil
       allow(java.sql.DriverManager).to receive(:getConnection).and_raise("no suitable driver found")
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
-      expect(@conn).to be_active
+      expect(@conn.ping).to be(true)
     end
 
   end

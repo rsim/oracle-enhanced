@@ -54,9 +54,6 @@ module ActiveRecord
     # JDBC database interface for JRuby
     module OracleEnhanced
       class JDBCConnection < OracleEnhanced::Connection # :nodoc:
-        attr_accessor :active
-        alias :active? :active
-
         attr_reader :session_time_zone
 
         def initialize(config)
