@@ -75,41 +75,6 @@ module ActiveRecord
           log_dbms_output if dbms_output_enabled?
         end
 
-        def _exec_insert(intent, sequence_name = nil, returning: nil) # :nodoc:
-          raw_sql = intent.raw_sql
-          original_binds_count = intent.binds.size
-          requested_cols = requested_returning_columns(raw_sql, returning)
-          # Binds compiled from `Arel.sql("... ?", value)` are plain values, not
-          # named attributes (rails/rails#58323), so no requested column can be
-          # echoed from them; every requested column goes through RETURNING.
-          echoable_cols = if intent.arel.is_a?(Arel::Nodes::BoundSqlLiteral)
-            []
-          else
-            requested_cols.select { |col| intent.binds.any? { |bind| bind.name == col } }
-          end
-          sql, binds = sql_for_insert(raw_sql, intent.binds, requested_cols - echoable_cols)
-          intent.raw_sql = sql
-          intent.binds = binds
-
-          intent.execute!
-          result = intent.cast_result
-          return result if requested_cols.empty?
-
-          returned = result.columns.zip(result.rows.first || []).to_h
-          type_casted_binds = intent.type_casted_binds
-          # Align the row with the requested columns, echoing bound values
-          # for columns the INSERT already carries (e.g. the prefetched sequence PK).
-          row = requested_cols.map do |col|
-            if returned.key?(col)
-              returned[col]
-            else
-              index = binds[0...original_binds_count].index { |bind| bind.name == col } if echoable_cols.include?(col)
-              index && type_casted_binds[index]
-            end
-          end
-          ActiveRecord::Result.new([], row.all?(&:nil?) ? [] : [row])
-        end
-
         def begin_db_transaction # :nodoc:
           with_raw_connection(allow_retry: true, materialize_transactions: false) do |conn|
             conn.autocommit = false
@@ -288,35 +253,29 @@ module ActiveRecord
             result[:affected_rows_count]
           end
 
-          # `returning_cols` is the resolved column list computed by `_exec_insert`
-          # (the requested RETURNING columns minus those it can echo from binds);
-          # nil keeps AbstractAdapter parity for direct callers and infers the pk.
-          def sql_for_insert(sql, binds, returning_cols) # :nodoc:
-            returning_cols = requested_returning_columns(sql, returning_cols) if returning_cols.nil?
-            table_ref = extract_table_ref_from_insert_sql(sql)
-            unless returning_cols.empty?
-              quoted_cols = returning_cols.map { |c| quote_column_name(c) }.join(", ")
-              placeholders = returning_cols.map { |c| ":returning_#{c}" }.join(", ")
-              sql = "#{sql} RETURNING #{quoted_cols} INTO #{placeholders}"
-              binds = binds.dup
-              returning_cols.each do |col|
-                column = table_ref ? columns(table_ref).find { |c| c.name == col } : nil
-                type = column&.cast_type || Type::OracleEnhanced::Integer.new
-                binds << OracleEnhanced::ReturningAttribute.new(col, type)
-              end
-            end
-            # Skip super: AR's abstract appends PG-style `RETURNING col1, col2` which conflicts with Oracle's `RETURNING ... INTO :bind` form (ORA-00925).
-            [sql, binds]
+          def apply_returning_to!(intent, returning)
+            raw_sql = intent.raw_sql
+            arel_or_sql = intent.arel.is_a?(Arel::InsertManager) ? intent.arel : raw_sql
+            returning = Array(returning || primary_key_for_insert(arel_or_sql)).map(&:to_s)
+            return if returning.empty?
+
+            intent.raw_sql = "#{raw_sql} #{returning_into_clause(returning)}"
+            intent.binds = intent.binds + returning_attributes(arel_or_sql, returning)
           end
 
-          # Mirrors AbstractAdapter#sql_for_insert: infer the primary key from the
-          # SQL via the schema cache when the caller passes returning: nil.
-          def requested_returning_columns(sql, returning)
-            if returning.nil?
-              table_ref = extract_table_ref_from_insert_sql(sql)
-              returning = schema_cache.primary_keys(table_ref) if table_ref
+          def returning_into_clause(columns)
+            quoted_columns = columns.map { |column| quote_column_name(column) }.join(", ")
+            placeholders = columns.map { |column| ":returning_#{column}" }.join(", ")
+            "RETURNING #{quoted_columns} INTO #{placeholders}"
+          end
+
+          def returning_attributes(arel_or_sql, columns)
+            table_ref = table_ref_for_insert(arel_or_sql)
+            columns_hash = table_ref ? schema_cache.columns_hash(table_ref) : {}
+            columns.map do |column|
+              type = columns_hash[column]&.cast_type || Type::OracleEnhanced::Integer.new
+              OracleEnhanced::ReturningAttribute.new(column, type)
             end
-            Array(returning).map(&:to_s)
           end
 
           def returning_binds(binds)

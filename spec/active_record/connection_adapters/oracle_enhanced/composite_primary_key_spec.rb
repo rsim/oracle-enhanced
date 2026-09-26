@@ -254,6 +254,16 @@ RSpec.describe "OracleEnhancedAdapter composite primary key" do
     ensure
       schema_define { drop_table :test_cpk_defaults, if_exists: true }
     end
+
+    # Without returning:, Active Record does not infer a composite primary key,
+    # so insert returns nil, as on Rails' own adapters, instead of the value of
+    # the first primary key column.
+    it "returns nil from a raw insert without returning: on a CPK table" do
+      expect(@conn.insert("INSERT INTO uber_barcodes (region, code) VALUES ('US', 200)")).to be_nil
+      expect(UberBarcode.find(["US", 200])).to be_present
+    ensure
+      UberBarcode.where(region: "US", code: 200).delete_all
+    end
   end
 
   describe "schema cache" do
