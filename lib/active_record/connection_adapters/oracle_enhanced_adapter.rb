@@ -433,7 +433,6 @@ module ActiveRecord
         connect
         @enable_dbms_output = false
         @prefetch_primary_key_cache = {}
-        @columns_cache = {}
         @trigger_assigned_pk_cache = {}
         @notice_receiver_sql_warnings = []
 
@@ -988,7 +987,6 @@ module ActiveRecord
 
       def clear_table_caches(table_name) # :nodoc:
         table_name = table_name.to_s
-        @columns_cache[table_name] = nil
         @trigger_assigned_pk_cache.delete(table_name)
         @prefetch_primary_key_cache.delete(table_name)
         evict_prepared_statements_for(table_name)
