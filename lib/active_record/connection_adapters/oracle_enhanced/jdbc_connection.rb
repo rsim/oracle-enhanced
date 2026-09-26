@@ -209,12 +209,10 @@ module ActiveRecord
           @raw_connection.setAutoCommit(value)
         end
 
-        # Checks connection, returns true if active. Note that ping actively
-        # checks the connection, while #active? simply returns the last
-        # known state.
         def ping
-          exec("select 1 from dual")
-          @active = true
+          @active = @raw_connection.isValid(0)
+          raise OracleEnhanced::ConnectionException, "Connection is not active" unless @active
+          true
         rescue Java::JavaSql::SQLException => e
           @active = false
           raise OracleEnhanced::ConnectionException, e.message
