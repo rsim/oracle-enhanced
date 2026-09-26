@@ -258,15 +258,13 @@ module ActiveRecord
       # :singleton-method:
       # Selects the Arel visitor used to compile SQL for the connection.
       #
-      # * +:auto+ — pick based on the connected database version:
-      #   +Arel::Visitors::Oracle12+ on Oracle 12.1+,
-      #   +Arel::Visitors::Oracle+ (ROWNUM-based LIMIT/OFFSET) on earlier
-      #   releases.
+      # * +:auto+ — use +Arel::Visitors::Oracle12+, which emits FETCH FIRST on
+      #   Oracle 12.1+ and hands each SELECT to +Arel::Visitors::Oracle+
+      #   (ROWNUM-based LIMIT/OFFSET) on earlier releases. The server version
+      #   is checked when SQL is compiled, not when the adapter is built.
       # * +:rownum+ — force +Arel::Visitors::Oracle+ regardless of version.
-      # * +:fetch_first+ — force +Arel::Visitors::Oracle12+. Raises
-      #   +ArgumentError+ during adapter initialization (after the connection
-      #   is established and the visitor is resolved) if the connected server
-      #   is older than 12.1.
+      # * +:fetch_first+ — force +Arel::Visitors::Oracle12+. Connecting to a
+      #   server older than 12.1 raises +ArgumentError+.
       #
       # When the key is omitted, the class-level +use_old_oracle_visitor+
       # decides the default: +true+ maps to +:rownum+, +false+ (default)
@@ -438,15 +436,6 @@ module ActiveRecord
         @notice_receiver_sql_warnings = []
 
         configure_connection
-
-        # AbstractAdapter#initialize ran `@visitor = arel_visitor` before
-        # `connect`, when `database_version` was unavailable. Reassign now that
-        # the connection is live so :auto sees the real server version. A lazy
-        # `visitor` override is not an option: AbstractAdapter exposes
-        # `attr_reader :visitor` and reads `@visitor` directly. Nothing in
-        # `configure_connection` compiles SQL, so the placeholder visitor set
-        # by super is never used before this reassignment.
-        @visitor = arel_visitor
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -572,7 +561,6 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        return false unless _connection
         database_version >= "12"
       end
 
@@ -1114,6 +1102,13 @@ module ActiveRecord
             "Your version of Oracle Database (#{version}) is too old. " \
             "Active Record Oracle enhanced adapter supports Oracle Database >= #{MINIMUM_DATABASE_VERSION} (11g Release 2)."
         end
+
+        if configured_arel_visitor_mode == :fetch_first && !supports_fetch_first_n_rows_and_offset?
+          raise ArgumentError,
+            "arel_visitor: :fetch_first requires Oracle 12.1 or later " \
+            "(connected server reports #{version}). " \
+            "Omit the key for version-aware selection, or use :rownum to force ROWNUM-based LIMIT/OFFSET."
+        end
       end
 
       private def _connection
@@ -1403,29 +1398,16 @@ module ActiveRecord
           "#{symbols[0..-2].join(', ')}, or #{symbols.last}"
         end
 
+        # Chosen from configuration only, so AbstractAdapter#initialize can
+        # build it without a connection. For :auto, Arel::Visitors::Oracle12
+        # checks the server version when it compiles a SELECT.
         def arel_visitor
-          case resolved_arel_visitor_mode
-          when :fetch_first
+          case configured_arel_visitor_mode
+          when :auto, :fetch_first
             Arel::Visitors::Oracle12.new(self)
           when :rownum
             Arel::Visitors::Oracle.new(self)
           end
-        end
-
-        def resolved_arel_visitor_mode
-          return :rownum unless _connection
-
-          mode = configured_arel_visitor_mode
-
-          if mode == :fetch_first && !supports_fetch_first_n_rows_and_offset?
-            raise ArgumentError,
-              "arel_visitor: :fetch_first requires Oracle 12.1 or later " \
-              "(connected server reports #{database_version}). " \
-              "Omit the key for version-aware selection, or use :rownum to force ROWNUM-based LIMIT/OFFSET."
-          end
-
-          return mode unless mode == :auto
-          supports_fetch_first_n_rows_and_offset? ? :fetch_first : :rownum
         end
 
         def configured_arel_visitor_mode

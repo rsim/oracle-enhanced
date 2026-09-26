@@ -8,15 +8,22 @@ module Arel # :nodoc: all
       include OracleCommon
 
       private
-        # Oracle raises ORA-02014 when `FETCH FIRST n ROWS ONLY` is combined
-        # with `FOR UPDATE`. When a limit is present alongside a lock, delegate
-        # the whole SELECT to Arel::Visitors::Oracle, whose ROWNUM-based output
-        # is compatible with FOR UPDATE for the simple case and surfaces any
-        # remaining ORA-02014 as a regular StatementInvalid for compound cases
-        # (ORDER BY / GROUP BY / HAVING / OFFSET / DISTINCT) instead of raising
-        # an ArgumentError from an internal visitor that callers cannot avoid.
+        # Delegate the whole SELECT to Arel::Visitors::Oracle (ROWNUM-based
+        # LIMIT/OFFSET) in two cases:
+        #
+        # * The server is older than 12.1 and has no FETCH FIRST. This is how
+        #   `arel_visitor: :auto` follows the server version: the check runs
+        #   when SQL is compiled, so the adapter picks this visitor without a
+        #   connection. The version is cached per connection pool.
+        # * Oracle raises ORA-02014 when `FETCH FIRST n ROWS ONLY` is combined
+        #   with `FOR UPDATE`. When a limit is present alongside a lock, the
+        #   ROWNUM-based output is compatible with FOR UPDATE for the simple
+        #   case and surfaces any remaining ORA-02014 as a regular
+        #   StatementInvalid for compound cases (ORDER BY / GROUP BY / HAVING /
+        #   OFFSET / DISTINCT) instead of raising an ArgumentError from an
+        #   internal visitor that callers cannot avoid.
         def visit_Arel_Nodes_SelectStatement(o, collector)
-          if o.limit && o.lock
+          if (o.limit && o.lock) || !@connection.supports_fetch_first_n_rows_and_offset?
             # Arel::Visitors::Oracle's simple-limit branch mutates `o.cores`
             # by pushing a ROWNUM predicate into the WHERE list. dup the node
             # so a re-compile of the same statement does not accumulate
