@@ -31,7 +31,9 @@ end
 RSpec.describe "OracleEnhancedAdapter#raw_connection" do
   before(:each) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-    @adapter = ActiveRecord::Base.lease_connection
+    # Connect up front so the examples see only #raw_connection's own call,
+    # not the ones made while opening and configuring the connection.
+    @adapter = ActiveRecord::Base.lease_connection.connect!
   end
 
   it "routes through AR core's with_raw_connection wrapper" do
@@ -57,6 +59,7 @@ RSpec.describe "OracleEnhancedAdapter#discard!" do
   end
 
   it "clears @raw_connection so the adapter reports as disconnected" do
+    @adapter.connect!
     expect(@adapter.connected?).to be(true)
     @adapter.discard!
     expect(@adapter.connected?).to be(false)
