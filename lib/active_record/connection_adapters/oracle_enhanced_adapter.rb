@@ -263,9 +263,8 @@ module ActiveRecord
       #   limiting clause (<tt>OFFSET n ROWS FETCH FIRST n ROWS ONLY</tt>) on
       #   Oracle 12.1+, ROWNUM on earlier releases.
       # * +:rownum+ — ROWNUM regardless of version.
-      # * +:fetch_first+ — the row limiting clause. Raises +ArgumentError+
-      #   during adapter initialization (after the connection is established)
-      #   if the connected server is older than 12.1.
+      # * +:fetch_first+ — the row limiting clause. Connecting to a server
+      #   older than 12.1 raises +ArgumentError+.
       #
       # When the key is omitted, the class-level +use_old_oracle_visitor+
       # decides the default: +true+ maps to +:rownum+, +false+ (default)
@@ -437,15 +436,6 @@ module ActiveRecord
         @notice_receiver_sql_warnings = []
 
         configure_connection
-
-        # AbstractAdapter#initialize ran `@visitor = arel_visitor` before
-        # `connect`, when `database_version` was unavailable. Reassign now that
-        # the connection is live so :auto sees the real server version. A lazy
-        # `visitor` override is not an option: AbstractAdapter exposes
-        # `attr_reader :visitor` and reads `@visitor` directly. Nothing in
-        # `configure_connection` compiles SQL, so the placeholder visitor set
-        # by super is never used before this reassignment.
-        @visitor = arel_visitor
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -571,7 +561,6 @@ module ActiveRecord
       end
 
       def supports_fetch_first_n_rows_and_offset?
-        return false unless _connection
         database_version >= "12"
       end
 
@@ -1071,11 +1060,18 @@ module ActiveRecord
       MINIMUM_DATABASE_VERSION = "11.2"
 
       def check_version # :nodoc:
-        version = get_database_version
+        version = database_version
         if version < MINIMUM_DATABASE_VERSION
           raise ActiveRecord::DatabaseVersionError,
             "Your version of Oracle Database (#{version}) is too old. " \
             "Active Record Oracle enhanced adapter supports Oracle Database >= #{MINIMUM_DATABASE_VERSION} (11g Release 2)."
+        end
+
+        if configured_limit_offset_syntax == :fetch_first && !supports_fetch_first_n_rows_and_offset?
+          raise ArgumentError,
+            "limit_offset_syntax: :fetch_first requires Oracle 12.1 or later " \
+            "(connected server reports #{version}). " \
+            "Omit the key for version-aware selection, or use :rownum to force ROWNUM-based LIMIT/OFFSET."
         end
       end
 
@@ -1403,28 +1399,12 @@ module ActiveRecord
         end
 
         def arel_visitor
-          case resolved_limit_offset_syntax
-          when :fetch_first
+          case configured_limit_offset_syntax
+          when :auto, :fetch_first
             Arel::Visitors::Oracle12.new(self)
           when :rownum
             Arel::Visitors::Oracle.new(self)
           end
-        end
-
-        def resolved_limit_offset_syntax
-          return :rownum unless _connection
-
-          mode = configured_limit_offset_syntax
-
-          if mode == :fetch_first && !supports_fetch_first_n_rows_and_offset?
-            raise ArgumentError,
-              "limit_offset_syntax: :fetch_first requires Oracle 12.1 or later " \
-              "(connected server reports #{database_version}). " \
-              "Omit the key for version-aware selection, or use :rownum to force ROWNUM-based LIMIT/OFFSET."
-          end
-
-          return mode unless mode == :auto
-          supports_fetch_first_n_rows_and_offset? ? :fetch_first : :rownum
         end
 
         def configured_limit_offset_syntax

@@ -40,13 +40,9 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
   end
 
   describe "visitor selection" do
-    it "picks Oracle12 on a real 12.1+ database by default" do
+    it "uses Oracle12 by default, whatever the server version" do
       conn = ActiveRecord::Base.connection
-      if conn.database_version >= "12"
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
-      else
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
-      end
+      expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
     end
 
     it "honors per-connection limit_offset_syntax: :rownum" do
@@ -99,11 +95,7 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: nil))
       conn = ActiveRecord::Base.connection
 
-      if conn.database_version >= "12"
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
-      else
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
-      end
+      expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
     end
 
     it "falls back to the class-level use_old_oracle_visitor when no per-connection key is given" do
@@ -130,7 +122,7 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
     end
 
-    it "per-connection :auto overrides class-level use_old_oracle_visitor and resolves by database_version" do
+    it "per-connection :auto overrides class-level use_old_oracle_visitor" do
       # Forward-compatibility: writing `limit_offset_syntax: :auto` produces the
       # same visitor whether or not use_old_oracle_visitor is set, so the
       # behavior is stable across the use_old_oracle_visitor deprecation.
@@ -141,21 +133,37 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :auto))
       conn = ActiveRecord::Base.connection
 
-      if conn.database_version >= "12"
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
-      else
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
-      end
+      expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
     end
   end
 
-  describe "resolved_limit_offset_syntax" do
-    it "resolves :auto via the connected database version" do
+  describe ":auto" do
+    it "compiles LIMIT for the connected server version" do
       conn = ActiveRecord::Base.connection
+      stmt = Arel::Table.new(name: :users).project(Arel.star).take(10).ast
+      sql = conn.visitor.accept(stmt, Arel::Collectors::SQLString.new).value
+
       if conn.database_version >= "12"
-        expect(conn.send(:resolved_limit_offset_syntax)).to eq(:fetch_first)
+        expect(sql).to include("FETCH FIRST 10 ROWS ONLY")
       else
-        expect(conn.send(:resolved_limit_offset_syntax)).to eq(:rownum)
+        expect(sql).to include("ROWNUM <= 10")
+        expect(sql).not_to include("FETCH FIRST")
+      end
+    end
+
+    it "compiles an UPDATE with a limit but no key as Arel::Visitors::Oracle does before 12.1" do
+      conn = ActiveRecord::Base.connection
+      table = Arel::Table.new(name: :users)
+      um = Arel::UpdateManager.new(table)
+      um.set([[table[:name], Arel.sql("'foo'")]])
+      um.take(10)
+      sql = conn.visitor.accept(um.ast, Arel::Collectors::SQLString.new).value
+
+      if conn.database_version >= "12"
+        expect(sql).to include("FETCH FIRST 10 ROWS ONLY")
+      else
+        oracle = Arel::Visitors::Oracle.new(conn)
+        expect(sql).to eq(oracle.accept(um.ast, Arel::Collectors::SQLString.new).value)
       end
     end
   end
@@ -187,7 +195,7 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first))
 
-      expect { ActiveRecord::Base.connection.send(:resolved_limit_offset_syntax) }
+      expect { ActiveRecord::Base.connection }
         .to raise_error(ArgumentError, /limit_offset_syntax: :fetch_first requires Oracle 12\.1 or later/)
     end
   end
