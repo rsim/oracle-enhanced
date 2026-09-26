@@ -24,6 +24,15 @@ RSpec.describe "OracleEnhancedAdapter establish connection" do
     expect(ActiveRecord::Base.lease_connection).not_to be_active
   end
 
+  it "should not be connected after disconnection and reconnect on the next query" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    conn = ActiveRecord::Base.lease_connection
+    conn.disconnect!
+    expect(conn).not_to be_connected
+    expect(conn.select_value("SELECT 1 FROM dual")).to eq(1)
+    expect(conn).to be_connected
+  end
+
   it "should be active after reconnection to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Base.lease_connection.reconnect!

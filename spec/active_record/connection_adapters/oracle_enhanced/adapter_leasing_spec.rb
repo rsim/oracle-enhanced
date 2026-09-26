@@ -61,6 +61,11 @@ RSpec.describe "OracleEnhancedAdapter#discard!" do
     @adapter.discard!
     expect(@adapter.connected?).to be(false)
   end
+
+  it "reports inactive instead of raising after discard!" do
+    @adapter.discard!
+    expect(@adapter.active?).to be(false)
+  end
 end
 
 RSpec.describe "OracleEnhancedAdapter transaction state changes" do

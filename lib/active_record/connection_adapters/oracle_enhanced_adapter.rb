@@ -759,11 +759,12 @@ module ActiveRecord
 
       # Returns true if the connection is active.
       def active? # :nodoc:
-        # Pings the connection to check if it's still good. Note that an
-        # #active? method is also available, but that simply returns the
-        # last known state, which isn't good enough if the connection has
-        # gone stale since the last use.
-        _connection.ping
+        @lock.synchronize do
+          return false unless connected?
+          _connection.ping
+          verified!
+        end
+        true
       rescue OracleEnhanced::ConnectionException
         false
       end
@@ -787,8 +788,11 @@ module ActiveRecord
 
       # Disconnects from the database.
       def disconnect! # :nodoc:
-        super
-        _connection.logoff rescue nil
+        @lock.synchronize do
+          super
+          _connection&.logoff rescue nil
+          @raw_connection = nil
+        end
       end
 
       def discard!
@@ -1123,9 +1127,13 @@ module ActiveRecord
       end
 
       private def reconnect
-        _connection.reset!
-      rescue OracleEnhanced::ConnectionException
-        connect
+        begin
+          _connection&.reset!
+        rescue OracleEnhanced::ConnectionException
+          @raw_connection = nil
+        end
+
+        connect unless _connection
       end
 
       # Oracle's reference manual documents EXACT and FORCE only (SIMILAR was
