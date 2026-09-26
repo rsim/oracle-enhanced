@@ -700,6 +700,20 @@ RSpec.describe "OracleEnhancedConnection" do
         expect(@conn.select("SELECT * FROM dual", nil, true)).to eq([ [{ "dummy" => "X" }], ["dummy"] ])
       }.to output(/Connection#select is deprecated/).to_stderr
     end
+
+    it "warns that #select_no_retry is deprecated" do
+      skip unless ORACLE_ENHANCED_CONNECTION == :jdbc
+      expect {
+        expect(@conn.select_no_retry("SELECT * FROM dual")).to eq([{ "dummy" => "X" }])
+      }.to output(/JDBCConnection#select_no_retry is deprecated/).to_stderr
+    end
+
+    it "warns that #exec_no_retry is deprecated" do
+      skip unless ORACLE_ENHANCED_CONNECTION == :jdbc
+      expect {
+        expect(@conn.exec_no_retry("SELECT * FROM dual")).to be(true)
+      }.to output(/JDBCConnection#exec_no_retry is deprecated/).to_stderr
+    end
   end
 
   describe "SQL with bind parameters" do
