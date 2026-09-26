@@ -352,6 +352,7 @@ RSpec.describe "OracleEnhancedConnection" do
     end
 
     it "emits an OracleEnhanced.deprecator warning naming the recommended replacements" do
+      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(database: "/#{DATABASE_NAME}"))
       expect {
         ActiveRecord::Base.lease_connection
@@ -361,6 +362,7 @@ RSpec.describe "OracleEnhancedConnection" do
     end
 
     it "points the 'called from' frame at the user's call site, not adapter internals" do
+      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(database: "/#{DATABASE_NAME}"))
       expect {
         ActiveRecord::Base.lease_connection
