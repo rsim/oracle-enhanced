@@ -216,7 +216,7 @@ module ActiveRecord
         # checks the connection, while #active? simply returns the last
         # known state.
         def ping
-          exec_no_retry("select 1 from dual")
+          exec("select 1 from dual")
           @active = true
         rescue Java::JavaSql::SQLException => e
           @active = false
@@ -240,10 +240,7 @@ module ActiveRecord
           # callers, but the JDBC path here has no bindvar handling. Fail
           # loudly rather than silently dropping values on the floor.
           raise ArgumentError, "JDBC exec does not support bindvars" unless bindvars.empty?
-          exec_no_retry(sql)
-        end
 
-        def exec_no_retry(sql)
           case sql
           when /\A\s*(UPDATE|INSERT|DELETE)/i
             s = @raw_connection.prepareStatement(sql)
@@ -264,6 +261,14 @@ module ActiveRecord
           end
         ensure
           s.close rescue nil
+        end
+
+        def exec_no_retry(sql) # :nodoc:
+          OracleEnhanced.deprecator.warn(
+            "OracleEnhanced::JDBCConnection#exec_no_retry is deprecated. " \
+            "Use ActiveRecord::Base.lease_connection.execute instead."
+          )
+          exec(sql)
         end
 
         def prepare(sql)
@@ -481,10 +486,14 @@ module ActiveRecord
             "OracleEnhanced::Connection#select is deprecated. " \
             "Use ActiveRecord::Base.lease_connection.select_all (or select_one) instead."
           )
-          select_no_retry(sql, name, return_column_names)
+          OracleEnhanced.deprecator.silence { select_no_retry(sql, name, return_column_names) }
         end
 
-        def select_no_retry(sql, name = nil, return_column_names = false)
+        def select_no_retry(sql, name = nil, return_column_names = false) # :nodoc:
+          OracleEnhanced.deprecator.warn(
+            "OracleEnhanced::JDBCConnection#select_no_retry is deprecated. " \
+            "Use ActiveRecord::Base.lease_connection.select_all (or select_one) instead."
+          )
           stmt = @raw_connection.prepareStatement(sql)
           rset = stmt.executeQuery
 
