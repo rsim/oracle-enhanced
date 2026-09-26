@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 RSpec.describe "OracleEnhancedAdapter establish connection" do
+  after(:each) do
+    ActiveRecord::Base.connection_pool.disconnect!
+  end
+
   it "should connect to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     expect(ActiveRecord::Base.lease_connection).not_to be_nil
@@ -360,7 +364,7 @@ RSpec.describe "OracleEnhancedConnection" do
   end
 
   describe "`:database` value with leading `/`" do
-    after(:all) do
+    after(:each) do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     end
 
@@ -465,14 +469,18 @@ RSpec.describe "OracleEnhancedConnection" do
 
     it "should use NLS_TERRITORY environment variable" do
       ENV["NLS_TERRITORY"] = "JAPAN"
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      expect(ActiveRecord::Base.lease_connection.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("JAPAN")
+      conn = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(CONNECTION_PARAMS)
+      expect(conn.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("JAPAN")
+    ensure
+      conn&.disconnect!
     end
 
     it "should use configuration value and ignore NLS_TERRITORY environment variable" do
       ENV["NLS_TERRITORY"] = "AMERICA"
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(nls_territory: "INDONESIA"))
-      expect(ActiveRecord::Base.lease_connection.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("INDONESIA")
+      conn = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(CONNECTION_PARAMS.merge(nls_territory: "INDONESIA"))
+      expect(conn.select_value("select SYS_CONTEXT('userenv', 'NLS_TERRITORY') from dual")).to eq("INDONESIA")
+    ensure
+      conn&.disconnect!
     end
   end
 
@@ -771,15 +779,16 @@ RSpec.describe "OracleEnhancedConnection" do
   describe "SQL with bind parameters when NLS_NUMERIC_CHARACTERS is set to ', '" do
     before(:all) do
       ENV["NLS_NUMERIC_CHARACTERS"] = ", "
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn_base = ActiveRecord::Base.lease_connection
+      @conn_base = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(CONNECTION_PARAMS)
+      @conn_base.connect!
       @conn = @conn_base.send(:_connection)
       @conn.exec "CREATE TABLE test_employees (age NUMBER(10,2))"
     end
 
     after(:all) do
       ENV["NLS_NUMERIC_CHARACTERS"] = nil
-      @conn_base.drop_table("test_employees", if_exists: true)
+      @conn_base&.drop_table("test_employees", if_exists: true)
+      @conn_base&.disconnect!
       ActiveRecord::Base.clear_cache!
     end
 

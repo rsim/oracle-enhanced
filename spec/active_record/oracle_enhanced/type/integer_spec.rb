@@ -45,12 +45,6 @@ RSpec.describe "OracleEnhancedAdapter integer type detection based on attribute 
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = true
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.clear_type_map!
       ActiveRecord::Base.clear_cache!
-      # The "emulate_booleans is set to false" example calls
-      # `establish_connection` mid-test, which leaves the connection's
-      # column adapters bound to that flag value. Re-establish here so
-      # every example starts from a clean adapter state regardless of
-      # what its predecessor did.
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     end
 
     def create_employee2
@@ -97,7 +91,8 @@ RSpec.describe "OracleEnhancedAdapter integer type detection based on attribute 
 
     it "should return Integer value from NUMBER(1) column if emulate_booleans is set to false" do
       ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.emulate_booleans = false
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.clear_type_map!
+      ActiveRecord::Base.clear_cache!
       create_employee2
       expect(@employee2.is_manager).to be_a(Integer)
     end

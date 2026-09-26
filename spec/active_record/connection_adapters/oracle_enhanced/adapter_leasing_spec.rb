@@ -56,6 +56,10 @@ RSpec.describe "OracleEnhancedAdapter#discard!" do
     @adapter = ActiveRecord::Base.lease_connection
   end
 
+  after(:each) do
+    ActiveRecord::Base.connection_pool.disconnect!
+  end
+
   it "clears @raw_connection so the adapter reports as disconnected" do
     expect(@adapter.connected?).to be(true)
     @adapter.discard!
