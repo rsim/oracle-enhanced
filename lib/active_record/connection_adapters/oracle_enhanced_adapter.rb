@@ -429,13 +429,10 @@ module ActiveRecord
         resolve_database_aliases
         validate_session_options
 
-        connect
         @enable_dbms_output = false
         @prefetch_primary_key_cache = {}
         @trigger_assigned_pk_cache = {}
         @notice_receiver_sql_warnings = []
-
-        configure_connection
       end
 
       ADAPTER_NAME = "OracleEnhanced"
