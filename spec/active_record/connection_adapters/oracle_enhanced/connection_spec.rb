@@ -109,6 +109,11 @@ RSpec.describe "OracleEnhancedAdapter establish connection" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(cursor_sharing: "not_a_valid_mode"))
       expect { ActiveRecord::Base.lease_connection }.to raise_error(ArgumentError, /Invalid :cursor_sharing value/)
     end
+
+    it "validates cursor_sharing before connecting" do
+      config = CONNECTION_PARAMS.merge(cursor_sharing: "not_a_valid_mode", password: "#{CONNECTION_PARAMS[:password]}_wrong")
+      expect { ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(config) }.to raise_error(ArgumentError, /Invalid :cursor_sharing value/)
+    end
   end
 
   it "should not use JDBC statement caching" do
@@ -239,6 +244,11 @@ RSpec.describe "OracleEnhancedConnection" do
     it "should raise ArgumentError for a :schema value that is not an Oracle unquoted identifier" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(schema: "oracle_enhanced;DROP TABLE x;--"))
       expect { ActiveRecord::Base.lease_connection }.to raise_error(ArgumentError, /Invalid :schema value/)
+    end
+
+    it "validates :schema before connecting" do
+      config = CONNECTION_PARAMS.merge(schema: "oracle_enhanced;DROP TABLE x;--", password: "#{CONNECTION_PARAMS[:password]}_wrong")
+      expect { ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(config) }.to raise_error(ArgumentError, /Invalid :schema value/)
     end
 
     it "honors :schema passed via DATABASE_URL query string" do
