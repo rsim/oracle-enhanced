@@ -164,8 +164,7 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       end
     end
 
-    it "skips RETURNING when the caller supplies the String primary key value" do
-      skip "the bound-value echo needs prepared statements" unless @conn.prepared_statements
+    it "reads back the String primary key value the caller supplies with RETURNING" do
       schema_define do
         create_table :test_lookups, force: true, id: false do |t|
           t.primary_key :code, :string, limit: 10, null: false
@@ -179,15 +178,13 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
 
       set_logger
       begin
-        klass.create!(code: "ABC", name: "alpha")
-        expect(@logger.output(:debug)).not_to match(/RETURNING/i)
+        expect(klass.create!(code: "ABC", name: "alpha").code).to eq("ABC")
+        expect(@logger.output(:debug)).to match(/RETURNING "CODE" INTO/i)
       ensure
         clear_logger
       end
     end
 
-    # Without prepared statements the values are inlined into the SQL, so there
-    # are no binds to echo the primary key from; it comes back via RETURNING.
     it "emits RETURNING for the String primary key when prepared_statements is false" do
       schema_define do
         create_table :test_lookups, force: true, id: false do |t|

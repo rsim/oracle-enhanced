@@ -127,8 +127,6 @@ RSpec.describe "OracleEnhancedAdapter" do
       expect(ActiveRecord::Base.lease_connection.supports_insert_returning?).to be(true)
     end
 
-    # `RETURNING ... INTO :bind` path: triggered when the PK is database-assigned
-    # at INSERT time (IDENTITY column on Oracle 12.1+).
     context "with an IDENTITY primary key" do
       before(:all) do
         skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.supports_identity_columns?
@@ -168,25 +166,16 @@ RSpec.describe "OracleEnhancedAdapter" do
         expect(insert_log).not_to match(/RETURNING\s+"ID"\s*\)?\s*\z/i)
       end
 
-      # AbstractAdapter#sql_for_insert infers the primary key from the SQL when
-      # the caller passes returning: nil. Generic callers that go through this
-      # path without an explicit `returning` used to miss out on RETURNING
-      # auto-fetch on Oracle because the fallback was not mirrored locally;
-      # this spec locks in the parity introduced for issue #2732.
       it "infers the primary key from the SQL when returning: nil (parity with AbstractAdapter)" do
         conn = ActiveRecord::Base.lease_connection
         insert_sql = "INSERT INTO #{conn.quote_table_name('test_returning_identity_items')} (#{conn.quote_column_name('name')}) VALUES ('direct-call')"
-        out_sql, out_binds = conn.send(:sql_for_insert, insert_sql, [], nil)
-        expect(out_sql).to match(/RETURNING\s+"ID"\s+INTO\s+:returning_id/i)
-        expect(out_binds.last.name).to eq("returning_id")
+        id = conn.insert(insert_sql)
+        expect(id).to be_a(Integer)
+        insert_log = @logger.logged(:debug).find { |line| line.include?("direct-call") }
+        expect(insert_log).to match(/RETURNING\s+"ID"\s+INTO\s+:returning_id/i)
       end
     end
 
-    # Sequence-prefetched path: oracle-enhanced's default for `create_table` (no
-    # `identity: true`). The PK is fetched via `seq.NEXTVAL` before the INSERT
-    # and bound into the values list, so RETURNING is NOT used. This spec locks
-    # in that the flag flip + super-skip does not accidentally inject a RETURNING
-    # clause on this path.
     context "with a sequence-prefetched primary key" do
       before(:all) do
         schema_define do
@@ -217,20 +206,14 @@ RSpec.describe "OracleEnhancedAdapter" do
         expect(record.id).to be > 0
       end
 
-      it "binds the sequence-fetched id into the INSERT and does NOT emit RETURNING" do
-        skip "the bound-value echo needs prepared statements" unless ActiveRecord::Base.lease_connection.prepared_statements
+      it "binds the sequence-fetched id into the INSERT and reads it back with RETURNING" do
         TestReturningSeqItem.create!(name: "alpha")
         insert_log = @logger.logged(:debug).find { |line| line.include?("INSERT INTO") && line.include?("TEST_RETURNING_SEQ_ITEMS") }
         expect(insert_log).not_to be_nil, "INSERT statement was not logged"
         expect(insert_log).to match(/INSERT INTO "TEST_RETURNING_SEQ_ITEMS".*"ID"/im)
-        # \bRETURNING\b\s+(?:"|INTO) catches the SQL keyword followed by either
-        # a quoted column or `INTO :bind`; avoids false matches on the table
-        # name (which contains the substring "RETURNING").
-        expect(insert_log).not_to match(/\bRETURNING\b\s+(?:"|INTO\b)/i)
+        expect(insert_log).to match(/\bRETURNING\b\s+"ID"\s+INTO\b/i)
       end
 
-      # Without prepared statements the sequence-fetched id is inlined into the
-      # SQL, so there is no bind to echo it from; it comes back via RETURNING.
       it "emits RETURNING for the sequence-fetched id and still returns it when prepared_statements is false" do
         record = ActiveRecord::Base.lease_connection.unprepared_statement do
           TestReturningSeqItem.create!(name: "alpha")
