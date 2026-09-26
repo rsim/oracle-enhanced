@@ -24,6 +24,15 @@ RSpec.describe "OracleEnhancedAdapter establish connection" do
     expect(ActiveRecord::Base.lease_connection).not_to be_active
   end
 
+  it "should not be connected after disconnection and reconnect on the next query" do
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    conn = ActiveRecord::Base.lease_connection
+    conn.disconnect!
+    expect(conn).not_to be_connected
+    expect(conn.select_value("SELECT 1 FROM dual")).to eq(1)
+    expect(conn).to be_connected
+  end
+
   it "should be active after reconnection to database" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     ActiveRecord::Base.lease_connection.reconnect!
@@ -916,7 +925,7 @@ RSpec.describe "OracleEnhancedConnection" do
             else
               OCIError.new(formatted, code)
             end
-          expect(@conn.lost_connection?(exception)).to be true
+          expect(ActiveRecord::Base.lease_connection.send(:lost_connection?, exception)).to be true
         end
       end
 
@@ -929,11 +938,11 @@ RSpec.describe "OracleEnhancedConnection" do
         ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection::JDBC_LOST_CONNECTION_ERROR_CODES.each do |code|
           it "recognises ORA-#{code} via the JDBC driver error code list" do
             exception = Java::JavaSql::SQLException.new("ORA-#{code}: simulated", nil, code)
-            expect(@conn.lost_connection?(exception)).to be true
+            expect(ActiveRecord::Base.lease_connection.send(:lost_connection?, exception)).to be true
           end
         end
 
-        # LOST_CONNECTION_MESSAGE is the fallback for older ojdbc that
+        # JDBC_LOST_CONNECTION_MESSAGE is the fallback for older ojdbc that
         # surfaces disconnects with getErrorCode == 0 and no ORA-NNNNN
         # prefix in the message.
         {
@@ -944,7 +953,7 @@ RSpec.describe "OracleEnhancedConnection" do
         }.each do |label, message|
           it "recognises message-only disconnects matching #{label.inspect}" do
             exception = Java::JavaSql::SQLException.new(message, nil, 0)
-            expect(@conn.lost_connection?(exception)).to be true
+            expect(ActiveRecord::Base.lease_connection.send(:lost_connection?, exception)).to be true
           end
         end
 
@@ -954,18 +963,18 @@ RSpec.describe "OracleEnhancedConnection" do
         # Cursor#close tolerates 17009 separately.
         it "does not treat ORA-17009 (Closed Statement) as a lost connection" do
           exception = Java::JavaSql::SQLException.new("ORA-17009: Closed Statement", nil, 17009)
-          expect(@conn.lost_connection?(exception)).to be false
+          expect(ActiveRecord::Base.lease_connection.send(:lost_connection?, exception)).to be false
         end
 
       else
         it "does not treat unrelated OCI error codes as a lost connection" do
           exception = OCIError.new("ORA-00001: unique constraint violated", 1)
-          expect(@conn.lost_connection?(exception)).to be false
+          expect(ActiveRecord::Base.lease_connection.send(:lost_connection?, exception)).to be false
         end
       end
 
       it "does not treat unrelated exception classes as a lost connection" do
-        expect(@conn.lost_connection?(StandardError.new("bare"))).to be false
+        expect(ActiveRecord::Base.lease_connection.send(:lost_connection?, StandardError.new("bare"))).to be false
       end
     end
   end

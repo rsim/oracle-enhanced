@@ -747,11 +747,12 @@ module ActiveRecord
 
       # Returns true if the connection is active.
       def active? # :nodoc:
-        # Pings the connection to check if it's still good. Note that an
-        # #active? method is also available, but that simply returns the
-        # last known state, which isn't good enough if the connection has
-        # gone stale since the last use.
-        _connection.ping
+        @lock.synchronize do
+          return false unless connected?
+          _connection.ping
+          verified!
+        end
+        true
       rescue OracleEnhanced::ConnectionException
         false
       end
@@ -775,8 +776,11 @@ module ActiveRecord
 
       # Disconnects from the database.
       def disconnect! # :nodoc:
-        super
-        _connection.logoff rescue nil
+        @lock.synchronize do
+          super
+          _connection&.logoff rescue nil
+          @raw_connection = nil
+        end
       end
 
       def discard!
@@ -1082,9 +1086,13 @@ module ActiveRecord
       end
 
       private def reconnect
-        _connection.reset!
-      rescue OracleEnhanced::ConnectionException
-        connect
+        begin
+          _connection&.reset!
+        rescue OracleEnhanced::ConnectionException
+          @raw_connection = nil
+        end
+
+        connect unless _connection
       end
 
       # Oracle's reference manual documents EXACT and FORCE only (SIMILAR was
@@ -1430,10 +1438,30 @@ module ActiveRecord
           self.class.type_map
         end
 
-        def translate_exception(exception, message:, sql:, binds:)
-          return ActiveRecord::ConnectionFailed.new(message, sql: sql, binds: binds, connection_pool: @pool) if _connection.lost_connection?(exception)
+        def error_code(exception)
+          if ORACLE_ENHANCED_CONNECTION == :oci
+            exception.code if exception.is_a?(OCIError)
+          else
+            exception.getErrorCode if exception.is_a?(Java::JavaSql::SQLException)
+          end
+        end
 
-          case _connection.error_code(exception)
+        def lost_connection?(exception)
+          if ORACLE_ENHANCED_CONNECTION == :oci
+            exception.is_a?(OCIError) && OracleEnhanced::LOST_CONNECTION_ERROR_CODES.include?(exception.code)
+          else
+            return false unless exception.is_a?(Java::JavaSql::SQLException)
+            code = exception.getErrorCode
+            OracleEnhanced::LOST_CONNECTION_ERROR_CODES.include?(code) ||
+              OracleEnhanced::JDBCConnection::JDBC_LOST_CONNECTION_ERROR_CODES.include?(code) ||
+              OracleEnhanced::JDBCConnection::JDBC_LOST_CONNECTION_MESSAGE.match?(exception.message)
+          end
+        end
+
+        def translate_exception(exception, message:, sql:, binds:)
+          return ActiveRecord::ConnectionFailed.new(message, sql: sql, binds: binds, connection_pool: @pool) if lost_connection?(exception)
+
+          case error_code(exception)
           when 1
             RecordNotUnique.new(message, sql: sql, binds: binds, connection_pool: @pool)
           when 60
