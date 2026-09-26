@@ -49,7 +49,7 @@ module ActiveRecord
           while true do
             result = plsql(:dbms_output).sys.dbms_output.get_line(line: "", status: 0)
             break unless result[:status] == 0
-            @logger.debug "DBMS_OUTPUT: #{result[:line]}" if @logger
+            ActiveRecord::Base.logger&.debug "DBMS_OUTPUT: #{result[:line]}"
           end
         end
       end
