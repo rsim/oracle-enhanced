@@ -40,13 +40,9 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
   end
 
   describe "visitor selection" do
-    it "picks Oracle12 on a real 12.1+ database by default" do
+    it "uses Oracle12 by default, whatever the server version" do
       conn = ActiveRecord::Base.connection
-      if conn.database_version >= "12"
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
-      else
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
-      end
+      expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
     end
 
     it "honors per-connection arel_visitor: :rownum" do
@@ -99,11 +95,7 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: nil))
       conn = ActiveRecord::Base.connection
 
-      if conn.database_version >= "12"
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
-      else
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
-      end
+      expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
     end
 
     it "falls back to the class-level use_old_oracle_visitor when no per-connection key is given" do
@@ -130,7 +122,7 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
       expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
     end
 
-    it "per-connection :auto overrides class-level use_old_oracle_visitor and resolves by database_version" do
+    it "per-connection :auto overrides class-level use_old_oracle_visitor" do
       # Forward-compatibility: writing `arel_visitor: :auto` produces the
       # same visitor whether or not use_old_oracle_visitor is set, so the
       # behavior is stable across the use_old_oracle_visitor deprecation.
@@ -141,21 +133,21 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :auto))
       conn = ActiveRecord::Base.connection
 
-      if conn.database_version >= "12"
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
-      else
-        expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
-      end
+      expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
     end
   end
 
-  describe "resolved_arel_visitor_mode" do
-    it "resolves :auto via the connected database version" do
+  describe ":auto" do
+    it "compiles LIMIT for the connected server version" do
       conn = ActiveRecord::Base.connection
+      stmt = Arel::Table.new(name: :users).project(Arel.star).take(10).ast
+      sql = conn.visitor.accept(stmt, Arel::Collectors::SQLString.new).value
+
       if conn.database_version >= "12"
-        expect(conn.send(:resolved_arel_visitor_mode)).to eq(:fetch_first)
+        expect(sql).to include("FETCH FIRST 10 ROWS ONLY")
       else
-        expect(conn.send(:resolved_arel_visitor_mode)).to eq(:rownum)
+        expect(sql).to include("ROWNUM <= 10")
+        expect(sql).not_to include("FETCH FIRST")
       end
     end
   end
@@ -187,7 +179,7 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :fetch_first))
 
-      expect { ActiveRecord::Base.connection.send(:resolved_arel_visitor_mode) }
+      expect { ActiveRecord::Base.connection }
         .to raise_error(ArgumentError, /arel_visitor: :fetch_first requires Oracle 12\.1 or later/)
     end
   end
