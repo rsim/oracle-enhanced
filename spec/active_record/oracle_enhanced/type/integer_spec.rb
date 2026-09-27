@@ -4,7 +4,7 @@ RSpec.describe "OracleEnhancedAdapter integer type detection based on attribute 
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     conn = ActiveRecord::Base.lease_connection
-    conn.execute "DROP TABLE test2_employees" rescue nil
+    conn.drop_table :test2_employees, if_exists: true
     conn.execute <<~SQL
       CREATE TABLE test2_employees (
         id            NUMBER PRIMARY KEY,
@@ -22,7 +22,6 @@ RSpec.describe "OracleEnhancedAdapter integer type detection based on attribute 
         created_at    DATE
       )
     SQL
-    conn.execute "DROP SEQUENCE test2_employees_seq" rescue nil
     conn.execute <<~SQL
       CREATE SEQUENCE test2_employees_seq  MINVALUE 1
         INCREMENT BY 1 START WITH 10040 CACHE 20 NOORDER NOCYCLE
@@ -31,8 +30,7 @@ RSpec.describe "OracleEnhancedAdapter integer type detection based on attribute 
 
   after(:all) do
     conn = ActiveRecord::Base.lease_connection
-    conn.execute "DROP TABLE test2_employees"
-    conn.execute "DROP SEQUENCE test2_employees_seq"
+    conn.drop_table :test2_employees
     ActiveRecord::Base.release_connection
   end
 
