@@ -200,22 +200,15 @@ RSpec.describe "OracleEnhancedAdapter composite primary key" do
       schema_define { drop_table :test_single_pks, if_exists: true }
     end
 
-    # Regression for the dictionary fallback: when the schema cache is cold,
-    # `prefetch_primary_key_from_dictionary` must still return true for a
-    # single-column PK and false for a composite PK. (A buggy
-    # `composite_primary_key?(pks)` Array-check incorrectly short-circuited
-    # every PK table to false because `primary_keys` always returns an Array.)
-    it "prefetch_primary_key? hits the dictionary path correctly with a cold schema cache" do
+    it "answers prefetch_primary_key? for single and composite primary keys with a cold schema cache" do
       schema_define do
         create_table :test_single_pks, force: true do |t|
           t.string :name
         end
       end
-      @conn.instance_variable_get(:@prefetch_primary_key_cache).delete("test_single_pks")
       @conn.schema_cache.clear_data_source_cache!("test_single_pks")
       expect(@conn.prefetch_primary_key?("test_single_pks")).to be true
 
-      @conn.instance_variable_get(:@prefetch_primary_key_cache).delete("uber_barcodes")
       @conn.schema_cache.clear_data_source_cache!("uber_barcodes")
       expect(@conn.prefetch_primary_key?("uber_barcodes")).to be false
     ensure
