@@ -307,11 +307,11 @@ module ActiveRecord
         #
         # Will always query database and not index cache.
         def index_name_exists?(table_name, index_name)
-          (_owner, table_name) = resolve_data_source_name(table_name)
-          result = select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("index_name", index_name.to_s.upcase)])
+          (owner, table_name) = resolve_data_source_name(table_name)
+          result = select_value(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", table_name), bind_string("index_name", index_name.to_s.upcase)])
             SELECT 1 FROM all_indexes i
-            WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
-               AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE i.owner = :owner
+               AND i.table_owner = i.owner
                AND i.table_name = :table_name
                AND i.index_name = :index_name
           SQL
@@ -601,20 +601,20 @@ module ActiveRecord
 
         def table_comment(table_name) # :nodoc:
           # TODO
-          (_owner, table_name) = resolve_data_source_name(table_name)
-          select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
+          (owner, table_name) = resolve_data_source_name(table_name)
+          select_value(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", table_name)])
             SELECT comments FROM all_tab_comments
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE owner = :owner
               AND table_name = :table_name
           SQL
         end
 
         def column_comment(table_name, column_name) # :nodoc:
           # TODO: it  does not exist in Abstract adapter
-          (_owner, table_name) = resolve_data_source_name(table_name)
-          select_value(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
+          (owner, table_name) = resolve_data_source_name(table_name)
+          select_value(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", table_name), bind_string("column_name", column_name.upcase)])
             SELECT comments FROM all_col_comments
-            WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+            WHERE owner = :owner
               AND table_name = :table_name
               AND column_name = :column_name
           SQL
@@ -833,14 +833,14 @@ module ActiveRecord
 
           def fetch_indexes(tables)
             tables.index_with do |table_name|
-              (_owner, table_name) = resolve_data_source_name(table_name)
+              (owner, table_name) = resolve_data_source_name(table_name)
               default_tablespace_name = default_tablespace
 
               # `all_indexes.visibility` was introduced in Oracle 11g R1. Pre-11g
               # connections do not have the column, so substitute a literal
               # 'VISIBLE' so the rest of the reader works unchanged.
               visibility_column = supports_disabling_indexes? ? "i.visibility" : "'VISIBLE' AS visibility"
-              result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
+              result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", table_name)])
                 SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
                   i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
                   LOWER(i.tablespace_name) AS tablespace_name, #{visibility_column},
@@ -852,8 +852,8 @@ module ActiveRecord
                     e.index_owner = i.owner AND e.column_position = c.column_position
                   LEFT OUTER JOIN all_tab_cols atc ON i.table_name = atc.table_name AND
                     c.column_name = atc.column_name AND i.owner = atc.owner AND atc.hidden_column = 'NO'
-                WHERE i.owner = SYS_CONTEXT('userenv', 'current_schema')
-                   AND i.table_owner = SYS_CONTEXT('userenv', 'current_schema')
+                WHERE i.owner = :owner
+                   AND i.table_owner = i.owner
                    AND i.table_name = :table_name
                    AND NOT EXISTS (SELECT uc.index_name FROM all_constraints uc
                     WHERE uc.index_name = i.index_name AND uc.owner = i.owner AND uc.constraint_type = 'P')
@@ -870,10 +870,10 @@ module ActiveRecord
                   statement_parameters = nil
                   if row["index_type"] == "DOMAIN" && row["ityp_owner"] == "CTXSYS" && row["ityp_name"] == "CONTEXT"
                     procedure_name = default_datastore_procedure(row["index_name"])
-                    source = select_values(<<~SQL.squish, "SCHEMA", [bind_string("procedure_name", procedure_name.upcase)]).join
+                    source = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("procedure_name", procedure_name.upcase)]).join
                       SELECT text
                       FROM all_source
-                      WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+                      WHERE owner = :owner
                         AND name = :procedure_name
                       ORDER BY line
                     SQL
@@ -933,9 +933,9 @@ module ActiveRecord
 
           def fetch_foreign_keys(tables)
             tables.index_with do |table_name|
-              (_owner, desc_table_name) = resolve_data_source_name(table_name)
+              (owner, desc_table_name) = resolve_data_source_name(table_name)
 
-              fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+              fk_info = select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("desc_table_name", desc_table_name)])
                 SELECT r.table_name to_table
                       ,rc.column_name references_column
                       ,cc.column_name
@@ -947,7 +947,7 @@ module ActiveRecord
                       ,c.status
                   FROM all_constraints c, all_cons_columns cc,
                        all_constraints r, all_cons_columns rc
-                 WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
+                 WHERE c.owner = :owner
                    AND c.table_name = :desc_table_name
                    AND c.constraint_type = 'R'
                    AND cc.owner = c.owner
@@ -978,13 +978,13 @@ module ActiveRecord
           # `generated = 'USER NAME'` skips implicit NOT NULL checks (system-named, type 'C').
           def fetch_check_constraints(tables)
             tables.index_with do |table_name|
-              (_owner, desc_table_name) = resolve_data_source_name(table_name)
+              (owner, desc_table_name) = resolve_data_source_name(table_name)
 
               # `search_condition` is LONG; cannot appear in WHERE (ORA-00997).
-              rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+              rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("desc_table_name", desc_table_name)])
                 SELECT constraint_name AS name, search_condition, validated
                   FROM all_constraints
-                 WHERE owner = SYS_CONTEXT('userenv', 'current_schema')
+                 WHERE owner = :owner
                    AND table_name = :desc_table_name
                    AND constraint_type = 'C'
                    AND generated = 'USER NAME'
@@ -1002,9 +1002,9 @@ module ActiveRecord
 
           def fetch_unique_constraints(tables)
             tables.index_with do |table_name|
-              (_owner, desc_table_name) = resolve_data_source_name(table_name)
+              (owner, desc_table_name) = resolve_data_source_name(table_name)
 
-              rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("desc_table_name", desc_table_name)])
+              rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("desc_table_name", desc_table_name)])
                 SELECT c.constraint_name AS name,
                        c.index_name,
                        c.deferrable,
@@ -1015,7 +1015,7 @@ module ActiveRecord
                   JOIN all_cons_columns cc
                     ON cc.owner = c.owner
                    AND cc.constraint_name = c.constraint_name
-                 WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
+                 WHERE c.owner = :owner
                    AND c.table_name = :desc_table_name
                    AND c.constraint_type = 'U'
                  ORDER BY c.constraint_name, cc.position
