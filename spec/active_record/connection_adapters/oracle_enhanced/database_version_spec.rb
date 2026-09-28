@@ -87,7 +87,7 @@ RSpec.describe "OracleEnhancedAdapter::Version" do
     let(:conn) { ActiveRecord::Base.connection }
 
     def stub_database_version(conn, version_string, full_version_string)
-      allow(conn).to receive(:get_database_version)
+      allow(conn).to receive(:database_version)
         .and_return(version_class.new(version_string, full_version_string))
     end
 
