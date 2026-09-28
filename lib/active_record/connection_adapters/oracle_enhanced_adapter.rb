@@ -950,42 +950,6 @@ module ActiveRecord
         SQL
       end
 
-      def column_definitions(table_name)
-        (owner, desc_table_name) = resolve_data_source_name(table_name)
-
-        # `ALL_TAB_COLS.IDENTITY_COLUMN` is only available on Oracle 12.1+
-        # (the release that introduced identity columns), so on older servers
-        # we substitute a constant 'NO' to keep the projection stable.
-        #
-        # See:
-        #   https://docs.oracle.com/en/database/oracle/oracle-database/23/refrn/ALL_TAB_COLS.html
-        #   https://docs.oracle.com/en/database/oracle/oracle-database/23/refrn/ALL_TAB_IDENTITY_COLS.html
-        identity_column_expr = supports_identity_columns? ? "cols.identity_column" : "'NO' AS identity_column"
-
-        select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
-          SELECT cols.column_name AS name, cols.data_type AS sql_type,
-                 cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
-                 #{identity_column_expr},
-                 cols.data_type_owner AS sql_type_owner,
-                 DECODE(cols.data_type, 'NUMBER', data_precision,
-                                   'FLOAT', data_precision,
-                                   'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
-                                   'RAW', DECODE(char_used, 'C', char_length, data_length),
-                                   'CHAR', DECODE(char_used, 'C', char_length, data_length),
-                                    NULL) AS limit,
-                 DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
-                 comments.comments as column_comment
-            FROM all_tab_cols cols, all_col_comments comments
-           WHERE cols.owner      = :owner
-             AND cols.table_name = :table_name
-             AND cols.hidden_column = 'NO'
-             AND cols.owner = comments.owner
-             AND cols.table_name = comments.table_name
-             AND cols.column_name = comments.column_name
-           ORDER BY cols.column_id
-        SQL
-      end
-
       def clear_table_caches(table_name) # :nodoc:
         table_name = table_name.to_s
         @columns_cache[table_name] = nil
@@ -1278,15 +1242,6 @@ module ActiveRecord
           end
       end
 
-      def extract_value_from_default(default)
-        case default
-        when String
-          default.gsub("''", "'")
-        else
-          default
-        end
-      end
-
       def extract_limit(sql_type) # :nodoc:
         case sql_type
         when /^bigint/i
@@ -1305,6 +1260,51 @@ module ActiveRecord
       ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
 
       private
+        def column_definitions(table_name)
+          (owner, desc_table_name) = resolve_data_source_name(table_name)
+
+          # `ALL_TAB_COLS.IDENTITY_COLUMN` is only available on Oracle 12.1+
+          # (the release that introduced identity columns), so on older servers
+          # we substitute a constant 'NO' to keep the projection stable.
+          #
+          # See:
+          #   https://docs.oracle.com/en/database/oracle/oracle-database/23/refrn/ALL_TAB_COLS.html
+          #   https://docs.oracle.com/en/database/oracle/oracle-database/23/refrn/ALL_TAB_IDENTITY_COLS.html
+          identity_column_expr = supports_identity_columns? ? "cols.identity_column" : "'NO' AS identity_column"
+
+          select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+            SELECT cols.column_name AS name, cols.data_type AS sql_type,
+                   cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
+                   #{identity_column_expr},
+                   cols.data_type_owner AS sql_type_owner,
+                   DECODE(cols.data_type, 'NUMBER', data_precision,
+                                     'FLOAT', data_precision,
+                                     'VARCHAR2', DECODE(char_used, 'C', char_length, data_length),
+                                     'RAW', DECODE(char_used, 'C', char_length, data_length),
+                                     'CHAR', DECODE(char_used, 'C', char_length, data_length),
+                                      NULL) AS limit,
+                   DECODE(data_type, 'NUMBER', data_scale, NULL) AS scale,
+                   comments.comments as column_comment
+              FROM all_tab_cols cols, all_col_comments comments
+             WHERE cols.owner      = :owner
+               AND cols.table_name = :table_name
+               AND cols.hidden_column = 'NO'
+               AND cols.owner = comments.owner
+               AND cols.table_name = comments.table_name
+               AND cols.column_name = comments.column_name
+             ORDER BY cols.column_id
+          SQL
+        end
+
+        def extract_value_from_default(default)
+          case default
+          when String
+            default.gsub("''", "'")
+          else
+            default
+          end
+        end
+
         def fetch_primary_keys(tables)
           tables.index_with do |table_name|
             (_owner, desc_table_name) = resolve_data_source_name(table_name)
