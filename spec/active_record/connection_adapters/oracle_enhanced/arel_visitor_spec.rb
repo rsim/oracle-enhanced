@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
+RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
   let(:adapter_class) { ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter }
 
   before(:each) do
@@ -49,19 +49,19 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
       end
     end
 
-    it "honors per-connection arel_visitor: :rownum" do
+    it "honors per-connection limit_offset_syntax: :rownum" do
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :rownum))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :rownum))
       conn = ActiveRecord::Base.connection
 
       expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
       expect(conn.visitor).not_to be_a(Arel::Visitors::Oracle12)
     end
 
-    it "honors per-connection arel_visitor: :fetch_first" do
+    it "honors per-connection limit_offset_syntax: :fetch_first" do
       skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version < "12"
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :fetch_first))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first))
       conn = ActiveRecord::Base.connection
 
       expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
@@ -69,15 +69,15 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
 
     it "accepts string values from database.yml-style config" do
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: "rownum"))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: "rownum"))
       conn = ActiveRecord::Base.connection
 
       expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
     end
 
-    it "raises ArgumentError for an unknown arel_visitor value" do
+    it "raises ArgumentError for an unknown limit_offset_syntax value" do
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :bogus))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :bogus))
 
       expect {
         ActiveRecord::Base.connection
@@ -86,17 +86,17 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
 
     it "raises ArgumentError (not NoMethodError) for non-string/symbol scalar values" do
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: false))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: false))
 
       expect {
         ActiveRecord::Base.connection
       }.to raise_error(ArgumentError, /String or Symbol/)
     end
 
-    it "falls back to the class-level setting when arel_visitor is explicitly nil" do
+    it "falls back to the class-level setting when limit_offset_syntax is explicitly nil" do
       # Mirrors the `foo:` / `foo: ~` shape in database.yml that YAML parses to nil.
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: nil))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: nil))
       conn = ActiveRecord::Base.connection
 
       if conn.database_version >= "12"
@@ -118,27 +118,27 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
       expect(conn.visitor).not_to be_a(Arel::Visitors::Oracle12)
     end
 
-    it "per-connection arel_visitor overrides class-level use_old_oracle_visitor" do
+    it "per-connection limit_offset_syntax overrides class-level use_old_oracle_visitor" do
       skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version < "12"
       ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
         adapter_class.use_old_oracle_visitor = true
       end
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :fetch_first))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first))
       conn = ActiveRecord::Base.connection
 
       expect(conn.visitor).to be_a(Arel::Visitors::Oracle12)
     end
 
     it "per-connection :auto overrides class-level use_old_oracle_visitor and resolves by database_version" do
-      # Forward-compatibility: writing `arel_visitor: :auto` produces the
+      # Forward-compatibility: writing `limit_offset_syntax: :auto` produces the
       # same visitor whether or not use_old_oracle_visitor is set, so the
       # behavior is stable across the use_old_oracle_visitor deprecation.
       ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
         adapter_class.use_old_oracle_visitor = true
       end
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :auto))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :auto))
       conn = ActiveRecord::Base.connection
 
       if conn.database_version >= "12"
@@ -149,13 +149,13 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
     end
   end
 
-  describe "resolved_arel_visitor_mode" do
+  describe "resolved_limit_offset_syntax" do
     it "resolves :auto via the connected database version" do
       conn = ActiveRecord::Base.connection
       if conn.database_version >= "12"
-        expect(conn.send(:resolved_arel_visitor_mode)).to eq(:fetch_first)
+        expect(conn.send(:resolved_limit_offset_syntax)).to eq(:fetch_first)
       else
-        expect(conn.send(:resolved_arel_visitor_mode)).to eq(:rownum)
+        expect(conn.send(:resolved_limit_offset_syntax)).to eq(:rownum)
       end
     end
   end
@@ -163,12 +163,12 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
   describe "supports_fetch_first_n_rows_and_offset?" do
     # Capability flag — answers "does this database support FETCH FIRST n ROWS
     # ONLY syntax?" — driven by the connected server version, not by the
-    # configured `arel_visitor`. Forcing `:rownum` on a 12c+ connection does
+    # configured `limit_offset_syntax`. Forcing `:rownum` on a 12c+ connection does
     # not change what the database supports; it only changes what the adapter
     # emits.
-    it "reflects database_version regardless of arel_visitor override" do
+    it "reflects database_version regardless of limit_offset_syntax override" do
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :rownum))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :rownum))
       conn = ActiveRecord::Base.connection
 
       expected = conn.database_version >= "12"
@@ -185,10 +185,10 @@ RSpec.describe "OracleEnhancedAdapter arel_visitor configuration" do
     it "raises ArgumentError" do
       skip "requires Oracle pre-12.1" if ActiveRecord::Base.connection.database_version >= "12"
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(arel_visitor: :fetch_first))
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first))
 
-      expect { ActiveRecord::Base.connection.send(:resolved_arel_visitor_mode) }
-        .to raise_error(ArgumentError, /arel_visitor: :fetch_first requires Oracle 12\.1 or later/)
+      expect { ActiveRecord::Base.connection.send(:resolved_limit_offset_syntax) }
+        .to raise_error(ArgumentError, /limit_offset_syntax: :fetch_first requires Oracle 12\.1 or later/)
     end
   end
 end
