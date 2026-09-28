@@ -89,7 +89,7 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
       expect(conn.max_identifier_length).to eq(30)
     end
 
-    it "honors identifier_max_length: :long on 12.2+, raises ArgumentError on pre-12.2" do
+    it "honors identifier_max_length: :long on 12.2+, raises DatabaseVersionError on pre-12.2" do
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :long))
       conn = ActiveRecord::Base.connection
@@ -98,10 +98,36 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
         expect(conn.max_identifier_length).to eq(128)
       else
         expect { conn.max_identifier_length }.to raise_error(
-          ArgumentError,
+          ActiveRecord::DatabaseVersionError,
           /identifier_max_length: :long requires Oracle 12\.2 or later \(connected server reports #{Regexp.escape(conn.database_version.to_s)}\)/
         )
       end
+    end
+
+    it "raises DatabaseVersionError for identifier_max_length: :long when the reported version is older than 12.2" do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :long))
+      conn = ActiveRecord::Base.connection
+      allow(conn).to receive(:database_version)
+        .and_return(adapter_class::Version.new("12.1", "12.1.0.2.0"))
+
+      expect { conn.max_identifier_length }.to raise_error(
+        ActiveRecord::DatabaseVersionError,
+        /identifier_max_length: :long requires Oracle 12\.2 or later \(connected server reports 12\.1\)/
+      )
+    end
+
+    it "raises DatabaseVersionError for identifier_max_length: :long when resolving a table name before 12.2" do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :long))
+      conn = ActiveRecord::Base.connection
+      allow(conn).to receive(:database_version)
+        .and_return(adapter_class::Version.new("12.1", "12.1.0.2.0"))
+
+      expect { conn.columns("test_employees") }.to raise_error(
+        ActiveRecord::DatabaseVersionError,
+        /identifier_max_length: :long requires Oracle 12\.2 or later/
+      )
     end
 
     it "accepts YAML string values and coerces them via to_sym" do
@@ -168,7 +194,7 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
         expect(conn.max_identifier_length).to eq(128)
       else
         expect { conn.max_identifier_length }
-          .to raise_error(ArgumentError, /identifier_max_length: :long requires Oracle 12\.2 or later/)
+          .to raise_error(ActiveRecord::DatabaseVersionError, /identifier_max_length: :long requires Oracle 12\.2 or later/)
       end
     end
   end
