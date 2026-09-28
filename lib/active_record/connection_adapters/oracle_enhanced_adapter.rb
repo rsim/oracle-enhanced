@@ -256,29 +256,28 @@ module ActiveRecord
 
       ##
       # :singleton-method:
-      # Selects the Arel visitor used to compile SQL for the connection.
+      # Selects how LIMIT and OFFSET are written in SQL, per connection via
+      # the +limit_offset_syntax+ key:
       #
-      # * +:auto+ — pick based on the connected database version:
-      #   +Arel::Visitors::Oracle12+ on Oracle 12.1+,
-      #   +Arel::Visitors::Oracle+ (ROWNUM-based LIMIT/OFFSET) on earlier
-      #   releases.
-      # * +:rownum+ — force +Arel::Visitors::Oracle+ regardless of version.
-      # * +:fetch_first+ — force +Arel::Visitors::Oracle12+. Raises
-      #   +ArgumentError+ during adapter initialization (after the connection
-      #   is established and the visitor is resolved) if the connected server
-      #   is older than 12.1.
+      # * +:auto+ — decided from the connected database version: the row
+      #   limiting clause (<tt>OFFSET n ROWS FETCH FIRST n ROWS ONLY</tt>) on
+      #   Oracle 12.1+, ROWNUM on earlier releases.
+      # * +:rownum+ — ROWNUM regardless of version.
+      # * +:fetch_first+ — the row limiting clause. Raises +ArgumentError+
+      #   during adapter initialization (after the connection is established)
+      #   if the connected server is older than 12.1.
       #
       # When the key is omitted, the class-level +use_old_oracle_visitor+
       # decides the default: +true+ maps to +:rownum+, +false+ (default)
-      # maps to +:auto+. Setting +arel_visitor: :auto+ explicitly overrides
-      # the class-level setting, so the result stays the same when
+      # maps to +:auto+. Setting +limit_offset_syntax: :auto+ explicitly
+      # overrides the class-level setting, so the result stays the same when
       # +use_old_oracle_visitor+ is removed in a future major.
       #
       # Set per connection via database.yml:
       #
       #   production:
       #     adapter: oracle_enhanced
-      #     arel_visitor: rownum
+      #     limit_offset_syntax: rownum
       @@use_old_oracle_visitor = false
 
       def self.use_old_oracle_visitor
@@ -286,12 +285,12 @@ module ActiveRecord
       end
 
       # Only the writer is deprecated. The reader is consulted on the
-      # fallback path inside +configured_arel_visitor_mode+ even when the user
+      # fallback path inside +configured_limit_offset_syntax+ even when the user
       # never wrote to it, so warning on read would be noisy.
       def self.use_old_oracle_visitor=(value)
         OracleEnhanced.deprecator.deprecation_warning(
           "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor=",
-          "set `arel_visitor: rownum` per connection in database.yml instead"
+          "set `limit_offset_syntax: rownum` per connection in database.yml instead"
         )
         @@use_old_oracle_visitor = value
       end
@@ -1365,8 +1364,8 @@ module ActiveRecord
           pks.any? && !has_identity_pk && !has_trigger_backed_pk
         end
 
-        AREL_VISITOR_MODES = %i[auto rownum fetch_first].freeze
-        private_constant :AREL_VISITOR_MODES
+        LIMIT_OFFSET_SYNTAXES = %i[auto rownum fetch_first].freeze
+        private_constant :LIMIT_OFFSET_SYNTAXES
 
         IDENTIFIER_MAX_LENGTH_MODES = %i[auto short long].freeze
         private_constant :IDENTIFIER_MAX_LENGTH_MODES
@@ -1404,7 +1403,7 @@ module ActiveRecord
         end
 
         def arel_visitor
-          case resolved_arel_visitor_mode
+          case resolved_limit_offset_syntax
           when :fetch_first
             Arel::Visitors::Oracle12.new(self)
           when :rownum
@@ -1412,14 +1411,14 @@ module ActiveRecord
           end
         end
 
-        def resolved_arel_visitor_mode
+        def resolved_limit_offset_syntax
           return :rownum unless _connection
 
-          mode = configured_arel_visitor_mode
+          mode = configured_limit_offset_syntax
 
           if mode == :fetch_first && !supports_fetch_first_n_rows_and_offset?
             raise ArgumentError,
-              "arel_visitor: :fetch_first requires Oracle 12.1 or later " \
+              "limit_offset_syntax: :fetch_first requires Oracle 12.1 or later " \
               "(connected server reports #{database_version}). " \
               "Omit the key for version-aware selection, or use :rownum to force ROWNUM-based LIMIT/OFFSET."
           end
@@ -1428,18 +1427,18 @@ module ActiveRecord
           supports_fetch_first_n_rows_and_offset? ? :fetch_first : :rownum
         end
 
-        def configured_arel_visitor_mode
-          per_connection = @config[:arel_visitor] if @config.key?(:arel_visitor)
+        def configured_limit_offset_syntax
+          per_connection = @config[:limit_offset_syntax] if @config.key?(:limit_offset_syntax)
 
           if per_connection.nil?
             self.class.use_old_oracle_visitor ? :rownum : :auto
           else
             unless per_connection.is_a?(String) || per_connection.is_a?(Symbol)
-              raise ArgumentError, "arel_visitor must be a String or Symbol (got #{per_connection.inspect}). Expected one of #{AREL_VISITOR_MODES.inspect}."
+              raise ArgumentError, "limit_offset_syntax must be a String or Symbol (got #{per_connection.inspect}). Expected one of #{LIMIT_OFFSET_SYNTAXES.inspect}."
             end
             mode = per_connection.to_sym
-            unless AREL_VISITOR_MODES.include?(mode)
-              raise ArgumentError, "Unknown arel_visitor #{mode.inspect}. Expected one of #{AREL_VISITOR_MODES.inspect}."
+            unless LIMIT_OFFSET_SYNTAXES.include?(mode)
+              raise ArgumentError, "Unknown limit_offset_syntax #{mode.inspect}. Expected one of #{LIMIT_OFFSET_SYNTAXES.inspect}."
             end
             mode
           end

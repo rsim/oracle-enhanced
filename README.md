@@ -362,21 +362,21 @@ end
 
 In case of Rails 2 application you do not need to use `ActiveSupport.on_load(:active_record) do ... end` around settings code block.
 
-To pick the Arel visitor used for a given connection, set `arel_visitor` in `database.yml`:
+To choose how `LIMIT` and `OFFSET` are written in SQL for a given connection, set `limit_offset_syntax` in `database.yml`:
 
 ```yaml
 production:
   adapter: oracle_enhanced
-  arel_visitor: rownum
+  limit_offset_syntax: rownum
 ```
 
 Accepted values:
 
-* `auto` (default) — use `Arel::Visitors::Oracle12` on Oracle 12.1+, fall back to `Arel::Visitors::Oracle` (ROWNUM-based `LIMIT`/`OFFSET`) on earlier releases.
-* `rownum` — force `Arel::Visitors::Oracle`.
-* `fetch_first` — force `Arel::Visitors::Oracle12`.
+* `auto` (default) — decided from the connected database version: the row limiting clause (`OFFSET n ROWS FETCH FIRST n ROWS ONLY`) on Oracle 12.1+, ROWNUM on earlier releases.
+* `rownum` — ROWNUM regardless of version.
+* `fetch_first` — the row limiting clause. Connecting to a server older than 12.1 raises `ArgumentError`.
 
-The older `ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor = true` setter still works as a global fallback (equivalent to `arel_visitor: rownum`) but is deprecated and will be removed in a future release.
+The older `ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor = true` setter still works as a global fallback (equivalent to `limit_offset_syntax: rownum`) but is deprecated and will be removed in a future release.
 
 See other adapter settings in [oracle_enhanced_adapter.rb](http://github.com/rsim/oracle-enhanced/blob/master/lib/active_record/connection_adapters/oracle_enhanced_adapter.rb).
 
