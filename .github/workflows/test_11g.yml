@@ -98,6 +98,25 @@ jobs:
           sudo mv /tmp/timezlrg_14.dat "$ORACLE_HOME/oracore/zoneinfo/"
           sudo mv /tmp/timezone_14.dat "$ORACLE_HOME/oracore/zoneinfo/"
           echo "ORA_TZFILE=timezlrg_14.dat" >> $GITHUB_ENV
+      - name: Raise processes on Oracle 11g XE
+        run: |
+          # The 11g listener adds up the connections it hands out and learns
+          # how many were closed only from PMON's periodic updates, so a burst
+          # of connects makes it refuse new ones with ORA-12516 well before
+          # the default 100 processes are in use.
+          ORACLE_CONTAINER="${{ job.services.oracle.id }}"
+          echo "alter system set processes=300 scope=spfile;" | docker exec -i "$ORACLE_CONTAINER" sqlplus -s / as sysdba
+          docker restart "$ORACLE_CONTAINER"
+          for i in $(seq 1 60); do
+            docker exec "$ORACLE_CONTAINER" healthcheck.sh && break
+            sleep 5
+          done
+          echo "alter system register;" | docker exec -i "$ORACLE_CONTAINER" sqlplus -s / as sysdba
+          for i in $(seq 1 60); do
+            echo "select 'READY' from dual;" | docker exec -i "$ORACLE_CONTAINER" bash -c 'sqlplus -s -L "system/$ORACLE_PASSWORD@//localhost:1521/XE"' | grep -q READY && exit 0
+            sleep 5
+          done
+          exit 1
       - name: Create database user
         run: |
           ./ci/setup_accounts.sh
