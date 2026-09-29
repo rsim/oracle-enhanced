@@ -875,35 +875,6 @@ module ActiveRecord
         end
       end
 
-      def reset_pk_sequence!(table_name, primary_key = nil, sequence_name = nil) # :nodoc:
-        return nil unless data_source_exists?(table_name)
-        unless primary_key && sequence_name
-          # *Note*: Only primary key is implemented - sequence will be nil.
-          primary_key, sequence_name = pk_and_sequence_for(table_name)
-          # TODO This sequence_name implemantation is just enough
-          # to satisty fixures. To get correct sequence_name always
-          # pk_and_sequence_for method needs some work.
-          begin
-            sequence_name = table_name.classify.constantize.sequence_name
-          rescue
-            sequence_name = default_sequence_name(table_name, primary_key)
-          end
-        end
-
-        if @logger && primary_key && !sequence_name
-          @logger.warn "#{table_name} has primary key #{primary_key} with no default sequence"
-        end
-
-        if primary_key && sequence_name
-          new_start_value = select_value(<<~SQL.squish, "SCHEMA")
-            select NVL(max(#{quote_column_name(primary_key)}),0) + 1 from #{quote_table_name(table_name)}
-          SQL
-
-          execute "DROP SEQUENCE #{quote_table_name(sequence_name)}"
-          execute "CREATE SEQUENCE #{quote_table_name(sequence_name)} START WITH #{new_start_value}"
-        end
-      end
-
       # Current database name
       def current_database
         select_value(<<~SQL.squish, "SCHEMA")
