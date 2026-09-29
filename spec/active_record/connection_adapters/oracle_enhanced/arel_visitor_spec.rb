@@ -190,13 +190,21 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     end
 
-    it "raises ArgumentError" do
+    it "raises DatabaseVersionError when the reported version is older than 12.1" do
+      allow_any_instance_of(adapter_class).to receive(:database_version)
+        .and_return(adapter_class::Version.new("11.2", "11.2.0.4.0"))
+
+      expect { adapter_class.new(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first)).connect! }
+        .to raise_error(ActiveRecord::DatabaseVersionError, /limit_offset_syntax: :fetch_first requires Oracle 12\.1 or later/)
+    end
+
+    it "raises DatabaseVersionError when connecting to a server older than 12.1" do
       skip "requires Oracle pre-12.1" if ActiveRecord::Base.connection.database_version >= "12"
       ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first))
 
       expect { ActiveRecord::Base.connection }
-        .to raise_error(ArgumentError, /limit_offset_syntax: :fetch_first requires Oracle 12\.1 or later/)
+        .to raise_error(ActiveRecord::DatabaseVersionError, /limit_offset_syntax: :fetch_first requires Oracle 12\.1 or later/)
     end
   end
 end

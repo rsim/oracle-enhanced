@@ -374,7 +374,7 @@ Accepted values:
 
 * `auto` (default) — decided from the connected database version: the row limiting clause (`OFFSET n ROWS FETCH FIRST n ROWS ONLY`) on Oracle 12.1+, ROWNUM on earlier releases.
 * `rownum` — ROWNUM regardless of version.
-* `fetch_first` — the row limiting clause. Connecting to a server older than 12.1 raises `ArgumentError`.
+* `fetch_first` — the row limiting clause. Connecting to a server older than 12.1 raises `ActiveRecord::DatabaseVersionError`.
 
 The older `ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.use_old_oracle_visitor = true` setter still works as a global fallback (equivalent to `limit_offset_syntax: rownum`) but is deprecated and will be removed in a future release.
 

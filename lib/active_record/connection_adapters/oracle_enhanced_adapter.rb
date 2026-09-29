@@ -264,7 +264,7 @@ module ActiveRecord
       #   Oracle 12.1+, ROWNUM on earlier releases.
       # * +:rownum+ — ROWNUM regardless of version.
       # * +:fetch_first+ — the row limiting clause. Connecting to a server
-      #   older than 12.1 raises +ArgumentError+.
+      #   older than 12.1 raises ActiveRecord::DatabaseVersionError.
       #
       # When the key is omitted, the class-level +use_old_oracle_visitor+
       # decides the default: +true+ maps to +:rownum+, +false+ (default)
@@ -1068,7 +1068,7 @@ module ActiveRecord
         end
 
         if configured_limit_offset_syntax == :fetch_first && !supports_fetch_first_n_rows_and_offset?
-          raise ArgumentError,
+          raise ActiveRecord::DatabaseVersionError,
             "limit_offset_syntax: :fetch_first requires Oracle 12.1 or later " \
             "(connected server reports #{version}). " \
             "Omit the key for version-aware selection, or use :rownum to force ROWNUM-based LIMIT/OFFSET."
