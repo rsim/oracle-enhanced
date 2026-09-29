@@ -320,9 +320,9 @@ module ActiveRecord
       # * +:auto+ (default when the key is absent) — use 128 byte identifiers on
       #   Oracle 12.2+, silently fall back to 30 bytes on older databases.
       # * +:short+ — force the 30 byte limit on every database version.
-      # * +:long+ — request 128 byte identifiers. Raises +ArgumentError+ on
-      #   pre-12.2 databases (use +:auto+ if you want the version-aware
-      #   fallback to 30 bytes).
+      # * +:long+ — request 128 byte identifiers. Raises
+      #   ActiveRecord::DatabaseVersionError on pre-12.2 databases (use +:auto+
+      #   if you want the version-aware fallback to 30 bytes).
       #
       # Unknown values (e.g. +identifier_max_length: :legacy+) and non-Symbol /
       # non-String inputs (e.g. a stray boolean after a mechanical YAML
@@ -1033,7 +1033,7 @@ module ActiveRecord
           supports_longer_identifier? ? 128 : 30
         when :long
           unless supports_longer_identifier?
-            raise ArgumentError,
+            raise ActiveRecord::DatabaseVersionError,
               "identifier_max_length: :long requires Oracle 12.2 or later " \
               "(connected server reports #{database_version}). " \
               "Use :auto for version-aware default, or :short to force 30-byte identifiers."

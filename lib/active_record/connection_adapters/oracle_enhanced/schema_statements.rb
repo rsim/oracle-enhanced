@@ -1580,7 +1580,7 @@ module ActiveRecord
                 conn.name_resolve(real_name)
               end
             end
-          rescue OracleEnhanced::ConnectionException, ArgumentError
+          rescue OracleEnhanced::ConnectionException, ArgumentError, ActiveRecord::DatabaseVersionError
             raise
           rescue => e
             raise OracleEnhanced::ConnectionException,
