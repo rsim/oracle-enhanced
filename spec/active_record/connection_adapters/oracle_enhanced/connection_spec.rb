@@ -422,21 +422,18 @@ RSpec.describe "OracleEnhancedConnection" do
     schema_owner_params = CONNECTION_PARAMS.merge(username: DATABASE_SCHEMA, password: DATABASE_SCHEMA)
 
     before(:all) do
-      ActiveRecord::Base.establish_connection(schema_owner_params)
-      schema_conn = ActiveRecord::Base.lease_connection
-      schema_conn.drop_table :schema_probe_table, if_exists: true
-      schema_conn.create_table :schema_probe_table, id: :integer
-      schema_conn.execute "GRANT SELECT ON schema_probe_table TO #{DATABASE_USER}"
-      ActiveRecord::Base.remove_connection
+      @schema_conn = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(schema_owner_params)
+      @schema_conn.drop_table :schema_probe_table, if_exists: true
+      @schema_conn.create_table :schema_probe_table, id: :integer
+      @schema_conn.execute "GRANT SELECT ON schema_probe_table TO #{DATABASE_USER}"
 
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)
     end
 
     after(:all) do
       ActiveRecord::Base.remove_connection
-      ActiveRecord::Base.establish_connection(schema_owner_params)
-      ActiveRecord::Base.lease_connection.drop_table :schema_probe_table, if_exists: true
-      ActiveRecord::Base.remove_connection
+      @schema_conn.drop_table :schema_probe_table, if_exists: true
+      @schema_conn.disconnect!
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     end
 

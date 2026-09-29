@@ -46,7 +46,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
     end
 
     it "honors per-connection limit_offset_syntax: :rownum" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :rownum))
       conn = ActiveRecord::Base.connection
 
@@ -56,7 +55,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
 
     it "honors per-connection limit_offset_syntax: :fetch_first" do
       skip "requires Oracle 12.1+" if ActiveRecord::Base.connection.database_version < "12"
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first))
       conn = ActiveRecord::Base.connection
 
@@ -64,7 +62,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
     end
 
     it "accepts string values from database.yml-style config" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: "rownum"))
       conn = ActiveRecord::Base.connection
 
@@ -72,7 +69,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
     end
 
     it "raises ArgumentError for an unknown limit_offset_syntax value" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :bogus))
 
       expect {
@@ -81,7 +77,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
     end
 
     it "raises ArgumentError (not NoMethodError) for non-string/symbol scalar values" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: false))
 
       expect {
@@ -91,7 +86,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
 
     it "falls back to the class-level setting when limit_offset_syntax is explicitly nil" do
       # Mirrors the `foo:` / `foo: ~` shape in database.yml that YAML parses to nil.
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: nil))
       conn = ActiveRecord::Base.connection
 
@@ -102,7 +96,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
         adapter_class.use_old_oracle_visitor = true
       end
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       conn = ActiveRecord::Base.connection
 
@@ -115,7 +108,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
         adapter_class.use_old_oracle_visitor = true
       end
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first))
       conn = ActiveRecord::Base.connection
 
@@ -129,7 +121,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
         adapter_class.use_old_oracle_visitor = true
       end
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :auto))
       conn = ActiveRecord::Base.connection
 
@@ -175,7 +166,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
     # not change what the database supports; it only changes what the adapter
     # emits.
     it "reflects database_version regardless of limit_offset_syntax override" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :rownum))
       conn = ActiveRecord::Base.connection
 
@@ -200,7 +190,6 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
 
     it "raises DatabaseVersionError when connecting to a server older than 12.1" do
       skip "requires Oracle pre-12.1" if ActiveRecord::Base.connection.database_version >= "12"
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first))
 
       expect { ActiveRecord::Base.connection }

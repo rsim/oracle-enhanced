@@ -40,7 +40,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
 
     it "is honored by connections that do not set identifier_max_length themselves" do
       adapter_class.class_variable_set(:@@use_shorter_identifier, true)
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
       conn = ActiveRecord::Base.connection
 
@@ -49,7 +48,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
 
     it "is overridden by an explicit per-connection identifier_max_length" do
       adapter_class.class_variable_set(:@@use_shorter_identifier, true)
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :auto))
       conn = ActiveRecord::Base.connection
 
@@ -63,7 +61,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
 
   describe "supports_longer_identifier? (pure DB capability)" do
     it "reflects the connected database version, ignoring identifier_max_length config" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :short))
       conn = ActiveRecord::Base.connection
 
@@ -82,7 +79,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
     end
 
     it "honors identifier_max_length: :short" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :short))
       conn = ActiveRecord::Base.connection
 
@@ -90,7 +86,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
     end
 
     it "honors identifier_max_length: :long on 12.2+, raises DatabaseVersionError on pre-12.2" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :long))
       conn = ActiveRecord::Base.connection
 
@@ -105,7 +100,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
     end
 
     it "raises DatabaseVersionError for identifier_max_length: :long when the reported version is older than 12.2" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :long))
       conn = ActiveRecord::Base.connection
       allow(conn).to receive(:database_version)
@@ -118,7 +112,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
     end
 
     it "raises DatabaseVersionError for identifier_max_length: :long when resolving a table name before 12.2" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :long))
       conn = ActiveRecord::Base.connection
       allow(conn).to receive(:database_version)
@@ -131,7 +124,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
     end
 
     it "accepts YAML string values and coerces them via to_sym" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: "short"))
       conn = ActiveRecord::Base.connection
 
@@ -147,7 +139,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
 
     it "falls back to the global setting when the per-connection value is nil" do
       adapter_class.class_variable_set(:@@use_shorter_identifier, true)
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: nil))
       conn = ActiveRecord::Base.connection
 
@@ -155,7 +146,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
     end
 
     it "raises ArgumentError for unknown symbol values" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :bogus))
       conn = ActiveRecord::Base.connection
       expect { conn.max_identifier_length }.to raise_error(
@@ -165,7 +155,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
     end
 
     it "raises ArgumentError for unknown string values" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: "bogus"))
       conn = ActiveRecord::Base.connection
       expect { conn.max_identifier_length }.to raise_error(
@@ -175,7 +164,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
     end
 
     it "raises ArgumentError for non-symbol/non-string values (e.g. booleans) per-connection" do
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: true))
       conn = ActiveRecord::Base.connection
       expect { conn.max_identifier_length }.to raise_error(
@@ -186,7 +174,6 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
 
     it "lets per-connection identifier_max_length: :long win over use_shorter_identifier=true" do
       adapter_class.class_variable_set(:@@use_shorter_identifier, true)
-      ActiveRecord::Base.remove_connection
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(identifier_max_length: :long))
       conn = ActiveRecord::Base.connection
 
