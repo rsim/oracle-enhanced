@@ -38,14 +38,13 @@ RSpec.describe "OracleEnhancedAdapter handling of BLOB columns" do
     expect(@employee.binary_data).to eq(@binary_data)
   end
 
-  if RUBY_ENGINE == "jruby"
-    it "creates a temporary BLOB after the connection is disconnected" do
-      adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(CONNECTION_PARAMS)
-      adapter.disconnect!
-      expect(adapter.type_cast(ActiveModel::Type::Binary::Data.new("x"))).to be_a(Java::OracleSql::BLOB)
-    ensure
-      adapter&.disconnect!
-    end
+  it "creates a temporary BLOB after the connection is disconnected" do
+    adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(CONNECTION_PARAMS)
+    adapter.disconnect!
+    blob_class = RUBY_ENGINE == "jruby" ? Java::OracleSql::BLOB : OCI8::BLOB
+    expect(adapter.type_cast(ActiveModel::Type::Binary::Data.new("x"))).to be_a(blob_class)
+  ensure
+    adapter&.disconnect!
   end
 
   it "should update record with BLOB data" do
