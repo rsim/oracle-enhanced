@@ -61,6 +61,36 @@ RSpec.describe "OracleEnhancedAdapter#discard!" do
     @adapter.discard!
     expect(@adapter.connected?).to be(false)
   end
+
+  it "reports inactive instead of raising after discard!" do
+    @adapter.discard!
+    expect(@adapter.active?).to be(false)
+  end
+
+  it "translates a lost connection error after discard!" do
+    @adapter.discard!
+    exception =
+      if RUBY_ENGINE == "jruby"
+        Java::JavaSql::SQLException.new("ORA-03113: end-of-file on communication channel", nil, 3113)
+      else
+        OCIError.new("ORA-03113: end-of-file on communication channel", 3113)
+      end
+    expect(@adapter.send(:translate_exception_class, exception, nil, nil)).to be_a(ActiveRecord::ConnectionFailed)
+  end
+
+  it "opens a new connection when resetting the old one fails" do
+    adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(CONNECTION_PARAMS)
+    adapter.connect!
+    old_connection = adapter.send(:_connection)
+    allow(old_connection).to receive(:reset!).and_raise(ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException)
+
+    adapter.reconnect!
+
+    expect(adapter.send(:_connection)).not_to equal(old_connection)
+    expect(adapter.select_value("SELECT 1 FROM dual")).to eq(1)
+  ensure
+    adapter&.disconnect!
+  end
 end
 
 RSpec.describe "OracleEnhancedAdapter transaction state changes" do

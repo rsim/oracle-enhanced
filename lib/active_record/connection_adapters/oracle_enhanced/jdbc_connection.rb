@@ -470,7 +470,7 @@ module ActiveRecord
             #     gone but the connection may still be alive. It is a
             #     cursor-local concern, not a lost-connection signal,
             #     which is why it is allowed here but excluded from
-            #     JDBC_LOST_CONNECTION_ERROR_CODES / lost_connection?.
+            #     JDBC_LOST_CONNECTION_ERROR_CODES / the adapter's lost_connection?.
             raise unless JDBC_LOST_CONNECTION_ERROR_CODES.include?(e.getErrorCode) || e.getErrorCode == 17009
             nil
           end
@@ -531,16 +531,6 @@ module ActiveRecord
           end
         end
 
-        # Return java.sql.SQLException error code
-        def error_code(exception)
-          case exception
-          when Java::JavaSql::SQLException
-            exception.getErrorCode
-          else
-            nil
-          end
-        end
-
         # Oracle JDBC driver (ojdbc) client-side error codes that indicate
         # the underlying connection is gone. Distinct from the shared
         # LOST_CONNECTION_ERROR_CODES, which lists Oracle Database server-
@@ -552,7 +542,7 @@ module ActiveRecord
         #
         # ORA-17009 "Closed Statement" is deliberately NOT listed here:
         # it signals that only a stale Statement handle is gone while the
-        # connection itself may still be alive, so lost_connection? must
+        # connection itself may still be alive, so the adapter's lost_connection? must
         # not return true for it (doing so would discard a live session).
         # Cursor#close tolerates 17009 separately as a cursor-local
         # concern.
@@ -560,17 +550,9 @@ module ActiveRecord
 
         # Fallback for older ojdbc that surfaces disconnects with
         # SQLException#getErrorCode == 0 and no ORA-NNNNN prefix in the
-        # message. ojdbc17+ produces proper error codes handled via the
-        # *_ERROR_CODES lists above.
-        LOST_CONNECTION_MESSAGE = /\A(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
-
-        def lost_connection?(exception)
-          return false unless exception.is_a?(Java::JavaSql::SQLException)
-          code = exception.getErrorCode
-          LOST_CONNECTION_ERROR_CODES.include?(code) ||
-            JDBC_LOST_CONNECTION_ERROR_CODES.include?(code) ||
-            LOST_CONNECTION_MESSAGE.match?(exception.message)
-        end
+        # message. ojdbc17+ produces proper error codes handled via
+        # LOST_CONNECTION_ERROR_CODES and JDBC_LOST_CONNECTION_ERROR_CODES.
+        JDBC_LOST_CONNECTION_MESSAGE = /\A(Closed Connection|Io exception:|No more data to read from socket|IO Error:)/
 
         def get_ruby_value_from_result_set(rset, i, type_name, get_lob_value = true)
           case type_name

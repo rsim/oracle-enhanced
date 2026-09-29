@@ -244,20 +244,6 @@ module ActiveRecord
           lob.write value
         end
 
-        # Return OCIError error code
-        def error_code(exception)
-          case exception
-          when OCIError
-            exception.code
-          else
-            nil
-          end
-        end
-
-        def lost_connection?(exception)
-          exception.is_a?(OCIError) && LOST_CONNECTION_ERROR_CODES.include?(exception.code)
-        end
-
         def typecast_result_value(value, get_lob_value)
           case value
           when Integer
