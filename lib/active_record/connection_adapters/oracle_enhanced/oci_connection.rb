@@ -36,10 +36,6 @@ module ActiveRecord
           @owner = @owner.to_s.upcase
         end
 
-        def raw_oci_connection
-          @raw_connection
-        end
-
         def logoff
           @raw_connection.logoff
           @active = false
