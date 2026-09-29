@@ -1302,12 +1302,12 @@ module ActiveRecord
 
         def fetch_primary_keys(tables)
           tables.index_with do |table_name|
-            (_owner, desc_table_name) = resolve_data_source_name(table_name)
+            (owner, desc_table_name) = resolve_data_source_name(table_name)
 
-            pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("table_name", desc_table_name)])
+            pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
               SELECT cc.column_name
                 FROM all_constraints c, all_cons_columns cc
-               WHERE c.owner = SYS_CONTEXT('userenv', 'current_schema')
+               WHERE c.owner = :owner
                  AND c.table_name = :table_name
                  AND c.constraint_type = 'P'
                  AND cc.owner = c.owner

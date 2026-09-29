@@ -2812,6 +2812,73 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
     end
   end
 
+  describe "schema readers for a table owned by another schema" do
+    before(:all) do
+      @owner_conn = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(
+        CONNECTION_PARAMS.merge(username: DATABASE_SCHEMA, password: DATABASE_SCHEMA)
+      )
+      @owner_conn.create_table :test_other_owner_authors, force: true
+      @owner_conn.create_table :test_other_owner_posts, force: true, comment: "owner posts" do |t|
+        t.string :title, comment: "owner title"
+        t.string :slug
+        t.integer :rating
+        t.references :test_other_owner_author, foreign_key: true, index: false
+        t.index :title, name: "other_owner_posts_title_idx"
+        t.check_constraint "rating > 0", name: "other_owner_posts_rating_chk"
+        t.unique_constraint :slug, name: "other_owner_posts_slug_uq"
+      end
+      @owner_conn.execute "GRANT SELECT ON test_other_owner_authors TO #{DATABASE_USER}"
+      @owner_conn.execute "GRANT SELECT ON test_other_owner_posts TO #{DATABASE_USER}"
+
+      # A table of the same name in the current schema, which the readers
+      # must not answer for when asked about the other schema's table.
+      @conn.create_table :test_other_owner_posts, force: true, id: false do |t|
+        t.string :local_only
+      end
+      @conn.execute "CREATE OR REPLACE SYNONYM synonym_to_other_owner_posts FOR #{DATABASE_SCHEMA}.test_other_owner_posts"
+    end
+
+    after(:all) do
+      @conn.execute "DROP SYNONYM synonym_to_other_owner_posts" rescue nil
+      @conn.drop_table :test_other_owner_posts, if_exists: true
+      @owner_conn.drop_table :test_other_owner_posts, if_exists: true
+      @owner_conn.drop_table :test_other_owner_authors, if_exists: true
+      @owner_conn.disconnect!
+    end
+
+    ["qualified name", "synonym"].each do |kind|
+      context "through a #{kind}" do
+        let(:name) { kind == "synonym" ? "synonym_to_other_owner_posts" : "#{DATABASE_SCHEMA}.test_other_owner_posts" }
+
+        it "reads the primary key" do
+          expect(@conn.primary_keys(name)).to eq(["id"])
+        end
+
+        it "reads the indexes" do
+          expect(@conn.indexes(name).map(&:name)).to include("other_owner_posts_title_idx")
+          expect(@conn.index_name_exists?(name, "other_owner_posts_title_idx")).to be true
+        end
+
+        it "reads the foreign keys" do
+          expect(@conn.foreign_keys(name).map(&:to_table)).to eq(["test_other_owner_authors"])
+        end
+
+        it "reads the check constraints" do
+          expect(@conn.check_constraints(name).map(&:name)).to eq(["other_owner_posts_rating_chk"])
+        end
+
+        it "reads the unique constraints" do
+          expect(@conn.unique_constraints(name).map(&:name)).to eq(["other_owner_posts_slug_uq"])
+        end
+
+        it "reads the table and column comments" do
+          expect(@conn.table_comment(name)).to eq("owner posts")
+          expect(@conn.column_comment(name, "title")).to eq("owner title")
+        end
+      end
+    end
+  end
+
   describe "prepared statement cache eviction on DDL" do
     before(:each) do
       skip "requires prepared_statements: true" unless @conn.prepared_statements
