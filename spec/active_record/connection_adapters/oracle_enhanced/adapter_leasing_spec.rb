@@ -109,7 +109,7 @@ RSpec.describe "OracleEnhancedAdapter transaction state changes" do
   end
 end
 
-RSpec.describe "OracleEnhancedAdapter#_exec_insert" do
+RSpec.describe "OracleEnhancedAdapter#insert" do
   before(:each) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     @adapter = ActiveRecord::Base.lease_connection
