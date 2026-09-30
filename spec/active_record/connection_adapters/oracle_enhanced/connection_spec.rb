@@ -239,6 +239,37 @@ RSpec.describe "OracleEnhancedConnection" do
     end
   end
 
+  describe "deprecated Oracle JDBC drivers" do
+    let(:connection_class) { ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection }
+
+    before do
+      skip unless ORACLE_ENHANCED_CONNECTION == :jdbc
+      connection_class.instance_variable_set(:@driver_version_checked, nil)
+    end
+
+    after do
+      connection_class.instance_variable_set(:@driver_version_checked, nil) if ORACLE_ENHANCED_CONNECTION == :jdbc
+    end
+
+    it "warns once when the driver is older than 12.2 (ojdbc6.jar or ojdbc7.jar)" do
+      driver = double("OracleDriver", getMajorVersion: 12, getMinorVersion: 1)
+      expect {
+        connection_class.warn_if_driver_deprecated(driver)
+      }.to output(/Oracle JDBC driver 12\.1 \(ojdbc6\.jar or ojdbc7\.jar\) is deprecated/).to_stderr
+      expect { connection_class.warn_if_driver_deprecated(driver) }.not_to output.to_stderr
+    end
+
+    it "does not warn for a 12.2 driver" do
+      driver = double("OracleDriver", getMajorVersion: 12, getMinorVersion: 2)
+      expect { connection_class.warn_if_driver_deprecated(driver) }.not_to output.to_stderr
+    end
+
+    it "does not warn for a 19c or later driver" do
+      driver = double("OracleDriver", getMajorVersion: 19, getMinorVersion: 25)
+      expect { connection_class.warn_if_driver_deprecated(driver) }.not_to output.to_stderr
+    end
+  end
+
   describe "create connection with schema option" do
     before(:each) do
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)

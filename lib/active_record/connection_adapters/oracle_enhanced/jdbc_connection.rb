@@ -49,7 +49,27 @@ module ActiveRecord
       class JDBCConnection < OracleEnhanced::Connection # :nodoc:
         attr_reader :session_time_zone
 
+        # Oracle JDBC drivers implement JDBC 4.2, which adds ResultSet#getObject conversions to java.time types,
+        # from 12.2. Drivers older than that are ojdbc6.jar (JDBC 4.0) and ojdbc7.jar (JDBC 4.1).
+        # Check the driver release rather than the JDBC version: older drivers do not report it correctly
+        # (ojdbc6.jar 11.2 returns 11.2 from DatabaseMetaData#getJDBCMajorVersion/getJDBCMinorVersion, and
+        # ojdbc7.jar 12.1 and ojdbc8.jar 12.2 say 4.0 in the Specification-Version of their manifests).
+        def self.warn_if_driver_deprecated(driver = ORACLE_DRIVER) # :nodoc:
+          return if @driver_version_checked
+          @driver_version_checked = true
+
+          version = [driver.getMajorVersion, driver.getMinorVersion]
+          return unless (version <=> [12, 2]).negative?
+
+          OracleEnhanced.deprecator.warn(
+            "Support for Oracle JDBC driver #{version.join('.')} (ojdbc6.jar or ojdbc7.jar) is deprecated " \
+            "and will be removed in the next release, which requires a JDBC 4.2 driver. " \
+            "Use ojdbc8.jar 12.2 or later, ojdbc11.jar or ojdbc17.jar."
+          )
+        end
+
         def initialize(config)
+          self.class.warn_if_driver_deprecated
           @active = true
           @config = config
           new_connection(@config)
