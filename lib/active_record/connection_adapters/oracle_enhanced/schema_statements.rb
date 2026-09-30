@@ -816,7 +816,85 @@ module ActiveRecord
           add_options_for_index_columns(quoted_columns, **options).values.join(", ")
         end
 
+        def reset_pk_sequence!(table_name, primary_key = nil, sequence_name = nil) # :nodoc:
+          reset_column_sequences!([[table_name, primary_key, sequence_name]])
+        end
+
+        def reset_column_sequences!(tables) # :nodoc:
+          tables.each do |table_name, primary_key, sequence_name|
+            reset_column_sequence_sqls(table_name.to_s, primary_key, sequence_name).each do |sql|
+              query_command(sql, "SCHEMA")
+            end
+          end
+        end
+
         private
+          def reset_column_sequence_sqls(table_name, primary_key, sequence_name)
+            return [] unless data_source_exists?(table_name)
+
+            primary_key ||= pk_and_sequence_for(table_name)&.first
+            return [] unless primary_key
+
+            owner, desc_table_name = resolve_data_source_name(table_name)
+            if (identity = identity_generation_for(owner, desc_table_name, primary_key))
+              # START WITH LIMIT VALUE sets the next value to the column's maximum value plus one.
+              return [<<~SQL.squish]
+                ALTER TABLE #{quote_table_name("#{owner}.#{desc_table_name}")}
+                MODIFY #{quote_column_name(primary_key)} GENERATED #{identity} AS IDENTITY (START WITH LIMIT VALUE)
+              SQL
+            end
+
+            sequence_name = existing_sequence_name(owner, table_name, desc_table_name, primary_key, sequence_name)
+            return [] unless sequence_name
+
+            next_value = select_value(<<~SQL.squish, "SCHEMA")
+              SELECT NVL(MAX(#{quote_column_name(primary_key)}), 0) + 1 FROM #{quote_table_name(table_name)}
+            SQL
+
+            quoted_sequence_name = quote_table_name(sequence_name)
+            if database_version >= "18"
+              ["ALTER SEQUENCE #{quoted_sequence_name} RESTART START WITH #{next_value}"]
+            else
+              ["DROP SEQUENCE #{quoted_sequence_name}", "CREATE SEQUENCE #{quoted_sequence_name} START WITH #{next_value}"]
+            end
+          end
+
+          def existing_sequence_name(owner, table_name, desc_table_name, primary_key, sequence_name)
+            sequence_name ||= begin
+              table_name.classify.constantize.sequence_name
+            rescue
+              default_sequence_name(desc_table_name, primary_key)
+            end
+            sequence_owner, name = sequence_name.to_s.include?(".") ? sequence_name.to_s.split(".", 2) : [owner, sequence_name.to_s]
+
+            found = select_value(<<~SQL.squish, "SCHEMA", [bind_string("owner", sequence_owner.upcase), bind_string("sequence_name", name)])
+              SELECT sequence_name FROM all_sequences
+               WHERE sequence_owner = :owner AND sequence_name = UPPER(:sequence_name)
+            SQL
+            "#{sequence_owner.upcase}.#{found}" if found
+          end
+
+          def identity_generation_for(owner, table_name, column_name)
+            return unless supports_identity_columns?
+
+            row = select_one(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", table_name), bind_string("column_name", column_name.to_s.upcase)])
+              SELECT i.generation_type, c.default_on_null
+                FROM all_tab_identity_cols i
+                JOIN all_tab_columns c
+                  ON c.owner = i.owner AND c.table_name = i.table_name AND c.column_name = i.column_name
+               WHERE i.owner = :owner AND i.table_name = :table_name AND i.column_name = :column_name
+            SQL
+            return unless row
+
+            if row["generation_type"] == "ALWAYS"
+              "ALWAYS"
+            elsif row["default_on_null"] == "YES"
+              "BY DEFAULT ON NULL"
+            else
+              "BY DEFAULT"
+            end
+          end
+
           def fetch_table_options(tables)
             tables.index_with do |table_name|
               comment = table_comment(table_name)
