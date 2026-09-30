@@ -231,7 +231,11 @@ module ActiveRecord
           end
         end
 
-        def exec(sql, *bindvars)
+        def exec(sql, *bindvars) # :nodoc:
+          OracleEnhanced.deprecator.warn(
+            "OracleEnhanced::Connection#exec is deprecated. " \
+            "Use ActiveRecord::Base.lease_connection.execute instead."
+          )
           # The signature mirrors the OCI implementation for polymorphic
           # callers, but the JDBC path here has no bindvar handling. Fail
           # loudly rather than silently dropping values on the floor.
@@ -264,7 +268,7 @@ module ActiveRecord
             "OracleEnhanced::JDBCConnection#exec_no_retry is deprecated. " \
             "Use ActiveRecord::Base.lease_connection.execute instead."
           )
-          exec(sql)
+          OracleEnhanced.deprecator.silence { exec(sql) }
         end
 
         def prepare(sql)

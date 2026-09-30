@@ -232,7 +232,7 @@ RSpec.describe "OracleEnhancedConnection" do
     it "should raise ArgumentError when JDBC exec is called with bindvars" do
       skip unless ORACLE_ENHANCED_CONNECTION == :jdbc
       expect {
-        @conn.exec("SELECT ? FROM dual", 1)
+        ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence { @conn.exec("SELECT ? FROM dual", 1) }
       }.to raise_error(ArgumentError, /JDBC exec does not support bindvars/)
     end
   end
@@ -744,8 +744,10 @@ RSpec.describe "OracleEnhancedConnection" do
       @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS)
     end
 
-    it "should execute SQL statement" do
-      expect(@conn.exec("SELECT * FROM dual")).not_to be_nil
+    it "warns that #exec is deprecated" do
+      expect {
+        expect(@conn.exec("SELECT * FROM dual")).not_to be_nil
+      }.to output(/Connection#exec is deprecated/).to_stderr
     end
 
     it "warns that #select is deprecated" do
@@ -806,7 +808,7 @@ RSpec.describe "OracleEnhancedConnection" do
       ENV["NLS_NUMERIC_CHARACTERS"] = ", "
       @conn_base = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(CONNECTION_PARAMS)
       @conn = @conn_base.send(:valid_raw_connection)
-      @conn.exec "CREATE TABLE test_employees (age NUMBER(10,2))"
+      @conn_base.execute "CREATE TABLE test_employees (age NUMBER(10,2))"
     end
 
     after(:all) do
@@ -874,8 +876,15 @@ RSpec.describe "OracleEnhancedConnection" do
       cursor&.close
     end
 
+    def execute_on(conn, sql)
+      cursor = conn.prepare(sql)
+      cursor.exec
+    ensure
+      cursor&.close
+    end
+
     def kill_current_session
-      @sys_conn.exec "ALTER SYSTEM KILL SESSION '#{connection_id_from_server(@conn)}' IMMEDIATE"
+      execute_on(@sys_conn, "ALTER SYSTEM KILL SESSION '#{connection_id_from_server(@conn)}' IMMEDIATE")
     end
 
     def connection_id_from_server(conn)
