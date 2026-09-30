@@ -227,6 +227,12 @@ If you want to use ActiveRecord and Oracle enhanced adapter without Rails and Bu
 gem install activerecord-oracle_enhanced-adapter
 ```
 
+### JRuby
+
+With JRuby, use an Oracle JDBC driver that implements JDBC 4.2: `ojdbc8.jar` 12.2 or later, `ojdbc11.jar` or `ojdbc17.jar`. Put it in the application's `./lib` directory, in a directory in the Ruby load path or in `PATH`, or on the Java `CLASSPATH`.
+
+Support for `ojdbc6.jar` and `ojdbc7.jar`, which implement JDBC 4.0 and 4.1, is deprecated and will be removed in the next release.
+
 USAGE
 -----
 
