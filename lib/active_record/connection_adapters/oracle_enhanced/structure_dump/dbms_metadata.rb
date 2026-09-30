@@ -140,10 +140,7 @@ module ActiveRecord # :nodoc:
             # GET_DDL output, and Oracle emits the INVISIBLE keyword
             # inside that same clause. Re-attach it from all_indexes so
             # invisible indexes round-trip on the DBMS_METADATA path.
-            # Pre-11g has no invisible-index concept (and no `visibility`
-            # column on `all_indexes`), so return an empty set there.
             def invisible_index_names
-              return Set.new unless supports_disabling_indexes?
               select_values(<<~SQL.squish, "SCHEMA").map(&:upcase).to_set
                 SELECT index_name FROM all_indexes
                 WHERE owner = SYS_CONTEXT('userenv', 'current_schema')

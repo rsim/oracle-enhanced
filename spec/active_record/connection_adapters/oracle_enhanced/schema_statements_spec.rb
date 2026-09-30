@@ -705,10 +705,6 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
     end
 
     context "INVISIBLE indexes" do
-      before(:each) do
-        skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
-      end
-
       it "reports supports_disabling_indexes? as true" do
         expect(@conn.supports_disabling_indexes?).to be(true)
       end
@@ -3054,10 +3050,6 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
   end
 
   describe "virtual columns in create_table" do
-    before(:each) do
-      skip "Not supported in this database version" unless @conn.database_version >= "11"
-    end
-
     it "should raise error if column expression is not provided" do
       expect {
         schema_define do
@@ -3072,7 +3064,6 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
 
   describe "virtual columns" do
     before(:each) do
-      skip "Not supported in this database version" unless @conn.database_version >= "11"
       expr = "( numerator/NULLIF(denominator,0) )*100"
       schema_define do
         create_table :test_fractions, force: true do |t|
@@ -3088,10 +3079,8 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
     end
 
     after(:each) do
-      if @conn.database_version >= "11"
-        schema_define do
-          drop_table :test_fractions
-        end
+      schema_define do
+        drop_table :test_fractions
       end
     end
 
@@ -3419,28 +3408,12 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       ActiveRecord::Base.connection_pool.schema_migration.create_table
     end
 
-    context "when INSERT ALL accepts 1000+ rows (Oracle 11.2 or later)" do
-      it "should loads the migration schema table from insert versions sql" do
-        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.database_version >= "11.2"
+    it "should loads the migration schema table from insert versions sql" do
+      expect {
+        @conn.execute @conn.send(:insert_versions_sql, versions)
+      }.not_to raise_error
 
-        expect {
-          @conn.execute @conn.send(:insert_versions_sql, versions)
-        }.not_to raise_error
-
-        expect(@conn.select_value("SELECT COUNT(version) FROM schema_migrations")).to eq versions.count
-      end
-    end
-
-    context "when INSERT ALL is capped at 999 rows (Oracle older than 11.2)" do
-      it "should loads the migration schema table from insert versions sql" do
-        skip "Not supported in this database version" if ActiveRecord::Base.lease_connection.database_version >= "11.2"
-
-        expect {
-          versions.each { |version| @conn.execute @conn.send(:insert_versions_sql, version) }
-        }.not_to raise_error
-
-        expect(@conn.select_value("SELECT COUNT(version) FROM schema_migrations")).to eq versions.count
-      end
+      expect(@conn.select_value("SELECT COUNT(version) FROM schema_migrations")).to eq versions.count
     end
 
     after do

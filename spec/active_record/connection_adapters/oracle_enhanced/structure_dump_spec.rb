@@ -122,7 +122,6 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "dumps the INVISIBLE keyword for an INVISIBLE index in structure_dump_indexes" do
-      skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
       schema_define do
         add_index :test_posts, :title, name: "ix_struct_invisible", enabled: false
       end
@@ -131,7 +130,6 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "omits the INVISIBLE keyword for a VISIBLE index in structure_dump_indexes" do
-      skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
       schema_define do
         add_index :test_posts, :title, name: "ix_struct_default"
       end
@@ -183,7 +181,6 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump virtual columns" do
-      skip "Not supported in this database version" unless @conn.database_version >= "11"
       @conn.execute <<~SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
@@ -196,7 +193,6 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
     end
 
     it "should dump RAW virtual columns" do
-      skip "Not supported in this database version" unless @conn.database_version >= "11"
       @conn.execute <<~SQL
         CREATE TABLE bars (
           id          NUMBER(38,0) NOT NULL,
@@ -437,46 +433,28 @@ RSpec.describe "OracleEnhancedAdapter structure dump" do
       end
     end
 
-    context "when INSERT ALL accepts 1000+ rows (Oracle 11.2 or later)" do
-      it "should dump schema migrations using a single INSERT ALL block" do
-        skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.database_version >= "11.2"
-
-        expect(dump).to eq <<~SQL
-          INSERT ALL
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160101000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160102000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160103000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160104000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160105000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160106000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160107000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160108000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160109000000')
-          INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160110000000')
-          SELECT * FROM DUAL
-        SQL
-      end
-    end
-
-    context "when INSERT ALL is capped at 999 rows (Oracle older than 11.2)" do
-      let(:insert_statement_per_migration) {
-        1.step(10).map { |i|
-          %Q|INSERT INTO "SCHEMA_MIGRATIONS" (version) VALUES ('201601#{sprintf("%02d", i)}000000')|
-        }.join("\n\n/\n\n")
-      }
-
-      it "should dump schema migrations one version per insert" do
-        skip "Not supported in this database version" if ActiveRecord::Base.lease_connection.database_version >= "11.2"
-
-        expect(dump).to eq insert_statement_per_migration
-      end
+    it "should dump schema migrations using a single INSERT ALL block" do
+      expect(dump).to eq <<~SQL
+        INSERT ALL
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160101000000')
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160102000000')
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160103000000')
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160104000000')
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160105000000')
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160106000000')
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160107000000')
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160108000000')
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160109000000')
+        INTO "SCHEMA_MIGRATIONS" (version) VALUES ('20160110000000')
+        SELECT * FROM DUAL
+      SQL
     end
 
     context "when the Rails default formatter is configured" do
       it "substitutes OracleEnhanced::SchemaVersionsFormatter" do
         expect(ActiveRecord.schema_versions_formatter)
           .to equal(ActiveRecord::Migration::DefaultSchemaVersionsFormatter)
-        expect(dump).to start_with("INSERT ALL\n").or include("\n\n/\n\n")
+        expect(dump).to start_with("INSERT ALL\n")
         expect(dump).not_to include("VALUES\n('")
       end
     end
