@@ -193,7 +193,7 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       skip "requires Oracle pre-12.1" if ActiveRecord::Base.connection.database_version >= "12"
       ActiveRecord::Base.establish_connection(CONNECTION_PARAMS.merge(limit_offset_syntax: :fetch_first))
 
-      expect { ActiveRecord::Base.connection }
+      expect { ActiveRecord::Base.lease_connection.connect! }
         .to raise_error(ActiveRecord::DatabaseVersionError, /limit_offset_syntax: :fetch_first requires Oracle 12\.1 or later/)
     end
   end
