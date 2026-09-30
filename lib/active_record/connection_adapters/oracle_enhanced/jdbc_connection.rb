@@ -6,13 +6,6 @@ begin
 
   # ojdbc7.jar or ojdbc6.jar file should be in application ./lib directory or in load path or in ENV['PATH']
 
-  java_version = java.lang.System.getProperty("java.version")
-  # Dropping Java SE 6(1.6) or older version without deprecation cycle.
-  # Rails 5.0 already requires CRuby 2.2.2 or higher and JRuby 9.0 supporging CRuby 2.2 requires Java SE 7.
-  if java_version < "1.7"
-    raise "ERROR: Java SE 6 or older version is not supported. Upgrade Java version to Java SE 7 or higher"
-  end
-
   # Oracle 11g client ojdbc6.jar is also compatible with Java 1.7
   # Oracle 12c Release 1 client provides ojdbc7.jar
   # Oracle 12c Release 2 client provides ojdbc8.jar

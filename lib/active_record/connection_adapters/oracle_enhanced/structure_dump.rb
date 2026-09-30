@@ -169,7 +169,7 @@ module ActiveRecord # :nodoc:
               sql
             end.join(", ")
             sql = +"CREATE#{' UNIQUE' if index.unique} INDEX #{quote_column_name(index.name)} ON #{quote_table_name(table_name)} (#{quoted_column_names})"
-            sql << " INVISIBLE" if index.respond_to?(:disabled?) && index.disabled?
+            sql << " INVISIBLE" if index.disabled?
             sql
           end
         end
@@ -180,7 +180,7 @@ module ActiveRecord # :nodoc:
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
           SQL
           fks = foreign_keys.map do |table|
-            if respond_to?(:foreign_keys) && (foreign_keys = foreign_keys(table["table_name"])).any?
+            if (foreign_keys = foreign_keys(table["table_name"])).any?
               foreign_keys.map do |fk|
                 sql = +"ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} "
                 sql << "#{foreign_key_definition(fk.to_table, fk.options)}"

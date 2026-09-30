@@ -29,11 +29,11 @@ module ActiveRecord
               statements.concat(o.foreign_keys.map { |fk| accept fk })
             end
 
-            if supports_unique_constraints? && o.respond_to?(:unique_constraints)
+            if supports_unique_constraints?
               statements.concat(o.unique_constraints.map { |uc| accept uc })
             end
 
-            if supports_check_constraints? && o.respond_to?(:check_constraints)
+            if supports_check_constraints?
               statements.concat(o.check_constraints.map { |chk| accept chk })
             end
 
@@ -149,7 +149,7 @@ module ActiveRecord
             sql << quote_table_name(index.table)
             sql << "(#{quoted_columns(index)})"
             sql << index.statement_parameters if index.statement_parameters.present?
-            sql << "INVISIBLE" if index.respond_to?(:disabled?) && index.disabled?
+            sql << "INVISIBLE" if index.disabled?
             sql << "TABLESPACE #{index.tablespace}" if index.tablespace.present?
 
             sql.join(" ")
