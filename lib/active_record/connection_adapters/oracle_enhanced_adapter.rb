@@ -918,19 +918,6 @@ module ActiveRecord
         clear_table_caches(table_name)
       end
 
-      def evict_prepared_statements_for(table_name) # :nodoc:
-        return unless prepared_statements?
-        return unless @statements
-
-        quoted_table_name = quote_table_name(table_name)
-        keys_to_delete = []
-        @statements.each do |sql, _stmt|
-          keys_to_delete << sql if sql.include?(quoted_table_name)
-        end
-        keys_to_delete.each { |sql| @statements.delete(sql) }
-      end
-      private :evict_prepared_statements_for
-
       # Returns +[pk, sequence]+ for single-column PKs; +nil+ for composite or
       # missing PKs (composite PKs are introspected via +primary_keys+).
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
@@ -1026,22 +1013,6 @@ module ActiveRecord
         end
       end
 
-      private def connect
-        @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
-      rescue ActiveRecord::ConnectionNotEstablished => error
-        raise error.set_pool(@pool)
-      end
-
-      private def reconnect
-        begin
-          @raw_connection&.reset!
-        rescue OracleEnhanced::ConnectionException
-          @raw_connection = nil
-        end
-
-        connect unless @raw_connection
-      end
-
       # Oracle's reference manual documents EXACT and FORCE only (SIMILAR was
       # removed). The database still accepts SIMILAR at the parser level on
       # current versions, so it is kept in the allow-list for backward
@@ -1050,101 +1021,6 @@ module ActiveRecord
       CURSOR_SHARING_VALUES = %w[EXACT FORCE SIMILAR].freeze
       SCHEMA_IDENTIFIER_PATTERN = /\A[[:alpha:]][\w$#]*\z/
       SID_IDENTIFIER_PATTERN = /\A[\w$#]+\z/
-
-      def resolve_database_aliases
-        service_name = @config[:service_name]
-        sid          = @config[:sid]
-
-        competitors = []
-        competitors << ":database"     if @config[:database]
-        competitors << ":service_name" if service_name
-        competitors << ":sid"          if sid
-        if competitors.size > 1
-          raise ArgumentError,
-            "Cannot specify more than one of #{competitors.join(', ')}; they are mutually exclusive."
-        end
-
-        if service_name
-          if service_name.to_s.start_with?("/")
-            raise ArgumentError,
-              "Invalid :service_name value #{service_name.inspect}; must not start with '/'."
-          end
-          @config[:database] = service_name
-        end
-
-        if sid && !sid.to_s.match?(SID_IDENTIFIER_PATTERN)
-          raise ArgumentError,
-            "Invalid :sid value #{sid.inspect}; must be an Oracle SID (alphanumeric, underscore, $, #)."
-        end
-
-        if @config[:database].to_s.start_with?(":")
-          raise ArgumentError,
-            "Setting `:database` to a value that starts with `:` " \
-            "(#{@config[:database].inspect}) is not supported. The leading " \
-            "colon was a SID marker on pre-2020 JDBC URLs and produces a " \
-            "malformed connection on the current adapter. Use the explicit " \
-            "`:sid` option instead (e.g. `sid: " \
-            "#{@config[:database].to_s.delete_prefix(':').inspect}`)."
-        end
-
-        if @config[:database].to_s.start_with?("/")
-          trimmed = @config[:database].to_s.delete_prefix("/")
-          OracleEnhanced.deprecator.warn(
-            "Setting `:database` to a value that starts with `/` " \
-            "(#{@config[:database].inspect}) is deprecated and will raise " \
-            "in a future major version. The leading slash is an adapter " \
-            "artefact from when `:database` was prepended into an EZCONNECT " \
-            "URL; the slash is no longer needed. Use `database: " \
-            "#{trimmed.inspect}` or `service_name: #{trimmed.inspect}` " \
-            "instead (no leading slash on either).",
-            caller_locations(2)
-          )
-        end
-      end
-      private :resolve_database_aliases
-
-      private def validate_session_options
-        cursor_sharing = @config[:cursor_sharing]
-        unless cursor_sharing.nil? || cursor_sharing == :default || CURSOR_SHARING_VALUES.include?(cursor_sharing.to_s.upcase)
-          raise ArgumentError, "Invalid :cursor_sharing value #{cursor_sharing.inspect}; allowed: #{CURSOR_SHARING_VALUES.join(', ')} or :default"
-        end
-
-        schema = @config[:schema].to_s
-        unless schema.blank? || schema.match?(SCHEMA_IDENTIFIER_PATTERN)
-          raise ArgumentError, "Invalid :schema value #{schema.inspect}; must be an Oracle unquoted identifier"
-        end
-      end
-
-      private def configure_connection
-        super
-
-        cursor_sharing = @config[:cursor_sharing]
-        unless cursor_sharing.nil? || cursor_sharing == :default
-          execute("alter session set cursor_sharing = #{cursor_sharing.to_s.upcase}", "SCHEMA")
-        end
-
-        if ORACLE_ENHANCED_CONNECTION == :oci
-          time_zone = @config[:time_zone] || ENV["TZ"]
-          case ActiveRecord.default_timezone
-          when :local
-            execute("alter session set time_zone = #{quote(time_zone)}", "SCHEMA") unless time_zone.blank?
-          when :utc
-            execute("alter session set time_zone = '+00:00'", "SCHEMA")
-          end
-        end
-
-        schema = @config[:schema].to_s
-        execute("alter session set current_schema = #{schema}", "SCHEMA") unless schema.blank?
-
-        DEFAULT_NLS_PARAMETERS.each do |key, default_value|
-          value = @config[key] || ENV[key.to_s.upcase] || default_value
-          execute("alter session set #{key} = #{quote(value.to_s)}", "SCHEMA") if value
-        end
-
-        FIXED_NLS_PARAMETERS.each do |key, value|
-          execute("alter session set #{key} = #{quote(value)}", "SCHEMA")
-        end
-      end
 
       class << self
         def native_database_types
@@ -1211,6 +1087,18 @@ module ActiveRecord
       ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
 
       private
+        def evict_prepared_statements_for(table_name)
+          return unless prepared_statements?
+          return unless @statements
+
+          quoted_table_name = quote_table_name(table_name)
+          keys_to_delete = []
+          @statements.each do |sql, _stmt|
+            keys_to_delete << sql if sql.include?(quoted_table_name)
+          end
+          keys_to_delete.each { |sql| @statements.delete(sql) }
+        end
+
         def column_definitions(table_name)
           (owner, desc_table_name) = resolve_data_source_name(table_name)
 
@@ -1436,6 +1324,116 @@ module ActiveRecord
             ValueTooLong.new(message, sql: sql, binds: binds, connection_pool: @pool)
           else
             super
+          end
+        end
+
+        def resolve_database_aliases
+          service_name = @config[:service_name]
+          sid          = @config[:sid]
+
+          competitors = []
+          competitors << ":database"     if @config[:database]
+          competitors << ":service_name" if service_name
+          competitors << ":sid"          if sid
+          if competitors.size > 1
+            raise ArgumentError,
+              "Cannot specify more than one of #{competitors.join(', ')}; they are mutually exclusive."
+          end
+
+          if service_name
+            if service_name.to_s.start_with?("/")
+              raise ArgumentError,
+                "Invalid :service_name value #{service_name.inspect}; must not start with '/'."
+            end
+            @config[:database] = service_name
+          end
+
+          if sid && !sid.to_s.match?(SID_IDENTIFIER_PATTERN)
+            raise ArgumentError,
+              "Invalid :sid value #{sid.inspect}; must be an Oracle SID (alphanumeric, underscore, $, #)."
+          end
+
+          if @config[:database].to_s.start_with?(":")
+            raise ArgumentError,
+              "Setting `:database` to a value that starts with `:` " \
+              "(#{@config[:database].inspect}) is not supported. The leading " \
+              "colon was a SID marker on pre-2020 JDBC URLs and produces a " \
+              "malformed connection on the current adapter. Use the explicit " \
+              "`:sid` option instead (e.g. `sid: " \
+              "#{@config[:database].to_s.delete_prefix(':').inspect}`)."
+          end
+
+          if @config[:database].to_s.start_with?("/")
+            trimmed = @config[:database].to_s.delete_prefix("/")
+            OracleEnhanced.deprecator.warn(
+              "Setting `:database` to a value that starts with `/` " \
+              "(#{@config[:database].inspect}) is deprecated and will raise " \
+              "in a future major version. The leading slash is an adapter " \
+              "artefact from when `:database` was prepended into an EZCONNECT " \
+              "URL; the slash is no longer needed. Use `database: " \
+              "#{trimmed.inspect}` or `service_name: #{trimmed.inspect}` " \
+              "instead (no leading slash on either).",
+              caller_locations(2)
+            )
+          end
+        end
+
+        def validate_session_options
+          cursor_sharing = @config[:cursor_sharing]
+          unless cursor_sharing.nil? || cursor_sharing == :default || CURSOR_SHARING_VALUES.include?(cursor_sharing.to_s.upcase)
+            raise ArgumentError, "Invalid :cursor_sharing value #{cursor_sharing.inspect}; allowed: #{CURSOR_SHARING_VALUES.join(', ')} or :default"
+          end
+
+          schema = @config[:schema].to_s
+          unless schema.blank? || schema.match?(SCHEMA_IDENTIFIER_PATTERN)
+            raise ArgumentError, "Invalid :schema value #{schema.inspect}; must be an Oracle unquoted identifier"
+          end
+        end
+
+        def connect
+          @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
+        rescue ActiveRecord::ConnectionNotEstablished => error
+          raise error.set_pool(@pool)
+        end
+
+        def reconnect
+          begin
+            @raw_connection&.reset!
+          rescue OracleEnhanced::ConnectionException
+            @raw_connection = nil
+          end
+
+          connect unless @raw_connection
+        end
+
+        def configure_connection
+          super
+
+          cursor_sharing = @config[:cursor_sharing]
+          unless cursor_sharing.nil? || cursor_sharing == :default
+            execute("alter session set cursor_sharing = #{cursor_sharing.to_s.upcase}", "SCHEMA")
+          end
+
+          if ORACLE_ENHANCED_CONNECTION == :oci
+            time_zone = @config[:time_zone] || ENV["TZ"]
+            case ActiveRecord.default_timezone
+            when :local
+              execute("alter session set time_zone = #{quote(time_zone)}", "SCHEMA") unless time_zone.blank?
+            when :utc
+              execute("alter session set time_zone = '+00:00'", "SCHEMA")
+            end
+          end
+
+          schema = @config[:schema].to_s
+          execute("alter session set current_schema = #{schema}", "SCHEMA") unless schema.blank?
+
+          DEFAULT_NLS_PARAMETERS.each do |key, default_value|
+            value = @config[key] || ENV[key.to_s.upcase] || default_value
+            execute("alter session set #{key} = #{quote(value.to_s)}", "SCHEMA") if value
+          end
+
+          FIXED_NLS_PARAMETERS.each do |key, value|
+            execute("alter session set #{key} = #{quote(value)}", "SCHEMA")
           end
         end
     end
