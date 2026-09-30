@@ -832,10 +832,10 @@ module ActiveRecord
           def reset_column_sequence_sqls(table_name, primary_key, sequence_name)
             return [] unless data_source_exists?(table_name)
 
-            primary_key ||= pk_and_sequence_for(table_name)&.first
+            owner, desc_table_name = resolve_data_source_name(table_name)
+            primary_key ||= pk_and_sequence_for(table_name, owner, desc_table_name)&.first
             return [] unless primary_key
 
-            owner, desc_table_name = resolve_data_source_name(table_name)
             if (identity = identity_generation_for(owner, desc_table_name, primary_key))
               # START WITH LIMIT VALUE sets the next value to the column's maximum value plus one.
               return [<<~SQL.squish]

@@ -934,7 +934,7 @@ module ActiveRecord
       # Returns +[pk, sequence]+ for single-column PKs; +nil+ for composite or
       # missing PKs (composite PKs are introspected via +primary_keys+).
       def pk_and_sequence_for(table_name, owner = nil, desc_table_name = nil) # :nodoc:
-        (owner, desc_table_name) = resolve_data_source_name(table_name)
+        owner, desc_table_name = resolve_data_source_name(table_name) unless owner && desc_table_name
 
         seqs = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("sequence_name", default_sequence_name(desc_table_name, nil))])
           select us.sequence_name
@@ -943,21 +943,8 @@ module ActiveRecord
           and us.sequence_name = upper(:sequence_name)
         SQL
 
-        # changed back from user_constraints to all_constraints for consistency
-        pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
-          SELECT cc.column_name
-            FROM all_constraints c, all_cons_columns cc
-           WHERE c.owner = :owner
-             AND c.table_name = :table_name
-             AND c.constraint_type = 'P'
-             AND cc.owner = c.owner
-             AND cc.constraint_name = c.constraint_name
-        SQL
-
-        case pks.size
-        when 1 then [oracle_downcase(pks.first), oracle_downcase(seqs.first)]
-        else nil
-        end
+        pks = primary_key_columns(owner, desc_table_name)
+        [pks.first, oracle_downcase(seqs.first)] if pks.size == 1
       end
 
       def primary_keys(table_name) # :nodoc:
