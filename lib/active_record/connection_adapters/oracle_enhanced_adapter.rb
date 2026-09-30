@@ -745,7 +745,7 @@ module ActiveRecord
       def active? # :nodoc:
         @lock.synchronize do
           return false unless connected?
-          _connection.ping
+          @raw_connection.ping
           verified!
         end
         true
@@ -774,7 +774,7 @@ module ActiveRecord
       def disconnect! # :nodoc:
         @lock.synchronize do
           super
-          _connection&.logoff rescue nil
+          @raw_connection&.logoff rescue nil
           @raw_connection = nil
         end
       end
@@ -1039,10 +1039,6 @@ module ActiveRecord
         end
       end
 
-      private def _connection
-        @raw_connection
-      end
-
       private def connect
         @raw_connection = ConnectionAdapters::OracleEnhanced::Connection.create(@config)
       rescue ActiveRecord::ConnectionNotEstablished => error
@@ -1051,12 +1047,12 @@ module ActiveRecord
 
       private def reconnect
         begin
-          _connection&.reset!
+          @raw_connection&.reset!
         rescue OracleEnhanced::ConnectionException
           @raw_connection = nil
         end
 
-        connect unless _connection
+        connect unless @raw_connection
       end
 
       # Oracle's reference manual documents EXACT and FORCE only (SIMILAR was
