@@ -4,13 +4,13 @@ begin
   require "java"
   require "jruby"
 
-  # ojdbc7.jar or ojdbc6.jar file should be in application ./lib directory or in load path or in ENV['PATH']
+  # One of the ojdbc_jars files should be in the application's ./lib directory, in the load path or in ENV['PATH'].
 
-  # Oracle 11g client ojdbc6.jar is also compatible with Java 1.7
+  # Oracle 11g client provides ojdbc6.jar
   # Oracle 12c Release 1 client provides ojdbc7.jar
   # Oracle 12c Release 2 client provides ojdbc8.jar
   # Oracle 21c provides ojdbc11.jar for Java 11 and above
-  # Oracle 23c provides ojdbc17.jar for Java 17 and above
+  # Oracle 23ai provides ojdbc17.jar for Java 17 and above
   ojdbc_jars = %w(ojdbc17.jar ojdbc11.jar ojdbc8.jar ojdbc7.jar ojdbc6.jar)
 
   if !ENV_JAVA["java.class.path"]&.match?(Regexp.new(ojdbc_jars.join("|")))
