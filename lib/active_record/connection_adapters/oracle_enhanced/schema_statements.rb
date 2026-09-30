@@ -1720,19 +1720,6 @@ module ActiveRecord
             parts << current
             parts
           end
-
-          # Splits "schema.identifier" into its parts, returning [schema, identifier].
-          # Mirrors Rails' PostgreSQL/MySQL adapters: a non-qualified name yields
-          # schema = nil. Oracle-specific bits: rejects db links and upcases valid
-          # identifiers so catalog lookups match the stored upper-case names.
-          def extract_schema_qualified_name(string)
-            string = string.to_s
-            raise ArgumentError, "db link is not supported" if string.include?("@")
-
-            string = string.upcase if OracleEnhanced::Quoting.valid_table_name?(string, max_identifier_length: max_identifier_length)
-            schema, identifier = string.split(".") if string.include?(".")
-            [schema, identifier || string]
-          end
       end
     end
   end

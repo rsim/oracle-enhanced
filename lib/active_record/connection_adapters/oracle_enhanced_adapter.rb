@@ -412,10 +412,6 @@ module ActiveRecord
       cattr_accessor :structure_dump_method
       self.structure_dump_method = :auto
 
-      ##
-      # :singleton-method:
-      # Specify default sequence start with value (by default 1 if not explicitly set), e.g.:
-
       class StatementPool < ConnectionAdapters::StatementPool
         private
           def dealloc(stmt)
@@ -430,7 +426,6 @@ module ActiveRecord
         validate_session_options
 
         @enable_dbms_output = false
-        @notice_receiver_sql_warnings = []
       end
 
       ADAPTER_NAME = "OracleEnhanced"
@@ -1067,15 +1062,6 @@ module ActiveRecord
               m.register_type %r(^NUMBER\(1\))i, Type::Boolean.new
             end
           end
-      end
-
-      def extract_limit(sql_type) # :nodoc:
-        case sql_type
-        when /^bigint/i
-          19
-        when /\((.*)\)/
-          $1.to_i
-        end
       end
 
       # create bind object for type String
