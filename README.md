@@ -227,6 +227,21 @@ If you want to use ActiveRecord and Oracle enhanced adapter without Rails and Bu
 gem install activerecord-oracle_enhanced-adapter
 ```
 
+### JRuby
+
+JRuby 10 requires Java 21 or later. Download an Oracle JDBC driver from the [JDBC and UCP Downloads page](https://www.oracle.com/database/technologies/appdev/jdbc-downloads.html):
+
+* `ojdbc17.jar` or `ojdbc11.jar` to connect to Oracle Database 19c or later
+* `ojdbc8.jar` 19.25 or later to connect to Oracle Database 11.2.0.4, 12.1, 12.2 or 18c. The 19c JDBC driver supports these releases and is certified with JDK 21 from 19.25.
+
+Put the jar file in one of these locations:
+
+  * in the `./lib` directory of the application
+  * in a directory in the Ruby load path or in `PATH`
+  * or include the path to the jar file in the Java `CLASSPATH`
+
+Which JDBC driver to use is up to the application. Check Oracle's certification of the driver with your Oracle Database release and Java version in the JDBC Developer's Guide. For example, no release of `ojdbc6.jar` or `ojdbc7.jar` is certified with the Java versions that JRuby 10 requires.
+
 USAGE
 -----
 
