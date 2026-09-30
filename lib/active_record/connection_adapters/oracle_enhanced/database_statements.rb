@@ -33,11 +33,6 @@ module ActiveRecord
           !READ_QUERY.match?(sql.b)
         end
 
-        # Executes a SQL statement
-        def execute(...)
-          super
-        end
-
         def supports_explain?
           true
         end
@@ -343,11 +338,6 @@ module ActiveRecord
             intent.notification_payload[:row_count] = rows.length
 
             { columns: columns, rows: rows, affected_rows_count: affected_rows_count }
-          end
-
-          def collect_warnings(_raw_result)
-            warnings, @notice_receiver_sql_warnings = @notice_receiver_sql_warnings, []
-            warnings
           end
 
           # Compile each insert row to `VALUES (...)` individually via Arel, so

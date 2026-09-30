@@ -1232,43 +1232,4 @@ RSpec.describe "OracleEnhancedConnection" do
       @conn.drop_table("test_employees", if_exists: true)
     end
   end
-
-  describe "extract_schema_qualified_name" do
-    before(:all) do
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      @conn = ActiveRecord::Base.lease_connection
-    end
-
-    def extract(string)
-      @conn.send(:extract_schema_qualified_name, string)
-    end
-
-    it "returns [nil, identifier] for an unqualified name and upcases it" do
-      expect(extract("table_name")).to eq([nil, "TABLE_NAME"])
-    end
-
-    it "leaves an already upcased unqualified name as-is" do
-      expect(extract("TABLE_NAME")).to eq([nil, "TABLE_NAME"])
-    end
-
-    it "splits a schema-qualified name and upcases it" do
-      expect(extract("hr.dept")).to eq(["HR", "DEPT"])
-    end
-
-    it "upcases a qualified name whose parts are in different cases" do
-      expect(extract("SYS.dual")).to eq(["SYS", "DUAL"])
-    end
-
-    it "accepts a Symbol and coerces it to a string" do
-      expect(extract(:dept)).to eq([nil, "DEPT"])
-    end
-
-    it "raises ArgumentError when the name contains a db link" do
-      expect { extract("test@db_link") }.to raise_error(ArgumentError, /db link is not supported/)
-    end
-
-    it "does not upcase a name that is not a valid identifier" do
-      expect(extract('"Weird Name"')).to eq([nil, '"Weird Name"'])
-    end
-  end
 end

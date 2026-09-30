@@ -250,13 +250,6 @@ module ActiveRecord # :nodoc:
               result.empty? ? nil : result
             end
 
-            # GET_DEPENDENT_DDL can return multiple DDL statements concatenated
-            # in a single CLOB. Split on blank-line boundaries.
-            def split_dbms_metadata_ddl(ddl)
-              return [] if ddl.nil?
-              ddl.split(/\n\s*\n/).map(&:strip).reject(&:empty?)
-            end
-
             # `GET_DDL('TABLE', t)` can return more than one SQL statement
             # in a single CLOB when the table has a UNIQUE constraint
             # backed by a separately-named index (Oracle emits the

@@ -288,15 +288,6 @@ module ActiveRecord
         end
 
       private
-        def date_without_time?(value)
-          case value
-          when OraDate
-            value.hour == 0 && value.minute == 0 && value.second == 0
-          else
-            value.hour == 0 && value.min == 0 && value.sec == 0
-          end
-        end
-
         def create_time_with_default_timezone(value)
           year, month, day, hour, min, sec, usec = case value
                                                    when Time

@@ -44,14 +44,6 @@ module ActiveRecord
         end
       end
 
-      # Returns an ActiveRecord::ConnectionAdapters::AbstractAdapter::Version
-      # instance representing the connected Oracle Database version. Comparable
-      # against version strings (e.g. <tt>database_version >= "12.2"</tt>) via
-      # the included +Comparable+ module.
-      def database_version
-        raise NoMethodError, "Not implemented for this raw driver"
-      end
-
       # ORA-00028 your session has been killed
       # ORA-00031 your session is marked for kill (kill in progress; the session is dead-on-arrival to its next op)
       # ORA-01012 not logged on
