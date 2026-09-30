@@ -96,11 +96,12 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator.silence do
         adapter_class.use_old_oracle_visitor = true
       end
-      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
-      conn = ActiveRecord::Base.connection
+      conn = adapter_class.new(CONNECTION_PARAMS)
 
       expect(conn.visitor).to be_a(Arel::Visitors::Oracle)
       expect(conn.visitor).not_to be_a(Arel::Visitors::Oracle12)
+    ensure
+      conn&.disconnect!
     end
 
     it "per-connection limit_offset_syntax overrides class-level use_old_oracle_visitor" do
