@@ -1289,7 +1289,7 @@ module ActiveRecord
              ORDER BY cols.column_id
           SQL
 
-          trigger_assigned = trigger_assigned_pk_columns(table_name, owner, desc_table_name)
+          trigger_assigned = trigger_assigned_pk_columns(owner, desc_table_name)
           rows.each { |row| row["trigger_assigned"] = trigger_assigned.include?(oracle_downcase(row["name"])) }
         end
 
@@ -1305,19 +1305,22 @@ module ActiveRecord
         def fetch_primary_keys(tables)
           tables.index_with do |table_name|
             (owner, desc_table_name) = resolve_data_source_name(table_name)
-
-            pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
-              SELECT cc.column_name
-                FROM all_constraints c, all_cons_columns cc
-               WHERE c.owner = :owner
-                 AND c.table_name = :table_name
-                 AND c.constraint_type = 'P'
-                 AND cc.owner = c.owner
-                 AND cc.constraint_name = c.constraint_name
-                 order by cc.position
-            SQL
-            pks.map { |pk| oracle_downcase(pk) }
+            primary_key_columns(owner, desc_table_name)
           end
+        end
+
+        def primary_key_columns(owner, desc_table_name)
+          pks = select_values(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+            SELECT cc.column_name
+              FROM all_constraints c, all_cons_columns cc
+             WHERE c.owner = :owner
+               AND c.table_name = :table_name
+               AND c.constraint_type = 'P'
+               AND cc.owner = c.owner
+               AND cc.constraint_name = c.constraint_name
+               order by cc.position
+          SQL
+          pks.map { |pk| oracle_downcase(pk) }
         end
 
         def prefetch_primary_key_from_schema_cache(table_name)
@@ -1350,11 +1353,11 @@ module ActiveRecord
 
         def prefetch_primary_key_from_dictionary(table_name)
           owner, desc_table_name = resolve_data_source_name(table_name)
-          pks                   = primary_keys(table_name)
+          pks                   = primary_key_columns(owner, desc_table_name)
           # Composite PKs cannot be prefetched from a single sequence; mirror the
           # schema-cache path's behaviour and fall through to the RETURNING-driven
           # insert path instead. Note: cannot use `composite_primary_key?(pks)`
-          # here — that predicate is `Array?`-based and `primary_keys` always
+          # here — that predicate is `Array?`-based and `primary_key_columns` always
           # returns an Array (including `["id"]` for single-column PKs).
           return false if pks.size > 1
           has_identity_pk       = supports_identity_columns? && identity_primary_key?(owner, desc_table_name)
