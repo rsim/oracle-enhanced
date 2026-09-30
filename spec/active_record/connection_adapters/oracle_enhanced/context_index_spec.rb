@@ -46,16 +46,7 @@ RSpec.describe "OracleEnhancedAdapter context index" do
     drop_table_posts
   end
 
-  # Try to grant CTXAPP role to be able to set CONTEXT index parameters.
-  def grant_ctxapp
-    @sys_conn = ActiveRecord::ConnectionAdapters::OracleEnhancedConnection.create(SYS_CONNECTION_PARAMS)
-    @sys_conn.exec "GRANT CTXAPP TO #{DATABASE_USER}"
-  rescue
-    nil
-  end
-
   before(:all) do
-    grant_ctxapp
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
