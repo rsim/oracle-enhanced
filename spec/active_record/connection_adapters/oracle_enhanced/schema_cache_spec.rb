@@ -172,6 +172,30 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
   describe "prefetch_primary_key? after schema cache reload" do
     let(:conn) { ActiveRecord::Base.connection }
 
+    it "picks up a trigger-backed primary key added with raw DDL after the schema cache is cleared" do
+      schema_define do
+        create_table :test_prefetch_reloads, force: true do |t|
+          t.string :title
+        end
+      end
+      expect(conn.prefetch_primary_key?("test_prefetch_reloads")).to be true
+
+      conn.execute <<~SQL
+        CREATE OR REPLACE TRIGGER test_prefetch_reloads_pkt
+        BEFORE INSERT ON test_prefetch_reloads FOR EACH ROW
+        BEGIN
+          IF :new.id IS NULL THEN
+            SELECT test_prefetch_reloads_seq.NEXTVAL INTO :new.id FROM dual;
+          END IF;
+        END;
+      SQL
+      ActiveRecord::Base.clear_cache!
+
+      expect(conn.prefetch_primary_key?("test_prefetch_reloads")).to be false
+    ensure
+      schema_define { drop_table :test_prefetch_reloads, if_exists: true }
+    end
+
     it "carries identity / trigger_assigned flags through the YAML round trip" do
       original = schema_cache.columns("test_schema_cache_posts").find { |c| c.name == "id" }
       expect(original).not_to be_nil
@@ -200,7 +224,6 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
 
     it "returns true for a sequence-backed primary key without firing catalog SQL" do
       warm_up_schema_cache_for("test_schema_cache_posts")
-      conn.send(:instance_variable_set, :@prefetch_primary_key_cache, {})
 
       result, catalog = capture_pk_lookup { conn.prefetch_primary_key?("test_schema_cache_posts") }
       expect(result).to be true
@@ -224,7 +247,6 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
 
       it "returns false without firing catalog SQL once the column is cached" do
         warm_up_schema_cache_for("test_schema_cache_legacy_posts")
-        conn.send(:instance_variable_set, :@prefetch_primary_key_cache, {})
 
         result, catalog = capture_pk_lookup { conn.prefetch_primary_key?("test_schema_cache_legacy_posts") }
         expect(result).to be false
@@ -260,7 +282,6 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
 
       it "returns false without firing catalog SQL once the column is cached" do
         warm_up_schema_cache_for("test_schema_cache_identity_posts")
-        conn.send(:instance_variable_set, :@prefetch_primary_key_cache, {})
 
         result, catalog = capture_pk_lookup { conn.prefetch_primary_key?("test_schema_cache_identity_posts") }
         expect(result).to be false
@@ -296,7 +317,6 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
 
       it "returns false without firing catalog SQL once the cache is warmed" do
         warm_up_schema_cache_for("test_schema_cache_composite")
-        conn.send(:instance_variable_set, :@prefetch_primary_key_cache, {})
 
         result, catalog = capture_pk_lookup { conn.prefetch_primary_key?("test_schema_cache_composite") }
         expect(result).to be false
@@ -321,7 +341,6 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
 
       it "returns false without firing catalog SQL once the cache is warmed" do
         warm_up_schema_cache_for("test_schema_cache_no_pk")
-        conn.send(:instance_variable_set, :@prefetch_primary_key_cache, {})
 
         result, catalog = capture_pk_lookup { conn.prefetch_primary_key?("test_schema_cache_no_pk") }
         expect(result).to be false

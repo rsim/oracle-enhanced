@@ -430,8 +430,6 @@ module ActiveRecord
 
         connect
         @enable_dbms_output = false
-        @prefetch_primary_key_cache = {}
-        @trigger_assigned_pk_cache = {}
         @notice_receiver_sql_warnings = []
 
         configure_connection
@@ -806,11 +804,8 @@ module ActiveRecord
       def prefetch_primary_key?(table_name = nil)
         return true if table_name.nil?
         table_name = table_name.to_s
-        return @prefetch_primary_key_cache[table_name] if @prefetch_primary_key_cache.key?(table_name)
-
         result = prefetch_primary_key_from_schema_cache(table_name)
-        result = prefetch_primary_key_from_dictionary(table_name) if result.nil?
-        @prefetch_primary_key_cache[table_name] = result
+        result.nil? ? prefetch_primary_key_from_dictionary(table_name) : result
       end
 
       # Returns true when the primary key column of +desc_table_name+ is an
@@ -943,8 +938,6 @@ module ActiveRecord
 
       def clear_table_caches(table_name) # :nodoc:
         table_name = table_name.to_s
-        @trigger_assigned_pk_cache.delete(table_name)
-        @prefetch_primary_key_cache.delete(table_name)
         evict_prepared_statements_for(table_name)
       end
 
@@ -1273,7 +1266,7 @@ module ActiveRecord
           #   https://docs.oracle.com/en/database/oracle/oracle-database/23/refrn/ALL_TAB_IDENTITY_COLS.html
           identity_column_expr = supports_identity_columns? ? "cols.identity_column" : "'NO' AS identity_column"
 
-          select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)])
+          rows = select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", desc_table_name)]).to_a
             SELECT cols.column_name AS name, cols.data_type AS sql_type,
                    cols.data_default, cols.nullable, cols.virtual_column, cols.hidden_column,
                    #{identity_column_expr},
@@ -1295,6 +1288,9 @@ module ActiveRecord
                AND cols.column_name = comments.column_name
              ORDER BY cols.column_id
           SQL
+
+          trigger_assigned = trigger_assigned_pk_columns(table_name, owner, desc_table_name)
+          rows.each { |row| row["trigger_assigned"] = trigger_assigned.include?(oracle_downcase(row["name"])) }
         end
 
         def extract_value_from_default(default)

@@ -1448,7 +1448,6 @@ module ActiveRecord
             default_value = extract_value_from_default(field["data_default"])
             default_value = nil if is_virtual || is_identity
             column_name = oracle_downcase(field["name"])
-            trigger_assigned = trigger_assigned_pk_columns(table_name).include?(column_name)
             OracleEnhanced::Column.new(column_name,
                              lookup_cast_type(field["sql_type"]),
                              default_value,
@@ -1456,20 +1455,15 @@ module ActiveRecord
                              field["nullable"] == "Y",
                              comment: field["column_comment"],
                              identity: is_identity,
-                             trigger_assigned: trigger_assigned
+                             trigger_assigned: field["trigger_assigned"]
             )
           end
 
-          def trigger_assigned_pk_columns(table_name)
-            @trigger_assigned_pk_cache[table_name.to_s] ||= begin
-              owner, desc_table_name = resolve_data_source_name(table_name.to_s)
-              if trigger_backed_primary_key?(owner, desc_table_name)
-                pks = primary_keys(table_name)
-                pks.size == 1 ? pks : []
-              else
-                []
-              end
-            end
+          def trigger_assigned_pk_columns(table_name, owner, desc_table_name)
+            return [] unless trigger_backed_primary_key?(owner, desc_table_name)
+
+            pks = primary_keys(table_name)
+            pks.size == 1 ? pks : []
           end
 
           def tablespace_for(obj_type, tablespace_option, table_name = nil, column_name = nil)
