@@ -82,7 +82,11 @@ module ActiveRecord
           raise OracleEnhanced::ConnectionException, e.message
         end
 
-        def exec(sql, *bindvars, &block)
+        def exec(sql, *bindvars, &block) # :nodoc:
+          OracleEnhanced.deprecator.warn(
+            "OracleEnhanced::Connection#exec is deprecated. " \
+            "Use ActiveRecord::Base.lease_connection.execute instead."
+          )
           @raw_connection.exec(sql, *bindvars, &block)
         end
 
