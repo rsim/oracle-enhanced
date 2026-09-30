@@ -1070,7 +1070,6 @@ module ActiveRecord
       end
 
       ActiveRecord::Type.register(:boolean, Type::OracleEnhanced::Boolean, adapter: :oracle_enhanced)
-      ActiveRecord::Type.register(:json, Type::OracleEnhanced::Json, adapter: :oracle_enhanced)
 
       private
         def evict_prepared_statements_for(table_name)

@@ -3,8 +3,11 @@
 module ActiveRecord
   module Type
     module OracleEnhanced
-      class Json < ActiveRecord::Type::Json
-      end
+      Json = ActiveSupport::Deprecation::DeprecatedConstantProxy.new(
+        "ActiveRecord::Type::OracleEnhanced::Json",
+        "ActiveRecord::Type::Json",
+        ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator
+      )
     end
   end
 end
