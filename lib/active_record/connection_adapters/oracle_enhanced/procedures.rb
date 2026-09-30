@@ -127,8 +127,6 @@ module ActiveRecord # :nodoc:
           self.id = instance_eval(&self.class.custom_create_method)
         end
         @new_record = false
-        # Starting from ActiveRecord 3.0.3 @persisted is used instead of @new_record
-        @persisted = true
         id
       end
 
@@ -188,8 +186,5 @@ module ActiveRecord # :nodoc:
       def log_custom_method(sql, name, &block)
         self.class.lease_connection.instrument_custom_method(sql, name, &block)
       end
-
-      alias_method :update_record, :_update_record if private_method_defined?(:_update_record)
-      alias_method :create_record, :_create_record if private_method_defined?(:_create_record)
   end
 end

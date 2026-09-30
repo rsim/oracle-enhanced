@@ -1441,24 +1441,22 @@ module ActiveRecord
 end
 
 ## Register OracleEnhancedAdapter as the adapter to use for "oracle_enhanced" connection string
-if ActiveRecord::ConnectionAdapters.respond_to?(:register)
-  ActiveRecord::ConnectionAdapters.register(
-    "oracle_enhanced",
-    "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter",
-    "active_record/connection_adapters/oracle_enhanced_adapter"
-  )
+ActiveRecord::ConnectionAdapters.register(
+  "oracle_enhanced",
+  "ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter",
+  "active_record/connection_adapters/oracle_enhanced_adapter"
+)
 
-  # This is similar to the notion of emulating the original OracleAdapter but
-  # using the OracleEnhancedAdapter instead, but without using the emulate flag.
-  # Instead this will get picked up if you set the adapter to 'oracle' in the database config.
-  #
-  # Register OracleAdapter as the adapter to use for "oracle" connection string
-  ActiveRecord::ConnectionAdapters.register(
-    "oracle",
-    "ActiveRecord::ConnectionAdapters::OracleAdapter",
-    "active_record/connection_adapters/emulation/oracle_adapter"
-  )
-end
+# This is similar to the notion of emulating the original OracleAdapter but
+# using the OracleEnhancedAdapter instead, but without using the emulate flag.
+# Instead this will get picked up if you set the adapter to 'oracle' in the database config.
+#
+# Register OracleAdapter as the adapter to use for "oracle" connection string
+ActiveRecord::ConnectionAdapters.register(
+  "oracle",
+  "ActiveRecord::ConnectionAdapters::OracleAdapter",
+  "active_record/connection_adapters/emulation/oracle_adapter"
+)
 
 require "active_record/connection_adapters/oracle_enhanced/version"
 
