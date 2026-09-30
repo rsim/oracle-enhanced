@@ -139,7 +139,7 @@ RSpec.describe "OracleEnhancedAdapter lazy transactions" do
         expect(@conn.current_transaction).not_to be_materialized
         TestLazyTxnRecord.create!(name: "rolled back")
         expect(@conn.current_transaction).to be_materialized
-        expect(@conn.send(:_connection).autocommit?).to be(false)
+        expect(@conn.instance_variable_get(:@raw_connection).autocommit?).to be(false)
         raise "abort"
       end
     }.to raise_error("abort")
@@ -152,7 +152,7 @@ RSpec.describe "OracleEnhancedAdapter lazy transactions" do
       expect(@conn.current_transaction).not_to be_materialized
       TestLazyTxnRecord.create!(name: "committed")
       expect(@conn.current_transaction).to be_materialized
-      expect(@conn.send(:_connection).autocommit?).to be(false)
+      expect(@conn.instance_variable_get(:@raw_connection).autocommit?).to be(false)
     end
     expect(TestLazyTxnRecord.count).to eq(before_count + 1)
   ensure

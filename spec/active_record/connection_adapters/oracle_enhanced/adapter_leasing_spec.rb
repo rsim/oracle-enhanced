@@ -88,12 +88,12 @@ RSpec.describe "OracleEnhancedAdapter#discard!" do
   it "opens a new connection when resetting the old one fails" do
     adapter = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(CONNECTION_PARAMS)
     adapter.connect!
-    old_connection = adapter.send(:_connection)
+    old_connection = adapter.instance_variable_get(:@raw_connection)
     allow(old_connection).to receive(:reset!).and_raise(ActiveRecord::ConnectionAdapters::OracleEnhanced::ConnectionException)
 
     adapter.reconnect!
 
-    expect(adapter.send(:_connection)).not_to equal(old_connection)
+    expect(adapter.instance_variable_get(:@raw_connection)).not_to equal(old_connection)
     expect(adapter.select_value("SELECT 1 FROM dual")).to eq(1)
   ensure
     adapter&.disconnect!
