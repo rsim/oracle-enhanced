@@ -10,6 +10,7 @@ RSpec.describe "OracleEnhancedAdapter::Version" do
 
   after(:each) do
     ActiveRecord::Base.remove_connection
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   describe "subclassing" do

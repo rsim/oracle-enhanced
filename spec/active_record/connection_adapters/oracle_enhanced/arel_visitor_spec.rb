@@ -12,6 +12,7 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       adapter_class.use_old_oracle_visitor = false
     end
     ActiveRecord::Base.remove_connection
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   describe "use_old_oracle_visitor=" do

@@ -9,6 +9,7 @@ RSpec.describe "OracleEnhancedAdapter identifier length configuration" do
 
   after(:each) do
     ActiveRecord::Base.remove_connection
+    ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     # Reset the deprecated global fallback that individual tests may have toggled.
     # Use the class variable directly to avoid emitting a deprecation warning.
     adapter_class.class_variable_set(:@@use_shorter_identifier, false)
