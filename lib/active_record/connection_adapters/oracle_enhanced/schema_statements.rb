@@ -1459,10 +1459,10 @@ module ActiveRecord
             )
           end
 
-          def trigger_assigned_pk_columns(table_name, owner, desc_table_name)
+          def trigger_assigned_pk_columns(owner, desc_table_name)
             return [] unless trigger_backed_primary_key?(owner, desc_table_name)
 
-            pks = primary_keys(table_name)
+            pks = primary_key_columns(owner, desc_table_name)
             pks.size == 1 ? pks : []
           end
 
