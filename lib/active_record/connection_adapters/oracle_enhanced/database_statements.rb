@@ -88,7 +88,7 @@ module ActiveRecord
 
         def begin_isolated_db_transaction(isolation)
           begin_db_transaction
-          execute "SET TRANSACTION ISOLATION LEVEL  #{transaction_isolation_levels.fetch(isolation)}"
+          query_command("SET TRANSACTION ISOLATION LEVEL #{transaction_isolation_levels.fetch(isolation)}", "TRANSACTION", allow_retry: false, materialize_transactions: false)
         end
 
         def commit_db_transaction # :nodoc:
@@ -105,14 +105,6 @@ module ActiveRecord
           ensure
             conn.autocommit = true
           end
-        end
-
-        def create_savepoint(name = current_savepoint_name) # :nodoc:
-          execute("SAVEPOINT #{name}", "TRANSACTION")
-        end
-
-        def exec_rollback_to_savepoint(name = current_savepoint_name) # :nodoc:
-          execute("ROLLBACK TO #{name}", "TRANSACTION")
         end
 
         def release_savepoint(name = current_savepoint_name) # :nodoc:

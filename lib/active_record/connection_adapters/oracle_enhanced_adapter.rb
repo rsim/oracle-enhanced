@@ -1396,29 +1396,29 @@ module ActiveRecord
 
           cursor_sharing = @config[:cursor_sharing]
           unless cursor_sharing.nil? || cursor_sharing == :default
-            execute("alter session set cursor_sharing = #{cursor_sharing.to_s.upcase}", "SCHEMA")
+            query_command("alter session set cursor_sharing = #{cursor_sharing.to_s.upcase}", "SCHEMA")
           end
 
           if ORACLE_ENHANCED_CONNECTION == :oci
             time_zone = @config[:time_zone] || ENV["TZ"]
             case ActiveRecord.default_timezone
             when :local
-              execute("alter session set time_zone = #{quote(time_zone)}", "SCHEMA") unless time_zone.blank?
+              query_command("alter session set time_zone = #{quote(time_zone)}", "SCHEMA") unless time_zone.blank?
             when :utc
-              execute("alter session set time_zone = '+00:00'", "SCHEMA")
+              query_command("alter session set time_zone = '+00:00'", "SCHEMA")
             end
           end
 
           schema = @config[:schema].to_s
-          execute("alter session set current_schema = #{schema}", "SCHEMA") unless schema.blank?
+          query_command("alter session set current_schema = #{schema}", "SCHEMA") unless schema.blank?
 
           DEFAULT_NLS_PARAMETERS.each do |key, default_value|
             value = @config[key] || ENV[key.to_s.upcase] || default_value
-            execute("alter session set #{key} = #{quote(value.to_s)}", "SCHEMA") if value
+            query_command("alter session set #{key} = #{quote(value.to_s)}", "SCHEMA") if value
           end
 
           FIXED_NLS_PARAMETERS.each do |key, value|
-            execute("alter session set #{key} = #{quote(value)}", "SCHEMA")
+            query_command("alter session set #{key} = #{quote(value)}", "SCHEMA")
           end
         end
     end
