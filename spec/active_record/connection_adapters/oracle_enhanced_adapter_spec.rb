@@ -15,11 +15,7 @@ RSpec.describe "OracleEnhancedAdapter" do
         create_table :test_employees, force: true do |t|
           t.string  :first_name, limit: 20
           t.string  :last_name, limit: 25
-          if ActiveRecord::Base.lease_connection.supports_virtual_columns?
-            t.virtual :full_name, as: "(first_name || ' ' || last_name)"
-          else
-            t.string :full_name, limit: 46
-          end
+          t.virtual :full_name, as: "(first_name || ' ' || last_name)"
           t.date :hire_date
         end
       end
@@ -60,7 +56,6 @@ RSpec.describe "OracleEnhancedAdapter" do
 
     describe "without column caching" do
       it "should identify virtual columns as such" do
-        skip "Not supported in this database version" unless @conn.supports_virtual_columns?
         te = TestEmployee.lease_connection.columns("test_employees").detect(&:virtual?)
         expect(te.name).to eq("full_name")
       end

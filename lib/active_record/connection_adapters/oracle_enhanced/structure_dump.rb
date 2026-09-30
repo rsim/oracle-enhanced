@@ -31,7 +31,7 @@ module ActiveRecord # :nodoc:
           SQL
           identity_column_expr = supports_identity_columns? ? "atc.identity_column" : "'NO' AS identity_column"
           tables.each do |table_name|
-            virtual_columns = virtual_columns_for(table_name) if supports_virtual_columns?
+            virtual_columns = virtual_columns_for(table_name)
             ddl = +"CREATE#{ ' GLOBAL TEMPORARY' if temporary_table?(table_name)} TABLE \"#{table_name}\" (\n"
             columns = select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table_name)])
               SELECT column_name, data_type, data_length, char_used, char_length,
@@ -373,7 +373,6 @@ module ActiveRecord # :nodoc:
         end
 
       private
-        # Called only if `supports_virtual_columns?` returns true
         # return [{'column_name' => 'FOOS', 'data_default' => '...'}, ...]
         def virtual_columns_for(table)
           select_all(<<~SQL.squish, "SCHEMA", [bind_string("table_name", table.upcase)])

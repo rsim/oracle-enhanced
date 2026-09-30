@@ -121,7 +121,6 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
     end
 
     it "preserves the INVISIBLE keyword when DBMS_METADATA dumps an INVISIBLE index" do
-      skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
       schema_define do
         create_table :test_dbms_metadata_posts, force: true do |t|
           t.string :title
@@ -143,7 +142,6 @@ RSpec.describe "OracleEnhancedAdapter DBMS_METADATA structure dump" do
     # statement; otherwise a re-load would silently bring the index back
     # as VISIBLE.
     it "emits ALTER INDEX ... INVISIBLE for an INVISIBLE constraint-backed index" do
-      skip "Not supported in this database version" unless @conn.supports_disabling_indexes?
       schema_define do
         create_table :test_dbms_meta_inv_uniq, force: true do |t|
           t.string :email

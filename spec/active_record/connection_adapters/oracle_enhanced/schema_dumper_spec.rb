@@ -246,7 +246,6 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
 
   describe "INVISIBLE index" do
     before(:each) do
-      skip "Not supported in this database version" unless ActiveRecord::Base.lease_connection.supports_disabling_indexes?
       schema_define do
         create_table :test_idx_visibility_dump, force: true do |t|
           t.string :name
@@ -876,7 +875,6 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
 
   describe "virtual columns" do
     before(:all) do
-      skip "Not supported in this database version" unless @conn.database_version >= "11"
       schema_define do
         create_table :test_names, force: true do |t|
           t.string :first_name
@@ -892,18 +890,14 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
     end
 
     before(:each) do
-      if @conn.database_version >= "11"
-        class ::TestName < ActiveRecord::Base
-          self.table_name = "test_names"
-        end
+      class ::TestName < ActiveRecord::Base
+        self.table_name = "test_names"
       end
     end
 
     after(:all) do
-      if @conn.database_version >= "11"
-        schema_define do
-          drop_table :test_names
-        end
+      schema_define do
+        drop_table :test_names
       end
     end
 
@@ -919,18 +913,14 @@ RSpec.describe "OracleEnhancedAdapter schema dump" do
 
     context "with index on virtual column" do
       before(:all) do
-        if @conn.database_version >= "11"
-          schema_define do
-            add_index "test_names", "field_with_leading_space", name: "index_on_virtual_col"
-          end
+        schema_define do
+          add_index "test_names", "field_with_leading_space", name: "index_on_virtual_col"
         end
       end
 
       after(:all) do
-        if @conn.database_version >= "11"
-          schema_define do
-            remove_index "test_names", name: "index_on_virtual_col"
-          end
+        schema_define do
+          remove_index "test_names", name: "index_on_virtual_col"
         end
       end
 

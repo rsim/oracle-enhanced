@@ -228,10 +228,6 @@ module ActiveRecord
         def add_index_options(table_name, column_name, name: nil, if_not_exists: false, internal: false, enabled: true, **options) # :nodoc:
           options.assert_valid_keys(:unique, :order, :where, :length, :tablespace, :options, :using, :comment)
 
-          if enabled == false && !supports_disabling_indexes?
-            raise ArgumentError, "`enabled: false` requires Oracle Database 11g or later (it is implemented via `INVISIBLE` indexes)"
-          end
-
           column_names = index_column_names(column_name)
           index_name = name&.to_s || index_name(table_name, column: column_names)
 
@@ -323,12 +319,10 @@ module ActiveRecord
         # `ALTER INDEX` statement; the parameter exists only to match the
         # MySQL adapter's contract.
         def disable_index(_table_name, index_name) # :nodoc:
-          raise NotImplementedError unless supports_disabling_indexes?
           execute "ALTER INDEX #{quote_column_name(index_name)} INVISIBLE"
         end
 
         def enable_index(_table_name, index_name) # :nodoc:
-          raise NotImplementedError unless supports_disabling_indexes?
           execute "ALTER INDEX #{quote_column_name(index_name)} VISIBLE"
         end
 
@@ -907,14 +901,10 @@ module ActiveRecord
               (owner, table_name) = resolve_data_source_name(table_name)
               default_tablespace_name = default_tablespace
 
-              # `all_indexes.visibility` was introduced in Oracle 11g R1. Pre-11g
-              # connections do not have the column, so substitute a literal
-              # 'VISIBLE' so the rest of the reader works unchanged.
-              visibility_column = supports_disabling_indexes? ? "i.visibility" : "'VISIBLE' AS visibility"
               result = select_all(<<~SQL.squish, "SCHEMA", [bind_string("owner", owner), bind_string("table_name", table_name)])
                 SELECT LOWER(i.table_name) AS table_name, LOWER(i.index_name) AS index_name, i.uniqueness,
                   i.index_type, i.ityp_owner, i.ityp_name, i.parameters,
-                  LOWER(i.tablespace_name) AS tablespace_name, #{visibility_column},
+                  LOWER(i.tablespace_name) AS tablespace_name, i.visibility,
                   LOWER(c.column_name) AS column_name, c.descend, e.column_expression,
                   atc.virtual_column
                 FROM all_indexes i
