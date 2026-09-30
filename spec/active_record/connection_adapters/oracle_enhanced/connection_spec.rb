@@ -615,6 +615,23 @@ RSpec.describe "OracleEnhancedConnection" do
     end
   end
 
+  describe "DATE values before year 1" do
+    before(:all) do
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+      @conn = ActiveRecord::Base.lease_connection
+    end
+
+    {
+      "-4712-06-15 12:34:56" => [-4712, 6, 15, 12, 34, 56],
+      "-0001-06-15 12:34:56" => [-1, 6, 15, 12, 34, 56],
+    }.each do |literal, expected|
+      it "returns #{literal} with the year Oracle shows" do
+        value = @conn.select_value("SELECT TO_DATE('#{literal}', 'SYYYY-MM-DD HH24:MI:SS') FROM dual")
+        expect([value.year, value.month, value.day, value.hour, value.min, value.sec]).to eq(expected)
+      end
+    end
+  end
+
   describe "default_timezone" do
     include SchemaSpecHelper
 

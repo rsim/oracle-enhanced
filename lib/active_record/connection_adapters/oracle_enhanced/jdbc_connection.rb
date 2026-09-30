@@ -580,12 +580,10 @@ module ActiveRecord
               char_str.rstrip
             end
           when :DATE
-            if dt = rset.getDATE(i)
-              d = dt.dateValue
-              t = dt.timeValue
-              Time.send(ActiveRecord.default_timezone, d.year + 1900, d.month + 1, d.date, t.hours, t.minutes, t.seconds)
-            else
-              nil
+            if dt = rset.getObject(i, java.time.LocalDateTime.java_class)
+              # LocalDateTime counts 1 BC as year 0. Oracle and ruby-oci8 have no year 0 and call it -1.
+              year = dt.getYear <= 0 ? dt.getYear - 1 : dt.getYear
+              Time.send(ActiveRecord.default_timezone, year, dt.getMonthValue, dt.getDayOfMonth, dt.getHour, dt.getMinute, dt.getSecond)
             end
           when :TIMESTAMP
             # Oracle JDBC getTimestamp for plain TIMESTAMP uses the JVM default timezone,
