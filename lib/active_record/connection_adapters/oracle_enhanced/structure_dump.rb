@@ -175,11 +175,11 @@ module ActiveRecord # :nodoc:
         end
 
         def structure_dump_fk_constraints # :nodoc:
-          foreign_keys = select_all(<<~SQL.squish, "SCHEMA")
+          tables = select_all(<<~SQL.squish, "SCHEMA")
             SELECT table_name FROM all_tables
             WHERE owner = SYS_CONTEXT('userenv', 'current_schema') ORDER BY 1
           SQL
-          fks = foreign_keys.map do |table|
+          fks = tables.map do |table|
             if (foreign_keys = foreign_keys(table["table_name"])).any?
               foreign_keys.map do |fk|
                 sql = +"ALTER TABLE #{quote_table_name(fk.from_table)} ADD CONSTRAINT #{quote_column_name(fk.options[:name])} "
