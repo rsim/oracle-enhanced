@@ -292,21 +292,8 @@ module ActiveRecord
 
       private
         def create_time_with_default_timezone(value)
-          year, month, day, hour, min, sec, usec = case value
-                                                   when Time
-                                                     [value.year, value.month, value.day, value.hour, value.min, value.sec, value.usec]
-                                                   when OraDate
-                                                     [value.year, value.month, value.day, value.hour, value.minute, value.second, 0]
-                                                   else
-                                                     [value.year, value.month, value.day, value.hour, value.min, value.sec, 0]
-          end
-          # code from Time.time_with_datetime_fallback
-          begin
-            Time.send(ActiveRecord.default_timezone, year, month, day, hour, min, sec, usec)
-          rescue
-            offset = ActiveRecord.default_timezone.to_sym == :local ? ::DateTime.local_offset : 0
-            ::DateTime.civil(year, month, day, hour, min, sec, offset)
-          end
+          usec = value.is_a?(Time) ? value.usec : 0
+          Time.send(ActiveRecord.default_timezone, value.year, value.month, value.day, value.hour, value.min, value.sec, usec)
         end
       end
 
