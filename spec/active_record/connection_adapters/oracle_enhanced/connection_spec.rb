@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "active_support/core_ext/object/with"
+
 RSpec.describe "OracleEnhancedAdapter establish connection" do
   after(:each) do
     ActiveRecord::Base.connection_pool.disconnect!
@@ -640,6 +642,35 @@ RSpec.describe "OracleEnhancedConnection" do
       post = Post.create!
       created_at = post.created_at
       expect(post).to eq(Post.find_by!(created_at: created_at))
+    end
+  end
+
+  describe "DATE and TIMESTAMP values at the limits of the Oracle range" do
+    after(:each) do
+      ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+    end
+
+    # Not 0001-01-01 00:00:00: ruby-oci8 fetches DATE as TIMESTAMP WITH TIME ZONE in the session
+    # time zone, and for a zone east of UTC Oracle reports the UTC year of that value, -1.
+    {
+      "TO_DATE('0001-01-02 00:00:00', 'YYYY-MM-DD HH24:MI:SS')" => [1, 1, 2, 0, 0, 0, 0],
+      "TO_DATE('9999-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')" => [9999, 12, 31, 23, 59, 59, 0],
+      "TO_TIMESTAMP('9999-12-31 23:59:59.999999', 'YYYY-MM-DD HH24:MI:SS.FF6')" => [9999, 12, 31, 23, 59, 59, 999999],
+    }.each do |expression, expected|
+      [:utc, :local].each do |timezone|
+        it "returns #{expression} as a Time with default_timezone = :#{timezone}" do
+          # The session time zone is set when connecting, so connect under the tested default_timezone.
+          value = ActiveRecord.with(default_timezone: timezone) do
+            ActiveRecord::Base.remove_connection
+            ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
+            ActiveRecord::Base.lease_connection.select_value("SELECT #{expression} FROM dual")
+          end
+          expect(value).to be_a(Time)
+          expect(value.utc?).to eq(timezone == :utc)
+          expect([value.year, value.month, value.day, value.hour, value.min, value.sec, value.usec]).to eq(expected)
+        end
+      end
     end
   end
 
