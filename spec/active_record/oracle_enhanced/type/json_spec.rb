@@ -54,3 +54,15 @@ RSpec.describe "OracleEnhancedAdapter attribute API support for JSON type" do
     expect(count_non_json.size).to eq 0
   end
 end
+
+RSpec.describe "ActiveRecord::Type::OracleEnhanced::Json" do
+  it "resolves :json to ActiveRecord::Type::Json" do
+    expect(ActiveRecord::Type.lookup(:json, adapter: :oracle_enhanced)).to be_an_instance_of(ActiveRecord::Type::Json)
+  end
+
+  it "is deprecated in favor of ActiveRecord::Type::Json" do
+    expect {
+      expect(ActiveRecord::Type::OracleEnhanced::Json.new).to be_a(ActiveRecord::Type::Json)
+    }.to output(/ActiveRecord::Type::OracleEnhanced::Json is deprecated.*ActiveRecord::Type::Json/m).to_stderr
+  end
+end
