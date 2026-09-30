@@ -31,10 +31,26 @@ RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_UpdateStatement" d
     expect(sql).not_to match(/ORDER BY/i)
   end
 
-  it "keeps ORDER BY when a LIMIT is set (letting Oracle return the execute-time error)" do
+  it "moves LIMIT into a subquery on the key and drops ORDER BY" do
     stmt = build_update(orders: [Arel.sql("id ASC")], limit: Arel::Nodes::Limit.new(10))
+    stmt.key = @table[:id]
     sql = compile(stmt)
-    expect(sql).to match(/ORDER BY\s+id ASC/i)
+    expect(sql).to match(/WHERE \("USERS"\."ID"\) IN \(SELECT/i)
+    expect(sql).not_to match(/ORDER BY/i)
+  end
+
+  { "ROWNUM" => false, "the row limiting clause" => true }.each do |syntax, fetch_first|
+    it "raises ArgumentError for an UPDATE with a LIMIT but no key with #{syntax}" do
+      stmt = build_update(orders: [Arel.sql("id ASC")], limit: Arel::Nodes::Limit.new(10))
+      expect { compile(stmt, visitor: oracle_visitor(fetch_first: fetch_first)) }.to raise_error(ArgumentError, /UPDATE without a key/)
+    end
+
+    it "raises ArgumentError for a DELETE with a LIMIT but no key with #{syntax}" do
+      stmt = Arel::Nodes::DeleteStatement.new
+      stmt.relation = @table
+      stmt.limit = Arel::Nodes::Limit.new(10)
+      expect { compile(stmt, visitor: oracle_visitor(fetch_first: fetch_first)) }.to raise_error(ArgumentError, /DELETE without a key/)
+    end
   end
 
   it "leaves the original UpdateStatement's orders unmodified" do

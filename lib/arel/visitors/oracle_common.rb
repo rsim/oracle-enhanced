@@ -101,15 +101,29 @@ module Arel # :nodoc: all
         end
 
         # Oracle does not allow ORDER BY in UPDATE statements. Strip it
-        # when no LIMIT is present; with a LIMIT, pass through so super
-        # surfaces Oracle's own error (LIMIT in UPDATE is unsupported too).
+        # when no LIMIT is present.
         def visit_Arel_Nodes_UpdateStatement(o, collector)
+          reject_limit_without_key(o, "UPDATE")
           if o.orders.any? && o.limit.nil?
             o = o.dup
             o.orders = []
           end
 
           super
+        end
+
+        def visit_Arel_Nodes_DeleteStatement(o, collector)
+          reject_limit_without_key(o, "DELETE")
+          super
+        end
+
+        # Oracle has no LIMIT or OFFSET clause in UPDATE and DELETE. With a key, super moves them into
+        # a subquery on the key; without one, Arel::Visitors::Oracle would drop them and change every row.
+        def reject_limit_without_key(o, statement)
+          return unless (o.limit || o.offset) && o.key.nil?
+
+          raise ArgumentError, "Oracle cannot apply a limit or an offset to #{statement} without a key. " \
+            "Set a key on the Arel statement, or use Active Record's update_all or delete_all, which set one."
         end
 
         # To avoid ORA-01795: maximum number of expressions in a list is 1000
