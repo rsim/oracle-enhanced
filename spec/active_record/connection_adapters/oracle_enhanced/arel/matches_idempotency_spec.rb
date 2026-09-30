@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_Matches preserves the input node" do
+  include ArelVisitorSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   before(:each) do
-    @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
+    @visitor = oracle_visitor(fetch_first: true)
     @table = Arel::Table.new(name: :users)
   end
 
@@ -44,7 +46,7 @@ RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_Matches preserves 
   end
 
   it "preserves the input node the same way via Arel::Visitors::Oracle" do
-    oracle = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
+    oracle = oracle_visitor(fetch_first: false)
     node = Arel::Nodes::Matches.new(@table[:name], Arel.sql("'foo'"), nil, false)
     original_left = node.left
     original_right = node.right

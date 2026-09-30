@@ -936,7 +936,7 @@ RSpec.describe "OracleEnhancedConnection" do
 
     # Arel-built SELECTs route through `with_raw_connection(allow_retry: true)`
     # in `database_statements.rb` and the collector keeps `retryable` true on
-    # both Oracle12 (FETCH FIRST) and the pre-12c ROWNUM visitor, so a session
+    # both the row limiting clause (FETCH FIRST) and the ROWNUM forms, so a session
     # kill is transparently recovered at the AR layer.
     it "recovers a killed-session SELECT via AR retry" do
       Post.create!

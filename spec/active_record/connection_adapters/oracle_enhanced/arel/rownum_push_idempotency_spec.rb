@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 RSpec.describe "Arel::Visitors::Oracle limit-only ROWNUM rewrite preserves the input SelectStatement" do
+  include ArelVisitorSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   before(:each) do
-    @visitor = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
+    @visitor = oracle_visitor(fetch_first: false)
   end
 
   def compile(node, visitor: @visitor)

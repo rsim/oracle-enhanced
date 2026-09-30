@@ -147,6 +147,16 @@ module SchemaSpecHelper
   end
 end
 
+module ArelVisitorSpecHelper
+  # Arel::Visitors::Oracle that writes LIMIT and OFFSET with the row limiting clause (fetch_first: true)
+  # or with ROWNUM (fetch_first: false), whatever the connected server and limit_offset_syntax are.
+  def oracle_visitor(fetch_first:)
+    Arel::Visitors::Oracle.new(ActiveRecord::Base.connection).tap do |visitor|
+      allow(visitor).to receive(:use_fetch_first_syntax?).and_return(fetch_first)
+    end
+  end
+end
+
 module SchemaDumpingHelper
   def dump_table_schema(table, connection = ActiveRecord::Base.lease_connection)
     old_ignore_tables = ActiveRecord.schema_ignored_tables

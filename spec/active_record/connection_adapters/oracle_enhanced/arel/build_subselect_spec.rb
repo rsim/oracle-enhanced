@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 RSpec.describe "Arel::Visitors::OracleCommon#build_subselect" do
+  include ArelVisitorSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   before(:each) do
-    @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
+    @visitor = oracle_visitor(fetch_first: true)
     @table = Arel::Table.new(name: :users)
   end
 
@@ -49,7 +51,7 @@ RSpec.describe "Arel::Visitors::OracleCommon#build_subselect" do
   end
 
   it "drops orders the same way via Arel::Visitors::Oracle" do
-    oracle = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
+    oracle = oracle_visitor(fetch_first: false)
     delete = build_delete(orders: [@table[:id].asc], limit: Arel::Nodes::Limit.new(10))
     subselect = oracle.send(:build_subselect, @table[:id], delete)
     expect(subselect.orders).to eq([])

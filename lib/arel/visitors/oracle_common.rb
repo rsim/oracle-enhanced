@@ -48,7 +48,7 @@ module Arel # :nodoc: all
           @connection.schema_cache
         end
 
-        # Oracle 12c+ (Oracle12 visitor) and pre-12c (Oracle visitor) both
+        # Both the row limiting clause and the ROWNUM forms of a SELECT
         # generate `FIRST_VALUE(...) OVER (...) AS alias_N__` projections via
         # `columns_for_distinct` for DISTINCT queries that order by columns
         # outside the SELECT list. Oracle's own SQL parser then rejects an
