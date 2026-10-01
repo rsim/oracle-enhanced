@@ -142,20 +142,13 @@ RSpec.describe "OracleEnhancedAdapter limit_offset_syntax configuration" do
       end
     end
 
-    it "compiles an UPDATE with a limit but no key as Arel::Visitors::Oracle does before 12.1" do
+    it "raises ArgumentError for an UPDATE with a limit but no key" do
       conn = ActiveRecord::Base.connection
       table = Arel::Table.new(name: :users)
       um = Arel::UpdateManager.new(table)
       um.set([[table[:name], Arel.sql("'foo'")]])
       um.take(10)
-      sql = conn.visitor.accept(um.ast, Arel::Collectors::SQLString.new).value
-
-      if conn.database_version >= "12"
-        expect(sql).to include("FETCH FIRST 10 ROWS ONLY")
-      else
-        oracle = Arel::Visitors::Oracle.new(conn)
-        expect(sql).to eq(oracle.accept(um.ast, Arel::Collectors::SQLString.new).value)
-      end
+      expect { conn.visitor.accept(um.ast, Arel::Collectors::SQLString.new) }.to raise_error(ArgumentError, /UPDATE without a key/)
     end
   end
 
