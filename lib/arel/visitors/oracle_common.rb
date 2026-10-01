@@ -103,6 +103,7 @@ module Arel # :nodoc: all
         # Oracle does not allow ORDER BY in UPDATE statements. Strip it
         # when no LIMIT is present.
         def visit_Arel_Nodes_UpdateStatement(o, collector)
+          reject_returning(o, "UPDATE")
           reject_limit_without_key(o, "UPDATE")
           if o.orders.any? && o.limit.nil?
             o = o.dup
@@ -113,8 +114,23 @@ module Arel # :nodoc: all
         end
 
         def visit_Arel_Nodes_DeleteStatement(o, collector)
+          reject_returning(o, "DELETE")
           reject_limit_without_key(o, "DELETE")
           super
+        end
+
+        def visit_Arel_Nodes_InsertStatement(o, collector)
+          reject_returning(o, "INSERT")
+          super
+        end
+
+        # Oracle needs RETURNING ... INTO with OUT binds, which Arel cannot express; extend Arel if a caller needs it.
+        def reject_returning(o, statement)
+          return if o.returning.empty?
+
+          message = +"Oracle does not support Arel's returning on #{statement}."
+          message << " Pass returning: to Active Record's insert instead." if statement == "INSERT"
+          raise ArgumentError, message
         end
 
         # Oracle has no LIMIT or OFFSET clause in UPDATE and DELETE. With a key, super moves them into
