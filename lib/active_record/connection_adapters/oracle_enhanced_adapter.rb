@@ -31,7 +31,6 @@
 # portions Copyright 2005 Graham Jenkins
 
 require "arel/visitors/oracle"
-require "arel/visitors/oracle12"
 require "active_record/connection_adapters"
 require "active_record/connection_adapters/abstract_adapter"
 require "active_record/connection_adapters/statement_pool"
@@ -424,6 +423,7 @@ module ActiveRecord
 
         resolve_database_aliases
         validate_session_options
+        validate_limit_offset_syntax
 
         @enable_dbms_output = false
       end
@@ -552,6 +552,12 @@ module ActiveRecord
 
       def supports_fetch_first_n_rows_and_offset?
         database_version >= "12"
+      end
+
+      # Whether Arel::Visitors::Oracle writes LIMIT and OFFSET with the row limiting clause
+      # (OFFSET n ROWS FETCH FIRST n ROWS ONLY) rather than with ROWNUM.
+      def use_fetch_first_syntax? # :nodoc:
+        configured_limit_offset_syntax != :rownum && supports_fetch_first_n_rows_and_offset?
       end
 
       # Deprecated in step with Rails (rails/rails#58809). Every supported
@@ -1234,28 +1240,28 @@ module ActiveRecord
         end
 
         def arel_visitor
-          case configured_limit_offset_syntax
-          when :auto, :fetch_first
-            Arel::Visitors::Oracle12.new(self)
-          when :rownum
-            Arel::Visitors::Oracle.new(self)
+          Arel::Visitors::Oracle.new(self)
+        end
+
+        def validate_limit_offset_syntax
+          per_connection = @config[:limit_offset_syntax]
+          return if per_connection.nil?
+
+          unless per_connection.is_a?(String) || per_connection.is_a?(Symbol)
+            raise ArgumentError, "limit_offset_syntax must be a String or Symbol (got #{per_connection.inspect}). Expected one of #{LIMIT_OFFSET_SYNTAXES.inspect}."
+          end
+          unless LIMIT_OFFSET_SYNTAXES.include?(per_connection.to_sym)
+            raise ArgumentError, "Unknown limit_offset_syntax #{per_connection.to_sym.inspect}. Expected one of #{LIMIT_OFFSET_SYNTAXES.inspect}."
           end
         end
 
         def configured_limit_offset_syntax
-          per_connection = @config[:limit_offset_syntax] if @config.key?(:limit_offset_syntax)
+          per_connection = @config[:limit_offset_syntax]
 
           if per_connection.nil?
             self.class.use_old_oracle_visitor ? :rownum : :auto
           else
-            unless per_connection.is_a?(String) || per_connection.is_a?(Symbol)
-              raise ArgumentError, "limit_offset_syntax must be a String or Symbol (got #{per_connection.inspect}). Expected one of #{LIMIT_OFFSET_SYNTAXES.inspect}."
-            end
-            mode = per_connection.to_sym
-            unless LIMIT_OFFSET_SYNTAXES.include?(mode)
-              raise ArgumentError, "Unknown limit_offset_syntax #{mode.inspect}. Expected one of #{LIMIT_OFFSET_SYNTAXES.inspect}."
-            end
-            mode
+            per_connection.to_sym
           end
         end
 

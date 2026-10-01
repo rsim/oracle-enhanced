@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
-RSpec.describe "Arel::Visitors::Oracle12" do
+RSpec.describe "Arel::Visitors::Oracle with the row limiting clause" do
+  include ArelVisitorSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   before(:each) do
-    @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
+    @visitor = oracle_visitor(fetch_first: true)
     @table = Arel::Table.new(name: :users)
   end
 
@@ -24,7 +26,6 @@ RSpec.describe "Arel::Visitors::Oracle12" do
   end
 
   it "generates select options offset then limit" do
-    skip "FETCH FIRST requires Oracle 12.1+" unless ActiveRecord::Base.connection.database_version >= "12"
     stmt = Arel::Nodes::SelectStatement.new
     stmt.offset = Arel::Nodes::Offset.new(1)
     stmt.limit = Arel::Nodes::Limit.new(10)
@@ -32,7 +33,7 @@ RSpec.describe "Arel::Visitors::Oracle12" do
   end
 
   describe "locking" do
-    it "falls back to Arel::Visitors::Oracle (ROWNUM) when limit and lock are combined" do
+    it "uses ROWNUM when limit and lock are combined" do
       stmt = Arel::Nodes::SelectStatement.new
       stmt.limit = Arel::Nodes::Limit.new(10)
       stmt.lock = Arel::Nodes::Lock.new(Arel.sql("FOR UPDATE"))
@@ -116,5 +117,21 @@ RSpec.describe "Arel::Visitors::Oracle12" do
       sql = compile Arel::Nodes::IsDistinctFrom.new(@table[:name], val)
       expect(sql).to be_like %{ "USERS"."NAME" IS NOT NULL }
     end
+  end
+
+  it "uses the row limiting clause for a subquery of a statement that uses it" do
+    subquery = @table.project(@table[:id]).take(5)
+    stmt = @table.project(Arel.star).where(@table[:id].in(subquery)).take(10).ast
+    sql = compile(stmt)
+    expect(sql.scan(/FETCH FIRST/).size).to eq(2)
+    expect(sql).not_to match(/ROWNUM/)
+  end
+
+  it "uses ROWNUM for a subquery of a statement that combines limit and lock" do
+    subquery = @table.project(@table[:id]).take(5)
+    stmt = @table.project(Arel.star).where(@table[:id].in(subquery)).take(10).lock.ast
+    sql = compile(stmt)
+    expect(sql).not_to match(/FETCH FIRST/)
+    expect(sql.scan(/ROWNUM/).size).to eq(2)
   end
 end

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 RSpec.describe "Arel::Visitors::OracleCommon" do
+  include ArelVisitorSpecHelper
+
   include SchemaSpecHelper
 
   before(:all) do
@@ -24,7 +26,7 @@ RSpec.describe "Arel::Visitors::OracleCommon" do
   end
 
   before(:each) do
-    @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
+    @visitor = oracle_visitor(fetch_first: true)
     @table = Arel::Table.new(name: :test_oracle_common_lobs)
   end
 
@@ -73,7 +75,7 @@ RSpec.describe "Arel::Visitors::OracleCommon" do
     end
 
     it "rewrites equality the same way via Arel::Visitors::Oracle" do
-      oracle = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
+      oracle = oracle_visitor(fetch_first: false)
       node = Arel::Nodes::Equality.new(@table[:body], Arel::Nodes::Casted.new("hello", @table[:body]))
       sql = oracle.accept(node, Arel::Collectors::SQLString.new).value
       expect(sql).to match(/DBMS_LOB\.COMPARE\(.*"BODY".*'hello'.*\)\s*=\s*0/)
@@ -95,7 +97,7 @@ RSpec.describe "Arel::Visitors::OracleCommon" do
     end
 
     it "wraps both sides in UPPER() the same way via Arel::Visitors::Oracle" do
-      oracle = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
+      oracle = oracle_visitor(fetch_first: false)
       node = Arel::Nodes::Matches.new(@table[:name], Arel.sql("'foo'"), nil, false)
       sql = oracle.accept(node, Arel::Collectors::SQLString.new).value
       expect(sql).to match(/UPPER\(\s*"TEST_ORACLE_COMMON_LOBS"\."NAME"\s*\)\s+LIKE\s+UPPER\(\s*'foo'\s*\)/)

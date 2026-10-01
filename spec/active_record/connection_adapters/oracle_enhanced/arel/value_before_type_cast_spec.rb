@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 RSpec.describe "Arel::Visitors::Oracle literal limit/offset via value_before_type_cast" do
+  include ArelVisitorSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   before(:each) do
-    @visitor = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
+    @visitor = oracle_visitor(fetch_first: false)
     @table = Arel::Table.new(name: :users)
   end
 

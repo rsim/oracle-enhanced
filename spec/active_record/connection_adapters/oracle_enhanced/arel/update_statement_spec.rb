@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_UpdateStatement" do
+  include ArelVisitorSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   before(:each) do
-    @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
+    @visitor = oracle_visitor(fetch_first: true)
     @table = Arel::Table.new(name: :users)
   end
 
@@ -43,7 +45,7 @@ RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_UpdateStatement" d
   end
 
   it "strips ORDER BY the same way via Arel::Visitors::Oracle" do
-    oracle = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
+    oracle = oracle_visitor(fetch_first: false)
     stmt = build_update(orders: [Arel.sql("id ASC")])
     sql = compile(stmt, visitor: oracle)
     expect(sql).not_to match(/ORDER BY/i)

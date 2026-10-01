@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_HomogeneousIn" do
+  include ArelVisitorSpecHelper
+
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
   before(:each) do
-    @visitor = Arel::Visitors::Oracle12.new(ActiveRecord::Base.connection)
+    @visitor = oracle_visitor(fetch_first: true)
     type_caster = Class.new { def type_for_attribute(_name) = ActiveRecord::Type::Value.new }.new
     @table = Arel::Table.new(name: :users, type_caster: type_caster)
   end
@@ -64,7 +66,7 @@ RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_HomogeneousIn" do
   end
 
   it "chunks :in the same way via Arel::Visitors::Oracle" do
-    oracle = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
+    oracle = oracle_visitor(fetch_first: false)
     node = Arel::Nodes::HomogeneousIn.new((1..1001).to_a, @table[:id], :in)
     sql = compile(node, visitor: oracle)
     expect(sql.scan(/"USERS"\."ID" IN \(/).size).to eq(2)
@@ -72,7 +74,7 @@ RSpec.describe "Arel::Visitors::OracleCommon#visit_Arel_Nodes_HomogeneousIn" do
   end
 
   it "chunks :notin the same way via Arel::Visitors::Oracle" do
-    oracle = Arel::Visitors::Oracle.new(ActiveRecord::Base.connection)
+    oracle = oracle_visitor(fetch_first: false)
     node = Arel::Nodes::HomogeneousIn.new((1..1001).to_a, @table[:id], :notin)
     sql = compile(node, visitor: oracle)
     expect(sql.scan(/"USERS"\."ID" NOT IN \(/).size).to eq(2)
