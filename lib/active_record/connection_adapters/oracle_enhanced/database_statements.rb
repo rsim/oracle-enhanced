@@ -12,8 +12,21 @@ module ActiveRecord
           name.delete_prefix("returning_")
         end
 
+        def self.supported_type?(type)
+          case type
+          when ActiveRecord::Type::OracleEnhanced::Raw then false
+          when ActiveModel::Type::String, ActiveModel::Type::Integer, ActiveModel::Type::Decimal,
+               ActiveModel::Type::Float, ActiveModel::Type::Boolean then true
+          else false
+          end
+        end
+
         def ruby_class
-          type.is_a?(ActiveModel::Type::String) ? String : Integer
+          case type
+          when ActiveModel::Type::String then String
+          when ActiveModel::Type::Decimal, ActiveModel::Type::Float then BigDecimal
+          else Integer
+          end
         end
       end
 
@@ -189,6 +202,25 @@ module ActiveRecord
           "(#{quoted_cols}) VALUES (#{defaults})"
         end
 
+        # Arel cannot express RETURNING ... INTO, so the clause is appended to the compiled SQL
+        # instead of being set on the Arel statement.
+        def update_with_result(arel, name = nil, returning:) # :nodoc:
+          intent = QueryIntent.new(adapter: self, arel: arel, name: name)
+
+          returning = returning.map(&:to_s)
+          unless returning.empty?
+            raw_sql = intent.raw_sql
+            quoted_columns = returning.map { |column| quote_column_name(column) }.join(", ")
+            # Indexed placeholders keep bind names within Oracle's 30-byte limit for long column names.
+            placeholders = returning.each_index.map { |index| ":returning_#{index}" }.join(", ")
+            intent.raw_sql = "#{raw_sql} RETURNING #{quoted_columns} INTO #{placeholders}"
+            intent.binds = intent.binds + returning_attributes(arel, returning)
+          end
+
+          intent.execute!
+          intent.cast_result
+        end
+
         def build_insert_sql(insert) # :nodoc:
           return build_merge_sql(insert) if insert.skip_duplicates? || insert.update_duplicates?
 
@@ -232,7 +264,7 @@ module ActiveRecord
             if result.nil?
               ActiveRecord::Result.empty
             else
-              ActiveRecord::Result.new(result[:columns], result[:rows])
+              ActiveRecord::Result.new(result[:columns], result[:rows], affected_rows: result[:affected_rows_count])
             end
           end
 
@@ -303,6 +335,8 @@ module ActiveRecord
               raise
             end
 
+            affected_rows_count = cursor.row_count
+
             if returning.empty?
               columns = cursor.get_col_names.map do |col_name|
                 oracle_downcase(col_name)
@@ -317,13 +351,15 @@ module ActiveRecord
               end
             else
               columns = returning.map { |_position, bind| bind.column_name }
-              rows = [returning.map do |position, bind|
-                value = cursor.get_returning_param(position, bind.ruby_class)
-                bind.ruby_class == Integer ? value.to_i : value
-              end]
+              rows = []
+              unless affected_rows_count.zero?
+                rows << returning.map do |position, bind|
+                  value = cursor.get_returning_param(position, bind.ruby_class)
+                  bind.ruby_class == Integer ? value&.to_i : value
+                end
+              end
             end
 
-            affected_rows_count = cursor.row_count
             cursor.close unless cached
 
             intent.notification_payload[:affected_rows] = affected_rows_count
