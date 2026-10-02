@@ -163,7 +163,7 @@ module Arel # :nodoc: all
           column = name && table_name && schema_cache.columns_hash(table_name)[name]
           unless column && ActiveRecord::ConnectionAdapters::OracleEnhanced::ReturningAttribute.bindable_type?(column.cast_type)
             raise ArgumentError, "Oracle can only return columns of the target table of type string, integer, decimal, float " \
-              "or boolean with RETURNING ... INTO, got #{node.inspect}."
+              "or boolean with RETURNING ... INTO, got #{Arel::Attributes::Attribute === node ? "#{node.relation.name}.#{node.name}" : node}."
           end
 
           ActiveRecord::ConnectionAdapters::OracleEnhanced::ReturningAttribute.new(name, column.cast_type)

@@ -73,7 +73,7 @@ RSpec.describe "Arel::Visitors::OracleCommon with returning" do
 
   it "raises ArgumentError for returning a column of another table" do
     manager = build_update.returning([Arel::Table.new(name: :posts)[:id]])
-    expect { compile(manager.ast) }.to raise_error(ArgumentError, /Oracle can only return columns of the target table/)
+    expect { compile(manager.ast) }.to raise_error(ArgumentError, /Oracle can only return columns of the target table.*, got posts\.id\./)
   end
 
   it "raises ArgumentError for returning a column whose type cannot be read back" do
@@ -88,8 +88,6 @@ RSpec.describe "Arel::Visitors::OracleCommon with returning" do
         prepared ? yield(conn) : conn.unprepared_statement { yield(conn) }
       end
 
-      define_method(:prepared) { prepared }
-
       def id_bind(value)
         Arel::Nodes::BindParam.new(ActiveRecord::Relation::QueryAttribute.new("id", value, ActiveRecord::Type::Integer.new))
       end
@@ -99,6 +97,7 @@ RSpec.describe "Arel::Visitors::OracleCommon with returning" do
 
         result = run(prepared) { |conn| conn.uncached { conn.select_all(manager) } }
 
+        expect(result.columns).to eq(%w[id name])
         expect(result.rows).to eq([[1, "foo"]])
       end
 
@@ -108,6 +107,7 @@ RSpec.describe "Arel::Visitors::OracleCommon with returning" do
 
         result = run(prepared) { |conn| conn.uncached { conn.select_all(manager) } }
 
+        expect(result.columns).to eq(%w[id name])
         expect(result.rows).to eq([[1, "bar"]])
       end
 
