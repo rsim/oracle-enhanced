@@ -149,7 +149,7 @@ RSpec.describe "OracleEnhancedAdapter" do
         TestReturningIdentityItem.create!(name: "alpha")
         insert_log = @logger.logged(:debug).find { |line| line.include?("INSERT INTO") && line.include?("TEST_RETURNING_IDENTITY_ITEMS") }
         expect(insert_log).not_to be_nil, "INSERT statement was not logged"
-        expect(insert_log).to match(/RETURNING\s+"ID"\s+INTO\s+:returning_id/i)
+        expect(insert_log).to match(/RETURNING\s+"ID"\s+INTO\s+:a\d+/i)
         expect(insert_log).not_to match(/RETURNING\s+"ID"\s*\)?\s*\z/i)
       end
 
@@ -292,7 +292,7 @@ RSpec.describe "OracleEnhancedAdapter" do
         @item.update!(first_name: "Johnny")
 
         expect(update_logs.size).to eq(1)
-        expect(update_logs.first).to match(/RETURNING "FULL_NAME", "FIRST_NAME_LENGTH", "NAME_RATIO", "FIRST_NAME_WITH_LEADING_SPACE", "UPPER_DESCRIPTION" INTO :returning_0, :returning_1, :returning_2, :returning_3, :returning_4/)
+        expect(update_logs.first).to match(/RETURNING "FULL_NAME", "FIRST_NAME_LENGTH", "NAME_RATIO", "FIRST_NAME_WITH_LEADING_SPACE", "UPPER_DESCRIPTION" INTO :a\d+, :a\d+, :a\d+, :a\d+, :a\d+/)
       end
 
       it "keeps the fractional part of a numeric virtual column" do
@@ -314,7 +314,7 @@ RSpec.describe "OracleEnhancedAdapter" do
         end
 
         expect(@item.full_name).to eq("Johnny Doe")
-        expect(update_logs.first).to match(/RETURNING .* INTO :returning_0/)
+        expect(update_logs.first).to match(/RETURNING .* INTO :a\d+/)
       end
 
       it "returns nil for a virtual column whose expression evaluates to NULL" do

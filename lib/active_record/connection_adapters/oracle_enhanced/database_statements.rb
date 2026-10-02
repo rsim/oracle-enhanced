@@ -202,23 +202,15 @@ module ActiveRecord
           "(#{quoted_cols}) VALUES (#{defaults})"
         end
 
-        # Arel cannot express RETURNING ... INTO, so the clause is appended to the compiled SQL
-        # instead of being set on the Arel statement.
-        def update_with_result(arel, name = nil, returning:) # :nodoc:
-          intent = QueryIntent.new(adapter: self, arel: arel, name: name)
+        # The visitor renders RETURNING ... INTO with OUT binds, which SubstituteBinds would inline as NULL,
+        # so statements with RETURNING keep every bind as a placeholder even without prepared statements.
+        def to_sql_and_binds(arel_or_sql, binds = [], preparable = nil, allow_retry = false) # :nodoc:
+          ast = arel_or_sql.respond_to?(:ast) ? arel_or_sql.ast : arel_or_sql
+          return super if prepared_statements || !(ast.respond_to?(:returning) && ast.returning.any?)
 
-          returning = returning.map(&:to_s)
-          unless returning.empty?
-            raw_sql = intent.raw_sql
-            quoted_columns = returning.map { |column| quote_column_name(column) }.join(", ")
-            # Indexed placeholders keep bind names within Oracle's 30-byte limit for long column names.
-            placeholders = returning.each_index.map { |index| ":returning_#{index}" }.join(", ")
-            intent.raw_sql = "#{raw_sql} RETURNING #{quoted_columns} INTO #{placeholders}"
-            intent.binds = intent.binds + returning_attributes(arel, returning)
-          end
-
-          intent.execute!
-          intent.cast_result
+          collector = Arel::Collectors::Composite.new(Arel::Collectors::SQLString.new, Arel::Collectors::Bind.new)
+          sql, binds = visitor.compile(ast, collector)
+          [sql.freeze, binds, false, false]
         end
 
         def build_insert_sql(insert) # :nodoc:
@@ -273,15 +265,15 @@ module ActiveRecord
           end
 
           def apply_returning_to!(intent, returning)
+            return super if intent.arel.is_a?(Arel::InsertManager)
             return unless supports_insert_returning?
 
             raw_sql = intent.raw_sql
-            arel_or_sql = intent.arel.is_a?(Arel::InsertManager) ? intent.arel : raw_sql
-            returning = Array(returning || primary_key_for_insert(arel_or_sql)).map(&:to_s)
+            returning = Array(returning || primary_key_for_insert(raw_sql)).map(&:to_s)
             return if returning.empty?
 
             intent.raw_sql = "#{raw_sql} #{returning_into_clause(returning)}"
-            intent.binds = intent.binds + returning_attributes(arel_or_sql, returning)
+            intent.binds = intent.binds + returning_attributes(raw_sql, returning)
           end
 
           def returning_into_clause(columns)
