@@ -4,6 +4,18 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
       class ReturningAttribute < ActiveRecord::Relation::QueryAttribute # :nodoc:
+        def self.bindable_type?(type)
+          case type
+          when ActiveModel::Type::String, ActiveModel::Type::Integer, ActiveModel::Type::Decimal,
+               ActiveModel::Type::Float, ActiveModel::Type::Boolean then true
+          else false
+          end
+        end
+
+        def self.supported_type?(type)
+          !type.is_a?(ActiveRecord::Type::OracleEnhanced::Raw) && bindable_type?(type)
+        end
+
         def initialize(column_name, type)
           super("returning_#{column_name}", nil, type)
         end
@@ -13,7 +25,11 @@ module ActiveRecord
         end
 
         def ruby_class
-          type.is_a?(ActiveModel::Type::String) ? String : Integer
+          case type
+          when ActiveModel::Type::String then String
+          when ActiveModel::Type::Decimal, ActiveModel::Type::Float then BigDecimal
+          else Integer
+          end
         end
       end
 
@@ -189,6 +205,18 @@ module ActiveRecord
           "(#{quoted_cols}) VALUES (#{defaults})"
         end
 
+        # The visitor renders RETURNING ... INTO with OUT binds, which SubstituteBinds would inline as NULL,
+        # so statements with RETURNING keep every bind as a placeholder even without prepared statements.
+        def to_sql_and_binds(arel_or_sql, binds = [], preparable = nil, allow_retry = false) # :nodoc:
+          ast = arel_or_sql.respond_to?(:ast) ? arel_or_sql.ast : arel_or_sql
+          return super if prepared_statements || !(ast.respond_to?(:returning) && ast.returning.any?)
+          raise "Passing bind parameters with an arel AST is forbidden. The values must be stored on the AST directly" unless binds.empty?
+
+          collector = Arel::Collectors::Composite.new(Arel::Collectors::SQLString.new, Arel::Collectors::Bind.new)
+          sql, binds = visitor.compile(ast, collector)
+          [sql.freeze, binds, false, false]
+        end
+
         def build_insert_sql(insert) # :nodoc:
           return build_merge_sql(insert) if insert.skip_duplicates? || insert.update_duplicates?
 
@@ -232,7 +260,7 @@ module ActiveRecord
             if result.nil?
               ActiveRecord::Result.empty
             else
-              ActiveRecord::Result.new(result[:columns], result[:rows])
+              ActiveRecord::Result.new(result[:columns], result[:rows], affected_rows: result[:affected_rows_count])
             end
           end
 
@@ -241,15 +269,15 @@ module ActiveRecord
           end
 
           def apply_returning_to!(intent, returning)
+            return super if intent.arel.is_a?(Arel::InsertManager)
             return unless supports_insert_returning?
 
             raw_sql = intent.raw_sql
-            arel_or_sql = intent.arel.is_a?(Arel::InsertManager) ? intent.arel : raw_sql
-            returning = Array(returning || primary_key_for_insert(arel_or_sql)).map(&:to_s)
+            returning = Array(returning || primary_key_for_insert(raw_sql)).map(&:to_s)
             return if returning.empty?
 
             intent.raw_sql = "#{raw_sql} #{returning_into_clause(returning)}"
-            intent.binds = intent.binds + returning_attributes(arel_or_sql, returning)
+            intent.binds = intent.binds + returning_attributes(raw_sql, returning)
           end
 
           def returning_into_clause(columns)
@@ -315,15 +343,19 @@ module ActiveRecord
                   rows << row
                 end
               end
+              affected_rows_count = cursor.row_count
             else
+              affected_rows_count = cursor.row_count
               columns = returning.map { |_position, bind| bind.column_name }
-              rows = [returning.map do |position, bind|
-                value = cursor.get_returning_param(position, bind.ruby_class)
-                bind.ruby_class == Integer ? value.to_i : value
-              end]
+              rows = []
+              unless affected_rows_count.zero?
+                rows << returning.map do |position, bind|
+                  value = cursor.get_returning_param(position, bind.ruby_class)
+                  bind.ruby_class == Integer ? value&.to_i : value
+                end
+              end
             end
 
-            affected_rows_count = cursor.row_count
             cursor.close unless cached
 
             intent.notification_payload[:affected_rows] = affected_rows_count

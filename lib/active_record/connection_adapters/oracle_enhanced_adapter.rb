@@ -522,6 +522,14 @@ module ActiveRecord
         true
       end
 
+      def supports_update_returning?
+        true
+      end
+
+      def return_value_after_update?(column) # :nodoc:
+        super && OracleEnhanced::ReturningAttribute.supported_type?(column.cast_type)
+      end
+
       def supports_insert_on_duplicate_skip?
         true
       end

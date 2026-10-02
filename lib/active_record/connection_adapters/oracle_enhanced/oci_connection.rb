@@ -123,6 +123,9 @@ module ActiveRecord
         end
 
         class Cursor
+          # VARCHAR2 holds at most 32767 bytes, with MAX_STRING_SIZE = EXTENDED.
+          MAX_STRING_BYTES = 32767
+
           def initialize(connection, raw_cursor)
             @raw_connection = connection
             @raw_cursor = raw_cursor
@@ -156,7 +159,9 @@ module ActiveRecord
           end
 
           def bind_returning_param(position, bind_type)
-            @raw_cursor.bind_param(position, nil, bind_type)
+            # Without a length ruby-oci8 allocates a 1333-byte buffer, and longer values come back as nil.
+            length = MAX_STRING_BYTES if bind_type == String
+            @raw_cursor.bind_param(position, nil, bind_type, length)
           end
 
           def exec
