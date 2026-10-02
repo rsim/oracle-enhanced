@@ -152,13 +152,19 @@ module Arel # :nodoc: all
         end
 
         def returning_attribute_for(relation, node)
+          table_name = relation.name if Arel::Table === relation
           name =
             case node
-            when Arel::Attributes::Attribute then node.name.to_s
-            when Arel::Nodes::SqlLiteral then @connection.send(:oracle_downcase, node.to_s.delete_prefix('"').delete_suffix('"'))
+            when Arel::Attributes::Attribute
+              node.name.to_s if node.relation.name == table_name
+            when Arel::Nodes::SqlLiteral
+              ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.oracle_downcase(node.to_s.delete_prefix('"').delete_suffix('"'))
             end
-          column = name && Arel::Table === relation && schema_cache.columns_hash(relation.name)[name]
-          raise ArgumentError, "Oracle can only return columns of #{relation.name} with RETURNING ... INTO, got #{node.inspect}." unless column
+          column = name && table_name && schema_cache.columns_hash(table_name)[name]
+          unless column && ActiveRecord::ConnectionAdapters::OracleEnhanced::ReturningAttribute.bindable_type?(column.cast_type)
+            raise ArgumentError, "Oracle can only return columns of the target table of type string, integer, decimal, float " \
+              "or boolean with RETURNING ... INTO, got #{node.inspect}."
+          end
 
           ActiveRecord::ConnectionAdapters::OracleEnhanced::ReturningAttribute.new(name, column.cast_type)
         end

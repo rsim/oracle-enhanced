@@ -2,7 +2,6 @@
 
 RSpec.describe "Arel::Visitors::OracleCommon with returning" do
   include ArelVisitorSpecHelper
-
   include SchemaSpecHelper
 
   before(:all) do
@@ -10,6 +9,7 @@ RSpec.describe "Arel::Visitors::OracleCommon with returning" do
     schema_define do
       create_table :users, force: true do |t|
         t.string :name
+        t.date :born_on
       end
     end
   end
@@ -22,6 +22,10 @@ RSpec.describe "Arel::Visitors::OracleCommon with returning" do
   before(:each) do
     @visitor = oracle_visitor(fetch_first: true)
     @table = Arel::Table.new(name: :users)
+  end
+
+  after(:each) do
+    ActiveRecord::Base.lease_connection.delete("DELETE FROM users")
   end
 
   def compile(node)
@@ -64,19 +68,58 @@ RSpec.describe "Arel::Visitors::OracleCommon with returning" do
 
   it "raises ArgumentError for returning an expression that is not a column" do
     manager = build_update.returning(Arel.star)
-    expect { compile(manager.ast) }.to raise_error(ArgumentError, /Oracle can only return columns of users/)
+    expect { compile(manager.ast) }.to raise_error(ArgumentError, /Oracle can only return columns of the target table/)
+  end
+
+  it "raises ArgumentError for returning a column of another table" do
+    manager = build_update.returning([Arel::Table.new(name: :posts)[:id]])
+    expect { compile(manager.ast) }.to raise_error(ArgumentError, /Oracle can only return columns of the target table/)
+  end
+
+  it "raises ArgumentError for returning a column whose type cannot be read back" do
+    manager = build_update.returning([@table[:born_on]])
+    expect { compile(manager.ast) }.to raise_error(ArgumentError, /Oracle can only return columns of the target table/)
   end
 
   [true, false].each do |prepared|
-    it "reads the OUT binds of a DELETE with returning#{" without prepared statements" unless prepared}" do
-      conn = ActiveRecord::Base.lease_connection
-      conn.insert(Arel::InsertManager.new.into(@table).tap { |im| im.insert([[@table[:id], 1], [@table[:name], "foo"]]) })
-      manager = build_delete.returning([@table[:id], @table[:name]])
+    context(prepared ? "with prepared statements" : "without prepared statements") do
+      def run(prepared)
+        conn = ActiveRecord::Base.lease_connection
+        prepared ? yield(conn) : conn.unprepared_statement { yield(conn) }
+      end
 
-      result = prepared ? conn.select_all(manager) : conn.unprepared_statement { conn.select_all(manager) }
+      define_method(:prepared) { prepared }
 
-      expect(result.columns).to eq(%w[id name])
-      expect(result.rows).to eq([[1, "foo"]])
+      def id_bind(value)
+        Arel::Nodes::BindParam.new(ActiveRecord::Relation::QueryAttribute.new("id", value, ActiveRecord::Type::Integer.new))
+      end
+
+      it "reads the OUT binds of an INSERT with returning" do
+        manager = Arel::InsertManager.new.into(@table).tap { |im| im.insert([[@table[:id], 1], [@table[:name], "foo"]]) }.returning([@table[:id], @table[:name]])
+
+        result = run(prepared) { |conn| conn.uncached { conn.select_all(manager) } }
+
+        expect(result.rows).to eq([[1, "foo"]])
+      end
+
+      it "reads the OUT binds of an UPDATE with returning after its other binds" do
+        run(prepared) { |conn| conn.insert(Arel::InsertManager.new.into(@table).tap { |im| im.insert([[@table[:id], 1], [@table[:name], "foo"]]) }) }
+        manager = Arel::UpdateManager.new.table(@table).set([[@table[:name], "bar"]]).where(@table[:id].eq(id_bind(1))).returning([@table[:id], @table[:name]])
+
+        result = run(prepared) { |conn| conn.uncached { conn.select_all(manager) } }
+
+        expect(result.rows).to eq([[1, "bar"]])
+      end
+
+      it "reads the OUT binds of a DELETE with returning" do
+        run(prepared) { |conn| conn.insert(Arel::InsertManager.new.into(@table).tap { |im| im.insert([[@table[:id], 1], [@table[:name], "foo"]]) }) }
+        manager = build_delete.returning([@table[:id], @table[:name]])
+
+        result = run(prepared) { |conn| conn.uncached { conn.select_all(manager) } }
+
+        expect(result.columns).to eq(%w[id name])
+        expect(result.rows).to eq([[1, "foo"]])
+      end
     end
   end
 

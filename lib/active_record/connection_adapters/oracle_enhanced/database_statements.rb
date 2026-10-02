@@ -4,13 +4,16 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
       class ReturningAttribute < ActiveRecord::Relation::QueryAttribute # :nodoc:
-        def self.supported_type?(type)
+        def self.bindable_type?(type)
           case type
-          when ActiveRecord::Type::OracleEnhanced::Raw then false
           when ActiveModel::Type::String, ActiveModel::Type::Integer, ActiveModel::Type::Decimal,
                ActiveModel::Type::Float, ActiveModel::Type::Boolean then true
           else false
           end
+        end
+
+        def self.supported_type?(type)
+          !type.is_a?(ActiveRecord::Type::OracleEnhanced::Raw) && bindable_type?(type)
         end
 
         def initialize(column_name, type)
@@ -207,6 +210,7 @@ module ActiveRecord
         def to_sql_and_binds(arel_or_sql, binds = [], preparable = nil, allow_retry = false) # :nodoc:
           ast = arel_or_sql.respond_to?(:ast) ? arel_or_sql.ast : arel_or_sql
           return super if prepared_statements || !(ast.respond_to?(:returning) && ast.returning.any?)
+          raise "Passing bind parameters with an arel AST is forbidden. The values must be stored on the AST directly" unless binds.empty?
 
           collector = Arel::Collectors::Composite.new(Arel::Collectors::SQLString.new, Arel::Collectors::Bind.new)
           sql, binds = visitor.compile(ast, collector)
