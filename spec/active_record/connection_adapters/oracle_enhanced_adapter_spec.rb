@@ -230,6 +230,8 @@ RSpec.describe "OracleEnhancedAdapter" do
             t.virtual :name_ratio, as: "(LENGTH(first_name) / LENGTH(last_name))"
             t.virtual :first_name_with_leading_space, as: "' ' || first_name", type: :string, limit: 30
             t.virtual :first_name_initial_date, as: "TO_DATE('2026-01-01', 'YYYY-MM-DD') + LENGTH(first_name)"
+            t.string  :description, limit: 4000
+            t.virtual :upper_description, as: "UPPER(description)", type: :string, limit: 4000
           end
           create_table :test_update_returning_plain_items, force: true do |t|
             t.string :name
@@ -290,7 +292,7 @@ RSpec.describe "OracleEnhancedAdapter" do
         @item.update!(first_name: "Johnny")
 
         expect(update_logs.size).to eq(1)
-        expect(update_logs.first).to match(/RETURNING "FULL_NAME", "FIRST_NAME_LENGTH", "NAME_RATIO", "FIRST_NAME_WITH_LEADING_SPACE" INTO :returning_0, :returning_1, :returning_2, :returning_3/)
+        expect(update_logs.first).to match(/RETURNING "FULL_NAME", "FIRST_NAME_LENGTH", "NAME_RATIO", "FIRST_NAME_WITH_LEADING_SPACE", "UPPER_DESCRIPTION" INTO :returning_0, :returning_1, :returning_2, :returning_3, :returning_4/)
       end
 
       it "keeps the fractional part of a numeric virtual column" do
@@ -298,6 +300,21 @@ RSpec.describe "OracleEnhancedAdapter" do
 
         expect(@item.name_ratio.round(2)).to eq(BigDecimal("0.67"))
         expect(@item.name_ratio).to eq(TestUpdateReturningItem.find(@item.id).name_ratio)
+      end
+
+      it "returns a string virtual column longer than ruby-oci8's default buffer" do
+        @item.update!(description: "x" * 4000)
+
+        expect(@item.upper_description).to eq("X" * 4000)
+      end
+
+      it "refreshes virtual columns without prepared statements" do
+        ActiveRecord::Base.lease_connection.unprepared_statement do
+          @item.update!(first_name: "Johnny")
+        end
+
+        expect(@item.full_name).to eq("Johnny Doe")
+        expect(update_logs.first).to match(/RETURNING .* INTO :returning_0/)
       end
 
       it "returns nil for a virtual column whose expression evaluates to NULL" do
@@ -339,6 +356,7 @@ RSpec.describe "OracleEnhancedAdapter" do
         item.update!(name: "alphabet")
 
         expect(item.lock_version).to eq(1)
+        expect(update_logs.first).not_to match(/\sRETURNING\s/)
         expect(item.reload.name_length).to eq(8)
         expect { stale.update!(name: "beta") }.to raise_error(ActiveRecord::StaleObjectError)
       end

@@ -4,14 +4,6 @@ module ActiveRecord
   module ConnectionAdapters
     module OracleEnhanced
       class ReturningAttribute < ActiveRecord::Relation::QueryAttribute # :nodoc:
-        def initialize(column_name, type)
-          super("returning_#{column_name}", nil, type)
-        end
-
-        def column_name
-          name.delete_prefix("returning_")
-        end
-
         def self.supported_type?(type)
           case type
           when ActiveRecord::Type::OracleEnhanced::Raw then false
@@ -19,6 +11,14 @@ module ActiveRecord
                ActiveModel::Type::Float, ActiveModel::Type::Boolean then true
           else false
           end
+        end
+
+        def initialize(column_name, type)
+          super("returning_#{column_name}", nil, type)
+        end
+
+        def column_name
+          name.delete_prefix("returning_")
         end
 
         def ruby_class
@@ -335,8 +335,6 @@ module ActiveRecord
               raise
             end
 
-            affected_rows_count = cursor.row_count
-
             if returning.empty?
               columns = cursor.get_col_names.map do |col_name|
                 oracle_downcase(col_name)
@@ -349,7 +347,9 @@ module ActiveRecord
                   rows << row
                 end
               end
+              affected_rows_count = cursor.row_count
             else
+              affected_rows_count = cursor.row_count
               columns = returning.map { |_position, bind| bind.column_name }
               rows = []
               unless affected_rows_count.zero?
