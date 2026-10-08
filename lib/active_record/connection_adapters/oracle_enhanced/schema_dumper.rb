@@ -177,12 +177,12 @@ module ActiveRecord # :nodoc:
                   end
                   tbl.print ", #{format_colspec(pkcolspec)}"
                 end
-                if pkcol.auto_incremented_by_db?
-                  tbl.print ", identity: true"
-                elsif (trigger_name = @trigger_backed_tables[table.upcase])
+                if (trigger_name = @trigger_backed_tables[table.upcase])
                   tbl.print ", primary_key_trigger: true"
                   default_name = @connection.default_trigger_name(table).upcase
                   tbl.print ", trigger_name: #{trigger_name.downcase.inspect}" unless trigger_name == default_name
+                elsif @connection.supports_identity_columns? && !pkcol.auto_incremented_by_db? && sequence_backed_primary_key?(pkcol)
+                  tbl.print ", identity: false"
                 end
               when Array
                 tbl.print ", primary_key: #{pk.inspect}"
@@ -241,6 +241,13 @@ module ActiveRecord # :nodoc:
             end
 
             spec
+          end
+
+          # Only a deviation from the adapter default is written: without the
+          # annotation, reloading the dump on Oracle Database 12.1 or later
+          # would create the primary key as an identity column.
+          def sequence_backed_primary_key?(column)
+            [:integer, :bigint, :decimal].include?(schema_type(column))
           end
 
           def default_primary_key?(column)

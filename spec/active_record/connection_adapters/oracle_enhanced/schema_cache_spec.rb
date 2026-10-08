@@ -26,7 +26,7 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
   before(:all) do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
     schema_define do
-      create_table :test_schema_cache_posts, force: true do |t|
+      create_table :test_schema_cache_posts, force: true, identity: false do |t|
         t.string :title
         t.text :body
         t.timestamps null: false
@@ -174,7 +174,7 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
 
     it "picks up a trigger-backed primary key added with raw DDL after the schema cache is cleared" do
       schema_define do
-        create_table :test_prefetch_reloads, force: true do |t|
+        create_table :test_prefetch_reloads, force: true, identity: false do |t|
           t.string :title
         end
       end

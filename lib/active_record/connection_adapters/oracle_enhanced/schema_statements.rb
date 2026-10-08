@@ -135,6 +135,7 @@ module ActiveRecord
             raise ArgumentError, "Options `:force` and `:if_not_exists` cannot be used simultaneously."
           end
 
+          options[:identity] = true if !options.key?(:identity) && default_to_identity?(id, primary_key, options)
           identity = options[:identity]
           validate_identity_options!(identity, id, primary_key)
           validate_primary_key_trigger_options!(options[:primary_key_trigger], identity, id, primary_key)
@@ -1373,6 +1374,16 @@ module ActiveRecord
 
                   add_unique_constraint :sections, :position, name: :uniq_position
             MSG
+          end
+
+          # Oracle Database 12.1 and later default a plain numeric primary key
+          # to an identity column. Sequence options and a trigger-populated key
+          # keep the sequence-backed form; an `id:` other than :primary_key and
+          # composite keys are left as Rails defines them.
+          def default_to_identity?(id, primary_key, options)
+            supports_identity_columns? &&
+              id == :primary_key && !primary_key.is_a?(Array) &&
+              !options[:sequence_name] && !options[:sequence_start_value] && !options[:primary_key_trigger]
           end
 
           def validate_identity_options!(identity, id, primary_key)
