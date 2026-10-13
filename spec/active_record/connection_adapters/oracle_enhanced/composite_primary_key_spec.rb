@@ -81,7 +81,7 @@ RSpec.describe "OracleEnhancedAdapter composite primary key" do
 
     it "primary_key returns a single String for a single-column PK" do
       schema_define do
-        create_table :test_single_pks, force: true do |t|
+        create_table :test_single_pks, force: true, identity: false do |t|
           t.string :name
         end
       end
@@ -191,7 +191,7 @@ RSpec.describe "OracleEnhancedAdapter composite primary key" do
 
     it "prefetch_primary_key? remains true for a single-column PK table" do
       schema_define do
-        create_table :test_single_pks, force: true do |t|
+        create_table :test_single_pks, force: true, identity: false do |t|
           t.string :name
         end
       end
@@ -202,7 +202,7 @@ RSpec.describe "OracleEnhancedAdapter composite primary key" do
 
     it "answers prefetch_primary_key? for single and composite primary keys with a cold schema cache" do
       schema_define do
-        create_table :test_single_pks, force: true do |t|
+        create_table :test_single_pks, force: true, identity: false do |t|
           t.string :name
         end
       end

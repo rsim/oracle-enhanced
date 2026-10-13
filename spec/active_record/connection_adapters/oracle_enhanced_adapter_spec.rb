@@ -12,7 +12,7 @@ RSpec.describe "OracleEnhancedAdapter" do
     before(:all) do
       @conn = ActiveRecord::Base.lease_connection
       schema_define do
-        create_table :test_employees, force: true do |t|
+        create_table :test_employees, force: true, identity: false do |t|
           t.string  :first_name, limit: 20
           t.string  :last_name, limit: 25
           t.virtual :full_name, as: "(first_name || ' ' || last_name)"
@@ -166,7 +166,7 @@ RSpec.describe "OracleEnhancedAdapter" do
     context "with a sequence-prefetched primary key" do
       before(:all) do
         schema_define do
-          create_table :test_returning_seq_items, force: true do |t|
+          create_table :test_returning_seq_items, force: true, identity: false do |t|
             t.string :name
           end
         end

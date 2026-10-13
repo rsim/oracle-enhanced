@@ -24,7 +24,7 @@ RSpec.describe "OracleEnhancedAdapter sequence reset" do
 
   def create_test_table(name = :test_sequence_resets, **options)
     schema_define do
-      create_table name, **options do |t|
+      create_table name, identity: false, **options do |t|
         t.string :title
       end
     end

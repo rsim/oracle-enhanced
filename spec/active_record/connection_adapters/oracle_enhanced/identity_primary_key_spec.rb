@@ -39,20 +39,23 @@ RSpec.describe "identity primary keys" do
     end
   end
 
-  describe "without identity: option (sequence-backed primary key)" do
-    it "creates a sequence-backed primary key" do
+  describe "without identity: option" do
+    it "creates an identity primary key when the server supports it, otherwise a sequence-backed one" do
       schema_define do
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks_plain do |t|
           t.string :name
         end
       end
 
-      expect(identity_column_exists?(:test_identity_pks, :id)).to be false
-      expect(sequence_exists?(:test_identity_pks_seq)).to be true
-      expect(@conn.prefetch_primary_key?(:test_identity_pks)).to be true
+      identity = @conn.supports_identity_columns?
+      expect(identity_column_exists?(:test_identity_pks_plain, :id)).to be identity
+      expect(sequence_exists?(:test_identity_pks_plain_seq)).to be !identity
+      expect(@conn.prefetch_primary_key?(:test_identity_pks_plain)).to be !identity
+    ensure
+      schema_define { drop_table :test_identity_pks_plain, if_exists: true }
     end
 
-    it "treats identity: false the same as the default" do
+    it "creates a sequence-backed primary key with identity: false" do
       schema_define do
         create_table :test_identity_pks, identity: false do |t|
           t.string :name
@@ -198,7 +201,7 @@ RSpec.describe "identity primary keys" do
 
       schema_define do
         drop_table :test_identity_pks
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -207,7 +210,7 @@ RSpec.describe "identity primary keys" do
 
     it "is invalidated when a sequence-backed table is dropped and recreated as identity" do
       schema_define do
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -232,7 +235,7 @@ RSpec.describe "identity primary keys" do
 
       schema_define do
         rename_table :test_identity_pks, :test_identity_pks_renamed
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -251,7 +254,7 @@ RSpec.describe "identity primary keys" do
 
     it "still reports prefetch_primary_key? for the sequence-backed primary key" do
       schema_define do
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -307,7 +310,7 @@ RSpec.describe "identity primary keys" do
       skip "requires Oracle 12.1+" unless @conn.database_version >= "12"
     end
 
-    it "emits identity: true for identity tables" do
+    it "writes no identity annotation for identity tables" do
       schema_define do
         create_table :test_identity_pks, identity: true do |t|
           t.string :name
@@ -320,12 +323,12 @@ RSpec.describe "identity primary keys" do
       ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include('create_table "test_identity_pks"')
-      expect(stream.string).to include("identity: true")
+      expect(stream.string).not_to include("identity:")
     end
 
-    it "does not emit identity: true for sequence-backed tables" do
+    it "emits identity: false for sequence-backed tables" do
       schema_define do
-        create_table :test_identity_pks do |t|
+        create_table :test_identity_pks, identity: false do |t|
           t.string :name
         end
       end
@@ -336,7 +339,7 @@ RSpec.describe "identity primary keys" do
       ActiveRecord.schema_ignored_tables = []
 
       expect(stream.string).to include('create_table "test_identity_pks"')
-      expect(stream.string).not_to include("identity: true")
+      expect(stream.string).to include("identity: false")
     end
   end
 
