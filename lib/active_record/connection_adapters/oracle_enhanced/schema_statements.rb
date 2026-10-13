@@ -686,6 +686,21 @@ module ActiveRecord
           table_name.is_a?(Array) ? result : result[table_name.to_s]
         end
 
+        # Called by CompatibilityBehavior::V8_1 after an operation created a
+        # `unique: true` index. Only the nil setting leaves the decision to
+        # the migration version: with true the adapter already added the
+        # constraint, with false it never does.
+        def add_implicit_unique_constraint(table_name, column_name, **index_options) # :nodoc:
+          return unless OracleEnhancedAdapter.add_index_unique_creates_constraint.nil?
+          implicit_unique_constraint(table_name, column_name, index_options)
+        end
+
+        def add_implicit_unique_constraints(definition) # :nodoc:
+          definition.indexes.each do |column_name, index_options|
+            add_implicit_unique_constraint(definition.name, column_name, **index_options)
+          end
+        end
+
         # Adds a new unique constraint to the table.
         #
         #   add_unique_constraint :sections, :position, name: "uniq_position", deferrable: :deferred
@@ -1342,30 +1357,38 @@ module ActiveRecord
           end
 
           def add_inline_unique_constraints(table_name, td)
+            return unless OracleEnhancedAdapter.add_index_unique_creates_constraint
             td.indexes.each do |column_name, index_options|
-              next unless needs_unique_constraint?(index_options[:unique], column_name)
-              next unless OracleEnhancedAdapter.add_index_unique_creates_constraint
-              warn_implicit_unique_constraint_deprecation
-              inline_index_name = index_options[:name]&.to_s || index_name(table_name, column: index_column_names(column_name))
-              execute add_unique_constraint_sql(table_name, column_name, inline_index_name)
+              implicit_unique_constraint(table_name, column_name, index_options)
             end
+          end
+
+          # A UNIQUE CONSTRAINT named after, and backed by, the unique index
+          # on +column_name+; an expression index gets none.
+          def implicit_unique_constraint(table_name, column_name, index_options)
+            return unless needs_unique_constraint?(index_options[:unique], column_name)
+            warn_implicit_unique_constraint_deprecation
+            constraint_name = index_options[:name]&.to_s || index_name(table_name, column: index_column_names(column_name))
+            execute add_unique_constraint_sql(table_name, column_name, constraint_name)
           end
 
           def warn_implicit_unique_constraint_deprecation
             OracleEnhanced.deprecator.warn(<<~MSG)
               add_index :col, unique: true creates an implicit named UNIQUE constraint on Oracle,
-              in addition to the unique index. This implicit-constraint behavior will be removed
-              in a future oracle-enhanced release.
+              in addition to the unique index, because the migration or schema file being run
+              declares version 8.1 or earlier, or `add_index_unique_creates_constraint` is
+              true. This implicit-constraint behavior will be removed in a future
+              oracle-enhanced release.
 
-              To silence this warning, set the flag in an initializer:
-
-                ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = false
-
-              After setting the flag, choose the path that matches your intent:
+              Choose the path that matches your intent:
 
               * Unique INDEX only (typical when foreign keys reference primary keys):
-                no migration changes needed — add_index :col, unique: true keeps creating
-                the unique index, just without the extra UNIQUE CONSTRAINT.
+                declare the migration as ActiveRecord::Migration[8.2] or later —
+                add_index :col, unique: true then creates only the unique index.
+                A db/schema.rb that declares ActiveRecord::Schema[8.1] is replayed as
+                written; dump it again on 8.2 once the constraints are no longer needed.
+                Setting `add_index_unique_creates_constraint = false` turns the constraint
+                off for every version.
 
               * Unique INDEX + UNIQUE CONSTRAINT (needed when this column is a non-PK
                 foreign-key target, which Oracle only allows against named constraints):
@@ -1373,6 +1396,12 @@ module ActiveRecord
                 its backing unique index in one call, e.g.
 
                   add_unique_constraint :sections, :position, name: :uniq_position
+
+              * If this warning comes from the global flag, remove
+
+                  ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.add_index_unique_creates_constraint = true
+
+                from your initializer.
             MSG
           end
 
