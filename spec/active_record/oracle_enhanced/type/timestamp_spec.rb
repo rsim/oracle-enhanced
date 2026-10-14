@@ -5,6 +5,7 @@ RSpec.describe "OracleEnhancedAdapter timestamp with timezone support" do
 
   before(:all) do
     ActiveRecord.default_timezone = :local
+    ActiveRecord::Base.remove_connection
     ActiveRecord::Base.establish_connection(CONNECTION_WITH_TIMEZONE_PARAMS)
     @conn = ActiveRecord::Base.lease_connection
     schema_define do
