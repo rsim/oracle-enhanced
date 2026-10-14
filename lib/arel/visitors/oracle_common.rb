@@ -103,34 +103,70 @@ module Arel # :nodoc: all
         # Oracle does not allow ORDER BY in UPDATE statements. Strip it
         # when no LIMIT is present.
         def visit_Arel_Nodes_UpdateStatement(o, collector)
-          reject_returning(o, "UPDATE")
           reject_limit_without_key(o, "UPDATE")
           if o.orders.any? && o.limit.nil?
             o = o.dup
             o.orders = []
           end
 
-          super
+          returning, o = extract_returning(o)
+          collect_returning_into(super(o, collector), o.relation, returning)
         end
 
         def visit_Arel_Nodes_DeleteStatement(o, collector)
-          reject_returning(o, "DELETE")
           reject_limit_without_key(o, "DELETE")
-          super
+          returning, o = extract_returning(o)
+          collect_returning_into(super(o, collector), o.relation, returning)
         end
 
         def visit_Arel_Nodes_InsertStatement(o, collector)
-          reject_returning(o, "INSERT")
-          super
+          returning, o = extract_returning(o)
+          collect_returning_into(super(o, collector), o.relation, returning)
         end
 
-        # Oracle needs RETURNING ... INTO with OUT binds, which Arel cannot express; extend Arel if a caller needs it.
-        def reject_returning(o, statement)
-          return if o.returning.empty?
+        def extract_returning(o)
+          return [o.returning, o] if o.returning.empty?
 
-          message = +"Oracle does not support Arel's returning on #{statement}."
-          message << " Pass returning: to Active Record's insert instead." if statement == "INSERT"
-          raise ArgumentError, message
+          returning = o.returning.flatten
+          o = o.dup
+          o.returning = []
+          [returning, o]
+        end
+
+        # Oracle returns values through OUT binds: RETURNING <columns> INTO <placeholders>.
+        def collect_returning_into(collector, relation, returning)
+          return collector if returning.empty?
+
+          attributes = returning.map { |node| returning_attribute_for(relation, node) }
+          collector << " RETURNING "
+          returning.each_with_index do |node, i|
+            collector << ", " unless i.zero?
+            visit node, collector
+          end
+          collector << " INTO "
+          attributes.each_with_index do |attribute, i|
+            collector << ", " unless i.zero?
+            collector.add_bind(attribute, &bind_block)
+          end
+          collector
+        end
+
+        def returning_attribute_for(relation, node)
+          table_name = relation.name if Arel::Table === relation
+          name =
+            case node
+            when Arel::Attributes::Attribute
+              node.name.to_s if node.relation.name == table_name
+            when Arel::Nodes::SqlLiteral
+              ActiveRecord::ConnectionAdapters::OracleEnhanced::Quoting.oracle_downcase(node.to_s.delete_prefix('"').delete_suffix('"'))
+            end
+          column = name && table_name && schema_cache.columns_hash(table_name)[name]
+          unless column && ActiveRecord::ConnectionAdapters::OracleEnhanced::ReturningAttribute.bindable_type?(column.cast_type)
+            raise ArgumentError, "Oracle can only return columns of the target table of type string, integer, decimal, float " \
+              "or boolean with RETURNING ... INTO, got #{Arel::Attributes::Attribute === node ? "#{node.relation.name}.#{node.name}" : node}."
+          end
+
+          ActiveRecord::ConnectionAdapters::OracleEnhanced::ReturningAttribute.new(name, column.cast_type)
         end
 
         # Oracle has no LIMIT or OFFSET clause in UPDATE and DELETE. With a key, super moves them into
