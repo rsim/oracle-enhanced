@@ -158,6 +158,10 @@ module ActiveRecord
       include OracleEnhanced::DbmsOutput
       include OracleEnhanced::StructureDump
 
+      # The update_with_result override in OracleEnhanced::DatabaseStatements shadows the
+      # query cache dirtying wrapper defined on AbstractAdapter.
+      ActiveRecord::ConnectionAdapters::QueryCache.dirties_query_cache(self, :update_with_result)
+
       class Version < AbstractAdapter::Version # :nodoc:
         # `AbstractAdapter::Version#<=>` only accepts String (it calls `.split`
         # on its argument). Accept another Version too by delegating to its
@@ -520,6 +524,14 @@ module ActiveRecord
 
       def supports_insert_returning?
         true
+      end
+
+      def supports_update_returning?
+        true
+      end
+
+      def return_value_after_update?(column) # :nodoc:
+        super && OracleEnhanced::ReturningAttribute.supported_type?(column.cast_type)
       end
 
       def supports_insert_on_duplicate_skip?

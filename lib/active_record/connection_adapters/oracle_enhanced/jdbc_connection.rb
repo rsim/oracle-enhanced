@@ -412,7 +412,11 @@ module ActiveRecord
           def bind_returning_param(position, bind_type)
             @returning_positions ||= []
             @returning_positions << position
-            java_type = bind_type == Integer ? java.sql.Types::BIGINT : java.sql.Types::VARCHAR
+            java_type =
+              if bind_type == Integer then java.sql.Types::BIGINT
+              elsif bind_type == BigDecimal then java.sql.Types::NUMERIC
+              else java.sql.Types::VARCHAR
+              end
             @raw_statement.registerReturnParameter(position, java_type)
           end
 
@@ -428,6 +432,7 @@ module ActiveRecord
           end
 
           def exec_update
+            @returning_result_set = nil
             @raw_statement.executeUpdate
           end
 
@@ -471,10 +476,16 @@ module ActiveRecord
 
           def get_returning_param(position, type)
             rs_position = @returning_positions.index(position) + 1
-            rs = @raw_statement.getReturnResultSet
-            if rs.next
+            # The return result set holds one row with every RETURNING column, so advance it only once.
+            @returning_result_set ||= @raw_statement.getReturnResultSet.tap { |rs| @returning_row_found = rs.next }
+            rs = @returning_result_set
+            if @returning_row_found
               # Assuming that primary key will not be larger as long max value
-              value = type == Integer ? rs.getLong(rs_position) : rs.getString(rs_position)
+              value =
+                if type == Integer then rs.getLong(rs_position)
+                elsif type == BigDecimal then rs.getBigDecimal(rs_position)&.then { |v| BigDecimal(v.toString) }
+                else rs.getString(rs_position)
+                end
               rs.wasNull ? nil : value
             else
               nil
