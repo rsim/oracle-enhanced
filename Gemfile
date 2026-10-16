@@ -8,10 +8,6 @@ group :development do
   gem "rspec"
   gem "rdoc"
   gem "rake"
-  gem "rubocop", require: false
-  gem "rubocop-performance", require: false
-  gem "rubocop-rails", require: false
-
   gem "activerecord",   github: "rails/rails", branch: "7-0-stable"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
   # Rails 7.0 passes the quirks_mode option to JSON.generate, which json 3.0 removed
@@ -26,4 +22,10 @@ group :development do
     gem "pry"
     gem "pry-nav"
   end
+end
+
+group :rubocop do
+  gem "rubocop", require: false
+  gem "rubocop-performance", require: false
+  gem "rubocop-rails", require: false
 end

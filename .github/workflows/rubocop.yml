@@ -1,0 +1,22 @@
+name: RuboCop
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby 3.4
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4
+      - name: Build and run RuboCop
+        run: |
+          BUNDLE_ONLY=rubocop bundle install --jobs 4 --retry 3
+          BUNDLE_ONLY=rubocop bundle exec rubocop
