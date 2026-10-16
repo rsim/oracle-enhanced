@@ -70,11 +70,9 @@ module ActiveRecord
         # allows the enhanced adapter to look like the OracleAdapter. Useful to pick up
         # conditionals in the rails activerecord test suite
         require "active_record/connection_adapters/emulation/oracle_adapter"
-        ConnectionAdapters::OracleAdapter.new(
-          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
+        ConnectionAdapters::OracleAdapter.new(config)
       else
-        ConnectionAdapters::OracleEnhancedAdapter.new(
-          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
+        ConnectionAdapters::OracleEnhancedAdapter.new(config)
       end
     end
   end
