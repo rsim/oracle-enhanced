@@ -18,6 +18,8 @@ group :development do
   #  gem "activerecord",   github: "rails/rails", ref: "221e609ee8cb1dfb686e43481f3e9496b549e974" # backport of RETURNING code to 7-1-stable
   gem "activerecord",   github: "rails/rails", branch: "7-1-stable"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
+  # Rails 7.1 passes the quirks_mode option to JSON.generate, which json 3.0 removed
+  gem "json", "< 3"
 
   platforms :ruby do
     gem "ruby-oci8",    github: "kubo/ruby-oci8"
