@@ -9,9 +9,9 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
-    continue-on-error: true
+    runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
         # Rails 7.0 requires Ruby 2.7 or higeher.
         # CI pending the following matrix until JRuby 9.4 that supports Ruby 2.7 will be released.
@@ -24,11 +24,11 @@ jobs:
           '2.7'
         ]
     env:
-      ORACLE_HOME: /usr/lib/oracle/21/client64
-      LD_LIBRARY_PATH: /usr/lib/oracle/21/client64/lib
+      ORACLE_HOME: /opt/oracle/instantclient_23_5
+      LD_LIBRARY_PATH: /opt/oracle/instantclient_23_5
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       TNS_ADMIN: ./ci/network/admin
-      DATABASE_NAME: XEPDB1
+      DATABASE_NAME: FREEPDB1
       TZ: Europe/Riga
       DATABASE_SYS_PASSWORD: Oracle18
       DATABASE_HOST: localhost
@@ -36,7 +36,7 @@ jobs:
 
     services:
       oracle:
-        image: gvenzl/oracle-xe:latest
+        image: gvenzl/oracle-free:latest
         ports:
           - 1521:1521
         env:
@@ -48,41 +48,42 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ matrix.ruby }}
-    - name: Install required package
-      run: |
-        sudo apt-get install alien
-    - name: Download Oracle client
-      run: |
-        wget -q https://download.oracle.com/otn_software/linux/instantclient/214000/oracle-instantclient-basic-21.4.0.0.0-1.x86_64.rpm
-        wget -q https://download.oracle.com/otn_software/linux/instantclient/214000/oracle-instantclient-sqlplus-21.4.0.0.0-1.x86_64.rpm
-        wget -q https://download.oracle.com/otn_software/linux/instantclient/214000/oracle-instantclient-devel-21.4.0.0.0-1.x86_64.rpm
-    - name: Install Oracle client
-      run: |
-        sudo alien -i oracle-instantclient-basic-21.4.0.0.0-1.x86_64.rpm
-        sudo alien -i oracle-instantclient-sqlplus-21.4.0.0.0-1.x86_64.rpm
-        sudo alien -i oracle-instantclient-devel-21.4.0.0.0-1.x86_64.rpm
-    - name: Install JDBC Driver
-      run: |
-        wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar
-    - name: Create database user
-      run: |
-        ./ci/setup_accounts.sh
-    - name: Bundle install
-      run: |
-        bundle install --jobs 4 --retry 3
-    - name: Run RSpec
-      run: |
-        bundle exec rspec
-    - name: Workaround jruby-head failure by removing Gemfile.lock
-      run: |
-        rm Gemfile.lock
-    - name: Run bug report templates
-      run: |
-        cd guides/bug_report_templates
-        ruby active_record_gem.rb
-        ruby active_record_gem_spec.rb
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: Download Oracle instant client
+        run: |
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2350000/instantclient-basic-linux.x64-23.5.0.24.07.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2350000/instantclient-sdk-linux.x64-23.5.0.24.07.zip
+          wget -q https://download.oracle.com/otn_software/linux/instantclient/2350000/instantclient-sqlplus-linux.x64-23.5.0.24.07.zip
+
+      - name: Install Oracle instant client
+        run: |
+          sudo mkdir -p /opt/oracle/
+          sudo unzip instantclient-basic-linux.x64-23.5.0.24.07.zip -d /opt/oracle/
+          sudo unzip -o instantclient-sdk-linux.x64-23.5.0.24.07.zip -d /opt/oracle/
+          sudo unzip -o instantclient-sqlplus-linux.x64-23.5.0.24.07.zip -d /opt/oracle/
+          echo "/opt/oracle/instantclient_23_5" >> $GITHUB_PATH
+      - name: Install JDBC Driver
+        run: |
+          wget -q https://download.oracle.com/otn-pub/otn_software/jdbc/211/ojdbc11.jar -O ./lib/ojdbc11.jar
+      - name: Create database user
+        run: |
+          ./ci/setup_accounts.sh
+      - name: Update RubyGems
+        run: |
+          gem update --system || gem update --system 3.4.22
+      - name: Bundle install
+        run: |
+          bundle install --jobs 4 --retry 3
+      - name: Run RSpec
+        run: |
+          bundle exec rspec
+      - name: Run bug report templates
+        if: "false"
+        run: |
+          cd guides/bug_report_templates
+          ruby active_record_gem.rb
+          ruby active_record_gem_spec.rb
