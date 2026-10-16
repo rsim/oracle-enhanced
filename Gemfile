@@ -14,6 +14,8 @@ group :development do
 
   gem "activerecord",   github: "rails/rails", branch: "7-0-stable"
   gem "ruby-plsql", github: "rsim/ruby-plsql", branch: "master"
+  # Rails 7.0 passes the quirks_mode option to JSON.generate, which json 3.0 removed
+  gem "json", "< 3"
 
   platforms :ruby do
     gem "ruby-oci8",    github: "kubo/ruby-oci8"
