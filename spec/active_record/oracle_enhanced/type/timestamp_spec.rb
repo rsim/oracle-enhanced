@@ -104,5 +104,32 @@ RSpec.describe "OracleEnhancedAdapter timestamp with timezone support" do
         expect(@employee.send(c).nsec).to eq(@now.nsec)
       end
     end
+
+    it "should return the same instant for a local time repeated at the end of daylight saving time" do
+      original_tz = ENV["TZ"]
+      ENV["TZ"] = "America/Chicago"
+      # 01:00 on 2014-11-02 occurs twice in Chicago: in CDT (-05:00), then in CST (-06:00)
+      [Time.new(2014, 11, 2, 1, 0, 0, "-05:00"), Time.new(2014, 11, 2, 1, 0, 0, "-06:00")].each do |time|
+        employee = TestEmployee.create!(created_at_tz: time, created_at_ltz: time).reload
+        expect(employee.created_at_tz).to eq(time)
+        expect(employee.created_at_ltz).to eq(time)
+      end
+    ensure
+      ENV["TZ"] = original_tz
+    end
+
+    it "should return the instant of a TIMESTAMP WITH TIME ZONE value stored with another offset" do
+      original_tz = ENV["TZ"]
+      ENV["TZ"] = "Asia/Tokyo"
+      time = Time.utc(2014, 11, 1, 16, 0, 0)
+      # stored with the local offset (+09:00), then read with default_timezone = :utc
+      employee = TestEmployee.create!(created_at_tz: time)
+      ActiveRecord.default_timezone = :utc
+
+      expect(employee.reload.created_at_tz).to eq(time)
+    ensure
+      ActiveRecord.default_timezone = :local
+      ENV["TZ"] = original_tz
+    end
   end
 end
