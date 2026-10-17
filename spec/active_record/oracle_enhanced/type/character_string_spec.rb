@@ -64,4 +64,35 @@ RSpec.describe "OracleEnhancedAdapter processing CHAR column" do
     expect(TestItem.where(TestItem.arel_table[:padded].matches("first%", "\\", false))).to have_attributes(count: 2)
     expect(TestItem.where(TestItem.arel_table[:padded].matches("first%"))).to have_attributes(count: 2)
   end
+
+  it "should support enum predicates" do
+    TestItem.enum :padded, { active: "0", archived: "1" }
+    item = TestItem.create!(padded: :archived)
+
+    expect(item).to be_archived
+    expect(item).not_to be_active
+    expect(TestItem.first).to be_archived
+    expect(TestItem.archived.count).to eq(1)
+  end
+
+  it "should not mark CHAR value as changed after save" do
+    item = TestItem.create!(padded: "ABC")
+
+    expect(item.padded).to eq("ABC")
+    expect(item).not_to be_changed
+  end
+
+  it "should hit the query cache for the same CHAR value" do
+    TestItem.create!(padded: "ABC")
+
+    queries = []
+    callback = ->(*, payload) { queries << payload[:sql] unless payload[:cached] || payload[:name] == "SCHEMA" }
+    ActiveSupport::Notifications.subscribed(callback, "sql.active_record") do
+      TestItem.cache do
+        2.times { TestItem.where(padded: "ABC").to_a }
+      end
+    end
+
+    expect(queries.size).to eq(1)
+  end
 end
