@@ -114,6 +114,10 @@ module ActiveRecord
             elsif @raw_connection.respond_to?(:getUnderlyingConnection)
               @pooled_connection = @raw_connection
               @raw_connection = @raw_connection.underlying_connection
+            elsif wraps_oracle_connection?(@raw_connection)
+              # get Oracle JDBC connection from a JDBC 4 wrapper such as the proxy returned by TomEE
+              @pooled_connection = @raw_connection
+              @raw_connection = @raw_connection.unwrap(Java::OracleJdbc::OracleConnection.java_class)
             end
 
             # Workaround FrozenError (can't modify frozen Hash):
@@ -643,6 +647,14 @@ module ActiveRecord
         end
 
       private
+        def wraps_oracle_connection?(connection)
+          !connection.is_a?(Java::OracleJdbc::OracleConnection) &&
+            connection.isWrapperFor(Java::OracleJdbc::OracleConnection.java_class)
+        rescue Java::JavaSql::SQLException, Java::JavaLang::AbstractMethodError
+          # a JDBC 3 wrapper without Wrapper#isWrapperFor, or one that fails to answer
+          false
+        end
+
         def lob_to_ruby_value(val)
           case val
           when ::Java::OracleSql::CLOB
