@@ -2755,6 +2755,42 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
     end
   end
 
+  describe "change_column_default" do
+    before(:each) do
+      schema_define do
+        create_table :test_defaults, force: true do |t|
+          t.datetime :happened_at, precision: 6
+        end
+      end
+      class ::TestDefault < ActiveRecord::Base
+      end
+    end
+
+    after(:each) do
+      Object.send(:remove_const, "TestDefault")
+      schema_define do
+        drop_table :test_defaults, if_exists: true
+      end
+      ActiveRecord::Base.clear_cache!
+    end
+
+    it "should cast the default for the column" do
+      @conn.change_column_default :test_defaults, :happened_at, "2026-01-02T03:04:05Z"
+      TestDefault.reset_column_information
+
+      expect(TestDefault.create!.reload.happened_at).to eq(Time.utc(2026, 1, 2, 3, 4, 5))
+    end
+
+    it "should cast the default for the column in a bulk change_table" do
+      @conn.change_table :test_defaults, bulk: true do |t|
+        t.change_default :happened_at, "2026-01-02T03:04:05Z"
+      end
+      TestDefault.reset_column_information
+
+      expect(TestDefault.create!.reload.happened_at).to eq(Time.utc(2026, 1, 2, 3, 4, 5))
+    end
+  end
+
   describe "synonyms" do
     before(:all) do
       @username = CONNECTION_PARAMS[:username]
