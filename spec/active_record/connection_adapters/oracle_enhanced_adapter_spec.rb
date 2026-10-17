@@ -655,6 +655,14 @@ describe "OracleEnhancedAdapter" do
       expect { User.joins(:group).to_sql }.not_to raise_exception
     end
 
+    it "should bind variables when to_sql loads the columns" do
+      # "to_sql" enforces unprepared_statement, so loading the columns there
+      # must still bind the dictionary access SQL variables
+      TestPost.reset_column_information
+      @conn.schema_cache.clear!
+      expect { TestPost.select(:id).to_sql }.not_to raise_exception
+    end
+
     it "should return false from temporary_table? with bind usage" do
       expect(@conn.temporary_table?("TEST_POSTS")).to be false
       expect(@logger.logged(:debug).last).to match(/:table_name/)

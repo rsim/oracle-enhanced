@@ -24,7 +24,7 @@ module ActiveRecord
             cursor = nil
             cached = false
             with_retry do
-              if without_prepared_statement?(binds)
+              if binds.nil? || binds.empty?
                 cursor = _connection.prepare(sql)
               else
                 unless @statements.key? sql
