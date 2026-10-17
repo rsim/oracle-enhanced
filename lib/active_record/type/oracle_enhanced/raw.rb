@@ -11,12 +11,36 @@ module ActiveRecord
         end
 
         def serialize(value)
-          # Encode a string or byte array as string of hex codes
-          if value.nil?
-            super
-          else
-            value = value.unpack("C*")
-            value.map { |x| "%02X" % x }.join
+          return super if value.nil?
+          Data.new(super)
+        end
+
+        def deserialize(value)
+          value.is_a?(Data) ? value.to_s : super
+        end
+
+        class Data # :nodoc:
+          def initialize(value)
+            @value = value
+          end
+
+          def to_s
+            @value
+          end
+
+          # Encode the bytes as a string of hex codes, which Oracle converts to RAW
+          def to_hex
+            @value.unpack1("H*").upcase
+          end
+
+          def ==(other)
+            other = other.to_s if other.is_a?(Data)
+            @value == other
+          end
+          alias eql? ==
+
+          def hash
+            @value.hash
           end
         end
       end
