@@ -402,8 +402,9 @@ module ActiveRecord
         end
 
         def change_column_default(table_name, column_name, default_or_changes) # :nodoc:
+          column = column_for(table_name, column_name)
           default = extract_new_default_value(default_or_changes)
-          execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
+          execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote_default_expression(default, column)}"
         ensure
           clear_table_caches(table_name)
         end
@@ -1178,7 +1179,7 @@ module ActiveRecord
           def change_column_default_for_alter(table_name, column_name, default_or_changes) # :nodoc:
             column = column_for(table_name, column_name)
             default = extract_new_default_value(default_or_changes)
-            "#{quote_column_name(column_name)} #{column.sql_type} DEFAULT #{quote(default)}"
+            "#{quote_column_name(column_name)} #{column.sql_type} DEFAULT #{quote_default_expression(default, column)}"
           end
 
           # Returns nil when the requested nullability already matches the
