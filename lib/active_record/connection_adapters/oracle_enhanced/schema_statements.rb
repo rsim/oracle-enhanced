@@ -333,7 +333,7 @@ module ActiveRecord
         end
 
         # Add synonym to existing table or view or sequence. Can be used to create local synonym to
-        # remote table in other schema or in other database
+        # table in other schema. Database links are not supported.
         # Examples:
         #
         #   add_synonym :posts, "blog.posts"
@@ -341,6 +341,8 @@ module ActiveRecord
         #   add_synonym :employees, "hr.employees", :force => true
         #
         def add_synonym(name, table_name, options = {})
+          raise ArgumentError, "db link is not supported" if table_name.to_s.include?("@")
+
           sql = +"CREATE"
           if options[:force] == true
             sql << " OR REPLACE"

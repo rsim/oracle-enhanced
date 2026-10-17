@@ -2798,6 +2798,15 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
     end
   end
 
+  describe "add_synonym with a database link" do
+    it "should raise instead of creating a synonym without the database link" do
+      expect do
+        @conn.add_synonym :synonym_to_remote_posts, "test_posts@remote_link", force: true
+      end.to raise_error(ArgumentError, "db link is not supported")
+      expect(@conn.select_value("SELECT COUNT(*) FROM user_synonyms WHERE synonym_name = 'SYNONYM_TO_REMOTE_POSTS'")).to eq(0)
+    end
+  end
+
   describe "schema readers for a table owned by another schema" do
     before(:all) do
       @owner_conn = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(
