@@ -762,6 +762,9 @@ module ActiveRecord
       end
 
       def clear_cache!(new_connection: false)
+        # A session from a JNDI pooled connection outlives disconnect! and
+        # reconnect!, so close the cached cursors instead of only forgetting them.
+        @lock.synchronize { @statements&.clear } if new_connection
         super
         self.class.clear_type_map!
       end
