@@ -402,8 +402,9 @@ module ActiveRecord
         end
 
         def change_column_default(table_name, column_name, default_or_changes) # :nodoc:
+          column = column_for(table_name, column_name)
           default = extract_new_default_value(default_or_changes)
-          execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote(default)}"
+          execute "ALTER TABLE #{quote_table_name(table_name)} MODIFY #{quote_column_name(column_name)} DEFAULT #{quote_column_default(default, column)}"
         ensure
           clear_table_caches(table_name)
         end
@@ -1175,10 +1176,22 @@ module ActiveRecord
           # non-bulk `change_column` shape (`MODIFY col TYPE …`); see the
           # ORA-02264 / Oracle 11g caveat documented on
           # `change_column_null_for_alter` below.
+          # Quote CLOB / NCLOB and boolean defaults without casting them for the
+          # column, as create_table does: a CLOB default would become
+          # empty_clob(), and a boolean default for a VARCHAR2(1) column with
+          # emulate_booleans_from_strings would become 't' instead of 'Y'.
+          def quote_column_default(default, column)
+            if column.type == :text || column.type == :ntext || default == true || default == false
+              quote(default)
+            else
+              quote_default_expression(default, column)
+            end
+          end
+
           def change_column_default_for_alter(table_name, column_name, default_or_changes) # :nodoc:
             column = column_for(table_name, column_name)
             default = extract_new_default_value(default_or_changes)
-            "#{quote_column_name(column_name)} #{column.sql_type} DEFAULT #{quote(default)}"
+            "#{quote_column_name(column_name)} #{column.sql_type} DEFAULT #{quote_column_default(default, column)}"
           end
 
           # Returns nil when the requested nullability already matches the
