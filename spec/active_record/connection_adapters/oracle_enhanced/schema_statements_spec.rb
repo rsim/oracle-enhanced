@@ -1477,6 +1477,44 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       expect(@conn.unique_constraints(:test_employees).map(&:name)).not_to include("uniq_test_employees_first_name")
     end
 
+    it "drops an index given both the column and an uppercase name" do
+      schema_define do
+        add_index :test_employees, :first_name, name: "IDX_TEST_EMPLOYEES_FIRST_NAME"
+      end
+
+      schema_define do
+        remove_index :test_employees, :first_name, name: "IDX_TEST_EMPLOYEES_FIRST_NAME"
+      end
+
+      expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
+    end
+
+    it "drops an index given only a quoted uppercase name" do
+      schema_define do
+        add_index :test_employees, :first_name, name: "IDX-TEST-EMPLOYEES"
+      end
+
+      schema_define do
+        remove_index :test_employees, name: "IDX-TEST-EMPLOYEES"
+      end
+
+      expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
+    end
+
+    it "reverts add_index with an uppercase name in a migration" do
+      migration = Class.new(ActiveRecord::Migration::Current) do
+        def change
+          add_index :test_employees, [:first_name], name: "IDX_TEST_EMPLOYEES_FIRST_NAME"
+        end
+      end
+
+      ActiveRecord::Migration.suppress_messages do
+        migration.migrate(:up)
+        expect { migration.migrate(:down) }.not_to raise_error
+      end
+      expect(@conn.index_exists?(:test_employees, :first_name)).to be(false)
+    end
+
     it "honors if_exists: true when the index is missing" do
       sqls = capture_sql do
         schema_define do
