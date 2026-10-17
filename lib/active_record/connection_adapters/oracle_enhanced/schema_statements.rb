@@ -256,6 +256,8 @@ module ActiveRecord
         # Remove the given index from the table.
         # Gives warning if index does not exist
         def remove_index(table_name, column_name = nil, **options) # :nodoc:
+          # indexes returns unquoted index names in lowercase
+          options[:name] = oracle_downcase(options[:name].to_s) if options[:name]
           return if options[:if_exists] && !index_exists?(table_name, column_name, **options)
 
           index_name = index_name_for_remove(table_name, column_name, options).to_s
