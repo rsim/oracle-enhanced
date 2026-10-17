@@ -670,7 +670,7 @@ module ActiveRecord
             # remove any ASC/DESC modifiers
             s.gsub(/\s+(ASC|DESC)\s*?/i, "")
           }.reject(&:blank?).map.with_index { |column, i|
-            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns} ORDER BY #{column}) AS alias_#{i}__"
+            "FIRST_VALUE(#{column}) OVER (PARTITION BY #{columns.join(', ')} ORDER BY #{column}) AS alias_#{i}__"
           }
         (order_columns << super).join(", ")
       end
