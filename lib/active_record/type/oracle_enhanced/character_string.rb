@@ -25,6 +25,11 @@ module ActiveRecord
             other = other.to_s if other.is_a?(Data)
             @value == other
           end
+          alias eql? ==
+
+          def hash
+            @value.hash
+          end
 
           def to_character_str
             len = @value.to_s.length
