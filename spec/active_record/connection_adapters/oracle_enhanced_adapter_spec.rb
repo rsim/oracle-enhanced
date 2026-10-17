@@ -786,6 +786,25 @@ RSpec.describe "OracleEnhancedAdapter" do
       @conn.reset!
       expect(@statements.length).to eq(0)
     end
+
+    it "should close cached cursors on disconnect! and reconnect!" do
+      skip "applies only when prepared statements are enabled" unless @conn.prepared_statements?
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
+
+      [:disconnect!, :reconnect!].each do |method|
+        @conn.connect!
+        @conn.exec_query("SELECT * FROM test_posts WHERE id = :id", "SQL", binds)
+        cursors = @statements.send(:cache).values
+        expect(cursors).not_to be_empty
+        cursors.each { |cursor| expect(cursor).to receive(:close).and_call_original }
+
+        @conn.public_send(method)
+
+        expect(@statements.length).to eq(0)
+      end
+      @conn.connect!
+      expect(@conn.select_value("SELECT 1 FROM dual")).to eq(1)
+    end
   end
 
   describe "database_exists?" do
