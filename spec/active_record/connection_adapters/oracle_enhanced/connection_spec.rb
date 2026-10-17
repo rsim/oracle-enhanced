@@ -787,6 +787,63 @@ RSpec.describe "OracleEnhancedConnection" do
         @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(params)
         expect(@conn.ping).to be(true)
       end
+
+      def jndi_wrapper_for(oracle_connection, &is_wrapper_for)
+        handler = Class.new do
+          include java.lang.reflect.InvocationHandler
+
+          def initialize(target, is_wrapper_for)
+            @target = target
+            @is_wrapper_for = is_wrapper_for
+          end
+
+          def invoke(_proxy, method, args)
+            return @is_wrapper_for.call if @is_wrapper_for && method.name == "isWrapperFor"
+            method.invoke(@target, *args.to_a)
+          end
+        end
+        # a JDK dynamic proxy that implements only java.sql.Connection
+        java.lang.reflect.Proxy.newProxyInstance(
+          JRuby.runtime.jruby_class_loader, [java.sql.Connection.java_class].to_java(java.lang.Class), handler.new(oracle_connection, is_wrapper_for)
+        )
+      end
+
+      def stub_jndi_data_source(connection)
+        data_source = double("DataSource", connection: connection)
+        context = double("InitialContext")
+        allow(context).to receive(:lookup).with("java:/comp/env").and_return(context)
+        allow(context).to receive(:lookup).with("java:comp/env/jdbc/test").and_return(data_source)
+        allow(javax.naming.InitialContext).to receive(:new).and_return(context)
+      end
+
+      it "should unwrap the Oracle connection from a JNDI connection wrapper" do
+        oracle_connection = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS).raw_connection
+        stub_jndi_data_source(jndi_wrapper_for(oracle_connection))
+
+        @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(jndi: "java:comp/env/jdbc/test")
+        expect(@conn.raw_connection).to be_a(Java::OracleJdbc::OracleConnection)
+        expect(@conn.ping).to be(true)
+        expect {
+          Java::OracleSql::CLOB.createTemporary(@conn.raw_connection, false, Java::OracleSql::CLOB::DURATION_SESSION)
+        }.not_to raise_error
+        @conn.logoff
+        expect(oracle_connection.isClosed).to be(true)
+      ensure
+        oracle_connection&.close unless oracle_connection&.isClosed
+      end
+
+      it "should keep a JNDI connection wrapper that fails to answer isWrapperFor" do
+        oracle_connection = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(CONNECTION_PARAMS).raw_connection
+        wrapper = jndi_wrapper_for(oracle_connection) { raise java.sql.SQLException.new("not supported") }
+        stub_jndi_data_source(wrapper)
+
+        @conn = ActiveRecord::ConnectionAdapters::OracleEnhanced::Connection.create(jndi: "java:comp/env/jdbc/test")
+        expect(@conn.raw_connection).to equal(wrapper)
+        expect(@conn.ping).to be(true)
+      ensure
+        @conn&.logoff
+        oracle_connection&.close unless oracle_connection&.isClosed
+      end
     end
 
     it "should fall back to directly instantiating OracleDriver" do
