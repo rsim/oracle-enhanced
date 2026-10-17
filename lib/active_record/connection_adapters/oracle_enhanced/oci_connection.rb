@@ -191,6 +191,8 @@ module ActiveRecord
                   case key.to_s.downcase
                   when "char"
                     col_value = col.to_s.rstrip
+                  when "timestamp_tz", "timestamp_ltz"
+                    col_value = @raw_connection.typecast_time_with_zone(col) if col.is_a?(Time)
                   end
                 end
                 col_index = col_index + 1
@@ -237,6 +239,8 @@ module ActiveRecord
                 case key.to_s.downcase
                 when "char"
                   col_value = col_value.to_s.rstrip
+                when "timestamp_tz", "timestamp_ltz"
+                  col_value = typecast_time_with_zone(row[i]) if row[i].is_a?(Time)
                 end
               end
               hash[col] = col_value
@@ -276,6 +280,10 @@ module ActiveRecord
           else
             value
           end
+        end
+
+        def typecast_time_with_zone(value) # :nodoc:
+          ActiveRecord.default_timezone == :utc ? value.getutc : value.getlocal
         end
 
         def database_version
