@@ -26,6 +26,14 @@ module ActiveRecord
             @value == other
           end
 
+          def eql?(other)
+            other.is_a?(Data) && @value.eql?(other.to_s)
+          end
+
+          def hash
+            @value.hash
+          end
+
           def to_character_str
             len = @value.to_s.length
             if len < @limit
