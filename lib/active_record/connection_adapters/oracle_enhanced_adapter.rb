@@ -70,11 +70,9 @@ module ActiveRecord
         # allows the enhanced adapter to look like the OracleAdapter. Useful to pick up
         # conditionals in the rails activerecord test suite
         require "active_record/connection_adapters/emulation/oracle_adapter"
-        ConnectionAdapters::OracleAdapter.new(
-          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
+        ConnectionAdapters::OracleAdapter.new(config)
       else
-        ConnectionAdapters::OracleEnhancedAdapter.new(
-          ConnectionAdapters::OracleEnhanced::Connection.create(config), logger, config)
+        ConnectionAdapters::OracleEnhancedAdapter.new(config)
       end
     end
   end
@@ -844,7 +842,9 @@ module ActiveRecord
 end
 
 # Workaround for https://github.com/jruby/jruby/issues/6267
-if RUBY_ENGINE == "jruby"
+# JRuby implements ObjectSpace::WeakMap#values natively since 9.4, where the
+# internal `map` field this workaround reads does not exist anymore.
+if RUBY_ENGINE == "jruby" && !ObjectSpace::WeakMap.method_defined?(:values)
   require "jruby"
 
   class org.jruby::RubyObjectSpace::WeakMap
