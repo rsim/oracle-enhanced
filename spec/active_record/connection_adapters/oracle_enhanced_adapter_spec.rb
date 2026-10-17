@@ -18,9 +18,9 @@ describe "OracleEnhancedAdapter" do
           if ActiveRecord::Base.connection.supports_virtual_columns?
             t.virtual :full_name, as: "(first_name || ' ' || last_name)"
           else
-            t.string  :full_name, limit: 46
+            t.string :full_name, limit: 46
           end
-          t.date    :hire_date
+          t.date :hire_date
         end
       end
       schema_define do
@@ -156,7 +156,7 @@ describe "OracleEnhancedAdapter" do
     before(:all) do
       schema_define do
         create_table :test_posts do |t|
-          t.string      :title
+          t.string :title
         end
         create_table :test_comments do |t|
           t.integer     :test_post_id
@@ -195,7 +195,7 @@ describe "OracleEnhancedAdapter" do
     before(:all) do
       schema_define do
         create_table :test_posts do |t|
-          t.string      :title
+          t.string :title
         end
         create_table :test_comments do |t|
           t.integer     :test_post_id
@@ -653,6 +653,14 @@ describe "OracleEnhancedAdapter" do
     it "should not raise missing IN/OUT parameter like issue 1678" do
       # "to_sql" enforces unprepared_statement including dictionary access SQLs
       expect { User.joins(:group).to_sql }.not_to raise_exception
+    end
+
+    it "should bind variables when to_sql loads the columns" do
+      # "to_sql" enforces unprepared_statement, so loading the columns there
+      # must still bind the dictionary access SQL variables
+      TestPost.reset_column_information
+      @conn.schema_cache.clear!
+      expect { TestPost.select(:id).to_sql }.not_to raise_exception
     end
 
     it "should return false from temporary_table? with bind usage" do
