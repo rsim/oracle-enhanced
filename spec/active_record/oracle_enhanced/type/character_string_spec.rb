@@ -11,11 +11,15 @@ RSpec.describe "OracleEnhancedAdapter processing CHAR column" do
       )
     SQL
     @conn.execute "CREATE SEQUENCE test_items_seq"
+    # national_character_string_spec also creates a test_items table, with other
+    # columns, so do not share statements cached for either table.
+    @conn.clear_cache!
   end
 
   after(:all) do
     @conn.execute "DROP TABLE test_items"
     @conn.execute "DROP SEQUENCE test_items_seq"
+    @conn.clear_cache!
   end
 
   before(:each) do
@@ -63,5 +67,24 @@ RSpec.describe "OracleEnhancedAdapter processing CHAR column" do
 
     expect(TestItem.where(TestItem.arel_table[:padded].matches("first%", "\\", false))).to have_attributes(count: 2)
     expect(TestItem.where(TestItem.arel_table[:padded].matches("first%"))).to have_attributes(count: 2)
+  end
+
+  it "should support enum predicates" do
+    TestItem.enum :padded, { active: "0", archived: "1" }
+    item = TestItem.create!(padded: :archived)
+
+    expect(item).to be_archived
+    expect(item).not_to be_active
+    expect(TestItem.first).to be_archived
+    expect(TestItem.archived.count).to eq(1)
+  end
+
+  it "should save CHAR value changed in place after save" do
+    item = TestItem.create!(padded: "ABC")
+    item.padded << "X"
+
+    expect(item).to be_changed
+    item.save!
+    expect(item.reload.padded).to eq("ABCX")
   end
 end

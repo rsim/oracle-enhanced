@@ -21,6 +21,11 @@ module ActiveRecord
             @value
           end
 
+          def ==(other)
+            other = other.to_s if other.is_a?(Data)
+            @value == other
+          end
+
           def to_character_str
             len = @value.to_s.length
             if len < @limit
@@ -30,6 +35,14 @@ module ActiveRecord
             end
           end
         end
+
+        private
+          # Data wraps the attribute's own String, so cast a copy to keep
+          # in-place changes to the attribute detectable.
+          def cast_value(value)
+            value = value.to_s if value.is_a?(Data)
+            super
+          end
       end
     end
   end
