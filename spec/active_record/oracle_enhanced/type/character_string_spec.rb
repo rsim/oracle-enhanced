@@ -64,4 +64,14 @@ RSpec.describe "OracleEnhancedAdapter processing CHAR column" do
     expect(TestItem.where(TestItem.arel_table[:padded].matches("first%", "\\", false))).to have_attributes(count: 2)
     expect(TestItem.where(TestItem.arel_table[:padded].matches("first%"))).to have_attributes(count: 2)
   end
+
+  it "should support enum predicates" do
+    TestItem.enum :padded, { active: "0", archived: "1" }
+    item = TestItem.create!(padded: :archived)
+
+    expect(item).to be_archived
+    expect(item).not_to be_active
+    expect(TestItem.first).to be_archived
+    expect(TestItem.archived.count).to eq(1)
+  end
 end
