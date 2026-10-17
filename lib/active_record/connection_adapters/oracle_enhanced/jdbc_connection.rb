@@ -114,6 +114,10 @@ module ActiveRecord
             elsif @raw_connection.respond_to?(:getUnderlyingConnection)
               @pooled_connection = @raw_connection
               @raw_connection = @raw_connection.underlying_connection
+            elsif !@raw_connection.is_a?(Java::OracleJdbc::OracleConnection) && @raw_connection.isWrapperFor(Java::OracleJdbc::OracleConnection.java_class)
+              # get Oracle JDBC connection from a JDBC 4 wrapper such as the proxy returned by TomEE
+              @pooled_connection = @raw_connection
+              @raw_connection = @raw_connection.unwrap(Java::OracleJdbc::OracleConnection.java_class)
             end
 
             # Workaround FrozenError (can't modify frozen Hash):
