@@ -371,7 +371,7 @@ module ActiveRecord
             when Integer
               @raw_statement.setLong(position, value)
             when Float
-              @raw_statement.setFloat(position, value)
+              @raw_statement.setDouble(position, value)
             when BigDecimal
               @raw_statement.setBigDecimal(position, value)
             when Java::OracleSql::BLOB
@@ -591,7 +591,11 @@ module ActiveRecord
               BigDecimal(d.stringValue)
             end
           when :BINARY_FLOAT
-            rset.getFloat(i)
+            f = rset.getFloat(i)
+            rset.wasNull ? nil : f
+          when :BINARY_DOUBLE
+            d = rset.getDouble(i)
+            rset.wasNull ? nil : d
           when :VARCHAR2, :LONG, :NVARCHAR2
             rset.getString(i)
           when :CHAR, :NCHAR
