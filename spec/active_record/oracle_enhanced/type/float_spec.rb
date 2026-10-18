@@ -17,6 +17,7 @@ RSpec.describe "OracleEnhancedAdapter handling of BINARY_FLOAT columns" do
         t.integer :salary
         t.decimal :commission_pct, scale: 2, precision: 2
         t.float   :hourly_rate
+        t.column  :hourly_rate_double, "BINARY_DOUBLE"
         t.integer :manager_id,  limit: 6
         t.integer :is_manager,  limit: 1
         t.decimal :department_id, scale: 0, precision: 4
@@ -44,5 +45,29 @@ RSpec.describe "OracleEnhancedAdapter handling of BINARY_FLOAT columns" do
     employee.reload
 
     expect(employee.hourly_rate).to eq(4.400000095367432)
+  end
+
+  it "should return nil from a NULL BINARY_FLOAT column" do
+    employee = Test2Employee.create(hourly_rate: nil)
+
+    employee.reload
+
+    expect(employee.hourly_rate).to be_nil
+  end
+
+  it "should return the value from a BINARY_DOUBLE column" do
+    employee = Test2Employee.create(hourly_rate_double: 1.2345678901234567)
+
+    employee.reload
+
+    expect(employee.hourly_rate_double).to eq(1.2345678901234567)
+  end
+
+  it "should return nil from a NULL BINARY_DOUBLE column" do
+    employee = Test2Employee.create(hourly_rate_double: nil)
+
+    employee.reload
+
+    expect(employee.hourly_rate_double).to be_nil
   end
 end
