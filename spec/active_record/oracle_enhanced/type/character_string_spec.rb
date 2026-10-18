@@ -46,6 +46,13 @@ RSpec.describe "OracleEnhancedAdapter processing CHAR column" do
     expect(item_reloaded.padded).to eq(str)
   end
 
+  it "should return nil for a NULL CHAR value" do
+    TestItem.create!(padded: nil)
+
+    expect(TestItem.first.padded).to be_nil
+    expect(@conn.select_value("SELECT padded FROM test_items")).to be_nil
+  end
+
   it "should support case sensitive matching" do
     TestItem.create!(
       padded: "First",
