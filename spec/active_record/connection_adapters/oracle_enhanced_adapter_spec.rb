@@ -448,6 +448,87 @@ RSpec.describe "OracleEnhancedAdapter" do
       include_examples "insert_all! basics"
     end
 
+    context "with LOB columns" do
+      before(:all) do
+        schema_define do
+          create_table :test_insert_all_lobs, force: true do |t|
+            t.text :body
+            t.ntext :nbody
+            t.binary :data
+          end
+        end
+        class ::TestInsertAllLob < ActiveRecord::Base
+        end
+      end
+
+      after(:all) do
+        schema_define do
+          drop_table :test_insert_all_lobs, if_exists: true
+        end
+        Object.send(:remove_const, "TestInsertAllLob") if defined?(TestInsertAllLob)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      after(:each) { TestInsertAllLob.delete_all }
+
+      let(:long_text) { "x" * 5000 }
+      let(:binary_data) { "\0\1\2binary\xFF".b * 1000 }
+
+      it "writes BLOB values and CLOB / NCLOB values longer than 4000 bytes with insert_all!" do
+        TestInsertAllLob.insert_all!([
+          { id: 1, body: long_text, nbody: long_text, data: binary_data },
+          { id: 2, body: "short", nbody: "short", data: "b" },
+        ])
+
+        expect(TestInsertAllLob.order(:id).pluck(:body, :nbody, :data)).to eq([
+          [long_text, long_text, binary_data],
+          ["short", "short", "b"],
+        ])
+      end
+
+      it "writes LOB values with upsert_all" do
+        TestInsertAllLob.insert_all!([{ id: 1, body: "old", data: "old" }])
+        TestInsertAllLob.upsert_all([
+          { id: 1, body: long_text, nbody: long_text, data: binary_data },
+          { id: 2, body: long_text, nbody: "new", data: binary_data },
+        ])
+
+        expect(TestInsertAllLob.order(:id).pluck(:body, :nbody, :data)).to eq([
+          [long_text, long_text, binary_data],
+          [long_text, "new", binary_data],
+        ])
+      end
+
+      it "writes LOB values with upsert_all when the first row has a nil LOB" do
+        TestInsertAllLob.upsert_all([
+          { id: 1, body: nil, data: nil },
+          { id: 2, body: long_text, data: binary_data },
+        ])
+
+        expect(TestInsertAllLob.order(:id).pluck(:body, :data)).to eq([
+          [nil, nil],
+          [long_text, binary_data],
+        ])
+      end
+
+
+      it "clears the query cache" do
+        TestInsertAllLob.cache do
+          expect(TestInsertAllLob.count).to eq(0)
+          TestInsertAllLob.insert_all!([{ id: 1, body: long_text }])
+          expect(TestInsertAllLob.count).to eq(1)
+        end
+      end
+
+      it "does not keep a cached cursor for each statement" do
+        statements = ActiveRecord::Base.lease_connection.instance_variable_get(:@statements)
+
+        expect {
+          3.times { |i| TestInsertAllLob.insert_all!([{ id: i + 1, body: long_text }]) }
+        }.not_to change(statements, :length)
+      end
+    end
+
     describe "on_duplicate via Oracle MERGE" do
       before(:all) do
         schema_define do

@@ -189,6 +189,21 @@ module ActiveRecord
           "(#{quoted_cols}) VALUES (#{defaults})"
         end
 
+        # Bind LOB values instead of quoting them into the SQL, which would
+        # turn a BLOB and a CLOB longer than 4000 bytes into empty_blob() and
+        # empty_clob(). Unlike create, insert_all has no write_lobs step after it.
+        # The other values are still quoted, so every call has its own SQL; run it
+        # unprepared so that its cursor is closed instead of cached.
+        def exec_insert_all(inserter, name) # :nodoc:
+          @insert_all_lob_binds = []
+          sql = inserter.to_sql
+          intent = internal_build_intent(sql, name, @insert_all_lob_binds)
+          unprepared_statement { intent.execute! }
+          intent.cast_result
+        ensure
+          @insert_all_lob_binds = nil
+        end
+
         def build_insert_sql(insert) # :nodoc:
           return build_merge_sql(insert) if insert.skip_duplicates? || insert.update_duplicates?
 
@@ -365,8 +380,19 @@ module ActiveRecord
                 default_insert_value(insert_all.model.columns_hash[key])
               else
                 type = types[key]
-                ActiveModel::Type::SerializeCastValue.serialize(type, type.cast(value))
+                bind_lob_value(ActiveModel::Type::SerializeCastValue.serialize(type, type.cast(value)))
               end
+            end
+          end
+
+          def bind_lob_value(value)
+            case value
+            when ActiveModel::Type::Binary::Data, Type::OracleEnhanced::Text::Data, Type::OracleEnhanced::NationalCharacterText::Data
+              return value unless @insert_all_lob_binds
+              @insert_all_lob_binds << value
+              Arel::Nodes::SqlLiteral.new(":a#{@insert_all_lob_binds.size}")
+            else
+              value
             end
           end
 
