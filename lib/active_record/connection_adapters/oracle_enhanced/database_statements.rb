@@ -189,6 +189,21 @@ module ActiveRecord
           "(#{quoted_cols}) VALUES (#{defaults})"
         end
 
+        # Bind LOB values instead of quoting them into the SQL, which would
+        # turn a BLOB and a CLOB longer than 4000 bytes into empty_blob() and
+        # empty_clob(). Unlike create, insert_all has no write_lobs step after it.
+        # The other values are still quoted, so every call has its own SQL; run it
+        # unprepared so that its cursor is closed instead of cached.
+        def exec_insert_all(inserter, name) # :nodoc:
+          @insert_all_lob_binds = []
+          sql = inserter.to_sql
+          intent = internal_build_intent(sql, name, @insert_all_lob_binds)
+          unprepared_statement { intent.execute! }
+          intent.cast_result
+        ensure
+          @insert_all_lob_binds = nil
+        end
+
         def build_insert_sql(insert) # :nodoc:
           return build_merge_sql(insert) if insert.skip_duplicates? || insert.update_duplicates?
 
@@ -365,8 +380,19 @@ module ActiveRecord
                 default_insert_value(insert_all.model.columns_hash[key])
               else
                 type = types[key]
-                ActiveModel::Type::SerializeCastValue.serialize(type, type.cast(value))
+                bind_lob_value(ActiveModel::Type::SerializeCastValue.serialize(type, type.cast(value)))
               end
+            end
+          end
+
+          def bind_lob_value(value)
+            case value
+            when ActiveModel::Type::Binary::Data, Type::OracleEnhanced::Text::Data, Type::OracleEnhanced::NationalCharacterText::Data
+              return value unless @insert_all_lob_binds
+              @insert_all_lob_binds << value
+              Arel::Nodes::SqlLiteral.new(":a#{@insert_all_lob_binds.size}")
+            else
+              value
             end
           end
 
@@ -444,7 +470,7 @@ module ActiveRecord
             # the no-change comparison.
             user_updatable = insert.send(:insert_all).updatable_columns.map(&:to_s).reject { |k| on_set.include?(k.downcase) }
             auto_filled_ts = auto_filled_update_timestamps(insert, updatable)
-            guard = no_change_predicate(user_updatable) unless user_updatable.empty?
+            guard = no_change_predicate(insert, user_updatable) unless user_updatable.empty?
 
             updatable.map { |column|
               q = quote_column_name(column)
@@ -458,10 +484,18 @@ module ActiveRecord
 
           # AND-joined per-column NULL-safe equality between target (`t`) and
           # source (`s`); drives the no-change CASE guard in merge_update_pairs.
-          def no_change_predicate(columns)
+          # LOB columns cannot be compared with `=` (ORA-22848), so compare them
+          # with DBMS_LOB.COMPARE, which returns 0 when they are equal.
+          def no_change_predicate(insert, columns)
+            columns_hash = insert.model.columns_hash
             columns.map { |column|
               q = quote_column_name(column)
-              "(t.#{q} = s.#{q} OR (t.#{q} IS NULL AND s.#{q} IS NULL))"
+              equal = if %i[text ntext binary].include?(columns_hash[column]&.type)
+                "DBMS_LOB.COMPARE(t.#{q}, s.#{q}) = 0"
+              else
+                "t.#{q} = s.#{q}"
+              end
+              "(#{equal} OR (t.#{q} IS NULL AND s.#{q} IS NULL))"
             }.join(" AND ")
           end
 

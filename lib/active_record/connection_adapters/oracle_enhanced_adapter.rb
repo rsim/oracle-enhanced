@@ -158,6 +158,10 @@ module ActiveRecord
       include OracleEnhanced::DbmsOutput
       include OracleEnhanced::StructureDump
 
+      # DatabaseStatements#exec_insert_all comes before the query cache wrapper
+      # that Active Record defines on AbstractAdapter, so define it again here.
+      ConnectionAdapters::QueryCache.dirties_query_cache(self, :exec_insert_all)
+
       class Version < AbstractAdapter::Version # :nodoc:
         # `AbstractAdapter::Version#<=>` only accepts String (it calls `.split`
         # on its argument). Accept another Version too by delegating to its
