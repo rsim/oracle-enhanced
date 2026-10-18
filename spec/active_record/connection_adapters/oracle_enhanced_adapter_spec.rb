@@ -673,6 +673,40 @@ RSpec.describe "OracleEnhancedAdapter" do
         )
         expect(TestMergeTsItem.find(3).updated_at.utc).to eq(explicit)
       end
+
+      it "keeps created_at when upsert_all updates an existing row" do
+        TestMergeTsItem.upsert_all([{ id: 4, name: "alpha", qty: 1 }], unique_by: :id)
+        created_at = TestMergeTsItem.find(4).created_at
+        sleep 0.1
+        TestMergeTsItem.upsert_all([{ id: 4, name: "beta", qty: 2 }], unique_by: :id)
+        expect(TestMergeTsItem.find(4).name).to eq("beta")
+        expect(TestMergeTsItem.find(4).created_at).to eq(created_at)
+      end
+
+      it "updates only the update_only columns and updated_at" do
+        TestMergeTsItem.upsert_all([{ id: 5, name: "alpha", qty: 1 }], unique_by: :id)
+        before_ts = TestMergeTsItem.find(5).updated_at
+        sleep 0.1
+        TestMergeTsItem.upsert_all([{ id: 5, name: "beta", qty: 2 }], unique_by: :id, update_only: [:qty])
+
+        item = TestMergeTsItem.find(5)
+        expect(item.name).to eq("alpha")
+        expect(item.qty).to eq(2)
+        expect(item.updated_at).to be > before_ts
+      end
+
+      it "does not update attr_readonly columns" do
+        model = Class.new(ActiveRecord::Base) do
+          self.table_name = "test_merge_ts_items"
+          attr_readonly :name
+        end
+        model.upsert_all([{ id: 6, name: "alpha", qty: 1 }], unique_by: :id)
+        model.upsert_all([{ id: 6, name: "beta", qty: 2 }], unique_by: :id)
+
+        item = TestMergeTsItem.find(6)
+        expect(item.name).to eq("alpha")
+        expect(item.qty).to eq(2)
+      end
     end
 
     # Unit-level coverage of the helper that bridges AR core's bundled

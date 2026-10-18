@@ -462,14 +462,17 @@ module ActiveRecord
           # Builder#touch_model_timestamps_unless.
           def merge_update_pairs(insert, on_columns)
             on_set = on_columns.map { |c| c.to_s.downcase }.to_set
-            updatable = insert.keys_including_timestamps.reject { |k| on_set.include?(k.to_s.downcase) }
+
+            # `insert_all.updatable_columns` is `keys - readonly - unique_by`, or
+            # the `update_only:` columns — user-supplied columns only, so
+            # auto-filled timestamps don't poison the no-change comparison.
+            # Like AR core, only those and the auto-filled `updated_at`-style
+            # columns are updated, so `created_at` keeps its value.
+            user_updatable = insert.send(:insert_all).updatable_columns.map(&:to_s).reject { |k| on_set.include?(k.downcase) }
+            auto_filled_ts = auto_filled_update_timestamps(insert, insert.keys_including_timestamps.reject { |k| on_set.include?(k.to_s.downcase) })
+            updatable = auto_filled_ts + user_updatable
             return "" if updatable.empty?
 
-            # `insert_all.updatable_columns` is `keys - readonly - unique_by` —
-            # user-supplied columns only, so auto-filled timestamps don't poison
-            # the no-change comparison.
-            user_updatable = insert.send(:insert_all).updatable_columns.map(&:to_s).reject { |k| on_set.include?(k.downcase) }
-            auto_filled_ts = auto_filled_update_timestamps(insert, updatable)
             guard = no_change_predicate(insert, user_updatable) unless user_updatable.empty?
 
             updatable.map { |column|
