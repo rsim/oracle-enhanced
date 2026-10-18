@@ -786,6 +786,56 @@ RSpec.describe "OracleEnhancedAdapter" do
       @conn.reset!
       expect(@statements.length).to eq(0)
     end
+
+    it "should close cached cursors before the connection is logged off on disconnect!" do
+      skip "applies only when prepared statements are enabled" unless @conn.prepared_statements?
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
+      @conn.connect!
+      @conn.exec_query("SELECT * FROM test_posts WHERE id = :id", "SQL", binds)
+      raw_connection = @conn.instance_variable_get(:@raw_connection)
+      cursors = @statements.send(:cache).values
+      expect(cursors).not_to be_empty
+      cursors.each { |cursor| expect(cursor).to receive(:close).ordered.and_call_original }
+      expect(raw_connection).to receive(:logoff).ordered.and_call_original
+
+      @conn.disconnect!
+
+      expect(@statements.length).to eq(0)
+    ensure
+      @conn.connect!
+    end
+
+    it "should close cached cursors before the connection is reset on reconnect!" do
+      skip "applies only when prepared statements are enabled" unless @conn.prepared_statements?
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
+      @conn.connect!
+      @conn.exec_query("SELECT * FROM test_posts WHERE id = :id", "SQL", binds)
+      raw_connection = @conn.instance_variable_get(:@raw_connection)
+      cursors = @statements.send(:cache).values
+      expect(cursors).not_to be_empty
+      cursors.each { |cursor| expect(cursor).to receive(:close).ordered.and_call_original }
+      expect(raw_connection).to receive(:reset!).ordered.and_call_original
+
+      @conn.reconnect!
+
+      expect(@statements.length).to eq(0)
+      expect(@conn.select_value("SELECT 1 FROM dual")).to eq(1)
+    end
+
+    it "should disconnect even when closing a cached cursor fails" do
+      skip "applies only when prepared statements are enabled" unless @conn.prepared_statements?
+      binds = [ActiveRecord::Relation::QueryAttribute.new("id", 1, ActiveRecord::Type::OracleEnhanced::Integer.new)]
+      @conn.connect!
+      @conn.exec_query("SELECT * FROM test_posts WHERE id = :id", "SQL", binds)
+      raw_connection = @conn.instance_variable_get(:@raw_connection)
+      @statements.send(:cache).each_value { |cursor| allow(cursor).to receive(:close).and_raise("cannot close") }
+      expect(raw_connection).to receive(:logoff).and_call_original
+
+      expect { @conn.disconnect! }.not_to raise_error
+      expect(@statements.length).to eq(0)
+    ensure
+      @conn.connect!
+    end
   end
 
   describe "database_exists?" do

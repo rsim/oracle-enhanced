@@ -774,6 +774,7 @@ module ActiveRecord
       # Disconnects from the database.
       def disconnect! # :nodoc:
         @lock.synchronize do
+          close_cached_statements
           super
           @raw_connection&.logoff rescue nil
           @raw_connection = nil
@@ -1387,7 +1388,17 @@ module ActiveRecord
           raise error.set_pool(@pool)
         end
 
+        # A session from a JNDI pooled connection outlives disconnect! and
+        # reconnect!, so close the cached cursors before the connection is
+        # handed back instead of only forgetting them. A cursor that cannot be
+        # closed must not keep the connection from being released.
+        def close_cached_statements
+          @statements&.each { |_, statement| statement.close rescue nil }
+          @statements&.reset
+        end
+
         def reconnect
+          close_cached_statements
           begin
             @raw_connection&.reset!
           rescue OracleEnhanced::ConnectionException
