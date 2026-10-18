@@ -455,6 +455,7 @@ RSpec.describe "OracleEnhancedAdapter" do
             t.text :body
             t.ntext :nbody
             t.binary :data
+            t.timestamps
           end
         end
         class ::TestInsertAllLob < ActiveRecord::Base
@@ -511,6 +512,15 @@ RSpec.describe "OracleEnhancedAdapter" do
         ])
       end
 
+      it "updates LOB values with upsert_all on a table with timestamps" do
+        TestInsertAllLob.upsert_all([{ id: 1, body: "old" }])
+        updated_at = TestInsertAllLob.find(1).updated_at
+        TestInsertAllLob.upsert_all([{ id: 1, body: long_text }])
+
+        record = TestInsertAllLob.find(1)
+        expect(record.body).to eq(long_text)
+        expect(record.updated_at).to be > updated_at
+      end
 
       it "clears the query cache" do
         TestInsertAllLob.cache do
