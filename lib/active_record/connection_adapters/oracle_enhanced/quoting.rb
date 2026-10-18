@@ -152,6 +152,8 @@ module ActiveRecord
             "'#{quote_string(value.to_s)}'"
           when Type::OracleEnhanced::NationalCharacterString::Data then
             +"N" << "'#{quote_string(value.to_s)}'"
+          when Type::OracleEnhanced::Raw::Data then
+            "'#{value.to_hex}'"
           when ActiveModel::Type::Binary::Data then
             "empty_blob()"
           when Type::OracleEnhanced::Text::Data then
@@ -196,6 +198,8 @@ module ActiveRecord
             value.to_s
           when Type::OracleEnhanced::CharacterString::Data
             value
+          when Type::OracleEnhanced::Raw::Data
+            value.to_hex
           else
             super
           end

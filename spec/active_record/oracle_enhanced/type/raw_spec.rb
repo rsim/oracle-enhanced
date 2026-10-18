@@ -134,4 +134,32 @@ RSpec.describe "OracleEnhancedAdapter handling of RAW columns" do
     )
     expect(TestEmployee.where(binary_data: @binary_data)).to have_attributes(count: 1)
   end
+
+  it "should keep RAW data after save without reload" do
+    @employee = TestEmployee.create!(
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
+    )
+    expect(@employee.binary_data).to eq(@binary_data)
+    expect(@employee).not_to be_changed
+
+    @employee.binary_data = @binary_data2
+    @employee.save!
+    expect(@employee.binary_data).to eq(@binary_data2)
+    expect(@employee).not_to be_changed
+  end
+
+  it "should save RAW data changed in place after save" do
+    @employee = TestEmployee.create!(
+      first_name: "First",
+      last_name: "Last",
+      binary_data: @binary_data
+    )
+    @employee.binary_data << "\1"
+
+    expect(@employee).to be_changed
+    @employee.save!
+    expect(@employee.reload.binary_data).to eq(@binary_data + "\1")
+  end
 end
