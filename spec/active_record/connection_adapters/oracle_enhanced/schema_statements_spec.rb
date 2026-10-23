@@ -243,7 +243,7 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
     # https://github.com/rsim/oracle-enhanced/issues/2382
     before(:each) do
       schema_define do
-        create_table :test_account_users, id: { limit: 19, precision: 19 }, force: :cascade do |t|
+        create_table :test_account_users, id: { limit: 19, precision: 19 }, identity: false, force: :cascade do |t|
           t.integer :account_id, limit: 19, precision: 19, null: false
         end
       end

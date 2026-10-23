@@ -303,6 +303,24 @@ RSpec.describe "identity primary keys" do
         end
       }.to raise_error(ArgumentError, /composite primary key/)
     end
+
+    it "raises when combined with sequence_name:" do
+      expect {
+        @conn.create_table :test_identity_pks, identity: true, sequence_name: "test_identity_pks_s", force: true do |t|
+          t.string :name
+        end
+      }.to raise_error(ArgumentError, /`sequence_name:` cannot be combined with `identity: true`.*Remove `sequence_name:`, or pass `identity: false`/)
+      expect(@conn.table_exists?(:test_identity_pks)).to be false
+    end
+
+    it "raises when combined with sequence_start_value:" do
+      expect {
+        @conn.create_table :test_identity_pks, identity: true, sequence_start_value: 10000, force: true do |t|
+          t.string :name
+        end
+      }.to raise_error(ArgumentError, /`sequence_start_value:` cannot be combined with `identity: true`.*Remove `sequence_start_value:`, or pass `identity: false`/)
+      expect(@conn.table_exists?(:test_identity_pks)).to be false
+    end
   end
 
   describe "schema_dumper roundtrip" do
