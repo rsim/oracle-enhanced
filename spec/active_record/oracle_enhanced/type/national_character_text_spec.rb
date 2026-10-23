@@ -78,7 +78,11 @@ RSpec.describe "OracleEnhancedAdapter handling of NCLOB columns" do
     expect(@employee).to be_valid
     @employee.reload
     expect(@employee.comments).to eq(@nclob_data)
-    @employee.comments = @nclob_data2
+    expect { @employee.comments = @nclob_data2 }.to raise_error(ActiveRecord::ReadonlyAttributeError)
+    # Rails raises ActiveRecord::ReadonlyAttributeError on assignment, so mutate
+    # in place to send a readonly LOB change through save.
+    @employee.comments.replace(@nclob_data2)
+    expect(@employee.will_save_change_to_comments?).to be(true)
     expect(@employee.save).to be(true)
     @employee.reload
     expect(@employee.comments).to eq(@nclob_data)
@@ -87,18 +91,21 @@ RSpec.describe "OracleEnhancedAdapter handling of NCLOB columns" do
   it "should work for serialized readonly NCLOB columns", serialized: true do
     @employee = TestSerializeEmployee.new(
       first_name: "First",
-      comments: nil
+      comments: {}
     )
-    expect(@employee.comments).to be_nil
     expect(@employee.save).to be(true)
     expect(@employee).to be_valid
     @employee.reload
-    expect(@employee.comments).to be_nil
-    @employee.comments = {}
+    expect(@employee.comments).to eq({})
+    expect { @employee.comments = { "key" => "value" } }.to raise_error(ActiveRecord::ReadonlyAttributeError)
+    # Rails raises ActiveRecord::ReadonlyAttributeError on assignment, so mutate
+    # in place to send a readonly LOB change through save.
+    @employee.comments["key"] = "value"
+    expect(@employee.will_save_change_to_comments?).to be(true)
     expect(@employee.save).to be(true)
     @employee.reload
     # should not set readonly
-    expect(@employee.comments).to be_nil
+    expect(@employee.comments).to eq({})
   end
 
   it "should create record with NCLOB data" do
@@ -275,7 +282,11 @@ RSpec.describe "OracleEnhancedAdapter handling of NCLOB columns" do
       expect(@employee).to be_valid
       @employee.reload
       expect(@employee.comments).to eq(@nclob_data)
-      @employee.comments = @nclob_data2
+      expect { @employee.comments = @nclob_data2 }.to raise_error(ActiveRecord::ReadonlyAttributeError)
+      # Rails raises ActiveRecord::ReadonlyAttributeError on assignment, so mutate
+      # in place to send a readonly LOB change through save.
+      @employee.comments.replace(@nclob_data2)
+      expect(@employee.will_save_change_to_comments?).to be(true)
       expect(@employee.save).to be(true)
       @employee.reload
       expect(@employee.comments).to eq(@nclob_data)
