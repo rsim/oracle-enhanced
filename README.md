@@ -786,6 +786,59 @@ if any database structure changed by migrations, execute `rails db:schema:cache:
 
 UPGRADE
 ---------------
+### Upgrade Rails 8.1 or older version to Rails 8.2
+
+* Oracle Database 11.2 or later is required
+
+The adapter checks the server version when it connects and raises for older releases.
+
+* Run `rails db:schema:cache:dump` again
+
+A `db/schema_cache.yml` written by an older release lacks the `identity` and `trigger_assigned`
+column attributes. Without them the adapter reads the data dictionary on every `INSERT` to decide
+whether to prefetch the primary key. Dump the cache again and restart the Rails server.
+
+* New migrations create identity primary keys on Oracle Database 12.1 and later
+
+A migration declaring `ActiveRecord::Migration[8.2]` or later creates its primary key as an
+identity column; no `<table>_seq` sequence is created. Migrations declaring `8.1` or older keep
+the sequence-backed primary key, so nothing already written changes. To keep a sequence on a new
+migration, pass `identity: false`, `sequence_name:`, `sequence_start_value:` or
+`primary_key_trigger: true` to `create_table`. See "Primary keys: identity columns and sequences".
+
+* `db/schema.rb` gains `identity: false` on sequence-backed tables
+
+On Oracle Database 12.1 and later the schema dumper writes `identity: false` for a sequence-backed
+table and nothing for an identity table; `identity: true` is no longer written. The first
+`rails db:schema:dump` after upgrading changes every sequence-backed `create_table` line once.
+A `db/schema.rb` that still declares `ActiveRecord::Schema[8.1]` loads as before.
+
+* `add_index :table, :column, unique: true` creates the unique index only
+
+For migrations declaring `ActiveRecord::Migration[8.2]` or later, the implicit UNIQUE CONSTRAINT
+that the adapter used to add next to the unique index is gone, matching the other Rails adapters.
+Migrations and schema files declaring `8.1` or older still create it and print a deprecation
+warning. Where a constraint is needed, for example as the target of a foreign key, call
+`add_unique_constraint`:
+
+```ruby
+add_unique_constraint :sections, :position, name: :uniq_sections_position
+```
+
+`OracleEnhancedAdapter.add_index_unique_creates_constraint` now has three values: `nil` (the
+default) decides by the declared version as described above, `true` creates the constraint on
+every version, `false` never creates it.
+
+* `Arel::Visitors::Oracle12` is removed
+
+`Arel::Visitors::Oracle` handles every supported server. Remove any `require "arel/visitors/oracle12"`
+or reference to the constant, and use `limit_offset_syntax` in `database.yml` to choose between
+`FETCH FIRST` and `ROWNUM` if the automatic choice is not what you want.
+
+* `UPDATE` and `DELETE` with `limit` or `offset` but no primary key raise `ArgumentError`
+
+Earlier releases silently changed every row in that case.
+
 ### Upgrade Rails 5.1 or older version to Rails 5.2
 
 * `emulate_booleans_from_strings = true` change
