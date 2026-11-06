@@ -57,7 +57,7 @@ RSpec.describe "primary_key_trigger" do
   describe "with primary_key_trigger: true" do
     it "creates a sequence + BEFORE INSERT trigger" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -68,7 +68,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "skips prefetch_primary_key? for trigger-backed tables" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -78,7 +78,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "allows inserting rows without supplying id (trigger fills via NEXTVAL)" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -91,7 +91,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "allows inserting rows with an explicit id (trigger only fires when NULL)" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -103,7 +103,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "honors the :trigger_name option" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true, trigger_name: :custom_pkt do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false, trigger_name: :custom_pkt do |t|
           t.string :name
         end
       end
@@ -145,7 +145,7 @@ RSpec.describe "primary_key_trigger" do
   describe "prefetch_primary_key? cache invalidation" do
     it "is invalidated when a trigger-backed table is dropped and recreated as plain sequence-backed" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -170,7 +170,7 @@ RSpec.describe "primary_key_trigger" do
 
       schema_define do
         drop_table :test_pk_triggers
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -226,7 +226,7 @@ RSpec.describe "primary_key_trigger" do
   describe "schema_dumper roundtrip" do
     it "emits primary_key_trigger: true for trigger-backed tables" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -238,6 +238,22 @@ RSpec.describe "primary_key_trigger" do
 
       expect(stream.string).to include('create_table "test_pk_triggers"')
       expect(stream.string).to include("primary_key_trigger: true")
+    end
+
+    it "emits identity: false for trigger-backed tables so the dump loads on Oracle 12.1+" do
+      skip "requires Oracle 12.1+" unless @conn.supports_identity_columns?
+      schema_define do
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
+          t.string :name
+        end
+      end
+
+      stream = StringIO.new
+      ActiveRecord.schema_ignored_tables = @conn.data_sources - ["test_pk_triggers"]
+      ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
+      ActiveRecord.schema_ignored_tables = []
+
+      expect(stream.string).to include('create_table "test_pk_triggers", primary_key_trigger: true, identity: false')
     end
 
     it "does not emit primary_key_trigger: true for plain sequence-backed tables" do
@@ -277,7 +293,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "emits :trigger_name when non-default" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true, trigger_name: :custom_pkt do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false, trigger_name: :custom_pkt do |t|
           t.string :name
         end
       end
@@ -293,7 +309,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "does not emit :trigger_name when matching the default" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -311,7 +327,7 @@ RSpec.describe "primary_key_trigger" do
   describe "low-level INSERT with primary_key_trigger: true" do
     before(:each) do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -345,7 +361,7 @@ RSpec.describe "primary_key_trigger" do
   describe "with non-default :primary_key" do
     it "uses the named primary key column with the trigger" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true, primary_key: "employee_id" do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false, primary_key: "employee_id" do |t|
           t.string :name
         end
       end
@@ -367,7 +383,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "creates the trigger using the named sequence" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true, sequence_name: :test_pk_triggers_s do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false, sequence_name: :test_pk_triggers_s do |t|
           t.string :name
         end
       end
@@ -411,7 +427,7 @@ RSpec.describe "primary_key_trigger" do
       @long_table_name = "a" * max
       table_name_local = @long_table_name
       schema_define do
-        create_table table_name_local.to_sym, primary_key_trigger: true do |t|
+        create_table table_name_local.to_sym, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -461,7 +477,7 @@ RSpec.describe "primary_key_trigger" do
   describe "auto_populated_on_insert? on the primary key column" do
     it "reports true for a trigger-backed primary key" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -503,7 +519,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "drives _returning_columns_for_insert for trigger-backed tables" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -570,7 +586,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "lets INSERT continue to work after rename" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -586,7 +602,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "renames the trigger to follow the new table when the trigger uses the default name" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end
@@ -602,7 +618,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "preserves a custom trigger_name and refreshes only its body" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true, trigger_name: "custom_pkt" do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false, trigger_name: "custom_pkt" do |t|
           t.string :name
         end
       end
@@ -637,7 +653,7 @@ RSpec.describe "primary_key_trigger" do
 
     it "is round-tripped by SchemaDumper after rename" do
       schema_define do
-        create_table :test_pk_triggers, primary_key_trigger: true do |t|
+        create_table :test_pk_triggers, primary_key_trigger: true, identity: false do |t|
           t.string :name
         end
       end

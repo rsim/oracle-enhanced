@@ -1416,7 +1416,7 @@ RSpec.describe "OracleEnhancedAdapter" do
       @conn = ActiveRecord::Base.lease_connection
       schema_define do
         create_table :table_with_name_thats_just_ok,
-          sequence_name: "suitably_short_seq", force: true do |t|
+          sequence_name: "suitably_short_seq", identity: false, force: true do |t|
           t.column :foo, :string, null: false
         end
       end

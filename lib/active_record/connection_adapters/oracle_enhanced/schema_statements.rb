@@ -135,10 +135,12 @@ module ActiveRecord
             raise ArgumentError, "Options `:force` and `:if_not_exists` cannot be used simultaneously."
           end
 
-          options[:identity] = true if !options.key?(:identity) && default_to_identity?(id, primary_key, options)
+          identity_by_default = !options.key?(:identity) && identity_by_default?(id, primary_key)
+          options[:identity] = true if identity_by_default && sequence_backed_primary_key_options(id, options).empty?
           identity = options[:identity]
-          validate_identity_options!(identity, id, primary_key)
+          validate_identity_options!(identity, id, primary_key, options)
           validate_primary_key_trigger_options!(options[:primary_key_trigger], identity, id, primary_key)
+          validate_identity_opt_out!(id, options) if identity_by_default && !identity
 
           if force && data_source_exists?(table_name)
             drop_table(table_name, force: force, if_exists: true)
@@ -1425,17 +1427,47 @@ module ActiveRecord
             MSG
           end
 
-          # Oracle Database 12.1 and later default a plain numeric primary key
-          # to an identity column. Sequence options and a trigger-populated key
-          # keep the sequence-backed form; an `id:` other than :primary_key and
-          # composite keys are left as Rails defines them.
-          def default_to_identity?(id, primary_key, options)
-            supports_identity_columns? &&
-              id == :primary_key && !primary_key.is_a?(Array) &&
-              !options[:sequence_name] && !options[:sequence_start_value] && !options[:primary_key_trigger]
+          NUMERIC_PRIMARY_KEY_TYPES = [:primary_key, :integer, :bigint, :decimal].freeze
+          private_constant :NUMERIC_PRIMARY_KEY_TYPES
+
+          # Oracle Database 12.1 and later default a single-column numeric
+          # primary key to an identity column. Composite keys, non-numeric keys
+          # and `id: false` cannot be identity columns and are left as Rails
+          # defines them.
+          def identity_by_default?(id, primary_key)
+            supports_identity_columns? && !primary_key.is_a?(Array) && numeric_primary_key_id?(id)
           end
 
-          def validate_identity_options!(identity, id, primary_key)
+          def numeric_primary_key_id?(id)
+            id = id.fetch(:type, :primary_key) if id.is_a?(Hash)
+            NUMERIC_PRIMARY_KEY_TYPES.include?(id)
+          end
+
+          # The options given to create_table that only make sense for a
+          # sequence-backed primary key, formatted for an error message.
+          def sequence_backed_primary_key_options(id, options)
+            given = []
+            given << "`id: #{id.inspect}`" unless id == :primary_key
+            given << "`sequence_name:`" if options[:sequence_name]
+            given << "`sequence_start_value:`" if options[:sequence_start_value]
+            given << "`primary_key_trigger: true`" if options[:primary_key_trigger]
+            given
+          end
+
+          # When the primary key would default to an identity column, a
+          # sequence-backed one has to be requested with `identity: false`
+          # rather than implied by sequence options or the `id:` type.
+          def validate_identity_opt_out!(id, options)
+            given = sequence_backed_primary_key_options(id, options)
+            raise ArgumentError, <<~MSG.squish
+              #{given.to_sentence} #{given.one? ? "requires" : "require"} a sequence-backed primary key,
+              but Oracle Database 12.1 and later create an identity primary key by default.
+              Pass `identity: false` to keep the sequence-backed primary key,
+              or remove #{given.to_sentence} to use an identity primary key.
+            MSG
+          end
+
+          def validate_identity_options!(identity, id, primary_key, options)
             return unless identity
             unless supports_identity_columns?
               raise ArgumentError,
@@ -1448,6 +1480,14 @@ module ActiveRecord
             if primary_key.is_a?(Array)
               raise ArgumentError,
                 "`identity: true` cannot be combined with a composite primary key."
+            end
+            if options[:sequence_name]
+              raise ArgumentError,
+                "`sequence_name:` cannot be combined with `identity: true`; an identity column does not use a named sequence. Remove `sequence_name:`, or pass `identity: false` to keep a sequence-backed primary key."
+            end
+            if options[:sequence_start_value]
+              raise ArgumentError,
+                "`sequence_start_value:` cannot be combined with `identity: true`; an identity column starts at 1. Remove `sequence_start_value:`, or pass `identity: false` to keep a sequence-backed primary key."
             end
           end
 
@@ -1469,13 +1509,11 @@ module ActiveRecord
 
           def should_create_sequence?(td, id, identity)
             return false if identity
-            numeric_pk_types = [:primary_key, :integer, :bigint, :decimal]
             if id
-              id = id.fetch(:type, :primary_key) if id.is_a?(Hash)
-              numeric_pk_types.include?(id)
+              numeric_primary_key_id?(id)
             else
               td.columns.any? do |column|
-                column.options[:primary_key] && numeric_pk_types.include?(column.type)
+                column.options[:primary_key] && NUMERIC_PRIMARY_KEY_TYPES.include?(column.type)
               end
             end
           end

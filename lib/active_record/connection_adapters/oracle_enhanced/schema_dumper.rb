@@ -181,6 +181,7 @@ module ActiveRecord # :nodoc:
                   tbl.print ", primary_key_trigger: true"
                   default_name = @connection.default_trigger_name(table).upcase
                   tbl.print ", trigger_name: #{trigger_name.downcase.inspect}" unless trigger_name == default_name
+                  tbl.print ", identity: false" if @connection.supports_identity_columns?
                 elsif @connection.supports_identity_columns? && !pkcol.auto_incremented_by_db? && sequence_backed_primary_key?(pkcol)
                   tbl.print ", identity: false"
                 end

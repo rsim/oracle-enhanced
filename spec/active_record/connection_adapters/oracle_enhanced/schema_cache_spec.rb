@@ -233,7 +233,7 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
     context "with a trigger-backed primary key" do
       before(:all) do
         schema_define do
-          create_table :test_schema_cache_legacy_posts, force: true, primary_key_trigger: true do |t|
+          create_table :test_schema_cache_legacy_posts, force: true, primary_key_trigger: true, identity: false do |t|
             t.string :title
           end
         end
