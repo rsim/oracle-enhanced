@@ -418,11 +418,7 @@ class Employee < ActiveRecord::Base
 end
 ```
 
-You can also access remote tables over database link using
-
-```ruby
-self.table_name "hr_employees@db_link"
-```
+Database links are not supported. To use tables in another database, see [Multiple Databases with Active Record](https://guides.rubyonrails.org/active_record_multiple_databases.html).
 
 Examples for Rails 4.x
 
@@ -478,12 +474,6 @@ class Employee < ActiveRecord::Base
   # set which columns should be ignored in ActiveRecord
   ignore_table_columns :attribute1, :attribute2
 end
-```
-
-You can also access remote tables over database link using
-
-```ruby
-set_table_name "hr_employees@db_link"
 ```
 
 ### Custom create, update and delete methods
