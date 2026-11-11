@@ -36,7 +36,9 @@ module ActiveRecord
 
           def to_character_str
             len = @value.to_s.length
-            if len < @limit
+            # Oracle Database stores a zero-length string as NULL, so do not pad
+            # an empty string into blanks.
+            if len > 0 && len < @limit
               "%-#{@limit}s" % @value
             else
               @value

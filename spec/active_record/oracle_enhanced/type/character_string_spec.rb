@@ -53,6 +53,13 @@ RSpec.describe "OracleEnhancedAdapter processing CHAR column" do
     expect(@conn.select_value("SELECT padded FROM test_items")).to be_nil
   end
 
+  it "should store an empty string as NULL" do
+    TestItem.create!(padded: "")
+
+    expect(TestItem.first.padded).to be_nil
+    expect(@conn.select_value("SELECT padded FROM test_items")).to be_nil
+  end
+
   it "should support case sensitive matching" do
     TestItem.create!(
       padded: "First",
