@@ -1552,7 +1552,7 @@ module ActiveRecord
             OracleEnhanced::TableDefinition.new(self, name, **options)
           end
 
-          def new_column_from_field(table_name, field, definitions)
+          def new_column_from_field(table_name, field, definitions, slot)
             limit, scale = field["limit"], field["scale"]
             if limit || scale
               field["sql_type"] += "(#{(limit || 38).to_i}" + ((scale = scale.to_i) > 0 ? ",#{scale})" : ")")
@@ -1588,7 +1588,8 @@ module ActiveRecord
                              field["nullable"] == "Y",
                              comment: field["column_comment"],
                              identity: is_identity,
-                             trigger_assigned: field["trigger_assigned"]
+                             trigger_assigned: field["trigger_assigned"],
+                             slot: slot
             )
           end
 
@@ -1631,7 +1632,7 @@ module ActiveRecord
           def create_pk_trigger(table_name, pk_column, options)
             seq_name = options[:sequence_name] || default_sequence_name(table_name, nil)
             trigger_name = options[:trigger_name] || default_trigger_name(table_name)
-            pk = pk_column || ActiveRecord::Base.get_primary_key(table_name.to_s.singularize)
+            pk = pk_column || ActiveRecord::Base.primary_key_from_prefix(table_name.to_s.singularize) || "id"
             execute <<~SQL
               CREATE OR REPLACE TRIGGER #{quote_table_name(trigger_name)}
                 BEFORE INSERT ON #{quote_table_name(table_name)} FOR EACH ROW

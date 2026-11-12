@@ -51,6 +51,11 @@ RSpec.describe "OracleEnhancedAdapter schema cache" do
       expect(column_names).to include("id", "title", "body", "created_at", "updated_at")
     end
 
+    it "records the slot of each column in the table" do
+      columns = schema_cache.columns("test_schema_cache_posts")
+      expect(columns.map(&:slot)).to eq((0...columns.size).to_a)
+    end
+
     it "caches columns after first access" do
       schema_cache.columns("test_schema_cache_posts")
       expect(schema_cache.cached?("test_schema_cache_posts")).to be true
