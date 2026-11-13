@@ -122,6 +122,15 @@ RSpec.describe "OracleEnhancedAdapter handling of CLOB columns" do
     expect(@employee.comments).to eq(@char_data)
   end
 
+  it "should return the connection to the pool after saving a record with CLOB data" do
+    connection_held = Thread.new do
+      TestEmployee.create!(first_name: "First", last_name: "Last", comments: @char_data)
+      ActiveRecord::Base.connection_pool.active_connection?
+    end.value
+
+    expect(connection_held).to be_nil
+  end
+
   it "should update record with CLOB data" do
     @employee = TestEmployee.create!(
       first_name: "First",
