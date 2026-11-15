@@ -214,6 +214,200 @@ RSpec.describe "OracleEnhancedAdapter" do
     end
   end
 
+  describe "supports_update_returning?" do
+    it "is true" do
+      expect(ActiveRecord::Base.lease_connection.supports_update_returning?).to be(true)
+    end
+
+    context "with virtual columns" do
+      before(:all) do
+        schema_define do
+          create_table :test_update_returning_items, force: true do |t|
+            t.string  :first_name, limit: 20
+            t.string  :last_name, limit: 25
+            t.virtual :full_name, as: "(first_name || ' ' || last_name)"
+            t.virtual :first_name_length, as: "LENGTH(first_name)", type: :integer
+            t.virtual :name_ratio, as: "(LENGTH(first_name) / LENGTH(last_name))"
+            t.virtual :first_name_with_leading_space, as: "' ' || first_name", type: :string, limit: 30
+            t.virtual :first_name_initial_date, as: "TO_DATE('2026-01-01', 'YYYY-MM-DD') + LENGTH(first_name)"
+            t.string  :description, limit: 4000
+            t.virtual :upper_description, as: "UPPER(description)", type: :string, limit: 4000
+          end
+          create_table :test_update_returning_plain_items, force: true do |t|
+            t.string :name
+          end
+          create_table :test_update_returning_locked_items, force: true do |t|
+            t.string  :name
+            t.integer :lock_version, default: 0, null: false
+            t.virtual :name_length, as: "LENGTH(name)", type: :integer
+          end
+        end
+        class ::TestUpdateReturningItem < ActiveRecord::Base
+        end
+        class ::TestUpdateReturningPlainItem < ActiveRecord::Base
+        end
+        class ::TestUpdateReturningLockedItem < ActiveRecord::Base
+        end
+      end
+
+      after(:all) do
+        schema_define do
+          drop_table :test_update_returning_items, if_exists: true
+          drop_table :test_update_returning_plain_items, if_exists: true
+          drop_table :test_update_returning_locked_items, if_exists: true
+        end
+        Object.send(:remove_const, "TestUpdateReturningItem") if defined?(TestUpdateReturningItem)
+        Object.send(:remove_const, "TestUpdateReturningPlainItem") if defined?(TestUpdateReturningPlainItem)
+        Object.send(:remove_const, "TestUpdateReturningLockedItem") if defined?(TestUpdateReturningLockedItem)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      before(:each) do
+        @item = TestUpdateReturningItem.create!(first_name: "John", last_name: "Doe")
+        @item.reload
+        set_logger
+      end
+
+      after(:each) do
+        clear_logger
+        TestUpdateReturningItem.delete_all
+        TestUpdateReturningPlainItem.delete_all
+        TestUpdateReturningLockedItem.delete_all
+      end
+
+      def update_logs
+        @logger.logged(:debug).grep(/\bUPDATE "/)
+      end
+
+      it "refreshes virtual columns on update without a SELECT" do
+        @item.update!(first_name: "Johnny", last_name: "Appleseed")
+
+        expect(@item.full_name).to eq("Johnny Appleseed")
+        expect(@item.first_name_length).to eq(6)
+        expect(@item.first_name_with_leading_space).to eq(" Johnny")
+        expect(@logger.logged(:debug).grep(/SELECT/)).to be_empty
+      end
+
+      it "emits Oracle's `RETURNING ... INTO :bind` form" do
+        @item.update!(first_name: "Johnny")
+
+        expect(update_logs.size).to eq(1)
+        expect(update_logs.first).to match(/RETURNING "FULL_NAME", "FIRST_NAME_LENGTH", "NAME_RATIO", "FIRST_NAME_WITH_LEADING_SPACE", "UPPER_DESCRIPTION" INTO :returning_0, :returning_1, :returning_2, :returning_3, :returning_4/)
+      end
+
+      it "keeps the fractional part of a numeric virtual column" do
+        @item.update!(first_name: "Jo", last_name: "Doe")
+
+        expect(@item.name_ratio.round(2)).to eq(BigDecimal("0.67"))
+        expect(@item.name_ratio).to eq(TestUpdateReturningItem.find(@item.id).name_ratio)
+      end
+
+      it "returns a string virtual column longer than ruby-oci8's default buffer" do
+        @item.update!(description: "x" * 4000)
+
+        expect(@item.upper_description).to eq("X" * 4000)
+      end
+
+      it "refreshes virtual columns without prepared statements" do
+        ActiveRecord::Base.lease_connection.unprepared_statement do
+          @item.update!(first_name: "Johnny")
+        end
+
+        expect(@item.full_name).to eq("Johnny Doe")
+        expect(update_logs.first).to match(/RETURNING .* INTO :returning_0/)
+      end
+
+      it "returns nil for a virtual column whose expression evaluates to NULL" do
+        @item.update!(first_name: nil)
+
+        expect(@item.first_name_length).to be_nil
+        expect(@item.full_name).to eq(" Doe")
+      end
+
+      it "leaves virtual columns of an unsupported type to a reload" do
+        @item.update!(first_name: "Johnny")
+
+        expect(update_logs.first).not_to include("FIRST_NAME_INITIAL_DATE")
+        expect(@item.reload.first_name_initial_date).to eq(Date.new(2026, 1, 7))
+      end
+
+      it "returns the number of affected rows through _update_record_with_result" do
+        result = TestUpdateReturningItem._update_record_with_result(
+          { "first_name" => "Johnny" }, { "id" => @item.id }, ["full_name"]
+        )
+
+        expect(result.affected_rows).to eq(1)
+        expect(result.columns).to eq(["full_name"])
+        expect(result.rows).to eq([["Johnny Doe"]])
+      end
+
+      it "returns no rows when the update matches nothing" do
+        result = TestUpdateReturningItem._update_record_with_result(
+          { "first_name" => "Johnny" }, { "id" => -1 }, ["full_name"]
+        )
+
+        expect(result.affected_rows).to eq(0)
+        expect(result.rows).to be_empty
+      end
+
+      it "increments lock_version and raises on a stale record" do
+        item = TestUpdateReturningLockedItem.create!(name: "alpha")
+        stale = TestUpdateReturningLockedItem.find(item.id)
+        item.update!(name: "alphabet")
+
+        expect(item.lock_version).to eq(1)
+        expect(update_logs.first).not_to match(/\sRETURNING\s/)
+        expect(item.reload.name_length).to eq(8)
+        expect { stale.update!(name: "beta") }.to raise_error(ActiveRecord::StaleObjectError)
+      end
+
+      it "does not append RETURNING for a model without virtual columns" do
+        plain = TestUpdateReturningPlainItem.create!(name: "alpha")
+        plain.update!(name: "beta")
+
+        expect(update_logs.size).to eq(1)
+        expect(update_logs.first).not_to match(/\sRETURNING\s/)
+      end
+
+      it "clears the query cache" do
+        TestUpdateReturningItem.cache do
+          expect(TestUpdateReturningItem.find(@item.id).full_name).to eq("John Doe")
+          @item.update!(first_name: "Johnny")
+          expect(TestUpdateReturningItem.find(@item.id).full_name).to eq("Johnny Doe")
+        end
+      end
+    end
+
+    context "with a composite primary key" do
+      before(:all) do
+        schema_define do
+          create_table :test_update_returning_cpk_items, primary_key: [:shop_id, :item_id], force: true do |t|
+            t.integer :shop_id
+            t.integer :item_id
+            t.string  :name
+            t.virtual :name_length, as: "LENGTH(name)", type: :integer
+          end
+        end
+        class ::TestUpdateReturningCpkItem < ActiveRecord::Base
+        end
+      end
+
+      after(:all) do
+        schema_define { drop_table :test_update_returning_cpk_items, if_exists: true }
+        Object.send(:remove_const, "TestUpdateReturningCpkItem") if defined?(TestUpdateReturningCpkItem)
+        ActiveRecord::Base.clear_cache!
+      end
+
+      it "refreshes virtual columns on update" do
+        item = TestUpdateReturningCpkItem.create!(shop_id: 1, item_id: 1, name: "alpha")
+        item.update!(name: "alphabet")
+
+        expect(item.name_length).to eq(8)
+        expect(TestUpdateReturningCpkItem.find([1, 1]).name_length).to eq(8)
+      end
+    end
+  end
+
   describe "supports_datetime_with_precision?" do
     it "returns true with a deprecation warning" do
       conn = ActiveRecord::Base.lease_connection
