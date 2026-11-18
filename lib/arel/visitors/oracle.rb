@@ -23,14 +23,19 @@ module Arel # :nodoc: all
         end
 
         # Oracle before 12.1 has no row limiting clause, so LIMIT and OFFSET are written with ROWNUM.
-        # ROWNUM is also used for a limit combined with a lock, because Oracle raises ORA-02014 for
-        # FETCH FIRST with FOR UPDATE. A statement nested in one written with ROWNUM uses ROWNUM too.
+        # ROWNUM is also used for a limit combined with a lock, because Oracle before 23.26.4 raises
+        # ORA-02014 for FETCH FIRST with FOR UPDATE. A statement nested in one written with ROWNUM uses
+        # ROWNUM too.
         def rownum?(o = nil)
-          @rownum || (o&.limit && o.lock) || !use_fetch_first_syntax?
+          @rownum || (o&.limit && o.lock && !fetch_first_with_lock?) || !use_fetch_first_syntax?
         end
 
         def use_fetch_first_syntax?
           @connection.use_fetch_first_syntax?
+        end
+
+        def fetch_first_with_lock?
+          @connection.supports_fetch_first_with_lock?
         end
 
         def visit_select_statement_with_rownum(o, collector)

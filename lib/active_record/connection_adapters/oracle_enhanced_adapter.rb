@@ -564,6 +564,11 @@ module ActiveRecord
         configured_limit_offset_syntax != :rownum && supports_fetch_first_n_rows_and_offset?
       end
 
+      def supports_fetch_first_with_lock? # :nodoc:
+        full_version = database_version.full_version_string
+        full_version.present? && Version.new(full_version) >= "23.26.4"
+      end
+
       # Deprecated in step with Rails (rails/rails#58809). Every supported
       # Oracle Database release stores sub-second precision in TIMESTAMP, so
       # the check always returned true and no longer guards anything.

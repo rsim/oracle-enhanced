@@ -1053,6 +1053,32 @@ RSpec.describe "OracleEnhancedAdapter" do
       expect(@employee.order(:sort_order).offset(1).first.first_name).to eq("Tony")
       expect(@employee.order(:sort_order).offset(4).first.first_name).to eq("Natasha")
     end
+
+    it "should return the first n records in order with order, limit(n) and lock" do
+      skip "Not supported in this database version" unless @conn.supports_fetch_first_with_lock?
+
+      @employee.transaction do
+        expect(@employee.order(:sort_order).limit(2).lock.pluck(:first_name)).to eq(["Peter", "Tony"])
+        expect(@employee.order(:sort_order).lock.first.first_name).to eq("Peter")
+      end
+    end
+
+    it "should skip the records locked by another connection with limit(n) and lock(\"FOR UPDATE SKIP LOCKED\")" do
+      skip "Not supported in this database version" unless @conn.supports_fetch_first_with_lock?
+
+      relation = @employee.order(:sort_order).limit(2).lock("FOR UPDATE SKIP LOCKED")
+      @employee.transaction do
+        expect(relation.pluck(:first_name)).to eq(["Peter", "Tony"])
+
+        Thread.new do
+          @employee.connection_pool.with_connection do
+            @employee.transaction do
+              expect(relation.pluck(:first_name)).to eq(["Steven", "Bruce"])
+            end
+          end
+        end.join
+      end
+    end
   end
 
   describe "valid_type?" do
