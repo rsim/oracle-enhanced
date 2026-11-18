@@ -402,7 +402,7 @@ RSpec.describe "OracleEnhanced::CompatibilityBehavior for add_index unique: true
     klass = Class.new(migration_class) do
       define_method(:change, &body)
     end
-    klass.migrate(:up)
+    ActiveRecord::Migration.suppress_messages { klass.migrate(:up) }
   end
 
   describe "Migration[8.2] (current default — Phase 2)" do
@@ -547,11 +547,11 @@ RSpec.describe "OracleEnhanced::CompatibilityBehavior for add_index unique: true
       end
 
       deprecator = ActiveRecord::ConnectionAdapters::OracleEnhanced.deprecator
-      deprecator.silence { migration.migrate(:up) }
+      deprecator.silence { ActiveRecord::Migration.suppress_messages { migration.migrate(:up) } }
       expect(@conn.unique_constraints(:test_v81_revert).map(&:name)).to include("uniq_v81_revert")
 
       expect {
-        deprecator.silence { migration.migrate(:down) }
+        deprecator.silence { ActiveRecord::Migration.suppress_messages { migration.migrate(:down) } }
       }.not_to raise_error
       expect(@conn.table_exists?(:test_v81_revert)).to be false
     ensure
