@@ -143,9 +143,9 @@ module ActiveRecord
           if force && data_source_exists?(table_name)
             drop_table(table_name, force: force, if_exists: true)
           elsif options[:if_not_exists] && data_source_exists?(table_name)
-            # Oracle 21c and earlier do not support `CREATE TABLE IF NOT EXISTS` DDL;
-            # pre-check existence in Ruby so the emitted SQL stays identical across
-            # all supported Oracle releases.
+            # Oracle 21c and earlier do not support `CREATE TABLE IF NOT EXISTS`, and
+            # the sequence, indexes, comments and trigger are separate statements
+            # that must not run against an existing table.
             return
           end
 
@@ -1626,7 +1626,8 @@ module ActiveRecord
           def create_pk_sequence(table_name, options)
             seq_name = options[:sequence_name] || default_sequence_name(table_name, nil)
             seq_start_value = options[:sequence_start_value] || default_sequence_start_value
-            execute "CREATE SEQUENCE #{quote_table_name(seq_name)} START WITH #{seq_start_value}"
+            if_not_exists_clause = " IF NOT EXISTS" if options[:if_not_exists] && supports_create_if_not_exists?
+            execute "CREATE SEQUENCE#{if_not_exists_clause} #{quote_table_name(seq_name)} START WITH #{seq_start_value}"
           end
 
           def create_pk_trigger(table_name, pk_column, options)

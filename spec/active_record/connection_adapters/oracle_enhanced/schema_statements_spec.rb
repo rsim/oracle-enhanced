@@ -9,6 +9,12 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
     @conn = ActiveRecord::Base.lease_connection
   end
 
+  def capture_ddl(&block)
+    sqls = []
+    ActiveSupport::Notifications.subscribed(->(_n, _s, _f, _id, payload) { sqls << payload[:sql] if payload[:sql] }, "sql.active_record", &block)
+    sqls
+  end
+
   describe "option to create sequence when adding a column" do
     before do
       schema_define do
@@ -1725,6 +1731,13 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
       end.not_to raise_error
     end
 
+    it "uses the IF NOT EXISTS clause only where the database supports it" do
+      @conn.remove_index :test_posts, :title
+      sql = capture_ddl { @conn.add_index :test_posts, :title, if_not_exists: true }
+
+      expect(sql.grep(/\ACREATE INDEX/).first.include?("IF NOT EXISTS")).to eq @conn.supports_create_if_not_exists?
+    end
+
     it "raises ArgumentError when the index already exists and if_not_exists is unset" do
       expect do
         @conn.add_index :test_posts, :title
@@ -1744,6 +1757,30 @@ RSpec.describe "OracleEnhancedAdapter schema definition" do
         end
       end
       expect(@conn.data_source_exists?(:test_posts)).to be true
+    end
+
+    it "uses the IF NOT EXISTS clause only where the database supports it" do
+      sql = capture_ddl do
+        schema_define do
+          create_table :test_posts, if_not_exists: true, identity: false do |t|
+            t.string :title
+          end
+        end
+      end
+
+      expect(sql.grep(/\ACREATE (TABLE|SEQUENCE)/).map { |s| s.include?("IF NOT EXISTS") }).to eq [@conn.supports_create_if_not_exists?] * 2
+    end
+
+    it "does not use the IF NOT EXISTS clause without if_not_exists" do
+      sql = capture_ddl do
+        schema_define do
+          create_table :test_posts, identity: false do |t|
+            t.string :title
+          end
+        end
+      end
+
+      expect(sql.grep(/IF NOT EXISTS/)).to be_empty
     end
 
     it "is a no-op when the table already exists" do
