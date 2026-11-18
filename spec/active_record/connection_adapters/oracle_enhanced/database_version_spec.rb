@@ -13,6 +13,11 @@ RSpec.describe "OracleEnhancedAdapter::Version" do
     ActiveRecord::Base.establish_connection(CONNECTION_PARAMS)
   end
 
+  def stub_database_version(conn, version_string, full_version_string)
+    allow(conn).to receive(:database_version)
+      .and_return(version_class.new(version_string, full_version_string))
+  end
+
   describe "subclassing" do
     it "is a subclass of AbstractAdapter::Version" do
       expect(version_class.ancestors).to include(ActiveRecord::ConnectionAdapters::AbstractAdapter::Version)
@@ -87,11 +92,6 @@ RSpec.describe "OracleEnhancedAdapter::Version" do
   describe "check_version" do
     let(:conn) { ActiveRecord::Base.connection }
 
-    def stub_database_version(conn, version_string, full_version_string)
-      allow(conn).to receive(:database_version)
-        .and_return(version_class.new(version_string, full_version_string))
-    end
-
     it "declares 11.2 as the minimum supported Oracle Database version" do
       expect(adapter_class::MINIMUM_DATABASE_VERSION).to eq("11.2")
     end
@@ -116,6 +116,30 @@ RSpec.describe "OracleEnhancedAdapter::Version" do
     it "raises DatabaseVersionError for Oracle 10.2 (10gR2)" do
       stub_database_version(conn, "10.2", "10.2.0.5.0")
       expect { conn.check_version }.to raise_error(ActiveRecord::DatabaseVersionError)
+    end
+  end
+
+  describe "supports_fetch_first_with_lock?" do
+    let(:conn) { ActiveRecord::Base.connection }
+
+    it "is true for Oracle 23.26.4" do
+      stub_database_version(conn, "23.26", "23.26.4.0.0")
+      expect(conn.supports_fetch_first_with_lock?).to be true
+    end
+
+    it "is false for Oracle 23.26.3" do
+      stub_database_version(conn, "23.26", "23.26.3.0.0")
+      expect(conn.supports_fetch_first_with_lock?).to be false
+    end
+
+    it "is false for Oracle 23.4" do
+      stub_database_version(conn, "23.4", "23.4.0.24.05")
+      expect(conn.supports_fetch_first_with_lock?).to be false
+    end
+
+    it "is false when the full version is not available" do
+      stub_database_version(conn, "23.26", nil)
+      expect(conn.supports_fetch_first_with_lock?).to be false
     end
   end
 

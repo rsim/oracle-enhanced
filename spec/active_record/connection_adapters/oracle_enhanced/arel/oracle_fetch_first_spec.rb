@@ -66,6 +66,34 @@ RSpec.describe "Arel::Visitors::Oracle with the row limiting clause" do
       expect(second.scan(/ROWNUM/).size).to eq(1)
     end
 
+    context "when the database supports FETCH FIRST with FOR UPDATE" do
+      before(:each) do
+        @visitor = oracle_visitor(fetch_first: true, fetch_first_with_lock: true)
+      end
+
+      it "uses the row limiting clause when limit and lock are combined" do
+        stmt = Arel::Nodes::SelectStatement.new
+        stmt.limit = Arel::Nodes::Limit.new(10)
+        stmt.lock = Arel::Nodes::Lock.new(Arel.sql("FOR UPDATE"))
+        expect(compile(stmt)).to be_like "SELECT FETCH FIRST 10 ROWS ONLY FOR UPDATE"
+      end
+
+      it "uses the row limiting clause when order, limit and lock are combined" do
+        stmt = @table.project(@table[:id]).order(@table[:id]).take(10).lock(Arel.sql("FOR UPDATE SKIP LOCKED")).ast
+        expect(compile(stmt)).to be_like %{
+          SELECT "USERS"."ID" FROM "USERS" ORDER BY "USERS"."ID" FETCH FIRST 10 ROWS ONLY FOR UPDATE SKIP LOCKED
+        }
+      end
+
+      it "uses the row limiting clause for a subquery of a statement that combines limit and lock" do
+        subquery = @table.project(@table[:id]).take(5)
+        stmt = @table.project(Arel.star).where(@table[:id].in(subquery)).take(10).lock.ast
+        sql = compile(stmt)
+        expect(sql.scan(/FETCH FIRST/).size).to eq(2)
+        expect(sql).not_to match(/ROWNUM/)
+      end
+    end
+
     it "defaults to FOR UPDATE when locking" do
       node = Arel::Nodes::Lock.new(Arel.sql("FOR UPDATE"))
       expect(compile(node)).to be_like "FOR UPDATE"

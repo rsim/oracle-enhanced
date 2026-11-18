@@ -150,9 +150,11 @@ end
 module ArelVisitorSpecHelper
   # Arel::Visitors::Oracle that writes LIMIT and OFFSET with the row limiting clause (fetch_first: true)
   # or with ROWNUM (fetch_first: false), whatever the connected server and limit_offset_syntax are.
-  def oracle_visitor(fetch_first:)
+  # fetch_first_with_lock: true keeps the row limiting clause for a limit combined with a lock.
+  def oracle_visitor(fetch_first:, fetch_first_with_lock: false)
     Arel::Visitors::Oracle.new(ActiveRecord::Base.connection).tap do |visitor|
       allow(visitor).to receive(:use_fetch_first_syntax?).and_return(fetch_first)
+      allow(visitor).to receive(:fetch_first_with_lock?).and_return(fetch_first_with_lock)
     end
   end
 end
