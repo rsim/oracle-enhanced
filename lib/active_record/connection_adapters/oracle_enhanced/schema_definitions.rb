@@ -39,22 +39,23 @@ module ActiveRecord
       end
 
       class IndexDefinition < ActiveRecord::ConnectionAdapters::IndexDefinition
-        attr_accessor :parameters, :statement_parameters, :enabled, :tablespace
+        attr_reader :type, :parameters, :statement_parameters, :enabled, :tablespace
 
-        def initialize(table, name, unique, columns, orders, type: nil, parameters: nil, statement_parameters: nil, enabled: true, tablespace: nil)
+        def initialize(*args, type: nil, parameters: nil, statement_parameters: nil, enabled: true, tablespace: nil, **kwargs)
+          super(*args, **kwargs)
+          @type = type
           @parameters = parameters
           @statement_parameters = statement_parameters
           @enabled = enabled
           @tablespace = tablespace
-          super(table, name, unique, columns, orders: orders, type: type)
         end
 
         def disabled?
           !@enabled
         end
 
-        def defined_for?(columns = nil, name: nil, unique: nil, valid: nil, include: nil, nulls_not_distinct: nil, enabled: nil, **options)
-          super(columns, name: name, unique: unique, valid: valid, include: include, nulls_not_distinct: nulls_not_distinct, **options) &&
+        def defined_for?(columns = nil, enabled: nil, **options)
+          super(columns, **options) &&
             (enabled.nil? || self.enabled == enabled)
         end
       end
