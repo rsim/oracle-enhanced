@@ -25,17 +25,7 @@ module ActiveRecord
             statements = o.columns.map { |c| accept c }
             statements << accept(o.primary_keys) if o.primary_keys
 
-            if use_foreign_keys?
-              statements.concat(o.foreign_keys.map { |fk| accept fk })
-            end
-
-            if supports_unique_constraints?
-              statements.concat(o.unique_constraints.map { |uc| accept uc })
-            end
-
-            if supports_check_constraints?
-              statements.concat(o.check_constraints.map { |chk| accept chk })
-            end
+            add_table_constraints!(statements, o)
 
             create_sql << "(#{statements.join(', ')})" if statements.present?
 
@@ -51,6 +41,11 @@ module ActiveRecord
             add_table_options!(create_sql, o)
             create_sql << " AS #{to_sql(o.as)}" if o.as
             create_sql
+          end
+
+          def add_table_constraints!(statements, o)
+            super
+            statements.concat(o.unique_constraints.map { |uc| accept uc })
           end
 
           def default_tablespace_for(type)
