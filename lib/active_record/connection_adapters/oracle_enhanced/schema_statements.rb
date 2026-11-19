@@ -231,28 +231,6 @@ module ActiveRecord
           CreateIndexDefinition.new(index, algorithm, if_not_exists)
         end
 
-        def add_index_options(table_name, column_name, name: nil, if_not_exists: false, internal: false, enabled: true, **options) # :nodoc:
-          options.assert_valid_keys(:unique, :order, :where, :length, :tablespace, :options, :using, :comment)
-
-          column_names = index_column_names(column_name)
-          index_name = name&.to_s || index_name(table_name, column: column_names)
-
-          validate_index_length!(table_name, index_name, internal)
-
-          index = OracleEnhanced::IndexDefinition.new(
-            table_name,
-            index_name,
-            options[:unique] || false,
-            column_names,
-            options[:order] || {},
-            statement_parameters: options[:options],
-            enabled: enabled,
-            tablespace: options[:tablespace] || default_tablespace_for(:index)
-          )
-
-          [index, nil, if_not_exists]
-        end
-
         # Remove the given index from the table.
         # Gives warning if index does not exist
         def remove_index(table_name, column_name = nil, **options) # :nodoc:
@@ -281,7 +259,7 @@ module ActiveRecord
         def index_name(table_name, options) # :nodoc:
           default_name = super(table_name, options).to_s
           # sometimes options can be String or Array with column names
-          options = {} unless options.is_a?(Hash)
+          options = { column: options } unless options.is_a?(Hash)
           identifier_max_length = options[:identifier_max_length] || index_name_length
           return default_name if default_name.bytesize <= identifier_max_length
 
@@ -976,7 +954,6 @@ module ActiveRecord
                     row["index_name"],
                     row["uniqueness"] == "UNIQUE",
                     [],
-                    {},
                     type: row["index_type"] == "DOMAIN" ? "#{row['ityp_owner']}.#{row['ityp_name']}" : nil,
                     parameters: row["parameters"],
                     statement_parameters: statement_parameters,
@@ -1550,6 +1527,23 @@ module ActiveRecord
 
           def create_table_definition(name, **options)
             OracleEnhanced::TableDefinition.new(self, name, **options)
+          end
+
+          def create_index_definition(table_name, name, unique, columns, **options)
+            OracleEnhanced::IndexDefinition.new(table_name, name, unique, columns, **options)
+          end
+
+          def valid_index_options
+            super + [:tablespace, :options, :enabled]
+          end
+
+          def index_definition_options(options)
+            index_options = super.merge!(
+              statement_parameters: options[:options],
+              tablespace: options[:tablespace] || default_tablespace_for(:index),
+            )
+            index_options[:enabled] = options[:enabled] unless options[:enabled].nil?
+            index_options
           end
 
           def new_column_from_field(table_name, field, definitions, slot)

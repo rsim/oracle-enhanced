@@ -144,8 +144,9 @@ module ActiveRecord # :nodoc:
             stream.puts
           end
 
-          def index_parts(index)
-            index_parts = super
+          def add_index_option_parts!(index_parts, index)
+            super
+            index_parts << "enabled: #{index.enabled.inspect}" if index.disabled?
             index_parts << "tablespace: #{index.tablespace.inspect}" if index.tablespace
             index_parts
           end
