@@ -495,7 +495,7 @@ RSpec.describe "OracleEnhancedConnection" do
     before(:all) do
       @schema_conn = ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.new(schema_owner_params)
       @schema_conn.drop_table :schema_probe_table, if_exists: true
-      @schema_conn.create_table :schema_probe_table, id: :integer
+      @schema_conn.create_table :schema_probe_table, id: :integer, identity: false
       @schema_conn.execute "GRANT SELECT ON schema_probe_table TO #{DATABASE_USER}"
 
       ActiveRecord::Base.establish_connection(CONNECTION_WITH_SCHEMA_PARAMS)

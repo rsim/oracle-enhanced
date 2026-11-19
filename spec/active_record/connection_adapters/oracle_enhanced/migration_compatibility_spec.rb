@@ -125,15 +125,49 @@ RSpec.describe "migration compatibility for identity primary keys" do
         expect(identity_column_exists?(:test_identity_pks_no_id, :id)).to be false
       end
 
-      it "skips auto-injection when id: :integer is passed" do
+      [:integer, :bigint, :decimal, { type: :bigint }].each do |id|
+        it "raises for id: #{id.inspect} without identity: false" do
+          expect {
+            run_migration(8.2) do
+              create_table :test_identity_pks, id: id do |t|
+                t.string :name
+              end
+            end
+          }.to raise_error(ArgumentError, /`id: #{Regexp.escape(id.inspect)}` requires a sequence-backed primary key.*Pass `identity: false`.*or remove `id: #{Regexp.escape(id.inspect)}` to use an identity primary key/)
+          expect(@conn.table_exists?(:test_identity_pks)).to be false
+        end
+
+        it "creates a sequence-backed primary key for id: #{id.inspect} with identity: false" do
+          run_migration(8.2) do
+            create_table :test_identity_pks, id: id, identity: false do |t|
+              t.string :name
+            end
+          end
+
+          expect(identity_column_exists?(:test_identity_pks, :id)).to be false
+          expect(sequence_exists?(:test_identity_pks_seq)).to be true
+        end
+      end
+
+      it "names every sequence-only option in the error" do
+        expect {
+          run_migration(8.2) do
+            create_table :test_identity_pks, id: :bigint, sequence_start_value: 10000 do |t|
+              t.string :name
+            end
+          end
+        }.to raise_error(ArgumentError, /`id: :bigint` and `sequence_start_value:` require a sequence-backed primary key.*or remove `id: :bigint` and `sequence_start_value:` to use an identity primary key/)
+      end
+
+      it "skips auto-injection when id: :string is passed" do
         run_migration(8.2) do
-          create_table :test_identity_pks, id: :integer do |t|
+          create_table :test_identity_pks, id: :string do |t|
             t.string :name
           end
         end
 
         expect(identity_column_exists?(:test_identity_pks, :id)).to be false
-        expect(sequence_exists?(:test_identity_pks_seq)).to be true
+        expect(sequence_exists?(:test_identity_pks_seq)).to be false
       end
 
       it "skips auto-injection when a composite primary key is passed" do
@@ -289,7 +323,7 @@ RSpec.describe "migration compatibility for identity primary keys" do
           create_table :test_identity_pks_code, primary_key: "code" do |t|
             t.string :name
           end
-          create_table :test_identity_pks_triggered, primary_key_trigger: true do |t|
+          create_table :test_identity_pks_triggered, primary_key_trigger: true, identity: false do |t|
             t.string :name
           end
         end
@@ -298,7 +332,7 @@ RSpec.describe "migration compatibility for identity primary keys" do
         expect(first).to include('create_table "test_identity_pks", force: :cascade')
         expect(first).to include('create_table "test_identity_pks_seq_backed", identity: false')
         expect(first).to include('create_table "test_identity_pks_code", primary_key: "code"')
-        expect(first).to include('create_table "test_identity_pks_triggered", primary_key_trigger: true')
+        expect(first).to include('create_table "test_identity_pks_triggered", primary_key_trigger: true, identity: false')
 
         schema_define { tables.each { |table| drop_table table } }
         # Load without the version so schema_migrations is left untouched.
@@ -320,9 +354,26 @@ RSpec.describe "migration compatibility for identity primary keys" do
     end
 
     describe "Migration[8.2]+ with explicit Oracle sequence options" do
-      it "treats sequence_name: as opt-out of the identity default" do
+      {
+        sequence_name: "explicit_seq",
+        sequence_start_value: 10000,
+        primary_key_trigger: true,
+      }.each do |option, value|
+        it "raises for #{option}: without identity: false" do
+          expect {
+            run_migration(8.2) do
+              create_table :test_identity_pks, option => value do |t|
+                t.string :name
+              end
+            end
+          }.to raise_error(ArgumentError, /Pass `identity: false`.*or remove .* to use an identity primary key/)
+          expect(@conn.table_exists?(:test_identity_pks)).to be false
+        end
+      end
+
+      it "keeps a sequence-backed primary key for sequence_name: with identity: false" do
         run_migration(8.2) do
-          create_table :test_identity_pks, sequence_name: "explicit_seq" do |t|
+          create_table :test_identity_pks, sequence_name: "explicit_seq", identity: false do |t|
             t.string :name
           end
         end
@@ -333,9 +384,9 @@ RSpec.describe "migration compatibility for identity primary keys" do
         @conn.execute("DROP SEQUENCE explicit_seq") rescue nil
       end
 
-      it "treats sequence_start_value: as opt-out of the identity default" do
+      it "keeps a sequence-backed primary key for sequence_start_value: with identity: false" do
         run_migration(8.2) do
-          create_table :test_identity_pks, sequence_start_value: 10000 do |t|
+          create_table :test_identity_pks, sequence_start_value: 10000, identity: false do |t|
             t.string :name
           end
         end
@@ -344,9 +395,60 @@ RSpec.describe "migration compatibility for identity primary keys" do
         expect(sequence_exists?(:test_identity_pks_seq)).to be true
       end
 
-      it "treats primary_key_trigger: true as opt-out of the identity default" do
+      it "keeps a sequence-backed primary key for primary_key_trigger: true with identity: false" do
         run_migration(8.2) do
-          create_table :test_identity_pks, primary_key_trigger: true do |t|
+          create_table :test_identity_pks, primary_key_trigger: true, identity: false do |t|
+            t.string :name
+          end
+        end
+
+        expect(identity_column_exists?(:test_identity_pks, :id)).to be false
+        expect(sequence_exists?(:test_identity_pks_seq)).to be true
+      end
+
+      describe "reverting drop_table" do
+        before do
+          run_migration(8.1) do
+            create_table :test_identity_pks, sequence_start_value: 10000 do |t|
+              t.string :name
+            end
+          end
+        end
+
+        def drop_table_migration(**options)
+          Class.new(ActiveRecord::Migration[8.2]) do
+            define_method(:change) do
+              drop_table :test_identity_pks, sequence_start_value: 10000, **options do |t|
+                t.string :name
+              end
+            end
+          end.new
+        end
+
+        it "raises on rollback without identity: false" do
+          migration = drop_table_migration
+          ActiveRecord::Migration.suppress_messages { migration.migrate(:up) }
+
+          expect {
+            ActiveRecord::Migration.suppress_messages { migration.migrate(:down) }
+          }.to raise_error(ArgumentError, /Pass `identity: false`/)
+          expect(@conn.table_exists?(:test_identity_pks)).to be false
+        end
+
+        it "recreates the sequence-backed primary key on rollback with identity: false" do
+          migration = drop_table_migration(identity: false)
+          ActiveRecord::Migration.suppress_messages { migration.migrate(:up) }
+          expect(@conn.table_exists?(:test_identity_pks)).to be false
+
+          ActiveRecord::Migration.suppress_messages { migration.migrate(:down) }
+          expect(identity_column_exists?(:test_identity_pks, :id)).to be false
+          expect(sequence_exists?(:test_identity_pks_seq)).to be true
+        end
+      end
+
+      it "still accepts them without identity: false in Migration[8.1]" do
+        run_migration(8.1) do
+          create_table :test_identity_pks, sequence_start_value: 10000 do |t|
             t.string :name
           end
         end
@@ -372,6 +474,22 @@ RSpec.describe "migration compatibility for identity primary keys" do
       expect {
         run_migration(8.2) { create_table :test_identity_pks, identity: true }
       }.to raise_error(ArgumentError, /Oracle Database 12\.1 or higher/)
+    end
+
+    {
+      sequence_start_value: { sequence_start_value: 10000 },
+      primary_key_trigger: { primary_key_trigger: true },
+      id: { id: :bigint },
+    }.each do |option, options|
+      it "Migration[8.2]+ accepts #{option}: without identity: false" do
+        run_migration(8.2) do
+          create_table :test_identity_pks, **options do |t|
+            t.string :name
+          end
+        end
+
+        expect(sequence_exists?(:test_identity_pks_seq)).to be true
+      end
     end
   end
 end
